@@ -1,7 +1,5 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
-import type { VersionService } from '../services/VersionService';
-import type { ProjectService } from '../services/ProjectService';
-import type { FeatureService } from '../services/FeatureService';
+import type { EntityManager } from '../core';
 import type { Version, Project, Feature } from '../types';
 import { generateICS, downloadICS } from '../utils';
 
@@ -14,9 +12,7 @@ export class ExportICSModal extends Modal {
 
   constructor(
     app: App,
-    private versionService: VersionService,
-    private projectService: ProjectService,
-    private featureService: FeatureService
+    private entityManager: EntityManager
   ) {
     super(app);
   }
@@ -26,8 +22,8 @@ export class ExportICSModal extends Modal {
     contentEl.empty();
     contentEl.addClass('pm-modal');
 
-    this.versions = await this.versionService.listVersions();
-    this.projects = await this.projectService.listProjects();
+    this.versions = await this.entityManager.listVersions();
+    this.projects = await this.entityManager.listProjects();
 
     contentEl.createEl('h2', { text: '导出日历 (.ics)' });
 
@@ -103,7 +99,7 @@ export class ExportICSModal extends Modal {
   private renderFilters: () => void = () => {};
 
   private async handleExport(): Promise<void> {
-    let features: Feature[] = await this.featureService.listFeatures();
+    let features: Feature[] = await this.entityManager.listFeatures();
 
     if (this.exportScope === 'version') {
       const versionId = this.selectedVersionId;

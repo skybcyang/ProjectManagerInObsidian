@@ -1,20 +1,20 @@
 import { App, TFile } from 'obsidian';
-import type { VersionService } from '../services/VersionService';
-import type { ProjectService } from '../services/ProjectService';
-import type { FeatureService } from '../services/FeatureService';
-import type { Version, Project, Feature } from '../types';
+import type { EntityManager } from '../../core';
+import type { Version, Project, Feature } from '../../types';
 
 interface BreadcrumbItem {
   label: string;
   path?: string;
 }
 
-export class BreadcrumbRenderer {
+/**
+ * 面包屑导航组件
+ * 在版本/项目/特性文件顶部显示层级导航
+ */
+export class Breadcrumb {
   constructor(
     private app: App,
-    private versionService: VersionService,
-    private projectService: ProjectService,
-    private featureService: FeatureService
+    private entityManager: EntityManager
   ) {}
 
   /**
@@ -72,9 +72,9 @@ export class BreadcrumbRenderer {
     } else if (file.path.startsWith('ProjectManager/Projects/')) {
       const project = await this.parseProjectFile(file);
       if (project) {
-        const versionPath = await this.versionService.getVersionPath(project.versionId);
+        const versionPath = await this.entityManager.getVersionPath(project.versionId);
         if (versionPath) {
-          const version = await this.versionService.getVersion(project.versionId);
+          const version = await this.entityManager.getVersion(project.versionId);
           items.push({
             label: version?.name ?? '未分配版本',
             path: versionPath,
@@ -85,17 +85,17 @@ export class BreadcrumbRenderer {
     } else if (file.path.startsWith('ProjectManager/Features/')) {
       const feature = await this.parseFeatureFile(file);
       if (feature) {
-        const versionPath = await this.versionService.getVersionPath(feature.versionId);
+        const versionPath = await this.entityManager.getVersionPath(feature.versionId);
         if (versionPath) {
-          const version = await this.versionService.getVersion(feature.versionId);
+          const version = await this.entityManager.getVersion(feature.versionId);
           items.push({
             label: version?.name ?? '未分配版本',
             path: versionPath,
           });
         }
-        const projectPath = await this.projectService.getProjectPath(feature.projectId);
+        const projectPath = await this.entityManager.getProjectPath(feature.projectId);
         if (projectPath) {
-          const project = await this.projectService.getProject(feature.projectId);
+          const project = await this.entityManager.getProject(feature.projectId);
           items.push({
             label: project?.name ?? '未分配项目',
             path: projectPath,

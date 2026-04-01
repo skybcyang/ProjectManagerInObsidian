@@ -1,7 +1,6 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import { FEATURE_STATUSES, PRIORITIES } from '../constants';
-import type { VersionService } from '../services/VersionService';
-import type { ProjectService } from '../services/ProjectService';
+import type { EntityManager } from '../core';
 import type { CreateFeatureData, Version, Project } from '../types';
 
 export class CreateFeatureModal extends Modal {
@@ -18,20 +17,17 @@ export class CreateFeatureModal extends Modal {
   private projects: Project[] = [];
   private filteredProjects: Project[] = [];
   private onSubmit: (data: CreateFeatureData) => void;
-  private versionService: VersionService;
-  private projectService: ProjectService;
+  private entityManager: EntityManager;
 
   constructor(
     app: App,
-    versionService: VersionService,
-    projectService: ProjectService,
+    entityManager: EntityManager,
     defaultVersionId: string | null,
     defaultProjectId: string | null,
     onSubmit: (data: CreateFeatureData) => void
   ) {
     super(app);
-    this.versionService = versionService;
-    this.projectService = projectService;
+    this.entityManager = entityManager;
     this.onSubmit = onSubmit;
     if (defaultVersionId) {
       this.result.versionId = defaultVersionId;
@@ -47,8 +43,8 @@ export class CreateFeatureModal extends Modal {
     contentEl.addClass('pm-modal');
 
     // 加载版本和项目列表
-    this.versions = await this.versionService.listVersions();
-    this.projects = await this.projectService.listProjects();
+    this.versions = await this.entityManager.listVersions();
+    this.projects = await this.entityManager.listProjects();
 
     // 检查是否有版本和项目
     if (this.versions.length === 0) {
@@ -225,7 +221,7 @@ export class CreateFeatureModal extends Modal {
 
     // 过滤项目
     this.filteredProjects = this.result.versionId
-      ? this.projects.filter(p => p.versionId === this.result.versionId)
+      ? this.projects.filter((p: Project) => p.versionId === this.result.versionId)
       : this.projects;
 
     this.filteredProjects.forEach(project => {

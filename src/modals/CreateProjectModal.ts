@@ -1,6 +1,6 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import { PROJECT_STATUSES, PRIORITIES } from '../constants';
-import type { VersionService } from '../services/VersionService';
+import type { EntityManager } from '../core';
 import type { CreateProjectData, Version } from '../types';
 
 export class CreateProjectModal extends Modal {
@@ -13,16 +13,16 @@ export class CreateProjectModal extends Modal {
   };
   private versions: Version[] = [];
   private onSubmit: (data: CreateProjectData) => void;
-  private versionService: VersionService;
+  private entityManager: EntityManager;
 
   constructor(
     app: App,
-    versionService: VersionService,
+    entityManager: EntityManager,
     defaultVersionId: string | null,
     onSubmit: (data: CreateProjectData) => void
   ) {
     super(app);
-    this.versionService = versionService;
+    this.entityManager = entityManager;
     this.onSubmit = onSubmit;
     if (defaultVersionId) {
       this.result.versionId = defaultVersionId;
@@ -35,7 +35,7 @@ export class CreateProjectModal extends Modal {
     contentEl.addClass('pm-modal');
 
     // 加载版本列表
-    this.versions = await this.versionService.listVersions();
+    this.versions = await this.entityManager.listVersions();
 
     // 检查是否有版本
     if (this.versions.length === 0) {

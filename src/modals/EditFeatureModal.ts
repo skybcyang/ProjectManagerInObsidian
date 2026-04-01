@@ -1,6 +1,6 @@
 import { App, Modal, Setting } from 'obsidian';
 import { FEATURE_STATUSES, PRIORITIES, getStatusLabel } from '../constants';
-import type { FeatureService } from '../services/FeatureService';
+import type { EntityManager } from '../core';
 import type { Feature, UpdateFeatureData } from '../types';
 import { ConfirmModal } from './ConfirmModal';
 import { needsStatusConfirmation } from '../utils';
@@ -10,17 +10,17 @@ export class EditFeatureModal extends Modal {
   private result: UpdateFeatureData;
   private onSubmit: (data: UpdateFeatureData) => void;
   private onDelete?: () => void;
-  private featureService: FeatureService;
+  private entityManager: EntityManager;
 
   constructor(
     app: App,
-    featureService: FeatureService,
+    entityManager: EntityManager,
     feature: Feature,
     onSubmit: (data: UpdateFeatureData) => void,
     onDelete?: () => void
   ) {
     super(app);
-    this.featureService = featureService;
+    this.entityManager = entityManager;
     this.feature = feature;
     this.onSubmit = onSubmit;
     this.onDelete = onDelete;

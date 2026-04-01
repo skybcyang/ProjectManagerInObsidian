@@ -1,56 +1,39 @@
 import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild } from 'obsidian';
-import { VersionService, ProjectService, FeatureService, InitService, DashboardService } from './services';
-import { KanbanRenderer, ButtonRenderer, ButtonContainer, BreadcrumbRenderer } from './components';
+import { EntityManager } from './core';
+import { CardRegistry, KanbanBoard, SingleCardRenderer, Breadcrumb, Button, ButtonContainer } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
 import { ValidationError, needsStatusConfirmation } from './utils';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
-import type { VersionStatusValue, ProjectStatusValue, FeatureStatusValue } from './constants';
 import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature } from './types';
+import type { KanbanConfig } from './ui';
+import type { SingleCardConfig } from './ui';
 
 export default class ProjectManagerPlugin extends Plugin {
-  private versionService: VersionService;
-  private projectService: ProjectService;
-  private featureService: FeatureService;
-  private initService: InitService;
-  private dashboardService: DashboardService;
-  private kanbanRenderer: KanbanRenderer;
-  private buttonRenderer: ButtonRenderer;
-  private breadcrumbRenderer: BreadcrumbRenderer;
+  private entityManager: EntityManager;
+  private cardRegistry: CardRegistry;
+  private kanbanBoard: KanbanBoard;
+  private singleCardRenderer: SingleCardRenderer;
+  private breadcrumb: Breadcrumb;
+  private button: Button;
 
   async onload(): Promise<void> {
-    // 初始化服务
-    this.versionService = new VersionService(this.app);
-    this.projectService = new ProjectService(this.app);
-    this.featureService = new FeatureService(this.app);
-    this.initService = new InitService(this.app);
-    this.dashboardService = new DashboardService(this.app);
+    // 初始化核心层
+    this.entityManager = new EntityManager(this.app);
     
-    // 初始化渲染器
-    this.kanbanRenderer = new KanbanRenderer(
-      this.app,
-      this.versionService,
-      this.projectService,
-      this.featureService
-    );
-    this.buttonRenderer = new ButtonRenderer(
-      this.app,
-      this.versionService,
-      this.projectService,
-      this.featureService,
-      this.dashboardService
-    );
-    this.breadcrumbRenderer = new BreadcrumbRenderer(
-      this.app,
-      this.versionService,
-      this.projectService,
-      this.featureService
-    );
+    // 初始化 UI 层
+    this.cardRegistry = CardRegistry.createDefault();
+    this.kanbanBoard = new KanbanBoard(this.app, this.entityManager, this.cardRegistry);
+    this.singleCardRenderer = new SingleCardRenderer(this.app, this.entityManager, this.cardRegistry);
+    this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
+    this.button = new Button(this.app, this.entityManager);
 
     // 注册代码块处理器：pm-kanban
     this.registerMarkdownCodeBlockProcessor('pm-kanban', this.processKanbanBlock.bind(this));
 
+    // 注册代码块处理器：pm-card
+    this.registerMarkdownCodeBlockProcessor('pm-card', this.processCardBlock.bind(this));
+
     // 注册 post-processor：处理 pm-btn 按钮
-    // 使用较高优先级确保在其他处理器之后运行
     this.registerMarkdownPostProcessor((el, ctx) => {
       this.processButtons(el, ctx);
     }, 100);
@@ -122,15 +105,13 @@ export default class ProjectManagerPlugin extends Plugin {
     // 监听 layout-change 事件来处理按钮
     this.registerEvent(
       this.app.workspace.on('layout-change', () => {
-        // 延迟执行确保 DOM 已更新
         setTimeout(() => {
           const activeLeaf = this.app.workspace.activeLeaf;
           if (activeLeaf && activeLeaf.view) {
             const view = activeLeaf.view;
-            // 尝试获取容器元素
             const container = (view as any).contentEl || (view as any).containerEl;
             if (container) {
-              this.buttonRenderer.processButtons(container);
+              this.button.processButtons(container);
             }
           }
         }, 100);
@@ -146,16 +127,16 @@ export default class ProjectManagerPlugin extends Plugin {
 
   /**
    * 打开总览页面
-   * 如果未初始化，先初始化
    */
   private async openDashboard(): Promise<void> {
-    const initialized = await this.initService.isInitialized();
+    const { InitService } = await import('./services/InitService');
+    const initService = new InitService(this.app);
     
+    const initialized = await initService.isInitialized();
     if (!initialized) {
-      await this.initService.initialize();
+      await initService.initialize();
     }
-    
-    await this.initService.openDashboard();
+    await initService.openDashboard();
   }
 
   /**
@@ -167,8 +148,8 @@ export default class ProjectManagerPlugin extends Plugin {
     ctx: MarkdownPostProcessorContext
   ): Promise<void> {
     try {
-      const config = parseYaml(source) || {};
-      await this.kanbanRenderer.render(el, config);
+      const config = (parseYaml(source) || {}) as KanbanConfig;
+      await this.kanbanBoard.render(el, config);
     } catch (error) {
       el.createEl('div', {
         text: `看板配置错误: ${(error as Error).message}`,
@@ -178,20 +159,34 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   /**
+   * 处理 pm-card 代码块
+   */
+  private async processCardBlock(
+    source: string,
+    el: HTMLElement,
+    ctx: MarkdownPostProcessorContext
+  ): Promise<void> {
+    try {
+      const config = (parseYaml(source) || {}) as SingleCardConfig;
+      await this.singleCardRenderer.render(el, config);
+    } catch (error) {
+      el.createEl('div', {
+        text: `卡片配置错误: ${(error as Error).message}`,
+        cls: 'pm-error',
+      });
+    }
+  }
+
+  /**
    * 处理按钮
    */
   private processButtons(el: HTMLElement, ctx: MarkdownPostProcessorContext): void {
-    // 检查是否有按钮
     const buttons = el.querySelectorAll('.pm-btn[data-action]');
     if (buttons.length === 0) return;
 
-    console.log('处理按钮:', buttons.length);
-    
-    // 处理按钮
-    this.buttonRenderer.processButtons(el);
-    
-    // 添加容器来保持事件监听
-    const container = new ButtonContainer(el, this.buttonRenderer);
+    this.button.processButtons(el);
+
+    const container = new ButtonContainer(el, this.button);
     ctx.addChild(container);
   }
 
@@ -206,17 +201,14 @@ export default class ProjectManagerPlugin extends Plugin {
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
     if (!(file instanceof TFile)) return;
 
-    // 使用 containerEl 来插入面包屑
     const containerEl = (ctx as any).containerEl as HTMLElement | undefined;
     if (!containerEl) return;
 
-    // 只在处理第一个可见元素时触发，避免重复调用
     const firstEl = containerEl.querySelector(':scope > *');
     if (firstEl !== el) return;
 
-    // 延迟执行，确保容器已准备好
     setTimeout(() => {
-      this.breadcrumbRenderer.renderForFile(file, containerEl);
+      this.breadcrumb.renderForFile(file, containerEl);
     }, 0);
   }
 
@@ -266,7 +258,7 @@ export default class ProjectManagerPlugin extends Plugin {
    */
   private showVersionStatusMenu(file: TFile): void {
     const menu = new (require('obsidian').Menu)();
-    
+
     for (const status of VERSION_STATUSES) {
       menu.addItem((item: any) => {
         item.setTitle(status.label);
@@ -284,7 +276,7 @@ export default class ProjectManagerPlugin extends Plugin {
    */
   private showProjectStatusMenu(file: TFile): void {
     const menu = new (require('obsidian').Menu)();
-    
+
     for (const status of PROJECT_STATUSES) {
       menu.addItem((item: any) => {
         item.setTitle(status.label);
@@ -337,17 +329,16 @@ export default class ProjectManagerPlugin extends Plugin {
     const id = cache?.frontmatter?.id;
     if (!id) return;
 
-    const feature = await this.featureService.getFeature(String(id));
+    const feature = await this.entityManager.getFeature(String(id));
     if (!feature) return;
 
     new EditFeatureModal(
       this.app,
-      this.featureService,
+      this.entityManager,
       feature,
       async (data) => {
         try {
-          await this.featureService.updateFeature(feature.id, data);
-          await this.dashboardService.updateLastModified();
+          await this.entityManager.updateFeature(feature.id, data);
         } catch (error) {
           if (error instanceof ValidationError) {
             console.error('验证失败:', (error as ValidationError).message);
@@ -358,8 +349,7 @@ export default class ProjectManagerPlugin extends Plugin {
       },
       async () => {
         try {
-          await this.featureService.deleteFeature(feature.id);
-          await this.dashboardService.updateLastModified();
+          await this.entityManager.deleteFeature(feature.id);
         } catch (error) {
           console.error('删除特性失败:', error);
         }
@@ -372,12 +362,7 @@ export default class ProjectManagerPlugin extends Plugin {
    */
   private async changeFileStatus(file: TFile, newStatus: string): Promise<void> {
     const content = await this.app.vault.read(file);
-    
-    // 替换 frontmatter 中的 status
-    const newContent = content.replace(
-      /^(status:\s*)\S+$/m,
-      `$1${newStatus}`
-    );
+    const newContent = content.replace(/^(status:\s*)\S+$/m, `$1${newStatus}`);
 
     if (content !== newContent) {
       await this.app.vault.modify(file, newContent);
@@ -392,11 +377,7 @@ export default class ProjectManagerPlugin extends Plugin {
       this.app,
       async (data: CreateVersionData) => {
         try {
-          await this.versionService.createVersion(data);
-          
-          // 更新总览页面
-          await this.dashboardService.updateLastModified();
-          
+          await this.entityManager.createVersion(data);
           new (require('obsidian').Notice)('版本创建成功', 3000);
         } catch (error) {
           if (error instanceof ValidationError) {
@@ -415,15 +396,11 @@ export default class ProjectManagerPlugin extends Plugin {
   private openCreateProjectModal(): void {
     new CreateProjectModal(
       this.app,
-      this.versionService,
+      this.entityManager,
       null,
       async (data: CreateProjectData) => {
         try {
-          await this.projectService.createProject(data);
-          
-          // 更新总览页面
-          await this.dashboardService.updateLastModified();
-          
+          await this.entityManager.createProject(data);
           new (require('obsidian').Notice)('项目创建成功', 3000);
         } catch (error) {
           if (error instanceof ValidationError) {
@@ -442,17 +419,12 @@ export default class ProjectManagerPlugin extends Plugin {
   private openCreateFeatureModal(): void {
     new CreateFeatureModal(
       this.app,
-      this.versionService,
-      this.projectService,
+      this.entityManager,
       null,
       null,
       async (data: CreateFeatureData) => {
         try {
-          await this.featureService.createFeature(data);
-          
-          // 更新总览页面
-          await this.dashboardService.updateLastModified();
-          
+          await this.entityManager.createFeature(data);
           new (require('obsidian').Notice)('特性创建成功', 3000);
         } catch (error) {
           if (error instanceof ValidationError) {
@@ -469,11 +441,6 @@ export default class ProjectManagerPlugin extends Plugin {
    * 导出 ICS 文件
    */
   private exportICS(): void {
-    new ExportICSModal(
-      this.app,
-      this.versionService,
-      this.projectService,
-      this.featureService
-    ).open();
+    new ExportICSModal(this.app, this.entityManager).open();
   }
 }
