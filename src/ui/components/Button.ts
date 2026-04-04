@@ -26,6 +26,10 @@ export class Button {
       const action = button.getAttribute('data-action');
       if (!action) return;
 
+      // 获取预填充参数
+      const versionId = button.getAttribute('data-version-id');
+      const projectId = button.getAttribute('data-project-id');
+
       // 确保按钮样式正确
       (button as HTMLElement).style.cursor = 'pointer';
       (button as HTMLElement).style.pointerEvents = 'auto';
@@ -34,7 +38,7 @@ export class Button {
       button.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-        this.handleAction(action);
+        this.handleAction(action, versionId, projectId);
       });
 
       // 添加已处理标记
@@ -45,16 +49,20 @@ export class Button {
   /**
    * 处理按钮动作
    */
-  private async handleAction(action: string): Promise<void> {
+  private async handleAction(
+    action: string, 
+    versionId: string | null = null, 
+    projectId: string | null = null
+  ): Promise<void> {
     switch (action) {
       case 'create-version':
         await this.handleCreateVersion();
         break;
       case 'create-project':
-        await this.handleCreateProject();
+        await this.handleCreateProject(versionId);
         break;
       case 'create-feature':
-        await this.handleCreateFeature();
+        await this.handleCreateFeature(versionId, projectId);
         break;
       case 'export-ics':
         await this.handleExportICS();
@@ -81,8 +89,9 @@ export class Button {
 
   /**
    * 创建项目
+   * @param defaultVersionId - 预填充的版本ID（从版本页面点击时传入）
    */
-  private async handleCreateProject(): Promise<void> {
+  private async handleCreateProject(defaultVersionId: string | null = null): Promise<void> {
     const versions = await this.entityManager.listVersions();
     if (versions.length === 0) {
       this.showNotice('请先创建版本后再创建项目', 3000);
@@ -92,7 +101,7 @@ export class Button {
     new CreateProjectModal(
       this.app,
       this.entityManager,
-      null,
+      defaultVersionId,
       async (data) => {
         try {
           await this.entityManager.createProject(data);
@@ -107,8 +116,13 @@ export class Button {
 
   /**
    * 创建特性
+   * @param defaultVersionId - 预填充的版本ID（从版本/项目页面点击时传入）
+   * @param defaultProjectId - 预填充的项目ID（从项目页面点击时传入）
    */
-  private async handleCreateFeature(): Promise<void> {
+  private async handleCreateFeature(
+    defaultVersionId: string | null = null,
+    defaultProjectId: string | null = null
+  ): Promise<void> {
     const versions = await this.entityManager.listVersions();
     const projects = await this.entityManager.listProjects();
 
@@ -125,8 +139,8 @@ export class Button {
     new CreateFeatureModal(
       this.app,
       this.entityManager,
-      null,
-      null,
+      defaultVersionId,
+      defaultProjectId,
       async (data) => {
         try {
           await this.entityManager.createFeature(data);

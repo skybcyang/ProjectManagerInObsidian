@@ -1,254 +1,321 @@
-import { App } from 'obsidian';
-import { FileSystem } from '../filesystem';
-import { generateId } from '../../utils/idGenerator';
+import { BaseStore } from './BaseStore';
+import { FileSystem } from '../filesystem/FileSystem';
 import type { Project, CreateProjectData, UpdateProjectData } from '../../types';
+import { App } from 'obsidian';
 
-/**
- * 项目存储类
- * 负责项目实体的 CRUD 操作
- */
-export class ProjectStore {
+export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdateProjectData> {
   private readonly FOLDER = 'ProjectManager/Projects';
 
-  constructor(
-    private fs: FileSystem,
-    private app: App
-  ) {}
+  constructor(fs: FileSystem, app: App) {
+    super(fs, app);
+  }
 
-  /**
-   * 创建项目
-   */
-  async create(data: CreateProjectData): Promise<Project> {
-    if (!data.versionId) {
-      throw new Error('项目必须关联版本');
+  private async writeTemplate(path: string, template: string): Promise<void> {
+    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
+    if (yamlMatch) {
+      const yamlLines = yamlMatch[1].split('\n');
+      const frontmatter: Record<string, unknown> = {};
+      for (const line of yamlLines) {
+        const match = line.match(/^([^:]+):\s*(.*)$/);
+        if (match) {
+          const [, key, value] = match;
+          if (value.startsWith('[') && value.endsWith(']')) {
+            frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
+          } else {
+            frontmatter[key] = value;
+          }
+        }
+      }
+      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
     }
+  }
 
-    await this.fs.ensureFolder(this.FOLDER);
-
-    const id = generateId();
+  async create(data: CreateProjectData): Promise<Project> {
+    const id = this.generateId('proj');
     const project: Project = {
       id,
       name: data.name,
       versionId: data.versionId,
-      status: data.status ?? 'backlog',
+      status: data.status || 'backlog',
       owner: data.owner,
-      priority: data.priority ?? 'medium',
-      tags: data.tags ?? [],
+      priority: data.priority || 'medium',
+      tags: data.tags || [],
     };
 
-    const path = await this.fs.ensureUniquePath(this.buildPath(project));
-    await this.fs.writeFile(path, project as unknown as Record<string, unknown>, this.generateTemplate(project));
-    
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.writeTemplate(path, this.generateTemplate(project));
     return project;
   }
 
-  /**
-   * 更新项目
-   */
-  async update(id: string, data: UpdateProjectData): Promise<Project | null> {
-    const found = await this.getWithPath(id);
-    if (!found) return null;
-    const { project, path: oldPath } = found;
-
-    const updated: Project = {
-      ...project,
-      ...data,
-      tags: data.tags ?? project.tags,
-    };
-
-    const newPath = await this.fs.ensureUniquePath(this.buildPath(updated));
-
-    const existing = await this.fs.readFile(oldPath);
-    const content = existing?.content ?? '';
-
-    if (oldPath !== newPath) {
-      await this.fs.writeFile(newPath, updated as unknown as Record<string, unknown>, content);
-      await this.fs.deleteFile(oldPath);
-    } else {
-      await this.fs.writeFile(newPath, updated as unknown as Record<string, unknown>, content);
+  async update(id: string, data: UpdateProjectData): Promise<Project> {
+    const existing = await this.getById(id);
+    if (!existing) {
+      throw new Error(`项目 ${id} 不存在`);
     }
 
+    const updated: Project = {
+      ...existing,
+      ...data,
+    };
+
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.writeTemplate(path, this.generateTemplate(updated));
     return updated;
   }
 
-  /**
-   * 删除项目
-   */
   async delete(id: string): Promise<boolean> {
-    const found = await this.getWithPath(id);
-    if (!found) return false;
-
-    await this.fs.deleteFile(found.path);
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.fs.deleteFile(path);
     return true;
   }
 
-  /**
-   * 根据 ID 获取项目
-   */
   async getById(id: string): Promise<Project | null> {
-    const found = await this.getWithPath(id);
-    return found?.project ?? null;
+    const projects = await this.list();
+    return projects.find(p => p.id === id) || null;
   }
 
   /**
-   * 根据 ID 获取项目文件路径
+   * 根据ID获取文件路径
    */
-  async getPath(id: string): Promise<string | null> {
-    const found = await this.getWithPath(id);
-    return found?.path ?? null;
+  getPath(id: string): string {
+    return `${this.FOLDER}/${id}.md`;
   }
 
-  /**
-   * 列出所有项目
-   */
   async list(filters?: { versionId?: string }): Promise<Project[]> {
     const files = this.fs.listFiles(this.FOLDER);
-    const projects: Project[] = [];
+    let projects: Project[] = [];
 
     for (const file of files) {
-      const data = await this.fs.readFile(file.path);
-      if (data) {
-        const project = this.parseProject(data.frontmatter);
-        if (project) {
-          if (filters?.versionId && project.versionId !== filters.versionId) continue;
-          projects.push(project);
-        }
+      const fileData = await this.fs.readFile(file.path);
+      if (fileData?.frontmatter?.id) {
+        projects.push(fileData.frontmatter as unknown as Project);
       }
     }
 
-    return projects;
+    // 应用过滤器
+    if (filters?.versionId) {
+      projects = projects.filter(p => p.versionId === filters.versionId);
+    }
+
+    return projects.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  /**
-   * 检查项目是否存在
-   */
-  async exists(id: string): Promise<boolean> {
-    return (await this.getWithPath(id)) !== null;
+  async listByVersion(versionId: string): Promise<Project[]> {
+    const all = await this.list();
+    return all.filter(p => p.versionId === versionId);
   }
 
-  /**
-   * 将关联特性的 projectId 置空
-   * 用于删除项目前的清理
-   */
+  async hasFeatures(projectId: string): Promise<boolean> {
+    const features = await this.app.vault.getMarkdownFiles();
+    const featureFolder = 'ProjectManager/Features';
+    
+    for (const file of features) {
+      if (!file.path.startsWith(featureFolder)) continue;
+      
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (metadata?.frontmatter?.projectId === projectId) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   async orphanFeatures(projectId: string): Promise<void> {
-    const featureFiles = this.fs.listFiles('ProjectManager/Features');
-    for (const file of featureFiles) {
-      const data = await this.fs.readFile(file.path);
-      if (data && data.frontmatter.projectId === projectId) {
-        const cache = this.app.metadataCache.getFileCache(file);
-        const fm = cache?.frontmatter;
-        if (fm) {
-          const updatedFrontmatter = { ...fm, projectId: '' };
-          await this.fs.writeFile(file.path, updatedFrontmatter, data.content);
-        }
+    const features = await this.app.vault.getMarkdownFiles();
+    const featureFolder = 'ProjectManager/Features';
+    
+    for (const file of features) {
+      if (!file.path.startsWith(featureFolder)) continue;
+      
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (metadata?.frontmatter?.projectId === projectId) {
+        // 将特性标记为孤儿（版本和项目ID清空）
+        const content = await this.app.vault.read(file);
+        const updatedContent = content.replace(
+          /projectId:.*$/m,
+          'projectId: ""'
+        );
+        await this.app.vault.modify(file, updatedContent);
       }
     }
   }
 
-  /**
-   * 获取项目及其路径
-   */
-  private async getWithPath(id: string): Promise<{ project: Project; path: string } | null> {
-    const file = this.fs.findById(this.FOLDER, id);
-    if (!file) return null;
-
-    const data = await this.fs.readFile(file.path);
-    if (!data) return null;
-
-    const project = this.parseProject(data.frontmatter);
-    if (!project) return null;
-
-    return { project, path: file.path };
-  }
-
-  /**
-   * 构建文件路径
-   */
-  private buildPath(project: Project): string {
-    return `${this.FOLDER}/${this.fs.sanitizeFileName(project.name)}.md`;
-  }
-
-  /**
-   * 解析 frontmatter 为 Project 对象
-   */
-  private parseProject(frontmatter: Record<string, unknown>): Project | null {
-    if (!frontmatter.id || !frontmatter.name || !frontmatter.status) {
-      return null;
-    }
-    return {
-      id: String(frontmatter.id),
-      name: String(frontmatter.name),
-      versionId: String(frontmatter.versionId ?? ''),
-      status: String(frontmatter.status) as Project['status'],
-      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
-      priority: String(frontmatter.priority ?? 'medium') as Project['priority'],
-      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+  private getPriorityEmoji(priority: string): string {
+    const emojiMap: Record<string, string> = {
+      critical: '🔴',
+      high: '🟠',
+      medium: '🔵',
+      low: '🟢',
     };
+    return emojiMap[priority] || '⚪';
   }
 
-  /**
-   * 生成项目文件模板
-   */
   private generateTemplate(project: Project): string {
-    const priorityEmoji = { critical: '🔴', high: '🟠', medium: '🔵', low: '🟢' }[project.priority] || '⚪';
-
-    return `# ${priorityEmoji} ${project.name}
-
-> 项目 ID: ${project.id} | 状态: ${project.status} | 优先级: ${project.priority}
-
+    const priorityEmoji = this.getPriorityEmoji(project.priority);
+    
+    return `---
+${this.yamlFrontmatter(project)}
 ---
+
+# ${priorityEmoji} ${project.name}
+
+<!-- 项目元数据已在上方 YAML 中定义 -->
 
 ## 📋 项目概览
 
-<!-- 在此描述项目的背景、目标和范围 -->
+<!-- 简要描述项目背景、目标和范围 -->
 
----
+## 🚦 阶段状态
 
-## 📊 进度统计
+### 阶段 1: 开工准备
+- [ ] 需求对齐完成
+- [ ] 技术方案确定
+- [ ] 资源到位确认
+- **开工日期**: <!-- 记录实际开工日期 -->
+
+### 阶段 2: 开发进行
+- [ ] 设计稿确认
+- [ ] 核心功能开发
+- [ ] 代码评审通过
+- **当前进度**: 0%
+
+### 阶段 3: 联调测试
+- [ ] 前后端联调
+- [ ] 测试用例评审
+- [ ] Bug 修复完成
+- **阻塞问题**: <!-- 记录联调阻塞问题 -->
+
+### 阶段 4: 验收交付
+- [ ] 产品验收
+- [ ] 文档齐全确认
+- [ ] 上线检查完成
+- **验收日期**: <!-- 记录实际验收日期 -->
+
+## 📊 特性进度汇总
 
 \`\`\`dataviewjs
 const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
 const total = features.length;
-const completed = features.filter(f => f.status === 'completed').length;
-const inProgress = features.filter(f => f.status === 'in-progress' || f.status === 'testing').length;
-const avgProgress = total > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / total) : 0;
 
-dv.el('div', \`
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700;">\${total}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">总特性</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--text-success);">\${completed}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">已完成</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--text-accent);">\${inProgress}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">进行中</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--interactive-accent);">\${avgProgress}%</div>
-    <div style="font-size: 11px; color: var(--text-muted);">平均进度</div>
-  </div>
-</div>
-\`);
+if (total === 0) {
+  dv.paragraph("> 📋 暂无关联特性");
+} else {
+  const completed = features.filter(f => f.status === 'completed').length;
+  const inProgress = features.filter(f => f.status === 'in-progress').length;
+  const testing = features.filter(f => f.status === 'testing').length;
+  const todo = features.filter(f => f.status === 'todo' || f.status === 'backlog').length;
+  const progress = Math.round((completed / total) * 100);
+  
+  dv.paragraph(
+    "> 📈 **总进度: " + progress + "%** (" + completed + "/" + total + ")\\n\\n" +
+    "> | 状态 | 数量 |\\n" +
+    "> |------|------|\\n" +
+    "> | ✅ 已完成 | " + completed + " |\\n" +
+    "> | 🔄 开发中 | " + inProgress + " |\\n" +
+    "> | 🧪 测试中 | " + testing + " |\\n" +
+    "> | 📋 待处理 | " + todo + " |"
+  );
+}
 \`\`\`
+
+### 特性列表
+\`\`\`dataviewjs
+const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
+if (features.length > 0) {
+  dv.table(
+    ["特性", "状态", "优先级", "进度", "负责人", "截止日期"],
+    features.map(f => [
+      "[[" + f.file.path + "|" + f.name + "]]",
+      f.status,
+      f.priority,
+      f.progress + "%",
+      f.owner || "-",
+      f.dueDate || "-"
+    ])
+  );
+} else {
+  dv.paragraph("> 📋 暂无特性");
+}
+\`\`\`
+
+## ⚠️ 风险跟踪
+
+| 风险项 | 等级 | 应对措施 | 负责人 | 状态 |
+|--------|------|----------|--------|------|
+| <!-- 描述风险 --> | 高/中/低 | <!-- 应对措施 --> | <!-- 负责人 --> | 开放/已解决 |
+
+## 🔗 关联版本
+
+\`\`\`dataviewjs
+const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "${project.versionId}");
+if (versions.length > 0) {
+  dv.paragraph("> 📦 所属版本: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
+} else {
+  dv.paragraph("> ⚠️ 未关联版本");
+}
+\`\`\`
+
+## 🔧 快捷操作
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="${project.id}" data-version-id="${project.versionId}">✨ 新建特性</span>
 
 ---
 
-## 📁 关联特性
+## 📎 关联展示
 
-\`\`\`dataview
-TABLE status, priority, progress + "%" as "进度"
-FROM "ProjectManager/Features"
-WHERE projectId = "${project.id}"
-SORT priority DESC
+### 使用 pm-card 展示本项目级联状态
+
+在当前页面插入以下代码块，即可展示本项目的完整特性列表：
+
+\`\`\`markdown
+\`\`\`pm-card
+id: ${project.id}
+expanded: true
 \`\`\`
 
----
+### 展示所属版本级联
 
-*项目文件由 Project Manager 插件自动生成*
+如需展示本项目所属版本的完整级联状态：
+
+\`\`\`markdown
+\`\`\`pm-card
+id: ${project.versionId}
+expanded: true
+\`\`\`
+
+### 展示特定特性
+
+如需展示本项目下某个特定特性的卡片：
+
+\`\`\`markdown
+\`\`\`pm-card
+id: feat001
+\`\`\`
+
+> 💡 提示：将 \\"feat001\\" 替换为实际的特性ID
+
+---
+*创建于: ${new Date().toLocaleString('zh-CN')}*
 `;
+  }
+
+  private yamlFrontmatter(project: Project): string {
+    const lines = [
+      `id: ${project.id}`,
+      `name: ${project.name}`,
+      `versionId: ${project.versionId}`,
+      `status: ${project.status}`,
+      `priority: ${project.priority}`,
+    ];
+
+    if (project.owner) {
+      lines.push(`owner: ${project.owner}`);
+    }
+    if (project.tags && project.tags.length > 0) {
+      lines.push(`tags: [${project.tags.join(', ')}]`);
+    }
+
+    return lines.join('\n');
   }
 }

@@ -1,259 +1,310 @@
-import { App } from 'obsidian';
-import { FileSystem } from '../filesystem';
-import { generateId } from '../../utils/idGenerator';
+import { BaseStore } from './BaseStore';
+import { FileSystem } from '../filesystem/FileSystem';
 import type { Version, CreateVersionData, UpdateVersionData } from '../../types';
+import { App } from 'obsidian';
 
-/**
- * 版本存储类
- * 负责版本实体的 CRUD 操作
- */
-export class VersionStore {
+export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVersionData> {
   private readonly FOLDER = 'ProjectManager/Versions';
 
-  constructor(
-    private fs: FileSystem,
-    private app: App
-  ) {}
+  constructor(fs: FileSystem, app: App) {
+    super(fs, app);
+  }
 
-  /**
-   * 创建版本
-   */
+  private async writeTemplate(path: string, template: string): Promise<void> {
+    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
+    if (yamlMatch) {
+      const yamlLines = yamlMatch[1].split('\n');
+      const frontmatter: Record<string, unknown> = {};
+      for (const line of yamlLines) {
+        const match = line.match(/^([^:]+):\s*(.*)$/);
+        if (match) {
+          const [, key, value] = match;
+          if (value.startsWith('[') && value.endsWith(']')) {
+            frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
+          } else {
+            frontmatter[key] = value;
+          }
+        }
+      }
+      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
+    }
+  }
+
   async create(data: CreateVersionData): Promise<Version> {
-    await this.fs.ensureFolder(this.FOLDER);
-
-    const id = generateId();
+    const id = this.generateId('ver');
     const version: Version = {
       id,
       name: data.name,
-      status: data.status ?? 'planning',
+      status: data.status || 'planning',
       owner: data.owner,
       startDate: data.startDate,
       endDate: data.endDate,
-      tags: data.tags ?? [],
+      tags: data.tags || [],
     };
 
-    const path = await this.fs.ensureUniquePath(this.buildPath(version));
-    await this.fs.writeFile(path, version as unknown as Record<string, unknown>, this.generateTemplate(version));
-    
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.writeTemplate(path, this.generateTemplate(version));
     return version;
   }
 
-  /**
-   * 更新版本
-   */
-  async update(id: string, data: UpdateVersionData): Promise<Version | null> {
-    const found = await this.getWithPath(id);
-    if (!found) return null;
-    const { version, path: oldPath } = found;
-
-    const updated: Version = {
-      ...version,
-      ...data,
-      tags: data.tags ?? version.tags,
-    };
-
-    const newPath = await this.fs.ensureUniquePath(this.buildPath(updated));
-
-    const existing = await this.fs.readFile(oldPath);
-    const content = existing?.content ?? '';
-
-    if (oldPath !== newPath) {
-      await this.fs.writeFile(newPath, updated as unknown as Record<string, unknown>, content);
-      await this.fs.deleteFile(oldPath);
-    } else {
-      await this.fs.writeFile(newPath, updated as unknown as Record<string, unknown>, content);
+  async update(id: string, data: UpdateVersionData): Promise<Version> {
+    const existing = await this.getById(id);
+    if (!existing) {
+      throw new Error(`版本 ${id} 不存在`);
     }
 
+    const updated: Version = {
+      ...existing,
+      ...data,
+    };
+
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.writeTemplate(path, this.generateTemplate(updated));
     return updated;
   }
 
-  /**
-   * 删除版本
-   */
   async delete(id: string): Promise<boolean> {
-    const found = await this.getWithPath(id);
-    if (!found) return false;
-    
-    await this.fs.deleteFile(found.path);
+    const path = `${this.FOLDER}/${id}.md`;
+    await this.fs.deleteFile(path);
     return true;
   }
 
-  /**
-   * 根据 ID 获取版本
-   */
   async getById(id: string): Promise<Version | null> {
-    const found = await this.getWithPath(id);
-    return found?.version ?? null;
+    const versions = await this.list();
+    return versions.find(v => v.id === id) || null;
   }
 
   /**
-   * 根据 ID 获取版本文件路径
+   * 根据ID获取文件路径
    */
-  async getPath(id: string): Promise<string | null> {
-    const found = await this.getWithPath(id);
-    return found?.path ?? null;
+  getPath(id: string): string {
+    return `${this.FOLDER}/${id}.md`;
   }
 
-  /**
-   * 列出所有版本
-   */
   async list(): Promise<Version[]> {
     const files = this.fs.listFiles(this.FOLDER);
     const versions: Version[] = [];
 
     for (const file of files) {
-      const data = await this.fs.readFile(file.path);
-      if (data) {
-        const version = this.parseVersion(data.frontmatter);
-        if (version) versions.push(version);
+      const fileData = await this.fs.readFile(file.path);
+      if (fileData?.frontmatter?.id) {
+        versions.push(fileData.frontmatter as unknown as Version);
       }
     }
 
-    return versions;
+    return versions.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  /**
-   * 检查版本是否存在
-   */
-  async exists(id: string): Promise<boolean> {
-    return (await this.getWithPath(id)) !== null;
-  }
-
-  /**
-   * 检查版本下是否有关联项目
-   */
   async hasProjects(versionId: string): Promise<boolean> {
-    const projectFiles = this.fs.listFiles('ProjectManager/Projects');
-    for (const file of projectFiles) {
-      const data = await this.fs.readFile(file.path);
-      if (data && data.frontmatter.versionId === versionId) {
+    const projects = await this.app.vault.getMarkdownFiles();
+    const projectFolder = 'ProjectManager/Projects';
+    
+    for (const file of projects) {
+      if (!file.path.startsWith(projectFolder)) continue;
+      
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (metadata?.frontmatter?.versionId === versionId) {
         return true;
       }
     }
+    
     return false;
   }
 
-  /**
-   * 获取版本及其路径
-   */
-  private async getWithPath(id: string): Promise<{ version: Version; path: string } | null> {
-    const file = this.fs.findById(this.FOLDER, id);
-    if (!file) return null;
-
-    const data = await this.fs.readFile(file.path);
-    if (!data) return null;
-
-    const version = this.parseVersion(data.frontmatter);
-    if (!version) return null;
-
-    return { version, path: file.path };
-  }
-
-  /**
-   * 构建文件路径
-   */
-  private buildPath(version: Version): string {
-    return `${this.FOLDER}/${this.fs.sanitizeFileName(version.name)}.md`;
-  }
-
-  /**
-   * 解析 frontmatter 为 Version 对象
-   */
-  private parseVersion(frontmatter: Record<string, unknown>): Version | null {
-    if (!frontmatter.id || !frontmatter.name || !frontmatter.status) {
-      return null;
-    }
-    return {
-      id: String(frontmatter.id),
-      name: String(frontmatter.name),
-      status: String(frontmatter.status) as Version['status'],
-      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
-      startDate: frontmatter.startDate ? String(frontmatter.startDate) : undefined,
-      endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
-      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
-    };
-  }
-
-  /**
-   * 生成版本文件模板
-   */
   private generateTemplate(version: Version): string {
-    const today = new Date().toISOString().split('T')[0];
-
-    return `# 📦 ${version.name}
-
-> 版本 ID: ${version.id} | 状态: ${version.status}
-
+    return `---
+${this.yamlFrontmatter(version)}
 ---
+
+# 📦 ${version.name}
+
+<!-- 版本元数据已在上方 YAML 中定义 -->
 
 ## 🎯 版本目标
 
 <!-- 描述本版本的核心目标和预期成果 -->
 
-### 关键指标
+## 🗓️ IPD 里程碑
 
-- [ ] 指标1: 描述
-- [ ] 指标2: 描述
-- [ ] 指标3: 描述
+### 1. 概念阶段 (Concept)
+- [ ] 市场需求分析完成
+- [ ] 竞品分析报告
+- [ ] 可行性评估
+- **风险**: <!-- 记录本阶段识别的风险 -->
 
----
+### 2. 计划阶段 (Plan)
+- [ ] 需求评审会议
+- [ ] 技术方案评审
+- [ ] 资源与排期评估
+- **风险**: 
 
-## 📊 进度概览
+### 3. 开发阶段 (Develop)
+- [ ] 设计稿确认
+- [ ] 核心功能开发完成
+- [ ] 单元测试通过
+- **风险**: 
+
+### 4. 验证阶段 (Qualify)
+- [ ] 集成测试通过
+- [ ] 系统测试通过
+- [ ] 验收测试通过
+- **风险**: 
+
+### 5. 发布阶段 (Launch)
+- [ ] 发布评审会议
+- [ ] 生产环境部署
+- [ ] 用户培训与文档
+- **风险**: 
+
+## 📊 进度与风险汇总
+
+### 项目概览
+\`\`\`dataviewjs
+const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "${version.id}");
+const totalProjects = projects.length;
+const completedProjects = projects.filter(p => p.status === 'completed').length;
+const inProgressProjects = projects.filter(p => p.status === 'in-progress').length;
+
+if (totalProjects === 0) {
+  dv.paragraph("> ⚠️ 暂无关联项目");
+} else {
+  const progress = Math.round((completedProjects / totalProjects) * 100);
+  dv.paragraph(
+    "> 📈 项目进度: **" + completedProjects + "/" + totalProjects + "** 完成 (" + progress + "%)\\n\\n" +
+    "> - ✅ 已完成: " + completedProjects + "\\n" +
+    "> - 🔄 进行中: " + inProgressProjects + "\\n" +
+    "> - ⏳ 待开始: " + (totalProjects - completedProjects - inProgressProjects)
+  );
+}
+\`\`\`
+
+### 特性概览
+\`\`\`dataviewjs
+const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");
+const totalFeatures = features.length;
+const completedFeatures = features.filter(f => f.status === 'completed').length;
+const inProgressFeatures = features.filter(f => f.status === 'in-progress').length;
+const testingFeatures = features.filter(f => f.status === 'testing').length;
+
+if (totalFeatures === 0) {
+  dv.paragraph("> ⚠️ 暂无关联特性");
+} else {
+  const progress = Math.round((completedFeatures / totalFeatures) * 100);
+  dv.paragraph(
+    "> 📊 特性进度: **" + completedFeatures + "/" + totalFeatures + "** 完成 (" + progress + "%)\\n\\n" +
+    "> - ✅ 已完成: " + completedFeatures + "\\n" +
+    "> - 🔄 开发中: " + inProgressFeatures + "\\n" +
+    "> - 🧪 测试中: " + testingFeatures + "\\n" +
+    "> - 📋 待处理: " + (totalFeatures - completedFeatures - inProgressFeatures - testingFeatures)
+  );
+}
+\`\`\`
+
+### 延期风险
+\`\`\`dataviewjs
+const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");
+const now = new Date();
+const atRisk = features.filter(f => {
+  if (!f.dueDate || f.status === 'completed') return false;
+  const due = new Date(f.dueDate);
+  const diffDays = Math.floor((due - now) / (1000 * 60 * 60 * 24));
+  return diffDays < 0 || (diffDays <= 3 && f.progress < 80);
+});
+
+if (atRisk.length === 0) {
+  dv.paragraph("> ✅ 暂无延期风险");
+} else {
+  dv.paragraph("> ⚠️ **发现 " + atRisk.length + " 个存在延期风险的特性:**\\n");
+  atRisk.forEach(f => {
+    const due = f.dueDate ? new Date(f.dueDate) : null;
+    const diffDays = due ? Math.floor((due - now) / (1000 * 60 * 60 * 24)) : null;
+    const status = diffDays < 0 ? "🔴 已延期" : (diffDays <= 3 ? "🟡 即将到期" : "");
+    dv.paragraph("> - [[" + f.file.path + "|" + f.name + "]] - " + status);
+  });
+}
+\`\`\`
+
+## ⚠️ 风险跟踪
+
+| 风险项 | 等级 | 应对措施 | 负责人 | 状态 |
+|--------|------|----------|--------|------|
+| <!-- 风险描述 --> | 高/中/低 | <!-- 应对措施 --> | <!-- 负责人 --> | 开放/已解决 |
+
+## 📁 关联项目
 
 \`\`\`dataviewjs
 const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "${version.id}");
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");
-const completed = features.filter(f => f.status === 'completed').length;
-const progress = features.length > 0 ? Math.round((completed / features.length) * 100) : 0;
-
-dv.el('div', \`
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700;">\${projects.length}</div>
-    <div style="font-size: 12px; color: var(--text-muted);">关联项目</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700;">\${features.length}</div>
-    <div style="font-size: 12px; color: var(--text-muted);">总特性</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700; color: var(--interactive-accent);">\${progress}%</div>
-    <div style="font-size: 12px; color: var(--text-muted);">完成进度</div>
-  </div>
-</div>
-\`);
+if (projects.length > 0) {
+  dv.table(
+    ["项目", "状态", "优先级", "负责人"],
+    projects.map(p => [
+      "[[" + p.file.path + "|" + p.name + "]]",
+      p.status,
+      p.priority,
+      p.owner || "-"
+    ])
+  );
+} else {
+  dv.paragraph("> 📋 暂无项目");
+}
 \`\`\`
 
----
+## 🔧 快捷操作
 
-## 🗓️ 里程碑
-
-### 里程碑1: 规划完成
-- [x] 需求收集
-- [x] 技术方案
-- [ ] 资源分配
-
-### 里程碑2: 开发完成
-- [ ] 核心功能开发
-- [ ] 单元测试
-- [ ] 代码审查
-
-### 里程碑3: 发布上线
-- [ ] 集成测试
-- [ ] 文档更新
-- [ ] 正式发布
+<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="${version.id}">📁 新建项目</span>
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="${version.id}">✨ 新建特性</span>
 
 ---
 
-## 📝 变更日志
+## 📎 关联展示
 
-| 日期 | 变更内容 | 负责人 |
-|------|---------|--------|
-| ${today} | 版本创建 | ${version.owner || '-'} |
+### 使用 pm-card 展示本版本级联状态
+
+在当前页面插入以下代码块，即可展示本版本的完整项目树：
+
+\`\`\`markdown
+\`\`\`pm-card
+id: ${version.id}
+expanded: true
+\`\`\`
+
+### 展示特定项目级联
+
+如需展示本版本下某个特定项目的级联状态，使用项目ID：
+
+\`\`\`markdown
+\`\`\`pm-card
+id: proj001
+expanded: true
+\`\`\`
+
+> 💡 提示：将 \\"proj001\\" 替换为实际的项目ID
 
 ---
-
-*版本文件由 Project Manager 插件自动生成*
+*创建于: ${new Date().toLocaleString('zh-CN')}*
 `;
+  }
+
+  private yamlFrontmatter(version: Version): string {
+    const lines = [
+      `id: ${version.id}`,
+      `name: ${version.name}`,
+      `status: ${version.status}`,
+    ];
+
+    if (version.owner) {
+      lines.push(`owner: ${version.owner}`);
+    }
+    if (version.startDate) {
+      lines.push(`startDate: ${version.startDate}`);
+    }
+    if (version.endDate) {
+      lines.push(`endDate: ${version.endDate}`);
+    }
+    if (version.tags && version.tags.length > 0) {
+      lines.push(`tags: [${version.tags.join(', ')}]`);
+    }
+
+    return lines.join('\n');
   }
 }

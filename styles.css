@@ -7,6 +7,13 @@
    CSS Variables
    ---------------------------------------- */
 :root {
+  /* PluginInteractions shared semantic tokens */
+  --pi-color-success: var(--text-success, #16a34a);
+  --pi-color-error: var(--text-error, #dc2626);
+  --pi-color-warning: var(--text-warning, #f59e0b);
+  --pi-color-info: var(--text-accent, #2563eb);
+  --pi-color-muted: var(--text-muted, #64748b);
+
   /* Spacing */
   --pm-space-xs: 4px;
   --pm-space-sm: 6px;
@@ -206,7 +213,7 @@
 }
 
 .pm-card--feature[data-priority="critical"] { border-left-color: var(--text-error); }
-.pm-card--feature[data-priority="high"] { border-left-color: #f97316; }
+.pm-card--feature[data-priority="high"] { border-left-color: var(--pi-color-warning); }
 .pm-card--feature[data-priority="medium"] { border-left-color: var(--text-accent); }
 .pm-card--feature[data-priority="low"] { border-left-color: var(--text-success); }
 
@@ -277,23 +284,23 @@
 }
 
 .pm-badge--priority-critical {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--pi-color-error) 12%, transparent);
+  color: var(--pi-color-error);
 }
 
 .pm-badge--priority-high {
-  background: rgba(249, 115, 22, 0.12);
-  color: #ea580c;
+  background: color-mix(in srgb, var(--pi-color-warning) 12%, transparent);
+  color: var(--pi-color-warning);
 }
 
 .pm-badge--priority-medium {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
+  background: color-mix(in srgb, var(--pi-color-info) 12%, transparent);
+  color: var(--pi-color-info);
 }
 
 .pm-badge--priority-low {
-  background: rgba(34, 197, 94, 0.12);
-  color: #16a34a;
+  background: color-mix(in srgb, var(--pi-color-success) 12%, transparent);
+  color: var(--pi-color-success);
 }
 
 .pm-badge--version {
@@ -658,6 +665,17 @@
   filter: brightness(1.1);
 }
 
+.pm-btn--secondary {
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border-color: var(--background-modifier-border);
+}
+
+.pm-btn--secondary:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 .pm-btn--ghost {
   background: transparent;
   border-color: transparent;
@@ -810,6 +828,682 @@
 }
 
 /* ----------------------------------------
+   Date Picker Styles
+   ---------------------------------------- */
+.pm-date-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pm-space-sm);
+  width: 100%;
+}
+
+.pm-date-picker {
+  padding: 6px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--pm-radius-md);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: var(--font-interface);
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
+  width: 100%;
+  max-width: 200px;
+}
+
+.pm-date-picker:hover {
+  border-color: var(--background-modifier-border-hover);
+}
+
+.pm-date-picker:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+/* 日期选择器日历弹窗样式 */
+.pm-date-picker::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--pm-transition-fast);
+  filter: var(--calendar-picker-filter, none);
+}
+
+.pm-date-picker::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* 快捷日期按钮 */
+.pm-date-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pm-space-xs);
+  margin-top: var(--pm-space-xs);
+}
+
+.pm-date-quick__btn {
+  padding: 3px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--pm-radius-sm);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
+}
+
+.pm-date-quick__btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
+/* ----------------------------------------
+   Status Colors for Feature Workflow
+   ---------------------------------------- */
+.pm-status--not-started {
+  color: var(--text-muted);
+}
+
+.pm-status--in-progress {
+  color: var(--text-accent);
+}
+
+.pm-status--completed {
+  color: var(--text-success);
+}
+
+.pm-status--failed,
+.pm-status--rejected {
+  color: var(--text-error);
+}
+
+.pm-status--pending {
+  color: var(--text-warning);
+}
+
+/* 表格状态标记 */
+.pm-table-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.pm-table-status--done {
+  background: color-mix(in srgb, var(--pi-color-success) 12%, transparent);
+  color: var(--pi-color-success);
+}
+
+.pm-table-status--in-progress {
+  background: color-mix(in srgb, var(--pi-color-info) 12%, transparent);
+  color: var(--pi-color-info);
+}
+
+.pm-table-status--todo {
+  background: color-mix(in srgb, var(--pi-color-muted) 12%, transparent);
+  color: var(--pi-color-muted);
+}
+
+.pm-table-status--blocked {
+  background: color-mix(in srgb, var(--pi-color-error) 12%, transparent);
+  color: var(--pi-color-error);
+}
+
+/* ----------------------------------------
+   Cascade Card Styles
+   ---------------------------------------- */
+
+/* 级联卡片容器 */
+.pm-card--cascade {
+  padding: 16px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--pm-radius-lg);
+}
+
+/* 头部 */
+.pm-cascade__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 可点击头部 */
+.pm-cascade__header--clickable {
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
+  border-radius: var(--pm-radius-md);
+  margin: -8px;
+  padding: 8px;
+  border-bottom: none;
+}
+
+.pm-cascade__header--clickable:hover {
+  background: var(--background-modifier-hover);
+}
+
+.pm-cascade__header--clickable:active {
+  transform: scale(0.995);
+}
+
+.pm-cascade__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-cascade__status {
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+}
+
+.pm-cascade__status--completed {
+  background: color-mix(in srgb, var(--pi-color-success) 12%, transparent);
+  color: var(--pi-color-success);
+}
+
+.pm-cascade__status--in-progress {
+  background: color-mix(in srgb, var(--pi-color-info) 12%, transparent);
+  color: var(--pi-color-info);
+}
+
+.pm-cascade__status--planning,
+.pm-cascade__status--backlog,
+.pm-cascade__status--todo {
+  background: color-mix(in srgb, var(--pi-color-muted) 12%, transparent);
+  color: var(--pi-color-muted);
+}
+
+/* 统计摘要 */
+.pm-cascade__summary {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-radius: var(--pm-radius-md);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pm-cascade__summary-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 整体进度条 */
+.pm-cascade__main-progress {
+  flex: 1;
+  height: 8px;
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 12px;
+  max-width: 200px;
+}
+
+.pm-cascade__main-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--interactive-accent) 0%, hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) + 10%)) 100%);
+  border-radius: 4px;
+  transition: width var(--pm-transition-slow);
+}
+
+.pm-cascade__main-progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* 项目列表 */
+.pm-cascade__projects {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 项目条目 */
+.pm-cascade__project {
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: var(--pm-radius-md);
+  border-left: 3px solid var(--interactive-accent);
+  transition: all var(--pm-transition-fast);
+}
+
+.pm-cascade__project:hover {
+  background: var(--background-modifier-hover);
+  transform: translateX(2px);
+}
+
+.pm-cascade__project-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pm-cascade__icon {
+  font-size: 14px;
+}
+
+.pm-cascade__project-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+/* 迷你进度条 */
+.pm-cascade__mini-progress {
+  width: 50px;
+  height: 4px;
+  background: var(--background-modifier-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pm-cascade__mini-progress-fill {
+  height: 100%;
+  background: var(--interactive-accent);
+  border-radius: 2px;
+  transition: width var(--pm-transition-slow);
+}
+
+.pm-cascade__progress-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* 项目统计 */
+.pm-cascade__project-stats {
+  margin-bottom: 8px;
+  padding-left: 22px;
+}
+
+.pm-cascade__stats-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 特性列表（嵌套在项目内） */
+.pm-cascade__features {
+  margin-left: 22px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--background-modifier-border);
+}
+
+/* 特性列表（项目级联视图） */
+.pm-cascade__features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 特性分组 */
+.pm-cascade__feature-group {
+  padding: 8px 0;
+}
+
+.pm-cascade__group-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  display: inline-block;
+}
+
+.pm-cascade__group-title--in-progress {
+  background: color-mix(in srgb, var(--pi-color-info) 10%, transparent);
+  color: var(--pi-color-info);
+}
+
+.pm-cascade__group-title--testing {
+  background: color-mix(in srgb, var(--pi-color-warning) 10%, transparent);
+  color: var(--pi-color-warning);
+}
+
+.pm-cascade__group-title--todo,
+.pm-cascade__group-title--backlog {
+  background: color-mix(in srgb, var(--pi-color-muted) 10%, transparent);
+  color: var(--pi-color-muted);
+}
+
+.pm-cascade__group-title--completed {
+  background: color-mix(in srgb, var(--pi-color-success) 10%, transparent);
+  color: var(--pi-color-success);
+}
+
+/* 特性条目 */
+.pm-cascade__feature {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 12px;
+  transition: background var(--pm-transition-fast);
+}
+
+.pm-cascade__feature:hover {
+  background: var(--background-modifier-hover);
+}
+
+.pm-cascade__feature-priority {
+  font-size: 10px;
+}
+
+.pm-cascade__feature-icon {
+  font-size: 12px;
+}
+
+.pm-cascade__feature-name-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pm-cascade__feature-name {
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-cascade__feature-latest-progress {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
+
+.pm-cascade__feature-latest-progress:hover {
+  color: var(--text-accent);
+}
+
+.pm-cascade__feature-progress {
+  font-size: 11px;
+  color: var(--text-accent);
+  font-weight: 500;
+  min-width: 32px;
+  text-align: right;
+}
+
+.pm-cascade__feature-due {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+.pm-cascade__feature-due--overdue {
+  color: var(--text-error);
+  font-weight: 600;
+}
+
+.pm-cascade__feature-due--upcoming {
+  color: var(--pi-color-warning);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--pi-color-warning) 10%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.pm-cascade__feature-due--completed {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.pm-cascade__feature-owner {
+  font-size: 10px;
+  color: var(--text-accent);
+}
+
+/* 更多提示 */
+.pm-cascade__more,
+.pm-cascade__more-features {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pm-cascade__more {
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px dashed var(--background-modifier-border);
+}
+
+.pm-cascade__more-features {
+  padding-left: 22px;
+}
+
+/* 风险标记 */
+.pm-cascade__risk-high {
+  color: var(--text-error);
+  font-weight: 600;
+}
+
+.pm-cascade__risk-medium {
+  color: var(--pi-color-warning);
+  font-weight: 500;
+}
+
+.pm-cascade__risk-low {
+  color: var(--text-success);
+}
+
+/* ----------------------------------------
+   Progress Notification
+   ---------------------------------------- */
+.pm-progress-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: var(--pm-radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--pm-shadow-lg);
+  animation: pm-notification-in 0.3s ease;
+  z-index: 1000;
+}
+
+.pm-progress-notification--success {
+  background: color-mix(in srgb, var(--pi-color-success) 90%, transparent);
+  color: white;
+}
+
+.pm-progress-notification--error {
+  background: color-mix(in srgb, var(--pi-color-error) 90%, transparent);
+  color: white;
+}
+
+@keyframes pm-notification-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----------------------------------------
+   Progress Input Component
+   ---------------------------------------- */
+.pm-progress-input-container {
+  margin: var(--pm-space-md) 0;
+  padding: var(--pm-space-md);
+  background: var(--background-secondary);
+  border-radius: var(--pm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.pm-progress-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--pm-radius-md);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: var(--font-interface);
+  transition: all var(--pm-transition-fast);
+}
+
+.pm-progress-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.pm-progress-input::placeholder {
+  color: var(--text-muted);
+}
+
+.pm-progress-history {
+  margin-top: var(--pm-space-md);
+  padding-top: var(--pm-space-md);
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.pm-progress-history-item {
+  padding: var(--pm-space-sm) 0;
+  font-size: 13px;
+  border-bottom: 1px dashed var(--background-modifier-border);
+}
+
+.pm-progress-history-item:last-child {
+  border-bottom: none;
+}
+
+.pm-progress-history-time {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-monospace);
+}
+
+/* ----------------------------------------
+   Risk Tracking Styles
+   ---------------------------------------- */
+.pm-risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--pm-space-md) 0;
+}
+
+.pm-risk-table th,
+.pm-risk-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 13px;
+}
+
+.pm-risk-table th {
+  background: var(--background-secondary);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pm-risk-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pm-risk-level--high {
+  background: color-mix(in srgb, var(--pi-color-error) 12%, transparent);
+  color: var(--pi-color-error);
+}
+
+.pm-risk-level--medium {
+  background: color-mix(in srgb, var(--pi-color-warning) 12%, transparent);
+  color: var(--pi-color-warning);
+}
+
+.pm-risk-level--low {
+  background: color-mix(in srgb, var(--pi-color-success) 12%, transparent);
+  color: var(--pi-color-success);
+}
+
+/* ----------------------------------------
+   Milestone Timeline
+   ---------------------------------------- */
+.pm-milestone {
+  margin: var(--pm-space-lg) 0;
+}
+
+.pm-milestone__header {
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-sm);
+  margin-bottom: var(--pm-space-md);
+}
+
+.pm-milestone__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.pm-milestone__phase {
+  padding: var(--pm-space-md);
+  margin-bottom: var(--pm-space-md);
+  background: var(--background-primary);
+  border-radius: var(--pm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.pm-milestone__phase-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: var(--pm-space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-sm);
+}
+
+.pm-milestone__tasks {
+  margin: var(--pm-space-sm) 0;
+}
+
+.pm-milestone__tasks li {
+  margin: var(--pm-space-xs) 0;
+  font-size: 13px;
+}
+
+/* ----------------------------------------
    Responsive
    ---------------------------------------- */
 @media (max-width: 600px) {
@@ -839,6 +1533,15 @@
   .pm-feature-header {
     padding: 16px;
   }
+  
+  /* 日期选择器移动端适配 */
+  .pm-date-picker {
+    max-width: 100%;
+  }
+  
+  .pm-date-quick {
+    justify-content: flex-start;
+  }
 }
 
 /* ----------------------------------------
@@ -855,7 +1558,8 @@
     page-break-inside: avoid;
   }
   
-  .pm-btn {
+  .pm-btn,
+  .pm-date-quick {
     display: none;
   }
   
@@ -902,4 +1606,117 @@
   color: var(--text-muted);
   font-size: 11px;
   opacity: 0.7;
+}
+
+/* ----------------------------------------
+   Entity Selector Component
+   ---------------------------------------- */
+.pm-entity-selector {
+  margin: var(--pm-space-lg) 0;
+}
+
+.pm-entity-selector__container {
+  margin-bottom: var(--pm-space-md);
+}
+
+.pm-entity-selector__dropdown {
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  height: auto;
+  min-height: 36px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--pm-radius-md);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
+  appearance: menulist;
+}
+
+.pm-entity-selector__dropdown:hover {
+  border-color: var(--interactive-accent);
+}
+
+.pm-entity-selector__dropdown:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.pm-entity-selector__card {
+  margin-top: var(--pm-space-md);
+}
+
+.pm-entity-selector__card-container {
+  animation: pm-fade-in 0.2s ease;
+}
+
+.pm-entity-selector__loading {
+  padding: var(--pm-space-xl);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pm-entity-selector__empty {
+  padding: var(--pm-space-2xl);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-radius: var(--pm-radius-lg);
+  border: 1px dashed var(--background-modifier-border);
+}
+
+.pm-entity-selector__hint {
+  margin-top: var(--pm-space-md);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@keyframes pm-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ----------------------------------------
+   Grid Block Styles
+   ---------------------------------------- */
+
+.pm-grid-block {
+  padding: var(--pm-space-lg);
+  background: var(--background-secondary);
+  border-radius: var(--pm-radius-lg);
+}
+
+.pm-grid-block__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pm-space-lg);
+  padding-bottom: var(--pm-space-md);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-grid-block__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-sm);
+}
+
+.pm-grid-block__actions {
+  display: flex;
+  gap: var(--pm-space-sm);
 }

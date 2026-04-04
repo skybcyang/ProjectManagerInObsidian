@@ -1,5 +1,6 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import { PROJECT_STATUSES, PRIORITIES } from '../constants';
+import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { CreateProjectData, Version } from '../types';
 
@@ -111,6 +112,7 @@ export class CreateProjectModal extends Modal {
       .setDesc('（可选）')
       .addText(text => text
         .setPlaceholder('例如：张三')
+        .setValue(this.result.owner || '')
         .onChange(value => {
           this.result.owner = value || undefined;
         }));
@@ -121,15 +123,24 @@ export class CreateProjectModal extends Modal {
       .setDesc('用逗号分隔多个标签（可选）')
       .addText(text => text
         .setPlaceholder('例如：前端, 重要')
+        .setValue(this.result.tags?.join(', ') || '')
         .onChange(value => {
           this.result.tags = value
             ? value.split(',').map(t => t.trim()).filter(t => t.length > 0)
             : [];
         }));
 
-    // 按钮
+    // 按钮区域
     const buttonContainer = contentEl.createDiv({ cls: 'pm-modal__buttons' });
     
+    // 填入示例按钮
+    const exampleButton = buttonContainer.createEl('button', { 
+      text: '填入示例',
+      cls: 'pm-btn--secondary',
+    });
+    exampleButton.style.marginRight = 'auto';
+    exampleButton.addEventListener('click', () => this.fillExample());
+
     const cancelButton = buttonContainer.createEl('button', { text: '取消' });
     cancelButton.addEventListener('click', () => this.close());
 
@@ -149,6 +160,23 @@ export class CreateProjectModal extends Modal {
       this.onSubmit(this.result);
       this.close();
     });
+  }
+
+  /**
+   * 填入示例数据
+   */
+  private fillExample(): void {
+    this.result = {
+      name: '官网重构项目',
+      versionId: this.versions.length > 0 ? this.versions[0].id : '',
+      status: 'backlog',
+      priority: 'high',
+      owner: '李四',
+      tags: ['前端', '设计', '官网'],
+    };
+    
+    // 重新渲染
+    this.onOpen();
   }
 
   onClose(): void {

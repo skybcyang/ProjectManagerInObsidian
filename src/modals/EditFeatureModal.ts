@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from 'obsidian';
 import { FEATURE_STATUSES, PRIORITIES, getStatusLabel } from '../constants';
+import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { Feature, UpdateFeatureData } from '../types';
 import { ConfirmModal } from './ConfirmModal';
@@ -11,6 +12,10 @@ export class EditFeatureModal extends Modal {
   private onSubmit: (data: UpdateFeatureData) => void;
   private onDelete?: () => void;
   private entityManager: EntityManager;
+  
+  // 用于存储输入元素引用
+  private dueDateInput: HTMLInputElement | null = null;
+  private dueDateSetting: Setting | null = null;
 
   constructor(
     app: App,
@@ -104,15 +109,32 @@ export class EditFeatureModal extends Modal {
           this.result.progress = value;
         }));
 
-    // 截止日期
-    new Setting(contentEl)
+    // 截止日期 - 使用日历选择器
+    this.dueDateSetting = new Setting(contentEl)
       .setName('截止日期')
-      .addText(text => text
-        .setPlaceholder('YYYY-MM-DD')
-        .setValue(this.result.dueDate || '')
-        .onChange(value => {
-          this.result.dueDate = value || undefined;
-        }));
+      .setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
+    
+    this.dueDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.dueDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.dueDateInput.value = this.result.dueDate || '';
+      this.dueDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.dueDate = value || undefined;
+        this.dueDateSetting?.setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
+      });
+      
+      // 快捷按钮
+      this.createQuickDateButtons(div, (date) => {
+        this.result.dueDate = date;
+        if (this.dueDateInput) {
+          this.dueDateInput.value = date;
+        }
+        this.dueDateSetting?.setDesc(formatDateDisplay(date));
+      });
+    });
 
     // 负责人
     new Setting(contentEl)
@@ -171,6 +193,43 @@ export class EditFeatureModal extends Modal {
       }
       this.onSubmit(this.result);
       this.close();
+    });
+  }
+
+  /**
+   * 创建快捷日期按钮
+   */
+  private createQuickDateButtons(
+    container: HTMLElement,
+    onSelect: (date: string) => void
+  ): void {
+    const quickContainer = container.createDiv({ cls: 'pm-date-quick' });
+    
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const formatDate = (date: Date): string => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const buttons = [
+      { label: '今天', date: formatDate(today) },
+      { label: '明天', date: formatDate(tomorrow) },
+      { label: '一周后', date: formatDate(nextWeek) },
+      { label: '一月后', date: formatDate(nextMonth) },
+    ];
+
+    buttons.forEach(({ label, date }) => {
+      const btn = quickContainer.createEl('button', {
+        text: label,
+        cls: 'pm-date-quick__btn',
+      });
+      btn.addEventListener('click', () => onSelect(date));
     });
   }
 

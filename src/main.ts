@@ -1,6 +1,7 @@
 import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild } from 'obsidian';
 import { EntityManager } from './core';
-import { CardRegistry, KanbanBoard, SingleCardRenderer, Breadcrumb, Button, ButtonContainer } from './ui';
+import { CardRegistry, KanbanBoard, SingleCardRenderer, Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer, EntitySelector, GridRenderer } from './ui';
+import type { EntitySelectorConfig, GridConfig } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
 import { ValidationError, needsStatusConfirmation } from './utils';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
@@ -13,8 +14,11 @@ export default class ProjectManagerPlugin extends Plugin {
   private cardRegistry: CardRegistry;
   private kanbanBoard: KanbanBoard;
   private singleCardRenderer: SingleCardRenderer;
+  private entitySelector: EntitySelector;
   private breadcrumb: Breadcrumb;
   private button: Button;
+  private progressInput: ProgressInput;
+  private gridRenderer: GridRenderer;
 
   async onload(): Promise<void> {
     // 初始化核心层
@@ -24,8 +28,11 @@ export default class ProjectManagerPlugin extends Plugin {
     this.cardRegistry = CardRegistry.createDefault();
     this.kanbanBoard = new KanbanBoard(this.app, this.entityManager, this.cardRegistry);
     this.singleCardRenderer = new SingleCardRenderer(this.app, this.entityManager, this.cardRegistry);
+    this.entitySelector = new EntitySelector(this.app, this.entityManager, this.singleCardRenderer);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
+    this.progressInput = new ProgressInput(this.app);
+    this.gridRenderer = new GridRenderer(this.app, this.entityManager, this.cardRegistry);
 
     // 注册代码块处理器：pm-kanban
     this.registerMarkdownCodeBlockProcessor('pm-kanban', this.processKanbanBlock.bind(this));
@@ -33,9 +40,20 @@ export default class ProjectManagerPlugin extends Plugin {
     // 注册代码块处理器：pm-card
     this.registerMarkdownCodeBlockProcessor('pm-card', this.processCardBlock.bind(this));
 
+    // 注册代码块处理器：pm-selector
+    this.registerMarkdownCodeBlockProcessor('pm-selector', this.processSelectorBlock.bind(this));
+
+    // 注册代码块处理器：pm-grid
+    this.registerMarkdownCodeBlockProcessor('pm-grid', this.processGridBlock.bind(this));
+
     // 注册 post-processor：处理 pm-btn 按钮
     this.registerMarkdownPostProcessor((el, ctx) => {
       this.processButtons(el, ctx);
+    }, 100);
+
+    // 注册 post-processor：处理进展输入框
+    this.registerMarkdownPostProcessor((el, ctx) => {
+      this.processProgressInputs(el, ctx);
     }, 100);
 
     // 注册 post-processor：渲染面包屑导航
@@ -112,6 +130,7 @@ export default class ProjectManagerPlugin extends Plugin {
             const container = (view as any).contentEl || (view as any).containerEl;
             if (container) {
               this.button.processButtons(container);
+              this.progressInput.processInputs(container);
             }
           }
         }, 100);
@@ -178,6 +197,47 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   /**
+   * 处理 pm-grid 代码块
+   */
+  private async processGridBlock(
+    source: string,
+    el: HTMLElement,
+    ctx: MarkdownPostProcessorContext
+  ): Promise<void> {
+    try {
+      const config = (parseYaml(source) || {}) as GridConfig;
+      await this.gridRenderer.render(el, config);
+    } catch (error) {
+      el.createEl('div', {
+        text: `网格配置错误: ${(error as Error).message}`,
+        cls: 'pm-error',
+      });
+    }
+  }
+
+  /**
+   * 处理 pm-selector 代码块
+   */
+  private async processSelectorBlock(
+    source: string,
+    el: HTMLElement,
+    ctx: MarkdownPostProcessorContext
+  ): Promise<void> {
+    console.log('[processSelectorBlock] 处理 pm-selector, source:', source);
+    try {
+      const config = (parseYaml(source) || {}) as EntitySelectorConfig;
+      console.log('[processSelectorBlock] 解析配置:', config);
+      await this.entitySelector.render(el, config);
+    } catch (error) {
+      console.error('[processSelectorBlock] 错误:', error);
+      el.createEl('div', {
+        text: `选择器配置错误: ${(error as Error).message}`,
+        cls: 'pm-error',
+      });
+    }
+  }
+
+  /**
    * 处理按钮
    */
   private processButtons(el: HTMLElement, ctx: MarkdownPostProcessorContext): void {
@@ -187,6 +247,19 @@ export default class ProjectManagerPlugin extends Plugin {
     this.button.processButtons(el);
 
     const container = new ButtonContainer(el, this.button);
+    ctx.addChild(container);
+  }
+
+  /**
+   * 处理进展输入
+   */
+  private processProgressInputs(el: HTMLElement, ctx: MarkdownPostProcessorContext): void {
+    const inputs = el.querySelectorAll('.pm-progress-input');
+    if (inputs.length === 0) return;
+
+    this.progressInput.processInputs(el);
+
+    const container = new ProgressInputContainer(el, this.progressInput);
     ctx.addChild(container);
   }
 

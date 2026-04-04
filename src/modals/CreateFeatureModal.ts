@@ -1,5 +1,6 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import { FEATURE_STATUSES, PRIORITIES } from '../constants';
+import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { CreateFeatureData, Version, Project } from '../types';
 
@@ -18,6 +19,10 @@ export class CreateFeatureModal extends Modal {
   private filteredProjects: Project[] = [];
   private onSubmit: (data: CreateFeatureData) => void;
   private entityManager: EntityManager;
+  
+  // 用于存储输入元素引用
+  private dueDateInput: HTMLInputElement | null = null;
+  private dueDateSetting: Setting | null = null;
 
   constructor(
     app: App,
@@ -150,15 +155,32 @@ export class CreateFeatureModal extends Modal {
           this.result.progress = value;
         }));
 
-    // 截止日期
-    new Setting(contentEl)
+    // 截止日期 - 使用日历选择器
+    this.dueDateSetting = new Setting(contentEl)
       .setName('截止日期')
-      .setDesc('（可选）')
-      .addText(text => text
-        .setPlaceholder('YYYY-MM-DD')
-        .onChange(value => {
-          this.result.dueDate = value || undefined;
-        }));
+      .setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
+    
+    this.dueDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.dueDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.dueDateInput.value = this.result.dueDate || '';
+      this.dueDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.dueDate = value || undefined;
+        this.dueDateSetting?.setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
+      });
+      
+      // 快捷按钮
+      this.createQuickDateButtons(div, (date) => {
+        this.result.dueDate = date;
+        if (this.dueDateInput) {
+          this.dueDateInput.value = date;
+        }
+        this.dueDateSetting?.setDesc(formatDateDisplay(date));
+      });
+    });
 
     // 负责人
     new Setting(contentEl)
@@ -166,6 +188,7 @@ export class CreateFeatureModal extends Modal {
       .setDesc('（可选）')
       .addText(text => text
         .setPlaceholder('例如：张三')
+        .setValue(this.result.owner || '')
         .onChange(value => {
           this.result.owner = value || undefined;
         }));
@@ -176,15 +199,24 @@ export class CreateFeatureModal extends Modal {
       .setDesc('用逗号分隔多个标签（可选）')
       .addText(text => text
         .setPlaceholder('例如：前端, API')
+        .setValue(this.result.tags?.join(', ') || '')
         .onChange(value => {
           this.result.tags = value
             ? value.split(',').map(t => t.trim()).filter(t => t.length > 0)
             : [];
         }));
 
-    // 按钮
+    // 按钮区域
     const buttonContainer = contentEl.createDiv({ cls: 'pm-modal__buttons' });
     
+    // 填入示例按钮
+    const exampleButton = buttonContainer.createEl('button', { 
+      text: '填入示例',
+      cls: 'pm-btn--secondary',
+    });
+    exampleButton.style.marginRight = 'auto';
+    exampleButton.addEventListener('click', () => this.fillExample());
+
     const cancelButton = buttonContainer.createEl('button', { text: '取消' });
     cancelButton.addEventListener('click', () => this.close());
 
@@ -207,6 +239,67 @@ export class CreateFeatureModal extends Modal {
       }
       this.onSubmit(this.result);
       this.close();
+    });
+  }
+
+  /**
+   * 填入示例数据
+   */
+  private fillExample(): void {
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    this.result = {
+      name: '首页设计开发',
+      versionId: this.result.versionId || (this.versions.length > 0 ? this.versions[0].id : ''),
+      projectId: this.result.projectId || (this.projects.length > 0 ? this.projects[0].id : ''),
+      status: 'todo',
+      priority: 'high',
+      progress: 0,
+      dueDate: nextWeek.toISOString().split('T')[0],
+      owner: '设计师小王',
+      tags: ['UI', '首页', '设计'],
+    };
+    
+    // 重新渲染
+    this.onOpen();
+  }
+
+  /**
+   * 创建快捷日期按钮
+   */
+  private createQuickDateButtons(
+    container: HTMLElement,
+    onSelect: (date: string) => void
+  ): void {
+    const quickContainer = container.createDiv({ cls: 'pm-date-quick' });
+    
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const formatDate = (date: Date): string => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const buttons = [
+      { label: '今天', date: formatDate(today) },
+      { label: '明天', date: formatDate(tomorrow) },
+      { label: '一周后', date: formatDate(nextWeek) },
+      { label: '一月后', date: formatDate(nextMonth) },
+    ];
+
+    buttons.forEach(({ label, date }) => {
+      const btn = quickContainer.createEl('button', {
+        text: label,
+        cls: 'pm-date-quick__btn',
+      });
+      btn.addEventListener('click', () => onSelect(date));
     });
   }
 
