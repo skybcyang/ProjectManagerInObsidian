@@ -36,11 +36,11 @@ export class CascadeSelectorRenderer extends BaseRenderer {
   private viewEngine?: ViewEngine;
   private currentViewContainer?: HTMLElement;
 
-  // 当前选中的值
+  // 当前选中的值（顺序：实体类型 → 具体实体 → 视图模式）
   private currentState = {
-    viewMode: 'kanban',
     entityType: 'feature' as EntityType,
     entityId: '',
+    viewMode: 'kanban',
   };
 
   constructor(
@@ -73,34 +73,28 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     const config = this.config as ViewConfig & { cascadeSelector: CascadeSelectorConfig };
     const selectorConfig = config.cascadeSelector || {};
 
-    // 初始化状态
-    this.currentState.viewMode = selectorConfig.viewMode?.defaultValue || 'kanban';
+    // 初始化状态（顺序：实体类型 → 具体实体 → 视图模式）
     this.currentState.entityType = selectorConfig.entityType?.defaultValue || 'feature';
     this.currentState.entityId = selectorConfig.entity?.defaultValue || '';
+    this.currentState.viewMode = selectorConfig.viewMode?.defaultValue || 'kanban';
 
     // 创建选择器容器
     const selectorContainer = container.createDiv('pm-cascade-selector-container');
 
-    // 渲染三级选择器
-    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
+    // 渲染三级选择器（顺序：实体类型 → 具体实体 → 视图模式）
     const entityTypeSelect = await this.renderEntityTypeSelector(selectorContainer, selectorConfig.entityType);
     const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
+    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
 
     // 创建视图容器
     this.currentViewContainer = container.createDiv('pm-cascade-selector-view-container');
 
-    // 初始渲染
+    // 初始渲染：先加载实体列表
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
       entitySelect.value = this.currentState.entityId;
     }
     await this.renderCurrentView();
-
-    // 监听视图模式变化
-    viewModeSelect.addEventListener('change', async () => {
-      this.currentState.viewMode = viewModeSelect.value;
-      await this.renderCurrentView();
-    });
 
     // 监听实体类型变化
     entityTypeSelect.addEventListener('change', async () => {
@@ -113,6 +107,12 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     // 监听实体变化
     entitySelect.addEventListener('change', async () => {
       this.currentState.entityId = entitySelect.value;
+      await this.renderCurrentView();
+    });
+
+    // 监听视图模式变化
+    viewModeSelect.addEventListener('change', async () => {
+      this.currentState.viewMode = viewModeSelect.value;
       await this.renderCurrentView();
     });
   }
@@ -291,10 +291,11 @@ export class CascadeSelectorRenderer extends BaseRenderer {
 
     try {
       // 构建视图配置
-      const viewConfig: ViewConfig = {
+      const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
         mode: this.currentState.viewMode as any,
         type: this.currentState.entityType,
         id: this.currentState.entityId,
+        _hideToolbar: true, // 在级联选择器中隐藏工具栏
       };
 
       // 根据视图模式和实体类型调整配置
@@ -302,6 +303,8 @@ export class CascadeSelectorRenderer extends BaseRenderer {
         viewConfig.groupBy = 'status';
       } else if (this.currentState.viewMode === 'grid') {
         viewConfig.cols = 3;
+      } else if (this.currentState.viewMode === 'cascade') {
+        viewConfig.expanded = true;
       }
 
       // 使用 ViewEngine 渲染

@@ -44,11 +44,13 @@ export class GridRenderer extends BaseRenderer {
     // 限制数量
     const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
 
-    // 创建工具栏
-    this.createToolbar(container, (this.config as any).title || '网格视图', {
-      total: this.entities.length,
-      filtered: limited.length,
-    });
+    // 创建工具栏（如果不是在 cascade-selector 中）
+    if (!(this.config as any)._hideToolbar) {
+      this.createToolbar(container, (this.config as any).title || '网格视图', {
+        total: this.entities.length,
+        filtered: limited.length,
+      });
+    }
 
     // 创建网格容器
     const gridContainer = container.createDiv('pm-grid-container');

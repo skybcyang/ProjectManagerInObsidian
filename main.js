@@ -4868,10 +4868,12 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
       this.config.sortBy,
       this.config.sortOrder
     );
-    this.createToolbar(container, this.config.title || "\u770B\u677F\u89C6\u56FE", {
-      total: this.entities.length,
-      filtered: sorted.length
-    });
+    if (!this.config._hideToolbar) {
+      this.createToolbar(container, this.config.title || "\u770B\u677F\u89C6\u56FE", {
+        total: this.entities.length,
+        filtered: sorted.length
+      });
+    }
     const boardContainer = container.createDiv("pm-kanban-container");
     if (this.config.groupBy === "status" || !this.config.groupBy) {
       this.renderStatusBoard(boardContainer, sorted);
@@ -5116,10 +5118,12 @@ var GridRenderer2 = class extends BaseRenderer {
       this.config.sortOrder
     );
     const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
-    this.createToolbar(container, this.config.title || "\u7F51\u683C\u89C6\u56FE", {
-      total: this.entities.length,
-      filtered: limited.length
-    });
+    if (!this.config._hideToolbar) {
+      this.createToolbar(container, this.config.title || "\u7F51\u683C\u89C6\u56FE", {
+        total: this.entities.length,
+        filtered: limited.length
+      });
+    }
     const gridContainer = container.createDiv("pm-grid-container");
     const cols = this.config.cols || 3;
     gridContainer.style.display = "grid";
@@ -5277,117 +5281,90 @@ var CascadeRenderer = class extends BaseRenderer {
    */
   async render(container) {
     container.empty();
-    container.addClass("pm-cascade-view");
-    this.createToolbar(container, this.config.title || "\u7EA7\u8054\u89C6\u56FE");
-    const cascadeContainer = container.createDiv("pm-cascade-container");
+    container.addClass("pm-cascade-tree-view");
+    const treeContainer = container.createDiv("pm-cascade-tree");
     if (this.config.id) {
-      await this.renderEntityCascade(cascadeContainer, this.config.id);
+      await this.renderEntityTree(treeContainer, this.config.id);
     } else {
-      await this.renderAllVersions(cascadeContainer);
+      await this.renderAllVersions(treeContainer);
     }
   }
   /**
-   * 渲染单个实体的级联视图
+   * 渲染单个实体的级联树
    */
-  async renderEntityCascade(container, entityId) {
+  async renderEntityTree(container, entityId) {
     const type = this.config.type || "version";
     switch (type) {
       case "version":
-        await this.renderVersionCascade(container, entityId);
+        await this.renderVersionTree(container, entityId, 0);
         break;
       case "project":
-        await this.renderProjectCascade(container, entityId);
+        await this.renderProjectTree(container, entityId, 0);
         break;
       case "feature":
-        await this.renderFeatureDetail(container, entityId);
+        await this.renderFeatureTree(container, entityId, 0);
         break;
     }
   }
   /**
-   * 渲染版本级联
+   * 渲染版本树
    */
-  async renderVersionCascade(container, versionId) {
+  async renderVersionTree(container, versionId, level) {
     const version = await this.entityManager.getVersion(versionId);
-    if (!version) {
-      this.createEmptyState(container, "\u7248\u672C\u4E0D\u5B58\u5728");
+    if (!version)
       return;
-    }
-    const versionCard = this.createEntityCard(container, version, 0);
+    const versionNode = this.createTreeNode(container, version, level);
     const projects = await this.entityManager.listProjects({ versionId });
     if (projects.length === 0) {
-      versionCard.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u9879\u76EE" });
+      this.createEmptyNode(versionNode, "\u6682\u65E0\u9879\u76EE", level + 1);
       return;
     }
-    const projectsContainer = versionCard.createDiv("pm-cascade-children");
     for (const project of projects) {
-      await this.renderProjectNode(projectsContainer, project, 1);
+      await this.renderProjectTree(versionNode, project.id, level + 1);
     }
   }
   /**
-   * 渲染项目级联
+   * 渲染项目树
    */
-  async renderProjectCascade(container, projectId) {
+  async renderProjectTree(container, projectId, level) {
     const project = await this.entityManager.getProject(projectId);
-    if (!project) {
-      this.createEmptyState(container, "\u9879\u76EE\u4E0D\u5B58\u5728");
+    if (!project)
       return;
-    }
-    const version = project.versionId ? await this.entityManager.getVersion(project.versionId) : null;
-    if (version) {
-      const versionCard = this.createEntityCard(container, version, 0);
-      versionCard.classList.add("pm-cascade-placeholder");
-      const projectsContainer = versionCard.createDiv("pm-cascade-children");
-      await this.renderProjectNode(projectsContainer, project, 1);
-    } else {
-      await this.renderProjectNode(container, project, 0);
-    }
-  }
-  /**
-   * 渲染项目节点
-   */
-  async renderProjectNode(container, project, level) {
-    const projectCard = this.createEntityCard(container, project, level);
-    const features = await this.entityManager.listFeatures({ projectId: project.id });
+    const projectNode = this.createTreeNode(container, project, level);
+    const features = await this.entityManager.listFeatures({ projectId });
     if (features.length === 0) {
-      projectCard.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u7279\u6027" });
+      this.createEmptyNode(projectNode, "\u6682\u65E0\u7279\u6027", level + 1);
       return;
     }
-    const featuresContainer = projectCard.createDiv("pm-cascade-children");
     for (const feature of features) {
-      this.createFeatureCard(featuresContainer, feature, level + 1);
+      this.createFeatureNode(projectNode, feature, level + 1);
     }
   }
   /**
-   * 渲染特性详情
+   * 渲染特性树
    */
-  async renderFeatureDetail(container, featureId) {
+  async renderFeatureTree(container, featureId, level) {
     const feature = await this.entityManager.getFeature(featureId);
-    if (!feature) {
-      this.createEmptyState(container, "\u7279\u6027\u4E0D\u5B58\u5728");
+    if (!feature)
       return;
-    }
     const project = feature.projectId ? await this.entityManager.getProject(feature.projectId) : null;
     const version = (project == null ? void 0 : project.versionId) ? await this.entityManager.getVersion(project.versionId) : null;
     if (version) {
-      const versionCard = this.createEntityCard(container, version, 0);
-      versionCard.classList.add("pm-cascade-placeholder");
+      const versionNode = this.createTreeNode(container, version, level);
+      versionNode.classList.add("pm-tree-node-placeholder");
       if (project) {
-        const projectsContainer = versionCard.createDiv("pm-cascade-children");
-        const projectCard = this.createEntityCard(projectsContainer, project, 1);
-        projectCard.classList.add("pm-cascade-placeholder");
-        const featuresContainer = projectCard.createDiv("pm-cascade-children");
-        this.createFeatureDetailCard(featuresContainer, feature, 2);
+        const projectNode = this.createTreeNode(versionNode, project, level + 1);
+        projectNode.classList.add("pm-tree-node-placeholder");
+        this.createFeatureNode(projectNode, feature, level + 2);
       } else {
-        const featuresContainer = versionCard.createDiv("pm-cascade-children");
-        this.createFeatureDetailCard(featuresContainer, feature, 1);
+        this.createFeatureNode(versionNode, feature, level + 1);
       }
     } else if (project) {
-      const projectCard = this.createEntityCard(container, project, 0);
-      projectCard.classList.add("pm-cascade-placeholder");
-      const featuresContainer = projectCard.createDiv("pm-cascade-children");
-      this.createFeatureDetailCard(featuresContainer, feature, 1);
+      const projectNode = this.createTreeNode(container, project, level);
+      projectNode.classList.add("pm-tree-node-placeholder");
+      this.createFeatureNode(projectNode, feature, level + 1);
     } else {
-      this.createFeatureDetailCard(container, feature, 0);
+      this.createFeatureNode(container, feature, level);
     }
   }
   /**
@@ -5396,81 +5373,89 @@ var CascadeRenderer = class extends BaseRenderer {
   async renderAllVersions(container) {
     const versions = await this.entityManager.listVersions();
     if (versions.length === 0) {
-      this.createEmptyState(container, "\u6682\u65E0\u7248\u672C");
+      this.createEmptyNode(container, "\u6682\u65E0\u7248\u672C", 0);
       return;
     }
     for (const version of versions) {
-      await this.renderVersionCascade(container, version.id);
+      await this.renderVersionTree(container, version.id, 0);
     }
   }
   /**
-   * 创建实体卡片（通用）
+   * 创建树节点（通用）
    */
-  createEntityCard(container, entity, level) {
-    const card = container.createDiv("pm-cascade-card");
-    card.classList.add(`pm-cascade-level-${level}`);
-    card.dataset.entityType = getEntityType(entity);
-    card.dataset.entityId = entity.id;
+  createTreeNode(container, entity, level) {
+    const node = container.createDiv("pm-tree-node");
+    node.classList.add(`pm-tree-level-${level}`);
+    node.dataset.entityType = getEntityType(entity);
+    node.dataset.entityId = entity.id;
     if (level > 0) {
-      const indent = card.createDiv("pm-cascade-indent");
-      indent.style.width = `${level * 24}px`;
+      node.style.paddingLeft = `${level * 20}px`;
     }
-    const content = card.createDiv("pm-cascade-card-content");
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    content.createSpan({ cls: "pm-cascade-icon", text: icon });
-    const info = content.createDiv("pm-cascade-info");
-    info.createEl("h4", { cls: "pm-cascade-name", text: entity.name });
-    const meta = info.createDiv("pm-cascade-meta");
+    const content = node.createDiv("pm-tree-node-content");
+    const toggle = content.createSpan("pm-tree-toggle");
+    toggle.textContent = "\u25BC";
+    const icon = content.createSpan("pm-tree-icon");
+    icon.textContent = this.getEntityTypeIcon(getEntityType(entity));
+    content.createSpan({ cls: "pm-tree-name", text: entity.name });
+    const meta = content.createDiv("pm-tree-meta");
     if (entity.owner) {
-      meta.createSpan({ cls: "pm-cascade-owner", text: `\u{1F464} ${entity.owner}` });
+      meta.createSpan({ cls: "pm-tree-owner", text: entity.owner });
     }
     if ("status" in entity && entity.status) {
       meta.createSpan({
-        cls: `pm-cascade-status pm-status-${entity.status}`,
+        cls: `pm-tree-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status)
       });
     }
     if ("dueDate" in entity && entity.dueDate) {
       const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
       meta.createSpan({
-        cls: `pm-cascade-due${isOverdue ? " pm-overdue" : ""}`,
-        text: `\u{1F4C5} ${this.formatDate(entity.dueDate)}`
+        cls: `pm-tree-due${isOverdue ? " pm-overdue" : ""}`,
+        text: this.formatDate(entity.dueDate)
       });
     }
-    if ("stats" in entity && entity.stats) {
-      const stats = entity.stats;
-      const progress = stats && stats.total > 0 ? Math.round(stats.completed / stats.total * 100) : 0;
-      const progressEl = content.createDiv("pm-cascade-progress");
+    if (getEntityType(entity) === "feature" && "progress" in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = meta.createDiv("pm-tree-progress");
       progressEl.createDiv({
-        cls: "pm-progress-ring",
-        attr: { style: `--progress: ${progress}` }
+        cls: "pm-tree-progress-bar",
+        attr: { style: `width: ${progress}%` }
       });
       progressEl.createSpan({ text: `${progress}%` });
     }
-    card.addEventListener("click", (e) => {
-      if (e.target.closest(".pm-cascade-actions"))
+    if ("stats" in entity && entity.stats) {
+      const stats = entity.stats;
+      if (stats.total > 0) {
+        meta.createSpan({
+          cls: "pm-tree-stats",
+          text: `${stats.completed || 0}/${stats.total}`
+        });
+      }
+    }
+    const childrenContainer = node.createDiv("pm-tree-children");
+    content.addEventListener("click", (e) => {
+      if (e.target.closest(".pm-tree-actions"))
         return;
-      const children = card.querySelector(".pm-cascade-children");
-      if (children) {
-        children.style.display = children.style.display === "none" ? "block" : "none";
-        card.classList.toggle("pm-cascade-collapsed");
+      if (childrenContainer.hasChildNodes()) {
+        const isHidden = childrenContainer.style.display === "none";
+        childrenContainer.style.display = isHidden ? "block" : "none";
+        toggle.textContent = isHidden ? "\u25BC" : "\u25B6";
+        node.classList.toggle("pm-tree-collapsed", !isHidden);
       } else {
         this.actionService.openEntity(getEntityType(entity), entity.id);
       }
     });
-    return card;
+    return childrenContainer;
   }
   /**
-   * 创建特性卡片（简化版）
+   * 创建特性节点（简化版）
    */
-  createFeatureCard(container, feature, level) {
-    const card = container.createDiv("pm-cascade-card pm-cascade-card-feature");
-    card.classList.add(`pm-cascade-level-${level}`);
-    if (level > 0) {
-      const indent = card.createDiv("pm-cascade-indent");
-      indent.style.width = `${level * 24}px`;
-    }
-    const content = card.createDiv("pm-cascade-card-content");
+  createFeatureNode(container, feature, level) {
+    const node = container.createDiv("pm-tree-node pm-tree-node-feature");
+    node.classList.add(`pm-tree-level-${level}`);
+    node.style.paddingLeft = `${level * 20}px`;
+    const content = node.createDiv("pm-tree-node-content");
+    content.createSpan("pm-tree-toggle pm-tree-toggle-empty");
     const priorityColors = {
       critical: "#ef4444",
       high: "#f97316",
@@ -5479,112 +5464,43 @@ var CascadeRenderer = class extends BaseRenderer {
     };
     if (feature.priority) {
       content.createSpan({
-        cls: "pm-cascade-priority",
+        cls: "pm-tree-priority",
         attr: { style: `background: ${priorityColors[feature.priority] || "#9ca3af"}` }
       });
     }
-    content.createSpan({ cls: "pm-cascade-feature-name", text: feature.name });
-    const progress = feature.progress || 0;
-    const progressEl = content.createDiv("pm-cascade-progress-mini");
-    progressEl.createDiv({
-      cls: "pm-progress-bar-mini",
-      attr: { style: `width: ${progress}%` }
-    });
+    content.createSpan({ cls: "pm-tree-name", text: feature.name });
+    const meta = content.createDiv("pm-tree-meta");
     if (feature.status) {
-      content.createSpan({
-        cls: `pm-cascade-status-mini pm-status-${feature.status}`,
+      meta.createSpan({
+        cls: `pm-tree-status pm-status-${feature.status}`,
         text: this.translateStatus(feature.status)
       });
     }
-    card.addEventListener("click", () => {
-      this.actionService.openEntity("feature", feature.id);
-    });
-    return card;
-  }
-  /**
-   * 创建特性详情卡片（完整信息）
-   */
-  createFeatureDetailCard(container, feature, level) {
-    const card = container.createDiv("pm-cascade-card pm-cascade-card-detail");
-    card.classList.add(`pm-cascade-level-${level}`);
-    const content = card.createDiv("pm-cascade-detail-content");
-    const header = content.createDiv("pm-cascade-detail-header");
-    header.createSpan({ cls: "pm-cascade-icon", text: "\u{1F4DD}" });
-    header.createEl("h3", { text: feature.name });
-    if (feature.priority) {
-      header.createSpan({
-        cls: `pm-priority-badge pm-priority-${feature.priority}`,
-        text: this.translatePriority(feature.priority)
-      });
-    }
-    if (feature.description) {
-      content.createDiv({
-        cls: "pm-cascade-detail-desc",
-        text: String(feature.description)
-      });
-    }
-    const props = content.createDiv("pm-cascade-detail-props");
-    const statusRow = props.createDiv("pm-prop-row");
-    statusRow.createSpan({ cls: "pm-prop-label", text: "\u72B6\u6001" });
-    const statusVal = statusRow.createSpan({ cls: "pm-prop-value" });
-    statusVal.createSpan({
-      cls: `pm-status-badge pm-status-${feature.status}`,
-      text: this.translateStatus(feature.status)
-    });
-    if (feature.owner) {
-      const ownerRow = props.createDiv("pm-prop-row");
-      ownerRow.createSpan({ cls: "pm-prop-label", text: "\u8D1F\u8D23\u4EBA" });
-      ownerRow.createSpan({ cls: "pm-prop-value", text: feature.owner });
-    }
-    const progressRow = props.createDiv("pm-prop-row");
-    progressRow.createSpan({ cls: "pm-prop-label", text: "\u8FDB\u5EA6" });
-    const progressVal = progressRow.createDiv({ cls: "pm-prop-value" });
     const progress = feature.progress || 0;
-    progressVal.createDiv({
-      cls: "pm-progress-bar",
+    const progressEl = meta.createDiv("pm-tree-progress");
+    progressEl.createDiv({
+      cls: "pm-tree-progress-bar",
       attr: { style: `width: ${progress}%` }
     });
-    progressVal.createSpan({ text: ` ${progress}%` });
-    if (feature.dueDate) {
-      const dueRow = props.createDiv("pm-prop-row");
-      dueRow.createSpan({ cls: "pm-prop-label", text: "\u622A\u6B62\u65E5\u671F" });
-      dueRow.createSpan({ cls: "pm-prop-value", text: this.formatDate(feature.dueDate) });
-    }
-    if (feature.tags && feature.tags.length > 0) {
-      const tagsRow = props.createDiv("pm-prop-row");
-      tagsRow.createSpan({ cls: "pm-prop-label", text: "\u6807\u7B7E" });
-      const tagsVal = tagsRow.createDiv({ cls: "pm-prop-value" });
-      feature.tags.forEach((tag) => {
-        tagsVal.createSpan({ cls: "pm-tag", text: tag });
-      });
-    }
-    const actions = content.createDiv("pm-cascade-detail-actions");
-    const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
-    statusBtn.textContent = "\u66F4\u6539\u72B6\u6001";
-    statusBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.showStatusPicker(feature);
-    };
-    const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
-    progressBtn.textContent = "\u66F4\u65B0\u8FDB\u5EA6";
-    progressBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.showProgressPicker(feature);
-    };
-    const openBtn = actions.createEl("button", { cls: "pm-action-btn pm-action-btn-primary" });
-    openBtn.textContent = "\u6253\u5F00\u6587\u4EF6";
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
+    content.addEventListener("click", () => {
       this.actionService.openEntity("feature", feature.id);
-    };
-    return card;
+    });
+    return node;
+  }
+  /**
+   * 创建空节点
+   */
+  createEmptyNode(container, message, level) {
+    const node = container.createDiv("pm-tree-node pm-tree-node-empty");
+    node.style.paddingLeft = `${level * 20}px`;
+    node.textContent = message;
   }
   /**
    * 格式化日期
    */
   formatDate(dateStr) {
     const date = new Date(dateStr);
-    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+    return `${date.getMonth() + 1}/${date.getDate()}`;
   }
 };
 
@@ -6225,11 +6141,11 @@ var SelectorRenderer = class extends BaseRenderer {
 var CascadeSelectorRenderer = class extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
-    // 当前选中的值
+    // 当前选中的值（顺序：实体类型 → 具体实体 → 视图模式）
     this.currentState = {
-      viewMode: "kanban",
       entityType: "feature",
-      entityId: ""
+      entityId: "",
+      viewMode: "kanban"
     };
   }
   /**
@@ -6250,23 +6166,19 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     container.addClass("pm-cascade-selector-view");
     const config = this.config;
     const selectorConfig = config.cascadeSelector || {};
-    this.currentState.viewMode = ((_a = selectorConfig.viewMode) == null ? void 0 : _a.defaultValue) || "kanban";
-    this.currentState.entityType = ((_b = selectorConfig.entityType) == null ? void 0 : _b.defaultValue) || "feature";
-    this.currentState.entityId = ((_c = selectorConfig.entity) == null ? void 0 : _c.defaultValue) || "";
+    this.currentState.entityType = ((_a = selectorConfig.entityType) == null ? void 0 : _a.defaultValue) || "feature";
+    this.currentState.entityId = ((_b = selectorConfig.entity) == null ? void 0 : _b.defaultValue) || "";
+    this.currentState.viewMode = ((_c = selectorConfig.viewMode) == null ? void 0 : _c.defaultValue) || "kanban";
     const selectorContainer = container.createDiv("pm-cascade-selector-container");
-    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
     const entityTypeSelect = await this.renderEntityTypeSelector(selectorContainer, selectorConfig.entityType);
     const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
+    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
     this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
       entitySelect.value = this.currentState.entityId;
     }
     await this.renderCurrentView();
-    viewModeSelect.addEventListener("change", async () => {
-      this.currentState.viewMode = viewModeSelect.value;
-      await this.renderCurrentView();
-    });
     entityTypeSelect.addEventListener("change", async () => {
       this.currentState.entityType = entityTypeSelect.value;
       this.currentState.entityId = "";
@@ -6275,6 +6187,10 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     });
     entitySelect.addEventListener("change", async () => {
       this.currentState.entityId = entitySelect.value;
+      await this.renderCurrentView();
+    });
+    viewModeSelect.addEventListener("change", async () => {
+      this.currentState.viewMode = viewModeSelect.value;
       await this.renderCurrentView();
     });
   }
@@ -6410,12 +6326,16 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       const viewConfig = {
         mode: this.currentState.viewMode,
         type: this.currentState.entityType,
-        id: this.currentState.entityId
+        id: this.currentState.entityId,
+        _hideToolbar: true
+        // 在级联选择器中隐藏工具栏
       };
       if (this.currentState.viewMode === "kanban") {
         viewConfig.groupBy = "status";
       } else if (this.currentState.viewMode === "grid") {
         viewConfig.cols = 3;
+      } else if (this.currentState.viewMode === "cascade") {
+        viewConfig.expanded = true;
       }
       await this.getViewEngine().render(this.currentViewContainer, viewConfig, {
         sourcePath: this.context.sourcePath,

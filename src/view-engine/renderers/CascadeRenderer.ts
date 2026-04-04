@@ -7,7 +7,7 @@ import { BaseRenderer } from './BaseRenderer';
 
 /**
  * 级联渲染器
- * 层级级联视图：版本 → 项目 → 特性
+ * 树形层级视图：版本 → 项目 → 特性（使用缩进而非卡片）
  */
 export class CascadeRenderer extends BaseRenderer {
   constructor(
@@ -25,131 +25,106 @@ export class CascadeRenderer extends BaseRenderer {
    */
   async render(container: HTMLElement): Promise<void> {
     container.empty();
-    container.addClass('pm-cascade-view');
+    container.addClass('pm-cascade-tree-view');
 
-    // 创建工具栏
-    this.createToolbar(container, (this.config as any).title || '级联视图');
-
-    // 创建级联容器
-    const cascadeContainer = container.createDiv('pm-cascade-container');
+    // 创建树形容器
+    const treeContainer = container.createDiv('pm-cascade-tree');
 
     // 根据配置决定渲染方式
     if ((this.config as any).id) {
       // 渲染单个实体及其级联关系
-      await this.renderEntityCascade(cascadeContainer, (this.config as any).id);
+      await this.renderEntityTree(treeContainer, (this.config as any).id);
     } else {
       // 渲染所有版本
-      await this.renderAllVersions(cascadeContainer);
+      await this.renderAllVersions(treeContainer);
     }
   }
 
   /**
-   * 渲染单个实体的级联视图
+   * 渲染单个实体的级联树
    */
-  private async renderEntityCascade(container: HTMLElement, entityId: string): Promise<void> {
+  private async renderEntityTree(container: HTMLElement, entityId: string): Promise<void> {
     const type = this.config.type || 'version';
 
     switch (type) {
       case 'version':
-        await this.renderVersionCascade(container, entityId);
+        await this.renderVersionTree(container, entityId, 0);
         break;
       case 'project':
-        await this.renderProjectCascade(container, entityId);
+        await this.renderProjectTree(container, entityId, 0);
         break;
       case 'feature':
-        await this.renderFeatureDetail(container, entityId);
+        await this.renderFeatureTree(container, entityId, 0);
         break;
     }
   }
 
   /**
-   * 渲染版本级联
+   * 渲染版本树
    */
-  private async renderVersionCascade(container: HTMLElement, versionId: string): Promise<void> {
+  private async renderVersionTree(
+    container: HTMLElement,
+    versionId: string,
+    level: number
+  ): Promise<void> {
     const version = await this.entityManager.getVersion(versionId);
-    if (!version) {
-      this.createEmptyState(container, '版本不存在');
-      return;
-    }
+    if (!version) return;
 
-    // 创建版本卡片
-    const versionCard = this.createEntityCard(container, version as Entity, 0);
+    // 渲染版本节点
+    const versionNode = this.createTreeNode(container, version, level);
 
     // 加载项目
     const projects = await this.entityManager.listProjects({ versionId });
-    
+
     if (projects.length === 0) {
-      versionCard.createDiv({ cls: 'pm-cascade-empty', text: '暂无项目' });
+      this.createEmptyNode(versionNode, '暂无项目', level + 1);
       return;
     }
 
-    // 渲染每个项目的级联
-    const projectsContainer = versionCard.createDiv('pm-cascade-children');
+    // 渲染每个项目的树
     for (const project of projects) {
-      await this.renderProjectNode(projectsContainer, project, 1);
+      await this.renderProjectTree(versionNode, project.id, level + 1);
     }
   }
 
   /**
-   * 渲染项目级联
+   * 渲染项目树
    */
-  private async renderProjectCascade(container: HTMLElement, projectId: string): Promise<void> {
-    const project = await this.entityManager.getProject(projectId);
-    if (!project) {
-      this.createEmptyState(container, '项目不存在');
-      return;
-    }
-
-    // 加载版本信息
-    const version = project.versionId ? 
-      await this.entityManager.getVersion(project.versionId) : null;
-
-    // 创建版本占位（如果有）
-    if (version) {
-      const versionCard = this.createEntityCard(container, version as Entity, 0);
-      versionCard.classList.add('pm-cascade-placeholder');
-      
-      const projectsContainer = versionCard.createDiv('pm-cascade-children');
-      await this.renderProjectNode(projectsContainer, project, 1);
-    } else {
-      await this.renderProjectNode(container, project, 0);
-    }
-  }
-
-  /**
-   * 渲染项目节点
-   */
-  private async renderProjectNode(
+  private async renderProjectTree(
     container: HTMLElement,
-    project: Project,
+    projectId: string,
     level: number
   ): Promise<void> {
-    const projectCard = this.createEntityCard(container, project as Entity, level);
+    const project = await this.entityManager.getProject(projectId);
+    if (!project) return;
+
+    // 渲染项目节点
+    const projectNode = this.createTreeNode(container, project, level);
 
     // 加载特性
-    const features = await this.entityManager.listFeatures({ projectId: project.id });
+    const features = await this.entityManager.listFeatures({ projectId });
 
     if (features.length === 0) {
-      projectCard.createDiv({ cls: 'pm-cascade-empty', text: '暂无特性' });
+      this.createEmptyNode(projectNode, '暂无特性', level + 1);
       return;
     }
 
     // 渲染特性
-    const featuresContainer = projectCard.createDiv('pm-cascade-children');
     for (const feature of features) {
-      this.createFeatureCard(featuresContainer, feature, level + 1);
+      this.createFeatureNode(projectNode, feature, level + 1);
     }
   }
 
   /**
-   * 渲染特性详情
+   * 渲染特性树
    */
-  private async renderFeatureDetail(container: HTMLElement, featureId: string): Promise<void> {
+  private async renderFeatureTree(
+    container: HTMLElement,
+    featureId: string,
+    level: number
+  ): Promise<void> {
     const feature = await this.entityManager.getFeature(featureId);
-    if (!feature) {
-      this.createEmptyState(container, '特性不存在');
-      return;
-    }
+    if (!feature) return;
 
     // 加载项目和版本信息
     const project = feature.projectId ? 
@@ -159,28 +134,22 @@ export class CascadeRenderer extends BaseRenderer {
 
     // 创建层级结构
     if (version) {
-      const versionCard = this.createEntityCard(container, version as Entity, 0);
-      versionCard.classList.add('pm-cascade-placeholder');
+      const versionNode = this.createTreeNode(container, version, level);
+      versionNode.classList.add('pm-tree-node-placeholder');
 
       if (project) {
-        const projectsContainer = versionCard.createDiv('pm-cascade-children');
-        const projectCard = this.createEntityCard(projectsContainer, project as Entity, 1);
-        projectCard.classList.add('pm-cascade-placeholder');
-
-        const featuresContainer = projectCard.createDiv('pm-cascade-children');
-        this.createFeatureDetailCard(featuresContainer, feature, 2);
+        const projectNode = this.createTreeNode(versionNode, project, level + 1);
+        projectNode.classList.add('pm-tree-node-placeholder');
+        this.createFeatureNode(projectNode, feature, level + 2);
       } else {
-        const featuresContainer = versionCard.createDiv('pm-cascade-children');
-        this.createFeatureDetailCard(featuresContainer, feature, 1);
+        this.createFeatureNode(versionNode, feature, level + 1);
       }
     } else if (project) {
-      const projectCard = this.createEntityCard(container, project as Entity, 0);
-      projectCard.classList.add('pm-cascade-placeholder');
-
-      const featuresContainer = projectCard.createDiv('pm-cascade-children');
-      this.createFeatureDetailCard(featuresContainer, feature, 1);
+      const projectNode = this.createTreeNode(container, project, level);
+      projectNode.classList.add('pm-tree-node-placeholder');
+      this.createFeatureNode(projectNode, feature, level + 1);
     } else {
-      this.createFeatureDetailCard(container, feature, 0);
+      this.createFeatureNode(container, feature, level);
     }
   }
 
@@ -191,53 +160,53 @@ export class CascadeRenderer extends BaseRenderer {
     const versions = await this.entityManager.listVersions();
 
     if (versions.length === 0) {
-      this.createEmptyState(container, '暂无版本');
+      this.createEmptyNode(container, '暂无版本', 0);
       return;
     }
 
     for (const version of versions) {
-      await this.renderVersionCascade(container, version.id);
+      await this.renderVersionTree(container, version.id, 0);
     }
   }
 
   /**
-   * 创建实体卡片（通用）
+   * 创建树节点（通用）
    */
-  private createEntityCard(container: HTMLElement, entity: Entity, level: number): HTMLElement {
-    const card = container.createDiv('pm-cascade-card');
-    card.classList.add(`pm-cascade-level-${level}`);
-    card.dataset.entityType = getEntityType(entity);
-    card.dataset.entityId = entity.id;
+  private createTreeNode(container: HTMLElement, entity: Entity, level: number): HTMLElement {
+    const node = container.createDiv('pm-tree-node');
+    node.classList.add(`pm-tree-level-${level}`);
+    node.dataset.entityType = getEntityType(entity);
+    node.dataset.entityId = entity.id;
 
-    // 缩进线
+    // 缩进
     if (level > 0) {
-      const indent = card.createDiv('pm-cascade-indent');
-      indent.style.width = `${level * 24}px`;
+      node.style.paddingLeft = `${level * 20}px`;
     }
 
-    // 卡片内容
-    const content = card.createDiv('pm-cascade-card-content');
+    // 节点内容行
+    const content = node.createDiv('pm-tree-node-content');
+
+    // 展开/折叠图标（如果有子元素）
+    const toggle = content.createSpan('pm-tree-toggle');
+    toggle.textContent = '▼';
 
     // 类型图标
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    content.createSpan({ cls: 'pm-cascade-icon', text: icon });
-
-    // 信息区域
-    const info = content.createDiv('pm-cascade-info');
+    const icon = content.createSpan('pm-tree-icon');
+    icon.textContent = this.getEntityTypeIcon(getEntityType(entity));
 
     // 名称
-    info.createEl('h4', { cls: 'pm-cascade-name', text: entity.name });
+    content.createSpan({ cls: 'pm-tree-name', text: entity.name });
 
     // 元信息
-    const meta = info.createDiv('pm-cascade-meta');
+    const meta = content.createDiv('pm-tree-meta');
 
     if (entity.owner) {
-      meta.createSpan({ cls: 'pm-cascade-owner', text: `👤 ${entity.owner}` });
+      meta.createSpan({ cls: 'pm-tree-owner', text: entity.owner });
     }
 
     if ('status' in entity && entity.status) {
       meta.createSpan({
-        cls: `pm-cascade-status pm-status-${entity.status}`,
+        cls: `pm-tree-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status),
       });
     }
@@ -247,57 +216,67 @@ export class CascadeRenderer extends BaseRenderer {
                         'status' in entity && 
                         entity.status !== 'completed';
       meta.createSpan({
-        cls: `pm-cascade-due${isOverdue ? ' pm-overdue' : ''}`,
-        text: `📅 ${this.formatDate(entity.dueDate)}`,
+        cls: `pm-tree-due${isOverdue ? ' pm-overdue' : ''}`,
+        text: this.formatDate(entity.dueDate),
       });
     }
 
-    // 进度（版本/项目有汇总进度）
-    if ('stats' in entity && entity.stats) {
-      const stats = (entity as any).stats;
-      const progress = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-      
-      const progressEl = content.createDiv('pm-cascade-progress');
+    // 进度（特性）
+    if (getEntityType(entity) === 'feature' && 'progress' in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = meta.createDiv('pm-tree-progress');
       progressEl.createDiv({
-        cls: 'pm-progress-ring',
-        attr: { style: `--progress: ${progress}` },
+        cls: 'pm-tree-progress-bar',
+        attr: { style: `width: ${progress}%` },
       });
       progressEl.createSpan({ text: `${progress}%` });
     }
 
-    // 点击展开/收起（如果有子元素）
-    card.addEventListener('click', (e) => {
-      // 如果点击的是操作按钮，不触发折叠
-      if ((e.target as HTMLElement).closest('.pm-cascade-actions')) return;
+    // 统计（版本/项目）
+    if ('stats' in entity && entity.stats) {
+      const stats = (entity as any).stats;
+      if (stats.total > 0) {
+        meta.createSpan({
+          cls: 'pm-tree-stats',
+          text: `${stats.completed || 0}/${stats.total}`,
+        });
+      }
+    }
 
-      const children = card.querySelector('.pm-cascade-children') as HTMLElement;
-      if (children) {
-        children.style.display = children.style.display === 'none' ? 'block' : 'none';
-        card.classList.toggle('pm-cascade-collapsed');
+    // 子元素容器
+    const childrenContainer = node.createDiv('pm-tree-children');
+
+    // 点击展开/收起
+    content.addEventListener('click', (e) => {
+      // 如果点击的是操作按钮，不触发折叠
+      if ((e.target as HTMLElement).closest('.pm-tree-actions')) return;
+
+      if (childrenContainer.hasChildNodes()) {
+        const isHidden = childrenContainer.style.display === 'none';
+        childrenContainer.style.display = isHidden ? 'block' : 'none';
+        toggle.textContent = isHidden ? '▼' : '▶';
+        node.classList.toggle('pm-tree-collapsed', !isHidden);
       } else {
         // 没有子元素则打开文件
         this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
       }
     });
 
-    return card;
+    return childrenContainer;
   }
 
   /**
-   * 创建特性卡片（简化版）
+   * 创建特性节点（简化版）
    */
-  private createFeatureCard(container: HTMLElement, feature: Feature, level: number): HTMLElement {
-    const card = container.createDiv('pm-cascade-card pm-cascade-card-feature');
-    card.classList.add(`pm-cascade-level-${level}`);
+  private createFeatureNode(container: HTMLElement, feature: Feature, level: number): HTMLElement {
+    const node = container.createDiv('pm-tree-node pm-tree-node-feature');
+    node.classList.add(`pm-tree-level-${level}`);
+    node.style.paddingLeft = `${level * 20}px`;
 
-    // 缩进线
-    if (level > 0) {
-      const indent = card.createDiv('pm-cascade-indent');
-      indent.style.width = `${level * 24}px`;
-    }
+    const content = node.createDiv('pm-tree-node-content');
 
-    // 内容
-    const content = card.createDiv('pm-cascade-card-content');
+    // 占位（无展开图标）
+    content.createSpan('pm-tree-toggle pm-tree-toggle-empty');
 
     // 优先级标记
     const priorityColors: Record<string, string> = {
@@ -308,148 +287,46 @@ export class CascadeRenderer extends BaseRenderer {
     };
     if (feature.priority) {
       content.createSpan({
-        cls: 'pm-cascade-priority',
+        cls: 'pm-tree-priority',
         attr: { style: `background: ${priorityColors[feature.priority] || '#9ca3af'}` },
       });
     }
 
     // 名称
-    content.createSpan({ cls: 'pm-cascade-feature-name', text: feature.name });
+    content.createSpan({ cls: 'pm-tree-name', text: feature.name });
 
-    // 进度
-    const progress = feature.progress || 0;
-    const progressEl = content.createDiv('pm-cascade-progress-mini');
-    progressEl.createDiv({
-      cls: 'pm-progress-bar-mini',
-      attr: { style: `width: ${progress}%` },
-    });
+    // 元信息
+    const meta = content.createDiv('pm-tree-meta');
 
-    // 状态
     if (feature.status) {
-      content.createSpan({
-        cls: `pm-cascade-status-mini pm-status-${feature.status}`,
+      meta.createSpan({
+        cls: `pm-tree-status pm-status-${feature.status}`,
         text: this.translateStatus(feature.status),
       });
     }
 
+    const progress = feature.progress || 0;
+    const progressEl = meta.createDiv('pm-tree-progress');
+    progressEl.createDiv({
+      cls: 'pm-tree-progress-bar',
+      attr: { style: `width: ${progress}%` },
+    });
+
     // 点击打开
-    card.addEventListener('click', () => {
+    content.addEventListener('click', () => {
       this.actionService.openEntity('feature', feature.id);
     });
 
-    return card;
+    return node;
   }
 
   /**
-   * 创建特性详情卡片（完整信息）
+   * 创建空节点
    */
-  private createFeatureDetailCard(
-    container: HTMLElement,
-    feature: Feature,
-    level: number
-  ): HTMLElement {
-    const card = container.createDiv('pm-cascade-card pm-cascade-card-detail');
-    card.classList.add(`pm-cascade-level-${level}`);
-
-    // 内容区域
-    const content = card.createDiv('pm-cascade-detail-content');
-
-    // 头部
-    const header = content.createDiv('pm-cascade-detail-header');
-    header.createSpan({ cls: 'pm-cascade-icon', text: '📝' });
-    header.createEl('h3', { text: feature.name });
-
-    // 优先级
-    if (feature.priority) {
-      header.createSpan({
-        cls: `pm-priority-badge pm-priority-${feature.priority}`,
-        text: this.translatePriority(feature.priority),
-      });
-    }
-
-    // 描述
-    if ((feature as any).description) {
-      content.createDiv({
-        cls: 'pm-cascade-detail-desc',
-        text: String((feature as any).description),
-      });
-    }
-
-    // 属性网格
-    const props = content.createDiv('pm-cascade-detail-props');
-
-    // 状态
-    const statusRow = props.createDiv('pm-prop-row');
-    statusRow.createSpan({ cls: 'pm-prop-label', text: '状态' });
-    const statusVal = statusRow.createSpan({ cls: 'pm-prop-value' });
-    statusVal.createSpan({
-      cls: `pm-status-badge pm-status-${feature.status}`,
-      text: this.translateStatus(feature.status),
-    });
-
-    // 负责人
-    if (feature.owner) {
-      const ownerRow = props.createDiv('pm-prop-row');
-      ownerRow.createSpan({ cls: 'pm-prop-label', text: '负责人' });
-      ownerRow.createSpan({ cls: 'pm-prop-value', text: feature.owner });
-    }
-
-    // 进度
-    const progressRow = props.createDiv('pm-prop-row');
-    progressRow.createSpan({ cls: 'pm-prop-label', text: '进度' });
-    const progressVal = progressRow.createDiv({ cls: 'pm-prop-value' });
-    const progress = feature.progress || 0;
-    progressVal.createDiv({
-      cls: 'pm-progress-bar',
-      attr: { style: `width: ${progress}%` },
-    });
-    progressVal.createSpan({ text: ` ${progress}%` });
-
-    // 截止日期
-    if (feature.dueDate) {
-      const dueRow = props.createDiv('pm-prop-row');
-      dueRow.createSpan({ cls: 'pm-prop-label', text: '截止日期' });
-      dueRow.createSpan({ cls: 'pm-prop-value', text: this.formatDate(feature.dueDate) });
-    }
-
-    // 标签
-    if (feature.tags && feature.tags.length > 0) {
-      const tagsRow = props.createDiv('pm-prop-row');
-      tagsRow.createSpan({ cls: 'pm-prop-label', text: '标签' });
-      const tagsVal = tagsRow.createDiv({ cls: 'pm-prop-value' });
-      feature.tags!.forEach((tag: string) => {
-        tagsVal.createSpan({ cls: 'pm-tag', text: tag });
-      });
-    }
-
-    // 快速操作
-    const actions = content.createDiv('pm-cascade-detail-actions');
-
-    // 状态切换
-    const statusBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-    statusBtn.textContent = '更改状态';
-    statusBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.showStatusPicker(feature as Entity);
-    };
-
-    // 进度更新
-    const progressBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-    progressBtn.textContent = '更新进度';
-    progressBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.showProgressPicker(feature as Entity);
-    };
-
-    // 打开文件
-    const openBtn = actions.createEl('button', { cls: 'pm-action-btn pm-action-btn-primary' });
-    openBtn.textContent = '打开文件';
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity('feature', feature.id);
-    };
-
-    return card;
+  private createEmptyNode(container: HTMLElement, message: string, level: number): void {
+    const node = container.createDiv('pm-tree-node pm-tree-node-empty');
+    node.style.paddingLeft = `${level * 20}px`;
+    node.textContent = message;
   }
 
   /**
@@ -457,6 +334,6 @@ export class CascadeRenderer extends BaseRenderer {
    */
   private formatDate(dateStr: string): string {
     const date = new Date(dateStr);
-    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getMonth() + 1}/${date.getDate()}`;
   }
 }

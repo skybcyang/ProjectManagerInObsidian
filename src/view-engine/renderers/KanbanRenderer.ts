@@ -49,11 +49,13 @@ export class KanbanRenderer extends BaseRenderer {
       this.config.sortOrder
     );
 
-    // 创建工具栏
-    this.createToolbar(container, (this.config as any).title || '看板视图', {
-      total: this.entities.length,
-      filtered: sorted.length,
-    });
+    // 创建工具栏（如果不是在 cascade-selector 中）
+    if (!(this.config as any)._hideToolbar) {
+      this.createToolbar(container, (this.config as any).title || '看板视图', {
+        total: this.entities.length,
+        filtered: sorted.length,
+      });
+    }
 
     // 创建看板容器
     const boardContainer = container.createDiv('pm-kanban-container');
