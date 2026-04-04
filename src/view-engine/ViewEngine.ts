@@ -11,6 +11,7 @@ import {
   TimelineRenderer,
   CalendarRenderer,
   SelectorRenderer,
+  CascadeSelectorRenderer,
 } from './renderers';
 
 /**
@@ -39,6 +40,7 @@ export class ViewEngine {
       ['timeline', new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ['calendar', new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ['selector', new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ['cascade-selector', new CascadeSelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
     ]);
   }
 
@@ -131,6 +133,7 @@ export class ViewEngine {
       { id: 'timeline', name: '时间线', description: '时间线视图，按截止日期排列' },
       { id: 'calendar', name: '日历', description: '月历视图，显示截止日期' },
       { id: 'selector', name: '选择器', description: '下拉选择框 + 动态视图渲染' },
+      { id: 'cascade-selector', name: '级联选择器', description: '三级联动选择器：视图→类型→实体' },
     ];
   }
 }

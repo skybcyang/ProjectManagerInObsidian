@@ -5,3 +5,4 @@ export { CascadeRenderer } from './CascadeRenderer';
 export { TimelineRenderer } from './TimelineRenderer';
 export { CalendarRenderer } from './CalendarRenderer';
 export { SelectorRenderer } from './SelectorRenderer';
+export { CascadeSelectorRenderer } from './CascadeSelectorRenderer';

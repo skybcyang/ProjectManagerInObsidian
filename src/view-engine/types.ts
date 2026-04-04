@@ -6,7 +6,7 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' | 'selector';
+export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' | 'selector' | 'cascade-selector';
 
 // 选择器配置
 export interface SelectorConfig {

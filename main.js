@@ -5904,7 +5904,8 @@ var ViewEngine = class {
       ["cascade", new CascadeRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ["timeline", new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ["calendar", new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["selector", new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
+      ["selector", new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["cascade-selector", new CascadeSelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
     ]);
   }
   /**
@@ -5976,7 +5977,8 @@ var ViewEngine = class {
       { id: "cascade", name: "\u7EA7\u8054", description: "\u5C42\u7EA7\u7EA7\u8054\u89C6\u56FE\uFF0C\u7248\u672C\u2192\u9879\u76EE\u2192\u7279\u6027" },
       { id: "timeline", name: "\u65F6\u95F4\u7EBF", description: "\u65F6\u95F4\u7EBF\u89C6\u56FE\uFF0C\u6309\u622A\u6B62\u65E5\u671F\u6392\u5217" },
       { id: "calendar", name: "\u65E5\u5386", description: "\u6708\u5386\u89C6\u56FE\uFF0C\u663E\u793A\u622A\u6B62\u65E5\u671F" },
-      { id: "selector", name: "\u9009\u62E9\u5668", description: "\u4E0B\u62C9\u9009\u62E9\u6846 + \u52A8\u6001\u89C6\u56FE\u6E32\u67D3" }
+      { id: "selector", name: "\u9009\u62E9\u5668", description: "\u4E0B\u62C9\u9009\u62E9\u6846 + \u52A8\u6001\u89C6\u56FE\u6E32\u67D3" },
+      { id: "cascade-selector", name: "\u7EA7\u8054\u9009\u62E9\u5668", description: "\u4E09\u7EA7\u8054\u52A8\u9009\u62E9\u5668\uFF1A\u89C6\u56FE\u2192\u7C7B\u578B\u2192\u5B9E\u4F53" }
     ];
   }
 };
@@ -6216,6 +6218,214 @@ var SelectorRenderer = class extends BaseRenderer {
       // 总览选择器用于分组
     };
     return keyMap[selectorType] || selectorType;
+  }
+};
+
+// src/view-engine/renderers/CascadeSelectorRenderer.ts
+var CascadeSelectorRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+    // 当前选中的值
+    this.currentState = {
+      viewMode: "kanban",
+      entityType: "feature",
+      entityId: ""
+    };
+  }
+  /**
+   * 获取或创建 ViewEngine
+   */
+  getViewEngine() {
+    if (!this.viewEngine) {
+      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    }
+    return this.viewEngine;
+  }
+  /**
+   * 渲染级联选择器视图
+   */
+  async render(container) {
+    var _a, _b, _c;
+    container.empty();
+    container.addClass("pm-cascade-selector-view");
+    const config = this.config;
+    const selectorConfig = config.cascadeSelector || {};
+    this.currentState.viewMode = ((_a = selectorConfig.viewMode) == null ? void 0 : _a.defaultValue) || "kanban";
+    this.currentState.entityType = ((_b = selectorConfig.entityType) == null ? void 0 : _b.defaultValue) || "feature";
+    this.currentState.entityId = ((_c = selectorConfig.entity) == null ? void 0 : _c.defaultValue) || "";
+    const selectorContainer = container.createDiv("pm-cascade-selector-container");
+    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
+    const entityTypeSelect = await this.renderEntityTypeSelector(selectorContainer, selectorConfig.entityType);
+    const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
+    this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
+    await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
+    if (this.currentState.entityId) {
+      entitySelect.value = this.currentState.entityId;
+    }
+    await this.renderCurrentView();
+    viewModeSelect.addEventListener("change", async () => {
+      this.currentState.viewMode = viewModeSelect.value;
+      await this.renderCurrentView();
+    });
+    entityTypeSelect.addEventListener("change", async () => {
+      this.currentState.entityType = entityTypeSelect.value;
+      this.currentState.entityId = "";
+      await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
+      await this.renderCurrentView();
+    });
+    entitySelect.addEventListener("change", async () => {
+      this.currentState.entityId = entitySelect.value;
+      await this.renderCurrentView();
+    });
+  }
+  /**
+   * 渲染视图模式选择器
+   */
+  async renderViewModeSelector(container, config) {
+    const wrapper = container.createDiv("pm-cascade-selector-item");
+    wrapper.createEl("label", {
+      text: (config == null ? void 0 : config.label) || "\u89C6\u56FE\u6A21\u5F0F",
+      cls: "pm-cascade-selector-label"
+    });
+    const selectEl = wrapper.createEl("select", {
+      cls: "pm-cascade-selector-dropdown"
+    });
+    const options = [
+      { label: "\u770B\u677F", value: "kanban" },
+      { label: "\u7F51\u683C", value: "grid" },
+      { label: "\u7EA7\u8054", value: "cascade" },
+      { label: "\u65F6\u95F4\u7EBF", value: "timeline" },
+      { label: "\u65E5\u5386", value: "calendar" }
+    ];
+    for (const option of options) {
+      const optEl = selectEl.createEl("option", {
+        text: option.label,
+        value: option.value
+      });
+      if (option.value === this.currentState.viewMode) {
+        optEl.selected = true;
+      }
+    }
+    return selectEl;
+  }
+  /**
+   * 渲染实体类型选择器
+   */
+  async renderEntityTypeSelector(container, config) {
+    const wrapper = container.createDiv("pm-cascade-selector-item");
+    wrapper.createEl("label", {
+      text: (config == null ? void 0 : config.label) || "\u5B9E\u4F53\u7C7B\u578B",
+      cls: "pm-cascade-selector-label"
+    });
+    const selectEl = wrapper.createEl("select", {
+      cls: "pm-cascade-selector-dropdown"
+    });
+    const options = [
+      { label: "\u7248\u672C", value: "version" },
+      { label: "\u9879\u76EE", value: "project" },
+      { label: "\u7279\u6027", value: "feature" }
+    ];
+    for (const option of options) {
+      const optEl = selectEl.createEl("option", {
+        text: option.label,
+        value: option.value
+      });
+      if (option.value === this.currentState.entityType) {
+        optEl.selected = true;
+      }
+    }
+    return selectEl;
+  }
+  /**
+   * 渲染实体选择器
+   */
+  async renderEntitySelector(container, config) {
+    const wrapper = container.createDiv("pm-cascade-selector-item");
+    wrapper.createEl("label", {
+      text: (config == null ? void 0 : config.label) || "\u9009\u62E9\u5B9E\u4F53",
+      cls: "pm-cascade-selector-label"
+    });
+    const selectEl = wrapper.createEl("select", {
+      cls: "pm-cascade-selector-dropdown"
+    });
+    if ((config == null ? void 0 : config.allowEmpty) !== false) {
+      selectEl.createEl("option", {
+        text: "\u8BF7\u9009\u62E9...",
+        value: ""
+      });
+    }
+    return selectEl;
+  }
+  /**
+   * 刷新实体选项
+   */
+  async refreshEntityOptions(selectEl, entityType) {
+    const currentValue = selectEl.value;
+    selectEl.empty();
+    selectEl.createEl("option", {
+      text: "\u8BF7\u9009\u62E9...",
+      value: ""
+    });
+    let options = [];
+    switch (entityType) {
+      case "version": {
+        const versions = await this.entityManager.listVersions();
+        options = versions.map((v) => ({ label: v.name, value: v.id }));
+        break;
+      }
+      case "project": {
+        const projects = await this.entityManager.listProjects();
+        options = projects.map((p) => ({ label: p.name, value: p.id }));
+        break;
+      }
+      case "feature": {
+        const features = await this.entityManager.listFeatures();
+        options = features.map((f) => ({ label: f.name, value: f.id }));
+        break;
+      }
+    }
+    for (const option of options) {
+      selectEl.createEl("option", {
+        text: option.label,
+        value: option.value
+      });
+    }
+    if (currentValue) {
+      const exists = Array.from(selectEl.options).some((o) => o.value === currentValue);
+      if (exists) {
+        selectEl.value = currentValue;
+      }
+    }
+  }
+  /**
+   * 渲染当前视图
+   */
+  async renderCurrentView() {
+    if (!this.currentViewContainer)
+      return;
+    this.currentViewContainer.empty();
+    const loadingEl = this.currentViewContainer.createDiv("pm-cascade-selector-loading");
+    loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
+    try {
+      const viewConfig = {
+        mode: this.currentState.viewMode,
+        type: this.currentState.entityType,
+        id: this.currentState.entityId
+      };
+      if (this.currentState.viewMode === "kanban") {
+        viewConfig.groupBy = "status";
+      } else if (this.currentState.viewMode === "grid") {
+        viewConfig.cols = 3;
+      }
+      await this.getViewEngine().render(this.currentViewContainer, viewConfig, {
+        sourcePath: this.context.sourcePath,
+        el: this.currentViewContainer
+      });
+    } catch (error) {
+      this.currentViewContainer.empty();
+      const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
+      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
+    }
   }
 };
 
