@@ -97,23 +97,24 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     await this.renderCurrentView();
 
     // 监听实体类型变化
-    entityTypeSelect.addEventListener('change', async () => {
+    entityTypeSelect.addEventListener('change', () => {
       this.currentState.entityType = entityTypeSelect.value as EntityType;
       this.currentState.entityId = ''; // 清空实体选择
-      await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
-      await this.renderCurrentView();
+      this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
+        this.renderCurrentView();
+      });
     });
 
     // 监听实体变化
-    entitySelect.addEventListener('change', async () => {
+    entitySelect.addEventListener('change', () => {
       this.currentState.entityId = entitySelect.value;
-      await this.renderCurrentView();
+      this.renderCurrentView();
     });
 
     // 监听视图模式变化
-    viewModeSelect.addEventListener('change', async () => {
+    viewModeSelect.addEventListener('change', () => {
       this.currentState.viewMode = viewModeSelect.value;
-      await this.renderCurrentView();
+      this.renderCurrentView();
     });
   }
 
@@ -281,11 +282,16 @@ export class CascadeSelectorRenderer extends BaseRenderer {
   /**
    * 渲染当前视图
    */
+  private isRendering = false;
   private async renderCurrentView(): Promise<void> {
-    if (!this.currentViewContainer) return;
+    if (!this.currentViewContainer || this.isRendering) return;
+    
+    this.isRendering = true;
+
+    // 清空容器
+    this.currentViewContainer.empty();
 
     // 显示加载状态
-    this.currentViewContainer.empty();
     const loadingEl = this.currentViewContainer.createDiv('pm-cascade-selector-loading');
     loadingEl.textContent = '加载中...';
 
@@ -307,15 +313,24 @@ export class CascadeSelectorRenderer extends BaseRenderer {
         viewConfig.expanded = true;
       }
 
+      // 创建新的 ViewEngine
+      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+
+      // 延迟一帧渲染，确保 DOM 准备好
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       // 使用 ViewEngine 渲染
-      await this.getViewEngine().render(this.currentViewContainer, viewConfig, {
+      await viewEngine.render(this.currentViewContainer, viewConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer,
       });
     } catch (error) {
+      console.error('[CascadeSelectorRenderer] 渲染错误:', error);
       this.currentViewContainer.empty();
       const errorEl = this.currentViewContainer.createDiv('pm-cascade-selector-error');
       errorEl.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
+    } finally {
+      this.isRendering = false;
     }
   }
 }

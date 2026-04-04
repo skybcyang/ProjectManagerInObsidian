@@ -6147,6 +6147,10 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       entityId: "",
       viewMode: "kanban"
     };
+    /**
+     * 渲染当前视图
+     */
+    this.isRendering = false;
   }
   /**
    * 获取或创建 ViewEngine
@@ -6179,19 +6183,20 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       entitySelect.value = this.currentState.entityId;
     }
     await this.renderCurrentView();
-    entityTypeSelect.addEventListener("change", async () => {
+    entityTypeSelect.addEventListener("change", () => {
       this.currentState.entityType = entityTypeSelect.value;
       this.currentState.entityId = "";
-      await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
-      await this.renderCurrentView();
+      this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
+        this.renderCurrentView();
+      });
     });
-    entitySelect.addEventListener("change", async () => {
+    entitySelect.addEventListener("change", () => {
       this.currentState.entityId = entitySelect.value;
-      await this.renderCurrentView();
+      this.renderCurrentView();
     });
-    viewModeSelect.addEventListener("change", async () => {
+    viewModeSelect.addEventListener("change", () => {
       this.currentState.viewMode = viewModeSelect.value;
-      await this.renderCurrentView();
+      this.renderCurrentView();
     });
   }
   /**
@@ -6313,12 +6318,10 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       }
     }
   }
-  /**
-   * 渲染当前视图
-   */
   async renderCurrentView() {
-    if (!this.currentViewContainer)
+    if (!this.currentViewContainer || this.isRendering)
       return;
+    this.isRendering = true;
     this.currentViewContainer.empty();
     const loadingEl = this.currentViewContainer.createDiv("pm-cascade-selector-loading");
     loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
@@ -6337,14 +6340,19 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       } else if (this.currentState.viewMode === "cascade") {
         viewConfig.expanded = true;
       }
-      await this.getViewEngine().render(this.currentViewContainer, viewConfig, {
+      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await viewEngine.render(this.currentViewContainer, viewConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer
       });
     } catch (error) {
+      console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
       this.currentViewContainer.empty();
       const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
       errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
+    } finally {
+      this.isRendering = false;
     }
   }
 };
