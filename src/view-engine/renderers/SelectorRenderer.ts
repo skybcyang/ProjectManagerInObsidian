@@ -11,7 +11,7 @@ import { ViewEngine } from '../ViewEngine';
  * 支持下拉选择框 + 动态视图渲染
  */
 export class SelectorRenderer extends BaseRenderer {
-  private viewEngine: ViewEngine;
+  private viewEngine?: ViewEngine;
   private currentViewContainer?: HTMLElement;
 
   constructor(
@@ -22,8 +22,17 @@ export class SelectorRenderer extends BaseRenderer {
     actionService: ActionService
   ) {
     super(app, entityManager, cardRegistry, dataService, actionService);
-    // 创建内部 ViewEngine 用于渲染子视图
-    this.viewEngine = new ViewEngine(app, entityManager, cardRegistry);
+    // 注意：ViewEngine 延迟创建，避免循环依赖
+  }
+
+  /**
+   * 获取或创建 ViewEngine
+   */
+  private getViewEngine(): ViewEngine {
+    if (!this.viewEngine) {
+      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    }
+    return this.viewEngine;
   }
 
   /**
@@ -175,6 +184,16 @@ export class SelectorRenderer extends BaseRenderer {
         }
         return Array.from(tags).map((t) => ({ label: t, value: t }));
       }
+      case 'view': {
+        // 视图模式选择器 - 返回支持的视图模式
+        return [
+          { label: '看板', value: 'kanban' },
+          { label: '网格', value: 'grid' },
+          { label: '级联', value: 'cascade' },
+          { label: '时间线', value: 'timeline' },
+          { label: '日历', value: 'calendar' },
+        ];
+      }
       default:
         return [];
     }
@@ -196,18 +215,28 @@ export class SelectorRenderer extends BaseRenderer {
     loadingEl.textContent = '加载中...';
 
     try {
-      // 构建过滤条件
-      const filterKey = this.getFilterKey(selectorType);
-      const mergedConfig: ViewConfig = {
-        ...viewConfig,
-        filter: {
-          ...viewConfig.filter,
-          [filterKey]: selectedValue,
-        },
-      };
+      let mergedConfig: ViewConfig;
+
+      // 如果是视图模式选择器，改变 mode 而不是 filter
+      if (selectorType === 'view') {
+        mergedConfig = {
+          ...viewConfig,
+          mode: selectedValue as any,
+        };
+      } else {
+        // 构建过滤条件
+        const filterKey = this.getFilterKey(selectorType);
+        mergedConfig = {
+          ...viewConfig,
+          filter: {
+            ...viewConfig.filter,
+            [filterKey]: selectedValue,
+          },
+        };
+      }
 
       // 使用 ViewEngine 渲染
-      await this.viewEngine.render(this.currentViewContainer, mergedConfig, {
+      await this.getViewEngine().render(this.currentViewContainer, mergedConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer,
       });
@@ -229,6 +258,7 @@ export class SelectorRenderer extends BaseRenderer {
       priority: 'priority',
       owner: 'owner',
       tag: 'tag',
+      view: 'mode', // 视图选择器不用于过滤
     };
     return keyMap[selectorType] || selectorType;
   }

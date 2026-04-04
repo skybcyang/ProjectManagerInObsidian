@@ -10,11 +10,16 @@ export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' |
 
 // 选择器配置
 export interface SelectorConfig {
-  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag';
+  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag' | 'view';
   label?: string;
   defaultValue?: string;
   allowEmpty?: boolean;
   emptyLabel?: string;
+  // 当 type 为 'view' 时，指定可切换的视图模式
+  viewModes?: Array<{
+    mode: ViewMode;
+    label: string;
+  }>;
 }
 
 // 选择器视图配置（特殊配置）

@@ -32,14 +32,19 @@
 .pm-selector-dropdown {
   flex: 1;
   max-width: 300px;
-  padding: 8px 12px;
+  padding: 8px 32px 8px 12px;
   border: 1px solid var(--pm-border);
   border-radius: 6px;
   background: var(--pm-bg);
   color: var(--pm-text);
   font-size: 14px;
+  line-height: 1.5;
+  height: auto;
+  min-height: 36px;
   cursor: pointer;
   transition: border-color 0.2s;
+  appearance: auto;
+  -webkit-appearance: menulist;
 }
 
 .pm-selector-dropdown:hover {

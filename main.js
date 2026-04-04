@@ -5985,7 +5985,15 @@ var ViewEngine = class {
 var SelectorRenderer = class extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
-    this.viewEngine = new ViewEngine(app, entityManager, cardRegistry);
+  }
+  /**
+   * 获取或创建 ViewEngine
+   */
+  getViewEngine() {
+    if (!this.viewEngine) {
+      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    }
+    return this.viewEngine;
   }
   /**
    * 渲染选择器视图
@@ -6105,6 +6113,15 @@ var SelectorRenderer = class extends BaseRenderer {
         }
         return Array.from(tags).map((t) => ({ label: t, value: t }));
       }
+      case "view": {
+        return [
+          { label: "\u770B\u677F", value: "kanban" },
+          { label: "\u7F51\u683C", value: "grid" },
+          { label: "\u7EA7\u8054", value: "cascade" },
+          { label: "\u65F6\u95F4\u7EBF", value: "timeline" },
+          { label: "\u65E5\u5386", value: "calendar" }
+        ];
+      }
       default:
         return [];
     }
@@ -6119,15 +6136,23 @@ var SelectorRenderer = class extends BaseRenderer {
     const loadingEl = this.currentViewContainer.createDiv("pm-selector-loading");
     loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
     try {
-      const filterKey = this.getFilterKey(selectorType);
-      const mergedConfig = {
-        ...viewConfig,
-        filter: {
-          ...viewConfig.filter,
-          [filterKey]: selectedValue
-        }
-      };
-      await this.viewEngine.render(this.currentViewContainer, mergedConfig, {
+      let mergedConfig;
+      if (selectorType === "view") {
+        mergedConfig = {
+          ...viewConfig,
+          mode: selectedValue
+        };
+      } else {
+        const filterKey = this.getFilterKey(selectorType);
+        mergedConfig = {
+          ...viewConfig,
+          filter: {
+            ...viewConfig.filter,
+            [filterKey]: selectedValue
+          }
+        };
+      }
+      await this.getViewEngine().render(this.currentViewContainer, mergedConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer
       });
@@ -6147,7 +6172,9 @@ var SelectorRenderer = class extends BaseRenderer {
       status: "status",
       priority: "priority",
       owner: "owner",
-      tag: "tag"
+      tag: "tag",
+      view: "mode"
+      // 视图选择器不用于过滤
     };
     return keyMap[selectorType] || selectorType;
   }
