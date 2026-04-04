@@ -27,11 +27,34 @@ export interface SelectorConfig {
   };
 }
 
+// 级联选择器配置
+export interface CascadeSelectorConfig {
+  viewMode?: {
+    label?: string;
+    defaultValue?: string;
+  };
+  entityType?: {
+    label?: string;
+    defaultValue?: EntityType;
+  };
+  entity?: {
+    label?: string;
+    defaultValue?: string;
+    allowEmpty?: boolean;
+  };
+}
+
 // 选择器视图配置（特殊配置）
 export interface SelectorViewConfig extends ViewConfig {
   mode: 'selector';
   selector: SelectorConfig;
   view: ViewConfig;  // 选择后渲染的视图配置
+}
+
+// 级联选择器视图配置
+export interface CascadeSelectorViewConfig extends ViewConfig {
+  mode: 'cascade-selector';
+  cascadeSelector: CascadeSelectorConfig;
 }
 
 // 实体类型

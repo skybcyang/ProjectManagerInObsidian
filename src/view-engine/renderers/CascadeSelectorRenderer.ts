@@ -2,31 +2,9 @@ import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
-import type { ViewConfig, EntityType } from '../types';
+import type { ViewConfig, EntityType, CascadeSelectorConfig } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { ViewEngine } from '../ViewEngine';
-
-/**
- * 级联选择器配置
- */
-export interface CascadeSelectorConfig {
-  // 第一级：视图模式
-  viewMode?: {
-    label?: string;
-    defaultValue?: string;  // kanban/grid/cascade/timeline/calendar
-  };
-  // 第二级：实体类型
-  entityType?: {
-    label?: string;
-    defaultValue?: EntityType;  // version/project/feature
-  };
-  // 第三级：具体实体（动态加载）
-  entity?: {
-    label?: string;
-    defaultValue?: string;
-    allowEmpty?: boolean;
-  };
-}
 
 /**
  * 级联选择器渲染器
@@ -282,59 +260,57 @@ export class CascadeSelectorRenderer extends BaseRenderer {
   /**
    * 渲染当前视图
    */
-  private renderTimeout?: number;
   private async renderCurrentView(): Promise<void> {
-    if (!this.currentViewContainer) return;
-
-    // 清除之前的渲染定时器
-    if (this.renderTimeout) {
-      window.clearTimeout(this.renderTimeout);
+    if (!this.currentViewContainer) {
+      console.error('[CascadeSelectorRenderer] 视图容器不存在');
+      return;
     }
 
     // 显示加载状态
     this.currentViewContainer.empty();
-    this.currentViewContainer.createDiv('pm-cascade-selector-loading', (el) => {
-      el.textContent = '加载中...';
-    });
+    const loadingEl = this.currentViewContainer.createDiv('pm-cascade-selector-loading');
+    loadingEl.textContent = '加载中...';
 
-    // 延迟渲染，避免频繁切换
-    this.renderTimeout = window.setTimeout(async () => {
-      try {
-        // 构建视图配置
-        const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
-          mode: this.currentState.viewMode as any,
-          type: this.currentState.entityType,
-          id: this.currentState.entityId,
-          _hideToolbar: true,
-        };
+    try {
+      console.log('[CascadeSelectorRenderer] 开始渲染:', this.currentState);
 
-        // 根据视图模式和实体类型调整配置
-        if (this.currentState.viewMode === 'kanban') {
-          viewConfig.groupBy = 'status';
-        } else if (this.currentState.viewMode === 'grid') {
-          viewConfig.cols = 3;
-        } else if (this.currentState.viewMode === 'cascade') {
-          viewConfig.expanded = true;
-        }
+      // 构建视图配置
+      const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
+        mode: this.currentState.viewMode as any,
+        type: this.currentState.entityType,
+        id: this.currentState.entityId,
+        _hideToolbar: true,
+      };
 
-        // 清空加载状态
-        this.currentViewContainer!.empty();
-
-        // 创建新的 ViewEngine 并渲染
-        const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-        await viewEngine.render(this.currentViewContainer!, viewConfig, {
-          sourcePath: this.context.sourcePath,
-          el: this.currentViewContainer!,
-        });
-      } catch (error) {
-        console.error('[CascadeSelectorRenderer] 渲染错误:', error);
-        if (this.currentViewContainer) {
-          this.currentViewContainer.empty();
-          this.currentViewContainer.createDiv('pm-cascade-selector-error', (el) => {
-            el.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
-          });
-        }
+      // 根据视图模式和实体类型调整配置
+      if (this.currentState.viewMode === 'kanban') {
+        viewConfig.groupBy = 'status';
+      } else if (this.currentState.viewMode === 'grid') {
+        viewConfig.cols = 3;
+      } else if (this.currentState.viewMode === 'cascade') {
+        viewConfig.expanded = true;
       }
-    }, 200);
+
+      // 清空加载状态
+      this.currentViewContainer.empty();
+
+      // 创建新的 ViewEngine 并渲染
+      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+      console.log('[CascadeSelectorRenderer] 调用 viewEngine.render');
+      
+      await viewEngine.render(this.currentViewContainer, viewConfig, {
+        sourcePath: this.context.sourcePath,
+        el: this.currentViewContainer,
+      });
+      
+      console.log('[CascadeSelectorRenderer] 渲染完成');
+    } catch (error) {
+      console.error('[CascadeSelectorRenderer] 渲染错误:', error);
+      if (this.currentViewContainer) {
+        this.currentViewContainer.empty();
+        const errorEl = this.currentViewContainer.createDiv('pm-cascade-selector-error');
+        errorEl.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
+      }
+    }
   }
 }
