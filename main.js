@@ -5903,7 +5903,8 @@ var ViewEngine = class {
       ["grid", new GridRenderer2(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ["cascade", new CascadeRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
       ["timeline", new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["calendar", new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
+      ["calendar", new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["selector", new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
     ]);
   }
   /**
@@ -5974,8 +5975,181 @@ var ViewEngine = class {
       { id: "grid", name: "\u7F51\u683C", description: "\u5361\u7247\u7F51\u683C\u89C6\u56FE\uFF0C\u652F\u6301\u591A\u5217\u5E03\u5C40" },
       { id: "cascade", name: "\u7EA7\u8054", description: "\u5C42\u7EA7\u7EA7\u8054\u89C6\u56FE\uFF0C\u7248\u672C\u2192\u9879\u76EE\u2192\u7279\u6027" },
       { id: "timeline", name: "\u65F6\u95F4\u7EBF", description: "\u65F6\u95F4\u7EBF\u89C6\u56FE\uFF0C\u6309\u622A\u6B62\u65E5\u671F\u6392\u5217" },
-      { id: "calendar", name: "\u65E5\u5386", description: "\u6708\u5386\u89C6\u56FE\uFF0C\u663E\u793A\u622A\u6B62\u65E5\u671F" }
+      { id: "calendar", name: "\u65E5\u5386", description: "\u6708\u5386\u89C6\u56FE\uFF0C\u663E\u793A\u622A\u6B62\u65E5\u671F" },
+      { id: "selector", name: "\u9009\u62E9\u5668", description: "\u4E0B\u62C9\u9009\u62E9\u6846 + \u52A8\u6001\u89C6\u56FE\u6E32\u67D3" }
     ];
+  }
+};
+
+// src/view-engine/renderers/SelectorRenderer.ts
+var SelectorRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+    this.viewEngine = new ViewEngine(app, entityManager, cardRegistry);
+  }
+  /**
+   * 渲染选择器视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-selector-view");
+    const config = this.config;
+    const selectorConfig = config.selector;
+    const viewConfig = config.view;
+    if (!selectorConfig || !viewConfig) {
+      const errorEl = container.createDiv("pm-selector-error");
+      errorEl.textContent = "\u914D\u7F6E\u9519\u8BEF\uFF1A\u9700\u8981 selector \u548C view \u914D\u7F6E";
+      return;
+    }
+    const selectorContainer = container.createDiv("pm-selector-container");
+    const selectEl = await this.renderSelector(selectorContainer, selectorConfig);
+    this.currentViewContainer = container.createDiv("pm-selector-view-container");
+    const defaultValue = selectorConfig.defaultValue;
+    if (defaultValue) {
+      selectEl.value = defaultValue;
+      await this.renderView(viewConfig, selectorConfig.type, defaultValue);
+    } else if (!selectorConfig.allowEmpty) {
+      const firstOption = selectEl.querySelector('option[value]:not([value=""])');
+      if (firstOption) {
+        selectEl.value = firstOption.value;
+        await this.renderView(viewConfig, selectorConfig.type, firstOption.value);
+      }
+    }
+    selectEl.addEventListener("change", async () => {
+      const selectedValue = selectEl.value;
+      if (selectedValue) {
+        await this.renderView(viewConfig, selectorConfig.type, selectedValue);
+      } else {
+        if (this.currentViewContainer) {
+          this.currentViewContainer.empty();
+        }
+      }
+    });
+  }
+  /**
+   * 渲染下拉选择框
+   */
+  async renderSelector(container, config) {
+    const wrapper = container.createDiv("pm-selector-dropdown-wrapper");
+    if (config.label) {
+      wrapper.createEl("label", {
+        text: config.label,
+        cls: "pm-selector-label"
+      });
+    }
+    const selectEl = wrapper.createEl("select", {
+      cls: "pm-selector-dropdown"
+    });
+    if (config.allowEmpty !== false) {
+      selectEl.createEl("option", {
+        text: config.emptyLabel || `\u8BF7\u9009\u62E9...`,
+        value: ""
+      });
+    }
+    const options = await this.loadOptions(config.type);
+    for (const option of options) {
+      selectEl.createEl("option", {
+        text: option.label,
+        value: option.value
+      });
+    }
+    return selectEl;
+  }
+  /**
+   * 加载选项数据
+   */
+  async loadOptions(type) {
+    switch (type) {
+      case "version": {
+        const versions = await this.entityManager.listVersions();
+        return versions.map((v) => ({ label: v.name, value: v.id }));
+      }
+      case "project": {
+        const projects = await this.entityManager.listProjects();
+        return projects.map((p) => ({ label: p.name, value: p.id }));
+      }
+      case "status": {
+        return [
+          { label: "\u5F85\u5904\u7406", value: "backlog" },
+          { label: "\u5F85\u5F00\u59CB", value: "todo" },
+          { label: "\u8FDB\u884C\u4E2D", value: "in-progress" },
+          { label: "\u6D4B\u8BD5\u4E2D", value: "testing" },
+          { label: "\u5DF2\u5B8C\u6210", value: "completed" },
+          { label: "\u5DF2\u5F52\u6863", value: "archived" }
+        ];
+      }
+      case "priority": {
+        return [
+          { label: "\u7D27\u6025", value: "critical" },
+          { label: "\u9AD8", value: "high" },
+          { label: "\u4E2D", value: "medium" },
+          { label: "\u4F4E", value: "low" }
+        ];
+      }
+      case "owner": {
+        const features = await this.entityManager.listFeatures();
+        const owners = /* @__PURE__ */ new Set();
+        for (const f of features) {
+          if (f.owner)
+            owners.add(f.owner);
+        }
+        return Array.from(owners).map((o) => ({ label: o, value: o }));
+      }
+      case "tag": {
+        const features = await this.entityManager.listFeatures();
+        const tags = /* @__PURE__ */ new Set();
+        for (const f of features) {
+          for (const tag of f.tags || []) {
+            tags.add(tag);
+          }
+        }
+        return Array.from(tags).map((t) => ({ label: t, value: t }));
+      }
+      default:
+        return [];
+    }
+  }
+  /**
+   * 渲染视图
+   */
+  async renderView(viewConfig, selectorType, selectedValue) {
+    if (!this.currentViewContainer)
+      return;
+    this.currentViewContainer.empty();
+    const loadingEl = this.currentViewContainer.createDiv("pm-selector-loading");
+    loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
+    try {
+      const filterKey = this.getFilterKey(selectorType);
+      const mergedConfig = {
+        ...viewConfig,
+        filter: {
+          ...viewConfig.filter,
+          [filterKey]: selectedValue
+        }
+      };
+      await this.viewEngine.render(this.currentViewContainer, mergedConfig, {
+        sourcePath: this.context.sourcePath,
+        el: this.currentViewContainer
+      });
+    } catch (error) {
+      this.currentViewContainer.empty();
+      const errorEl = this.currentViewContainer.createDiv("pm-selector-error");
+      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
+    }
+  }
+  /**
+   * 获取过滤键名
+   */
+  getFilterKey(selectorType) {
+    const keyMap = {
+      version: "versionId",
+      project: "projectId",
+      status: "status",
+      priority: "priority",
+      owner: "owner",
+      tag: "tag"
+    };
+    return keyMap[selectorType] || selectorType;
   }
 };
 

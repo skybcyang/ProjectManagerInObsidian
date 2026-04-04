@@ -6,7 +6,23 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar';
+export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' | 'selector';
+
+// 选择器配置
+export interface SelectorConfig {
+  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag';
+  label?: string;
+  defaultValue?: string;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+}
+
+// 选择器视图配置（特殊配置）
+export interface SelectorViewConfig extends ViewConfig {
+  mode: 'selector';
+  selector: SelectorConfig;
+  view: ViewConfig;  // 选择后渲染的视图配置
+}
 
 // 实体类型
 export type EntityType = 'version' | 'project' | 'feature';

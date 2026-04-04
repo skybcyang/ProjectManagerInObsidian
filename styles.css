@@ -2793,3 +2793,109 @@
     padding: 2px 4px;
   }
 }
+/* ========================================
+   Selector View Styles
+   pm-view mode: selector 的样式
+   ======================================== */
+
+.pm-selector-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- 选择器容器 ---------- */
+.pm-selector-container {
+  background: var(--pm-bg-secondary);
+  border-radius: var(--pm-radius);
+  padding: 16px;
+}
+
+.pm-selector-dropdown-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pm-selector-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--pm-text);
+  white-space: nowrap;
+}
+
+.pm-selector-dropdown {
+  flex: 1;
+  max-width: 300px;
+  padding: 8px 12px;
+  border: 1px solid var(--pm-border);
+  border-radius: 6px;
+  background: var(--pm-bg);
+  color: var(--pm-text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.pm-selector-dropdown:hover {
+  border-color: var(--pm-primary);
+}
+
+.pm-selector-dropdown:focus {
+  outline: none;
+  border-color: var(--pm-primary);
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+/* ---------- 视图容器 ---------- */
+.pm-selector-view-container {
+  min-height: 200px;
+  border-radius: var(--pm-radius);
+}
+
+/* ---------- 加载状态 ---------- */
+.pm-selector-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--pm-text-muted);
+  font-size: 14px;
+}
+
+.pm-selector-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--pm-border);
+  border-top-color: var(--pm-primary);
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: pm-spin 1s linear infinite;
+}
+
+@keyframes pm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- 错误状态 ---------- */
+.pm-selector-error {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-error);
+  background: rgba(var(--text-error-rgb, 220, 38, 38), 0.05);
+  border-radius: var(--pm-radius);
+  border: 1px solid rgba(var(--text-error-rgb, 220, 38, 38), 0.2);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .pm-selector-dropdown-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pm-selector-dropdown {
+    max-width: none;
+  }
+}
