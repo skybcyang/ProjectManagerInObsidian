@@ -10,7 +10,7 @@ export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' |
 
 // 选择器配置
 export interface SelectorConfig {
-  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag' | 'view';
+  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag' | 'view' | 'overview';
   label?: string;
   defaultValue?: string;
   allowEmpty?: boolean;
@@ -20,6 +20,11 @@ export interface SelectorConfig {
     mode: ViewMode;
     label: string;
   }>;
+  // 场景配置
+  scene?: {
+    type: 'all' | 'version' | 'project';
+    id?: string;  // 当 type 为 version/project 时使用
+  };
 }
 
 // 选择器视图配置（特殊配置）

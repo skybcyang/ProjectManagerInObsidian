@@ -6009,30 +6009,50 @@ var SelectorRenderer = class extends BaseRenderer {
       errorEl.textContent = "\u914D\u7F6E\u9519\u8BEF\uFF1A\u9700\u8981 selector \u548C view \u914D\u7F6E";
       return;
     }
+    const sceneConfig = this.buildSceneConfig(selectorConfig);
     const selectorContainer = container.createDiv("pm-selector-container");
     const selectEl = await this.renderSelector(selectorContainer, selectorConfig);
     this.currentViewContainer = container.createDiv("pm-selector-view-container");
-    const defaultValue = selectorConfig.defaultValue;
-    if (defaultValue) {
-      selectEl.value = defaultValue;
-      await this.renderView(viewConfig, selectorConfig.type, defaultValue);
-    } else if (!selectorConfig.allowEmpty) {
+    let initialValue = selectorConfig.defaultValue;
+    if (!initialValue && !selectorConfig.allowEmpty) {
       const firstOption = selectEl.querySelector('option[value]:not([value=""])');
       if (firstOption) {
-        selectEl.value = firstOption.value;
-        await this.renderView(viewConfig, selectorConfig.type, firstOption.value);
+        initialValue = firstOption.value;
       }
+    }
+    if (initialValue) {
+      selectEl.value = initialValue;
+      setTimeout(() => {
+        this.renderView(viewConfig, selectorConfig.type, initialValue, sceneConfig);
+      }, 0);
     }
     selectEl.addEventListener("change", async () => {
       const selectedValue = selectEl.value;
       if (selectedValue) {
-        await this.renderView(viewConfig, selectorConfig.type, selectedValue);
+        await this.renderView(viewConfig, selectorConfig.type, selectedValue, sceneConfig);
       } else {
         if (this.currentViewContainer) {
           this.currentViewContainer.empty();
         }
       }
     });
+  }
+  /**
+   * 构建场景配置
+   */
+  buildSceneConfig(selectorConfig) {
+    const scene = selectorConfig.scene;
+    if (!scene)
+      return {};
+    switch (scene.type) {
+      case "version":
+        return { filter: { versionId: scene.id || "" } };
+      case "project":
+        return { filter: { projectId: scene.id || "" } };
+      case "all":
+      default:
+        return {};
+    }
   }
   /**
    * 渲染下拉选择框
@@ -6122,6 +6142,14 @@ var SelectorRenderer = class extends BaseRenderer {
           { label: "\u65E5\u5386", value: "calendar" }
         ];
       }
+      case "overview": {
+        return [
+          { label: "\u5168\u90E8\u7279\u6027", value: "all-features" },
+          { label: "\u6309\u7248\u672C\u5206\u7EC4", value: "by-version" },
+          { label: "\u6309\u9879\u76EE\u5206\u7EC4", value: "by-project" },
+          { label: "\u6309\u8D1F\u8D23\u4EBA\u5206\u7EC4", value: "by-owner" }
+        ];
+      }
       default:
         return [];
     }
@@ -6129,7 +6157,7 @@ var SelectorRenderer = class extends BaseRenderer {
   /**
    * 渲染视图
    */
-  async renderView(viewConfig, selectorType, selectedValue) {
+  async renderView(viewConfig, selectorType, selectedValue, sceneConfig = {}) {
     if (!this.currentViewContainer)
       return;
     this.currentViewContainer.empty();
@@ -6137,17 +6165,26 @@ var SelectorRenderer = class extends BaseRenderer {
     loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
     try {
       let mergedConfig;
+      const baseConfig = {
+        ...viewConfig,
+        filter: {
+          ...viewConfig.filter,
+          ...sceneConfig.filter
+        }
+      };
       if (selectorType === "view") {
         mergedConfig = {
-          ...viewConfig,
+          ...baseConfig,
           mode: selectedValue
         };
+      } else if (selectorType === "overview") {
+        mergedConfig = baseConfig;
       } else {
         const filterKey = this.getFilterKey(selectorType);
         mergedConfig = {
-          ...viewConfig,
+          ...baseConfig,
           filter: {
-            ...viewConfig.filter,
+            ...baseConfig.filter,
             [filterKey]: selectedValue
           }
         };
@@ -6173,8 +6210,10 @@ var SelectorRenderer = class extends BaseRenderer {
       priority: "priority",
       owner: "owner",
       tag: "tag",
-      view: "mode"
+      view: "mode",
       // 视图选择器不用于过滤
+      overview: "groupBy"
+      // 总览选择器用于分组
     };
     return keyMap[selectorType] || selectorType;
   }

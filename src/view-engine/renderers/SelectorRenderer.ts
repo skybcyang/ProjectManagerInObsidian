@@ -52,6 +52,9 @@ export class SelectorRenderer extends BaseRenderer {
       return;
     }
 
+    // 处理场景配置（总览/版本/项目）
+    const sceneConfig = this.buildSceneConfig(selectorConfig);
+
     // 创建选择器容器
     const selectorContainer = container.createDiv('pm-selector-container');
     
@@ -61,25 +64,29 @@ export class SelectorRenderer extends BaseRenderer {
     // 创建视图容器
     this.currentViewContainer = container.createDiv('pm-selector-view-container');
 
-    // 如果有默认值，自动渲染
-    const defaultValue = selectorConfig.defaultValue;
-    if (defaultValue) {
-      selectEl.value = defaultValue;
-      await this.renderView(viewConfig, selectorConfig.type, defaultValue);
-    } else if (!selectorConfig.allowEmpty) {
-      // 如果不允许空选择，默认选择第一项
+    // 确定初始值
+    let initialValue = selectorConfig.defaultValue;
+    if (!initialValue && !selectorConfig.allowEmpty) {
       const firstOption = selectEl.querySelector('option[value]:not([value=""])') as HTMLOptionElement;
       if (firstOption) {
-        selectEl.value = firstOption.value;
-        await this.renderView(viewConfig, selectorConfig.type, firstOption.value);
+        initialValue = firstOption.value;
       }
+    }
+
+    // 设置下拉框值并渲染初始视图
+    if (initialValue) {
+      selectEl.value = initialValue;
+      // 使用 setTimeout 确保 DOM 已更新
+      setTimeout(() => {
+        this.renderView(viewConfig, selectorConfig.type, initialValue!, sceneConfig);
+      }, 0);
     }
 
     // 监听选择变化
     selectEl.addEventListener('change', async () => {
       const selectedValue = selectEl.value;
       if (selectedValue) {
-        await this.renderView(viewConfig, selectorConfig.type, selectedValue);
+        await this.renderView(viewConfig, selectorConfig.type, selectedValue, sceneConfig);
       } else {
         // 清空视图
         if (this.currentViewContainer) {
@@ -87,6 +94,24 @@ export class SelectorRenderer extends BaseRenderer {
         }
       }
     });
+  }
+
+  /**
+   * 构建场景配置
+   */
+  private buildSceneConfig(selectorConfig: SelectorConfig): { filter?: Record<string, string> } {
+    const scene = selectorConfig.scene;
+    if (!scene) return {};
+
+    switch (scene.type) {
+      case 'version':
+        return { filter: { versionId: scene.id || '' } };
+      case 'project':
+        return { filter: { projectId: scene.id || '' } };
+      case 'all':
+      default:
+        return {};
+    }
   }
 
   /**
@@ -194,6 +219,15 @@ export class SelectorRenderer extends BaseRenderer {
           { label: '日历', value: 'calendar' },
         ];
       }
+      case 'overview': {
+        // 总览模式 - 显示不同维度的总览
+        return [
+          { label: '全部特性', value: 'all-features' },
+          { label: '按版本分组', value: 'by-version' },
+          { label: '按项目分组', value: 'by-project' },
+          { label: '按负责人分组', value: 'by-owner' },
+        ];
+      }
       default:
         return [];
     }
@@ -205,7 +239,8 @@ export class SelectorRenderer extends BaseRenderer {
   private async renderView(
     viewConfig: ViewConfig,
     selectorType: SelectorConfig['type'],
-    selectedValue: string
+    selectedValue: string,
+    sceneConfig: { filter?: Record<string, string> } = {}
   ): Promise<void> {
     if (!this.currentViewContainer) return;
 
@@ -217,19 +252,31 @@ export class SelectorRenderer extends BaseRenderer {
     try {
       let mergedConfig: ViewConfig;
 
+      // 基础配置合并场景过滤
+      const baseConfig: ViewConfig = {
+        ...viewConfig,
+        filter: {
+          ...viewConfig.filter,
+          ...sceneConfig.filter,
+        },
+      };
+
       // 如果是视图模式选择器，改变 mode 而不是 filter
       if (selectorType === 'view') {
         mergedConfig = {
-          ...viewConfig,
+          ...baseConfig,
           mode: selectedValue as any,
         };
+      } else if (selectorType === 'overview') {
+        // 总览模式 - 只应用场景过滤，不使用选择器值
+        mergedConfig = baseConfig;
       } else {
         // 构建过滤条件
         const filterKey = this.getFilterKey(selectorType);
         mergedConfig = {
-          ...viewConfig,
+          ...baseConfig,
           filter: {
-            ...viewConfig.filter,
+            ...baseConfig.filter,
             [filterKey]: selectedValue,
           },
         };
@@ -259,6 +306,7 @@ export class SelectorRenderer extends BaseRenderer {
       owner: 'owner',
       tag: 'tag',
       view: 'mode', // 视图选择器不用于过滤
+      overview: 'groupBy', // 总览选择器用于分组
     };
     return keyMap[selectorType] || selectorType;
   }
