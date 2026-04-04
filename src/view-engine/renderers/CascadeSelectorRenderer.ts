@@ -70,14 +70,24 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     // 初始渲染：先加载实体列表
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
-      entitySelect.value = this.currentState.entityId;
+      // 检查默认值是否在选项中
+      const exists = Array.from(entitySelect.options).some(o => o.value === this.currentState.entityId);
+      if (exists) {
+        entitySelect.value = this.currentState.entityId;
+      } else {
+        // 默认值不在当前类型的列表中，清空选择
+        this.currentState.entityId = '';
+        entitySelect.value = '';
+      }
     }
+    console.log('[CascadeSelectorRenderer] 初始状态:', JSON.stringify(this.currentState));
     await this.renderCurrentView();
 
     // 监听实体类型变化
     entityTypeSelect.addEventListener('change', () => {
       this.currentState.entityType = entityTypeSelect.value as EntityType;
       this.currentState.entityId = ''; // 清空实体选择
+      entitySelect.value = ''; // 重置下拉框
       this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
         this.renderCurrentView();
       });
@@ -86,12 +96,14 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     // 监听实体变化
     entitySelect.addEventListener('change', () => {
       this.currentState.entityId = entitySelect.value;
+      console.log('[CascadeSelectorRenderer] 实体变化:', this.currentState.entityType, this.currentState.entityId);
       this.renderCurrentView();
     });
 
     // 监听视图模式变化
     viewModeSelect.addEventListener('change', () => {
       this.currentState.viewMode = viewModeSelect.value;
+      console.log('[CascadeSelectorRenderer] 视图模式变化:', this.currentState.viewMode);
       this.renderCurrentView();
     });
   }
@@ -309,6 +321,8 @@ export class CascadeSelectorRenderer extends BaseRenderer {
           viewConfig.cols = 3;
         }
       }
+      
+      console.log('[CascadeSelectorRenderer] viewConfig:', JSON.stringify(viewConfig));
 
       // 清空加载状态
       this.currentViewContainer.empty();

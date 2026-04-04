@@ -4274,6 +4274,12 @@ var DataService = class {
       if (filter.tag && "tags" in entity && !((_a = entity.tags) == null ? void 0 : _a.includes(filter.tag))) {
         return false;
       }
+      if (filter.versionId && "versionId" in entity && entity.versionId !== filter.versionId) {
+        return false;
+      }
+      if (filter.projectId && "projectId" in entity && entity.projectId !== filter.projectId) {
+        return false;
+      }
       return true;
     });
   }
@@ -6197,22 +6203,32 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
-      entitySelect.value = this.currentState.entityId;
+      const exists = Array.from(entitySelect.options).some((o) => o.value === this.currentState.entityId);
+      if (exists) {
+        entitySelect.value = this.currentState.entityId;
+      } else {
+        this.currentState.entityId = "";
+        entitySelect.value = "";
+      }
     }
+    console.log("[CascadeSelectorRenderer] \u521D\u59CB\u72B6\u6001:", JSON.stringify(this.currentState));
     await this.renderCurrentView();
     entityTypeSelect.addEventListener("change", () => {
       this.currentState.entityType = entityTypeSelect.value;
       this.currentState.entityId = "";
+      entitySelect.value = "";
       this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
         this.renderCurrentView();
       });
     });
     entitySelect.addEventListener("change", () => {
       this.currentState.entityId = entitySelect.value;
+      console.log("[CascadeSelectorRenderer] \u5B9E\u4F53\u53D8\u5316:", this.currentState.entityType, this.currentState.entityId);
       this.renderCurrentView();
     });
     viewModeSelect.addEventListener("change", () => {
       this.currentState.viewMode = viewModeSelect.value;
+      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u6A21\u5F0F\u53D8\u5316:", this.currentState.viewMode);
       this.renderCurrentView();
     });
   }
@@ -6374,6 +6390,7 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
           viewConfig.cols = 3;
         }
       }
+      console.log("[CascadeSelectorRenderer] viewConfig:", JSON.stringify(viewConfig));
       this.currentViewContainer.empty();
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
       console.log("[CascadeSelectorRenderer] \u8C03\u7528 viewEngine.render");

@@ -82,6 +82,16 @@ export class DataService {
         return false;
       }
 
+      // 版本ID过滤（项目/特性）
+      if (filter.versionId && 'versionId' in entity && entity.versionId !== filter.versionId) {
+        return false;
+      }
+
+      // 项目ID过滤（特性）
+      if (filter.projectId && 'projectId' in entity && entity.projectId !== filter.projectId) {
+        return false;
+      }
+
       return true;
     });
   }
