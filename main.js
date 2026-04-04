@@ -6516,11 +6516,23 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   async processViewBlock(source, el, ctx) {
     try {
       const config = this.viewEngine.parseConfig(source);
-      const viewContext = {
-        sourcePath: ctx.sourcePath,
-        el
-      };
-      await this.viewEngine.render(el, config, viewContext);
+      const viewChild = new class extends import_obsidian16.MarkdownRenderChild {
+        constructor(containerEl, plugin, source2, config2, sourcePath) {
+          super(containerEl);
+          this.plugin = plugin;
+          this.source = source2;
+          this.config = config2;
+          this.sourcePath = sourcePath;
+        }
+        async onload() {
+          const viewContext = {
+            sourcePath: this.sourcePath,
+            el: this.containerEl
+          };
+          await this.plugin.viewEngine.render(this.containerEl, this.config, viewContext);
+        }
+      }(el, this, source, config, ctx.sourcePath);
+      ctx.addChild(viewChild);
     } catch (error) {
       console.error("[processViewBlock] \u9519\u8BEF:", error);
       el.createEl("div", {

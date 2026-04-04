@@ -253,11 +253,23 @@ export default class ProjectManagerPlugin extends Plugin {
   ): Promise<void> {
     try {
       const config = this.viewEngine.parseConfig(source);
-      const viewContext: import('./view-engine').ViewContext = {
-        sourcePath: ctx.sourcePath,
-        el,
-      };
-      await this.viewEngine.render(el, config, viewContext);
+      
+      // 创建渲染子组件，管理生命周期
+      const viewChild = new (class extends MarkdownRenderChild {
+        constructor(containerEl: HTMLElement, private plugin: ProjectManagerPlugin, private source: string, private config: any, private sourcePath: string) {
+          super(containerEl);
+        }
+
+        async onload() {
+          const viewContext: import('./view-engine').ViewContext = {
+            sourcePath: this.sourcePath,
+            el: this.containerEl,
+          };
+          await this.plugin.viewEngine.render(this.containerEl, this.config, viewContext);
+        }
+      })(el, this, source, config, ctx.sourcePath);
+
+      ctx.addChild(viewChild);
     } catch (error) {
       console.error('[processViewBlock] 错误:', error);
       el.createEl('div', {
