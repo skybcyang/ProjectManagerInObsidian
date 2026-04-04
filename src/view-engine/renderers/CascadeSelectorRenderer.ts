@@ -291,7 +291,7 @@ export class CascadeSelectorRenderer extends BaseRenderer {
 
       // 根据实体类型和视图模式调整配置
       if (this.currentState.viewMode === 'cascade') {
-        // 级联视图显示实体本身
+        // 级联视图显示实体本身及其层级
         viewConfig = {
           mode: 'cascade',
           type: this.currentState.entityType,
@@ -299,8 +299,23 @@ export class CascadeSelectorRenderer extends BaseRenderer {
           expanded: true,
           _hideToolbar: true,
         };
+      } else if (this.currentState.entityType === 'feature' && this.currentState.entityId) {
+        // 选择了具体特性 - 显示该特性详情（级联展示）
+        viewConfig = {
+          mode: this.currentState.viewMode as any,
+          type: 'feature',
+          id: this.currentState.entityId,
+          _hideToolbar: true,
+        };
+
+        // 看板默认按状态分组
+        if (this.currentState.viewMode === 'kanban') {
+          viewConfig.groupBy = 'status';
+        } else if (this.currentState.viewMode === 'grid') {
+          viewConfig.cols = 3;
+        }
       } else {
-        // 看板/网格/时间线/日历视图显示该实体下的特性
+        // 看板/网格/时间线/日历视图显示该实体下的特性列表
         viewConfig = {
           mode: this.currentState.viewMode as any,
           type: 'feature',

@@ -6383,6 +6383,18 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
           expanded: true,
           _hideToolbar: true
         };
+      } else if (this.currentState.entityType === "feature" && this.currentState.entityId) {
+        viewConfig = {
+          mode: this.currentState.viewMode,
+          type: "feature",
+          id: this.currentState.entityId,
+          _hideToolbar: true
+        };
+        if (this.currentState.viewMode === "kanban") {
+          viewConfig.groupBy = "status";
+        } else if (this.currentState.viewMode === "grid") {
+          viewConfig.cols = 3;
+        }
       } else {
         viewConfig = {
           mode: this.currentState.viewMode,
