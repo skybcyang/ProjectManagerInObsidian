@@ -61,6 +61,11 @@ export class ViewEngine {
     const wrapper = container.createDiv('pm-view');
     const mode = config.mode || 'grid';
     wrapper.dataset.viewMode = mode;
+    
+    // 调试用：添加视觉标识
+    const debugId = Math.random().toString(36).substring(2, 8);
+    wrapper.dataset.renderId = debugId;
+    console.log('[ViewEngine] 创建视图 wrapper, mode:', mode, 'renderId:', debugId);
 
     // 获取对应的渲染器
     const renderer = this.renderers.get(mode);
@@ -80,9 +85,9 @@ export class ViewEngine {
 
     // 渲染视图
     try {
-      console.log('[ViewEngine] 调用渲染器:', mode);
+      console.log('[ViewEngine] 调用渲染器:', mode, 'wrapper子元素:', wrapper.children.length);
       await renderer.render(wrapper);
-      console.log('[ViewEngine] 渲染器完成:', mode);
+      console.log('[ViewEngine] 渲染器完成:', mode, 'wrapper子元素:', wrapper.children.length);
     } catch (error) {
       console.error('[ViewEngine] 渲染失败:', error);
       this.renderError(wrapper, `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`);

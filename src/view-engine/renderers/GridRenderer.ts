@@ -71,6 +71,8 @@ export class GridRenderer extends BaseRenderer {
         await this.renderGridCard(gridContainer, entity);
       }
     }
+    
+    console.log('[GridRenderer] 容器子元素数量:', gridContainer.children.length);
   }
 
   /**

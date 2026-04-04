@@ -341,6 +341,7 @@ export class CascadeSelectorRenderer extends BaseRenderer {
 
       // 清空加载状态
       this.currentViewContainer.empty();
+      console.log('[CascadeSelectorRenderer] 视图容器已清空，子元素:', this.currentViewContainer.children.length);
 
       // 创建新的 ViewEngine 并渲染
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
@@ -351,7 +352,7 @@ export class CascadeSelectorRenderer extends BaseRenderer {
         el: this.currentViewContainer,
       });
       
-      console.log('[CascadeSelectorRenderer] 渲染完成');
+      console.log('[CascadeSelectorRenderer] 渲染完成，容器子元素:', this.currentViewContainer.children.length);
     } catch (error) {
       console.error('[CascadeSelectorRenderer] 渲染错误:', error);
       if (this.currentViewContainer) {

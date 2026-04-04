@@ -5169,6 +5169,7 @@ var GridRenderer2 = class extends BaseRenderer {
         await this.renderGridCard(gridContainer, entity);
       }
     }
+    console.log("[GridRenderer] \u5BB9\u5668\u5B50\u5143\u7D20\u6570\u91CF:", gridContainer.children.length);
   }
   /**
    * 渲染网格卡片
@@ -5866,6 +5867,9 @@ var ViewEngine = class {
     const wrapper = container.createDiv("pm-view");
     const mode = config.mode || "grid";
     wrapper.dataset.viewMode = mode;
+    const debugId = Math.random().toString(36).substring(2, 8);
+    wrapper.dataset.renderId = debugId;
+    console.log("[ViewEngine] \u521B\u5EFA\u89C6\u56FE wrapper, mode:", mode, "renderId:", debugId);
     const renderer = this.renderers.get(mode);
     if (!renderer) {
       console.error("[ViewEngine] \u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F:", mode);
@@ -5877,9 +5881,9 @@ var ViewEngine = class {
       this.render(container, config, context);
     });
     try {
-      console.log("[ViewEngine] \u8C03\u7528\u6E32\u67D3\u5668:", mode);
+      console.log("[ViewEngine] \u8C03\u7528\u6E32\u67D3\u5668:", mode, "wrapper\u5B50\u5143\u7D20:", wrapper.children.length);
       await renderer.render(wrapper);
-      console.log("[ViewEngine] \u6E32\u67D3\u5668\u5B8C\u6210:", mode);
+      console.log("[ViewEngine] \u6E32\u67D3\u5668\u5B8C\u6210:", mode, "wrapper\u5B50\u5143\u7D20:", wrapper.children.length);
     } catch (error) {
       console.error("[ViewEngine] \u6E32\u67D3\u5931\u8D25:", error);
       this.renderError(wrapper, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
@@ -6414,13 +6418,14 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       }
       console.log("[CascadeSelectorRenderer] viewConfig:", JSON.stringify(viewConfig));
       this.currentViewContainer.empty();
+      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u5DF2\u6E05\u7A7A\uFF0C\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
       console.log("[CascadeSelectorRenderer] \u8C03\u7528 viewEngine.render");
       await viewEngine.render(this.currentViewContainer, viewConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer
       });
-      console.log("[CascadeSelectorRenderer] \u6E32\u67D3\u5B8C\u6210");
+      console.log("[CascadeSelectorRenderer] \u6E32\u67D3\u5B8C\u6210\uFF0C\u5BB9\u5668\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
     } catch (error) {
       console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
       if (this.currentViewContainer) {
