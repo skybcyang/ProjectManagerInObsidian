@@ -275,20 +275,39 @@ export class CascadeSelectorRenderer extends BaseRenderer {
       console.log('[CascadeSelectorRenderer] 开始渲染:', this.currentState);
 
       // 构建视图配置
-      const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
-        mode: this.currentState.viewMode as any,
-        type: this.currentState.entityType,
-        id: this.currentState.entityId,
-        _hideToolbar: true,
-      };
+      let viewConfig: ViewConfig & { _hideToolbar?: boolean };
 
-      // 根据视图模式和实体类型调整配置
-      if (this.currentState.viewMode === 'kanban') {
-        viewConfig.groupBy = 'status';
-      } else if (this.currentState.viewMode === 'grid') {
-        viewConfig.cols = 3;
-      } else if (this.currentState.viewMode === 'cascade') {
-        viewConfig.expanded = true;
+      // 根据实体类型和视图模式调整配置
+      if (this.currentState.viewMode === 'cascade') {
+        // 级联视图显示实体本身
+        viewConfig = {
+          mode: 'cascade',
+          type: this.currentState.entityType,
+          id: this.currentState.entityId,
+          expanded: true,
+          _hideToolbar: true,
+        };
+      } else {
+        // 看板/网格/时间线/日历视图显示该实体下的特性
+        viewConfig = {
+          mode: this.currentState.viewMode as any,
+          type: 'feature',
+          _hideToolbar: true,
+        };
+
+        // 根据实体类型添加过滤条件
+        if (this.currentState.entityType === 'version' && this.currentState.entityId) {
+          viewConfig.filter = { versionId: this.currentState.entityId };
+        } else if (this.currentState.entityType === 'project' && this.currentState.entityId) {
+          viewConfig.filter = { projectId: this.currentState.entityId };
+        }
+
+        // 看板默认按状态分组
+        if (this.currentState.viewMode === 'kanban') {
+          viewConfig.groupBy = 'status';
+        } else if (this.currentState.viewMode === 'grid') {
+          viewConfig.cols = 3;
+        }
       }
 
       // 清空加载状态

@@ -18,6 +18,26 @@ export class DataService {
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
     const type = config.type || 'feature';
 
+    // 如果指定了 id，加载特定实体
+    if (config.id) {
+      switch (type) {
+        case 'version': {
+          const version = await this.entityManager.getVersion(config.id);
+          return version ? [version as Entity] : [];
+        }
+        case 'project': {
+          const project = await this.entityManager.getProject(config.id);
+          return project ? [project as Entity] : [];
+        }
+        case 'feature':
+        default: {
+          const feature = await this.entityManager.getFeature(config.id);
+          return feature ? [feature as Entity] : [];
+        }
+      }
+    }
+
+    // 否则加载列表
     switch (type) {
       case 'version':
         return this.entityManager.listVersions() as Promise<Entity[]>;

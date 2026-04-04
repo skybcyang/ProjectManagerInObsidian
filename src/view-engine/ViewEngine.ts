@@ -52,6 +52,8 @@ export class ViewEngine {
     config: ViewConfig,
     context: ViewContext
   ): Promise<void> {
+    console.log('[ViewEngine] 开始渲染:', config.mode, config.type, config.id);
+    
     // 清空容器
     container.empty();
 
@@ -63,6 +65,7 @@ export class ViewEngine {
     // 获取对应的渲染器
     const renderer = this.renderers.get(mode);
     if (!renderer) {
+      console.error('[ViewEngine] 不支持的视图模式:', mode);
       this.renderError(wrapper, `不支持的视图模式: ${mode}`);
       return;
     }
@@ -77,9 +80,11 @@ export class ViewEngine {
 
     // 渲染视图
     try {
+      console.log('[ViewEngine] 调用渲染器:', mode);
       await renderer.render(wrapper);
+      console.log('[ViewEngine] 渲染器完成:', mode);
     } catch (error) {
-      console.error('视图渲染失败:', error);
+      console.error('[ViewEngine] 渲染失败:', error);
       this.renderError(wrapper, `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }

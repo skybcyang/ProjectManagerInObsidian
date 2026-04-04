@@ -4221,6 +4221,23 @@ var DataService = class {
   async loadEntities(config) {
     var _a, _b, _c, _d;
     const type = config.type || "feature";
+    if (config.id) {
+      switch (type) {
+        case "version": {
+          const version = await this.entityManager.getVersion(config.id);
+          return version ? [version] : [];
+        }
+        case "project": {
+          const project = await this.entityManager.getProject(config.id);
+          return project ? [project] : [];
+        }
+        case "feature":
+        default: {
+          const feature = await this.entityManager.getFeature(config.id);
+          return feature ? [feature] : [];
+        }
+      }
+    }
     switch (type) {
       case "version":
         return this.entityManager.listVersions();
@@ -5828,12 +5845,14 @@ var ViewEngine = class {
    * 渲染视图
    */
   async render(container, config, context) {
+    console.log("[ViewEngine] \u5F00\u59CB\u6E32\u67D3:", config.mode, config.type, config.id);
     container.empty();
     const wrapper = container.createDiv("pm-view");
     const mode = config.mode || "grid";
     wrapper.dataset.viewMode = mode;
     const renderer = this.renderers.get(mode);
     if (!renderer) {
+      console.error("[ViewEngine] \u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F:", mode);
       this.renderError(wrapper, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
       return;
     }
@@ -5842,9 +5861,11 @@ var ViewEngine = class {
       this.render(container, config, context);
     });
     try {
+      console.log("[ViewEngine] \u8C03\u7528\u6E32\u67D3\u5668:", mode);
       await renderer.render(wrapper);
+      console.log("[ViewEngine] \u6E32\u67D3\u5668\u5B8C\u6210:", mode);
     } catch (error) {
-      console.error("\u89C6\u56FE\u6E32\u67D3\u5931\u8D25:", error);
+      console.error("[ViewEngine] \u6E32\u67D3\u5931\u8D25:", error);
       this.renderError(wrapper, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
     }
   }
@@ -6327,18 +6348,31 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
     try {
       console.log("[CascadeSelectorRenderer] \u5F00\u59CB\u6E32\u67D3:", this.currentState);
-      const viewConfig = {
-        mode: this.currentState.viewMode,
-        type: this.currentState.entityType,
-        id: this.currentState.entityId,
-        _hideToolbar: true
-      };
-      if (this.currentState.viewMode === "kanban") {
-        viewConfig.groupBy = "status";
-      } else if (this.currentState.viewMode === "grid") {
-        viewConfig.cols = 3;
-      } else if (this.currentState.viewMode === "cascade") {
-        viewConfig.expanded = true;
+      let viewConfig;
+      if (this.currentState.viewMode === "cascade") {
+        viewConfig = {
+          mode: "cascade",
+          type: this.currentState.entityType,
+          id: this.currentState.entityId,
+          expanded: true,
+          _hideToolbar: true
+        };
+      } else {
+        viewConfig = {
+          mode: this.currentState.viewMode,
+          type: "feature",
+          _hideToolbar: true
+        };
+        if (this.currentState.entityType === "version" && this.currentState.entityId) {
+          viewConfig.filter = { versionId: this.currentState.entityId };
+        } else if (this.currentState.entityType === "project" && this.currentState.entityId) {
+          viewConfig.filter = { projectId: this.currentState.entityId };
+        }
+        if (this.currentState.viewMode === "kanban") {
+          viewConfig.groupBy = "status";
+        } else if (this.currentState.viewMode === "grid") {
+          viewConfig.cols = 3;
+        }
       }
       this.currentViewContainer.empty();
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
