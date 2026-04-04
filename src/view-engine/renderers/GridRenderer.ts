@@ -62,10 +62,12 @@ export class GridRenderer extends BaseRenderer {
     gridContainer.style.gap = '16px';
 
     // 渲染卡片
+    console.log('[GridRenderer] 渲染', limited.length, '个实体');
     if (limited.length === 0) {
       this.createEmptyState(gridContainer, '没有匹配的实体');
     } else {
       for (const entity of limited) {
+        console.log('[GridRenderer] 渲染卡片:', entity.name, entity.id);
         await this.renderGridCard(gridContainer, entity);
       }
     }

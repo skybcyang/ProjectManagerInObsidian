@@ -17,6 +17,7 @@ export class DataService {
    */
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
     const type = config.type || 'feature';
+    console.log('[DataService] loadEntities:', type, 'filter:', config.filter);
 
     // 如果指定了 id，加载特定实体
     if (config.id) {
@@ -38,21 +39,27 @@ export class DataService {
     }
 
     // 否则加载列表
+    let entities: Entity[];
     switch (type) {
       case 'version':
-        return this.entityManager.listVersions() as Promise<Entity[]>;
+        entities = await this.entityManager.listVersions() as Entity[];
+        break;
       case 'project':
-        return this.entityManager.listProjects({
+        entities = await this.entityManager.listProjects({
           versionId: config.filter?.versionId,
-        }) as Promise<Entity[]>;
+        }) as Entity[];
+        break;
       case 'feature':
       default:
-        return this.entityManager.listFeatures({
+        entities = await this.entityManager.listFeatures({
           versionId: config.filter?.versionId,
           projectId: config.filter?.projectId,
           status: config.filter?.status as any,
-        }) as Promise<Entity[]>;
+        }) as Entity[];
+        break;
     }
+    console.log('[DataService] loaded', entities.length, type + 's');
+    return entities;
   }
 
   /**

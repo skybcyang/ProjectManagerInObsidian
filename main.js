@@ -4221,6 +4221,7 @@ var DataService = class {
   async loadEntities(config) {
     var _a, _b, _c, _d;
     const type = config.type || "feature";
+    console.log("[DataService] loadEntities:", type, "filter:", config.filter);
     if (config.id) {
       switch (type) {
         case "version": {
@@ -4238,21 +4239,27 @@ var DataService = class {
         }
       }
     }
+    let entities;
     switch (type) {
       case "version":
-        return this.entityManager.listVersions();
+        entities = await this.entityManager.listVersions();
+        break;
       case "project":
-        return this.entityManager.listProjects({
+        entities = await this.entityManager.listProjects({
           versionId: (_a = config.filter) == null ? void 0 : _a.versionId
         });
+        break;
       case "feature":
       default:
-        return this.entityManager.listFeatures({
+        entities = await this.entityManager.listFeatures({
           versionId: (_b = config.filter) == null ? void 0 : _b.versionId,
           projectId: (_c = config.filter) == null ? void 0 : _c.projectId,
           status: (_d = config.filter) == null ? void 0 : _d.status
         });
+        break;
     }
+    console.log("[DataService] loaded", entities.length, type + "s");
+    return entities;
   }
   /**
    * 应用过滤器
@@ -4898,6 +4905,7 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
       });
     }
     const boardContainer = container.createDiv("pm-kanban-container");
+    console.log("[KanbanRenderer] \u6E32\u67D3", sorted.length, "\u4E2A\u5B9E\u4F53");
     if (this.config.groupBy === "status" || !this.config.groupBy) {
       this.renderStatusBoard(boardContainer, sorted);
     } else if (this.config.groupBy === "version") {
@@ -5152,10 +5160,12 @@ var GridRenderer2 = class extends BaseRenderer {
     gridContainer.style.display = "grid";
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridContainer.style.gap = "16px";
+    console.log("[GridRenderer] \u6E32\u67D3", limited.length, "\u4E2A\u5B9E\u4F53");
     if (limited.length === 0) {
       this.createEmptyState(gridContainer, "\u6CA1\u6709\u5339\u914D\u7684\u5B9E\u4F53");
     } else {
       for (const entity of limited) {
+        console.log("[GridRenderer] \u6E32\u67D3\u5361\u7247:", entity.name, entity.id);
         await this.renderGridCard(gridContainer, entity);
       }
     }

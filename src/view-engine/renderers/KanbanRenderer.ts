@@ -60,6 +60,8 @@ export class KanbanRenderer extends BaseRenderer {
     // 创建看板容器
     const boardContainer = container.createDiv('pm-kanban-container');
 
+    console.log('[KanbanRenderer] 渲染', sorted.length, '个实体');
+
     // 根据 groupBy 决定如何分组
     if (this.config.groupBy === 'status' || !this.config.groupBy) {
       // 按状态分组（默认）
