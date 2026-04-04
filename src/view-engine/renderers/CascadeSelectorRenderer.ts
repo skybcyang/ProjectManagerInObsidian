@@ -282,55 +282,59 @@ export class CascadeSelectorRenderer extends BaseRenderer {
   /**
    * 渲染当前视图
    */
-  private isRendering = false;
+  private renderTimeout?: number;
   private async renderCurrentView(): Promise<void> {
-    if (!this.currentViewContainer || this.isRendering) return;
-    
-    this.isRendering = true;
+    if (!this.currentViewContainer) return;
 
-    // 清空容器
-    this.currentViewContainer.empty();
+    // 清除之前的渲染定时器
+    if (this.renderTimeout) {
+      window.clearTimeout(this.renderTimeout);
+    }
 
     // 显示加载状态
-    const loadingEl = this.currentViewContainer.createDiv('pm-cascade-selector-loading');
-    loadingEl.textContent = '加载中...';
+    this.currentViewContainer.empty();
+    this.currentViewContainer.createDiv('pm-cascade-selector-loading', (el) => {
+      el.textContent = '加载中...';
+    });
 
-    try {
-      // 构建视图配置
-      const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
-        mode: this.currentState.viewMode as any,
-        type: this.currentState.entityType,
-        id: this.currentState.entityId,
-        _hideToolbar: true, // 在级联选择器中隐藏工具栏
-      };
+    // 延迟渲染，避免频繁切换
+    this.renderTimeout = window.setTimeout(async () => {
+      try {
+        // 构建视图配置
+        const viewConfig: ViewConfig & { _hideToolbar?: boolean } = {
+          mode: this.currentState.viewMode as any,
+          type: this.currentState.entityType,
+          id: this.currentState.entityId,
+          _hideToolbar: true,
+        };
 
-      // 根据视图模式和实体类型调整配置
-      if (this.currentState.viewMode === 'kanban') {
-        viewConfig.groupBy = 'status';
-      } else if (this.currentState.viewMode === 'grid') {
-        viewConfig.cols = 3;
-      } else if (this.currentState.viewMode === 'cascade') {
-        viewConfig.expanded = true;
+        // 根据视图模式和实体类型调整配置
+        if (this.currentState.viewMode === 'kanban') {
+          viewConfig.groupBy = 'status';
+        } else if (this.currentState.viewMode === 'grid') {
+          viewConfig.cols = 3;
+        } else if (this.currentState.viewMode === 'cascade') {
+          viewConfig.expanded = true;
+        }
+
+        // 清空加载状态
+        this.currentViewContainer!.empty();
+
+        // 创建新的 ViewEngine 并渲染
+        const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+        await viewEngine.render(this.currentViewContainer!, viewConfig, {
+          sourcePath: this.context.sourcePath,
+          el: this.currentViewContainer!,
+        });
+      } catch (error) {
+        console.error('[CascadeSelectorRenderer] 渲染错误:', error);
+        if (this.currentViewContainer) {
+          this.currentViewContainer.empty();
+          this.currentViewContainer.createDiv('pm-cascade-selector-error', (el) => {
+            el.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
+          });
+        }
       }
-
-      // 创建新的 ViewEngine
-      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-
-      // 延迟一帧渲染，确保 DOM 准备好
-      await new Promise(resolve => requestAnimationFrame(resolve));
-
-      // 使用 ViewEngine 渲染
-      await viewEngine.render(this.currentViewContainer, viewConfig, {
-        sourcePath: this.context.sourcePath,
-        el: this.currentViewContainer,
-      });
-    } catch (error) {
-      console.error('[CascadeSelectorRenderer] 渲染错误:', error);
-      this.currentViewContainer.empty();
-      const errorEl = this.currentViewContainer.createDiv('pm-cascade-selector-error');
-      errorEl.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
-    } finally {
-      this.isRendering = false;
-    }
+    }, 200);
   }
 }

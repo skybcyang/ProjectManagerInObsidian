@@ -6147,10 +6147,6 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       entityId: "",
       viewMode: "kanban"
     };
-    /**
-     * 渲染当前视图
-     */
-    this.isRendering = false;
   }
   /**
    * 获取或创建 ViewEngine
@@ -6319,41 +6315,46 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     }
   }
   async renderCurrentView() {
-    if (!this.currentViewContainer || this.isRendering)
+    if (!this.currentViewContainer)
       return;
-    this.isRendering = true;
-    this.currentViewContainer.empty();
-    const loadingEl = this.currentViewContainer.createDiv("pm-cascade-selector-loading");
-    loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
-    try {
-      const viewConfig = {
-        mode: this.currentState.viewMode,
-        type: this.currentState.entityType,
-        id: this.currentState.entityId,
-        _hideToolbar: true
-        // 在级联选择器中隐藏工具栏
-      };
-      if (this.currentState.viewMode === "kanban") {
-        viewConfig.groupBy = "status";
-      } else if (this.currentState.viewMode === "grid") {
-        viewConfig.cols = 3;
-      } else if (this.currentState.viewMode === "cascade") {
-        viewConfig.expanded = true;
-      }
-      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await viewEngine.render(this.currentViewContainer, viewConfig, {
-        sourcePath: this.context.sourcePath,
-        el: this.currentViewContainer
-      });
-    } catch (error) {
-      console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
-      this.currentViewContainer.empty();
-      const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
-      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
-    } finally {
-      this.isRendering = false;
+    if (this.renderTimeout) {
+      window.clearTimeout(this.renderTimeout);
     }
+    this.currentViewContainer.empty();
+    this.currentViewContainer.createDiv("pm-cascade-selector-loading", (el) => {
+      el.textContent = "\u52A0\u8F7D\u4E2D...";
+    });
+    this.renderTimeout = window.setTimeout(async () => {
+      try {
+        const viewConfig = {
+          mode: this.currentState.viewMode,
+          type: this.currentState.entityType,
+          id: this.currentState.entityId,
+          _hideToolbar: true
+        };
+        if (this.currentState.viewMode === "kanban") {
+          viewConfig.groupBy = "status";
+        } else if (this.currentState.viewMode === "grid") {
+          viewConfig.cols = 3;
+        } else if (this.currentState.viewMode === "cascade") {
+          viewConfig.expanded = true;
+        }
+        this.currentViewContainer.empty();
+        const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+        await viewEngine.render(this.currentViewContainer, viewConfig, {
+          sourcePath: this.context.sourcePath,
+          el: this.currentViewContainer
+        });
+      } catch (error) {
+        console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
+        if (this.currentViewContainer) {
+          this.currentViewContainer.empty();
+          this.currentViewContainer.createDiv("pm-cascade-selector-error", (el) => {
+            el.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
+          });
+        }
+      }
+    }, 200);
   }
 };
 
