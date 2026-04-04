@@ -6516,23 +6516,29 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   async processViewBlock(source, el, ctx) {
     try {
       const config = this.viewEngine.parseConfig(source);
-      const viewChild = new class extends import_obsidian16.MarkdownRenderChild {
-        constructor(containerEl, plugin, source2, config2, sourcePath) {
-          super(containerEl);
-          this.plugin = plugin;
-          this.source = source2;
-          this.config = config2;
-          this.sourcePath = sourcePath;
+      const renderView = async () => {
+        const viewContext = {
+          sourcePath: ctx.sourcePath,
+          el
+        };
+        try {
+          await this.viewEngine.render(el, config, viewContext);
+        } catch (error) {
+          console.error("[processViewBlock] \u6E32\u67D3\u9519\u8BEF:", error);
+          el.empty();
+          el.createEl("div", {
+            text: `\u6E32\u67D3\u5931\u8D25: ${error.message}`,
+            cls: "pm-error"
+          });
         }
-        async onload() {
-          const viewContext = {
-            sourcePath: this.sourcePath,
-            el: this.containerEl
-          };
-          await this.plugin.viewEngine.render(this.containerEl, this.config, viewContext);
-        }
-      }(el, this, source, config, ctx.sourcePath);
-      ctx.addChild(viewChild);
+      };
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          setTimeout(renderView, 100);
+        });
+      } else {
+        await renderView();
+      }
     } catch (error) {
       console.error("[processViewBlock] \u9519\u8BEF:", error);
       el.createEl("div", {

@@ -254,22 +254,32 @@ export default class ProjectManagerPlugin extends Plugin {
     try {
       const config = this.viewEngine.parseConfig(source);
       
-      // 创建渲染子组件，管理生命周期
-      const viewChild = new (class extends MarkdownRenderChild {
-        constructor(containerEl: HTMLElement, private plugin: ProjectManagerPlugin, private source: string, private config: any, private sourcePath: string) {
-          super(containerEl);
+      // 延迟渲染，确保 DOM 已准备好
+      const renderView = async () => {
+        const viewContext: import('./view-engine').ViewContext = {
+          sourcePath: ctx.sourcePath,
+          el,
+        };
+        try {
+          await this.viewEngine.render(el, config, viewContext);
+        } catch (error) {
+          console.error('[processViewBlock] 渲染错误:', error);
+          el.empty();
+          el.createEl('div', {
+            text: `渲染失败: ${(error as Error).message}`,
+            cls: 'pm-error',
+          });
         }
+      };
 
-        async onload() {
-          const viewContext: import('./view-engine').ViewContext = {
-            sourcePath: this.sourcePath,
-            el: this.containerEl,
-          };
-          await this.plugin.viewEngine.render(this.containerEl, this.config, viewContext);
-        }
-      })(el, this, source, config, ctx.sourcePath);
-
-      ctx.addChild(viewChild);
+      // 使用 requestAnimationFrame 确保 DOM 已准备好
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          setTimeout(renderView, 100);
+        });
+      } else {
+        await renderView();
+      }
     } catch (error) {
       console.error('[processViewBlock] 错误:', error);
       el.createEl('div', {
