@@ -110,6 +110,20 @@ export class GridRenderer extends BaseRenderer {
     // 名称
     body.createEl('h3', { cls: 'pm-grid-card-title', text: entity.name });
 
+    // 所属项目/版本（特性卡片显示）
+    if (entityType === 'feature') {
+      const feature = entity as any;
+      const parentInfo = body.createDiv('pm-grid-card-parent');
+      parentInfo.style.fontSize = '11px';
+      parentInfo.style.color = 'var(--text-muted)';
+      
+      if (feature.projectId) {
+        parentInfo.textContent = `📁 ${feature.projectId}`;
+      } else if (feature.versionId) {
+        parentInfo.textContent = `📦 ${feature.versionId}`;
+      }
+    }
+
     // 描述（版本/项目有描述）
     if ('description' in entity && entity.description) {
       const desc = body.createDiv('pm-grid-card-desc');

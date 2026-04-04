@@ -62,9 +62,12 @@ export class ViewEngine {
     const mode = config.mode || 'grid';
     wrapper.dataset.viewMode = mode;
     
-    // 调试用：添加视觉标识
+    // 调试用：添加视觉标识和边框
     const debugId = Math.random().toString(36).substring(2, 8);
     wrapper.dataset.renderId = debugId;
+    wrapper.style.border = '2px solid red';
+    wrapper.style.padding = '10px';
+    wrapper.style.margin = '5px 0';
     console.log('[ViewEngine] 创建视图 wrapper, mode:', mode, 'renderId:', debugId);
 
     // 获取对应的渲染器

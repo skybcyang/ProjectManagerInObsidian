@@ -66,6 +66,10 @@ export class CascadeSelectorRenderer extends BaseRenderer {
 
     // 创建视图容器
     this.currentViewContainer = container.createDiv('pm-cascade-selector-view-container');
+    this.currentViewContainer.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
+    this.currentViewContainer.style.minHeight = '300px';
+    this.currentViewContainer.dataset.containerId = Math.random().toString(36).substring(2, 8);
+    console.log('[CascadeSelectorRenderer] 创建视图容器, id:', this.currentViewContainer.dataset.containerId);
 
     // 初始渲染：先加载实体列表
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
@@ -291,10 +295,11 @@ export class CascadeSelectorRenderer extends BaseRenderer {
 
       // 根据实体类型和视图模式调整配置
       if (this.currentState.viewMode === 'cascade') {
-        // 级联视图显示实体本身及其层级
+        // 级联视图显示完整层级（版本→项目→特性）
+        // 如果选择了具体实体，从该实体开始展开；否则显示全部
         viewConfig = {
           mode: 'cascade',
-          type: this.currentState.entityType,
+          type: this.currentState.entityId ? this.currentState.entityType : 'version',
           id: this.currentState.entityId,
           expanded: true,
           _hideToolbar: true,
@@ -340,8 +345,10 @@ export class CascadeSelectorRenderer extends BaseRenderer {
       console.log('[CascadeSelectorRenderer] viewConfig:', JSON.stringify(viewConfig));
 
       // 清空加载状态
+      const containerId = this.currentViewContainer.dataset.containerId;
+      console.log('[CascadeSelectorRenderer] 准备清空容器, id:', containerId, '当前子元素:', this.currentViewContainer.children.length);
       this.currentViewContainer.empty();
-      console.log('[CascadeSelectorRenderer] 视图容器已清空，子元素:', this.currentViewContainer.children.length);
+      console.log('[CascadeSelectorRenderer] 视图容器已清空，id:', containerId);
 
       // 创建新的 ViewEngine 并渲染
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
@@ -352,7 +359,10 @@ export class CascadeSelectorRenderer extends BaseRenderer {
         el: this.currentViewContainer,
       });
       
-      console.log('[CascadeSelectorRenderer] 渲染完成，容器子元素:', this.currentViewContainer.children.length);
+      const finalContainerId = this.currentViewContainer?.dataset.containerId;
+      const finalChildCount = this.currentViewContainer?.children.length;
+      const firstChildClass = this.currentViewContainer?.children[0]?.className;
+      console.log('[CascadeSelectorRenderer] 渲染完成，容器id:', finalContainerId, '子元素:', finalChildCount, '第一个子元素class:', firstChildClass);
     } catch (error) {
       console.error('[CascadeSelectorRenderer] 渲染错误:', error);
       if (this.currentViewContainer) {

@@ -5194,6 +5194,17 @@ var GridRenderer2 = class extends BaseRenderer {
     }
     const body = card.createDiv("pm-grid-card-body");
     body.createEl("h3", { cls: "pm-grid-card-title", text: entity.name });
+    if (entityType === "feature") {
+      const feature = entity;
+      const parentInfo = body.createDiv("pm-grid-card-parent");
+      parentInfo.style.fontSize = "11px";
+      parentInfo.style.color = "var(--text-muted)";
+      if (feature.projectId) {
+        parentInfo.textContent = `\u{1F4C1} ${feature.projectId}`;
+      } else if (feature.versionId) {
+        parentInfo.textContent = `\u{1F4E6} ${feature.versionId}`;
+      }
+    }
     if ("description" in entity && entity.description) {
       const desc = body.createDiv("pm-grid-card-desc");
       const descText = String(entity.description);
@@ -5869,6 +5880,9 @@ var ViewEngine = class {
     wrapper.dataset.viewMode = mode;
     const debugId = Math.random().toString(36).substring(2, 8);
     wrapper.dataset.renderId = debugId;
+    wrapper.style.border = "2px solid red";
+    wrapper.style.padding = "10px";
+    wrapper.style.margin = "5px 0";
     console.log("[ViewEngine] \u521B\u5EFA\u89C6\u56FE wrapper, mode:", mode, "renderId:", debugId);
     const renderer = this.renderers.get(mode);
     if (!renderer) {
@@ -6215,6 +6229,10 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
     const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
     this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
+    this.currentViewContainer.style.backgroundColor = "rgba(0, 255, 0, 0.1)";
+    this.currentViewContainer.style.minHeight = "300px";
+    this.currentViewContainer.dataset.containerId = Math.random().toString(36).substring(2, 8);
+    console.log("[CascadeSelectorRenderer] \u521B\u5EFA\u89C6\u56FE\u5BB9\u5668, id:", this.currentViewContainer.dataset.containerId);
     await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
       const exists = Array.from(entitySelect.options).some((o) => o.value === this.currentState.entityId);
@@ -6369,6 +6387,7 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
    * 渲染当前视图
    */
   async renderCurrentView() {
+    var _a, _b, _c, _d;
     if (!this.currentViewContainer) {
       console.error("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u4E0D\u5B58\u5728");
       return;
@@ -6382,7 +6401,7 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       if (this.currentState.viewMode === "cascade") {
         viewConfig = {
           mode: "cascade",
-          type: this.currentState.entityType,
+          type: this.currentState.entityId ? this.currentState.entityType : "version",
           id: this.currentState.entityId,
           expanded: true,
           _hideToolbar: true
@@ -6417,15 +6436,20 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
         }
       }
       console.log("[CascadeSelectorRenderer] viewConfig:", JSON.stringify(viewConfig));
+      const containerId = this.currentViewContainer.dataset.containerId;
+      console.log("[CascadeSelectorRenderer] \u51C6\u5907\u6E05\u7A7A\u5BB9\u5668, id:", containerId, "\u5F53\u524D\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
       this.currentViewContainer.empty();
-      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u5DF2\u6E05\u7A7A\uFF0C\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
+      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u5DF2\u6E05\u7A7A\uFF0Cid:", containerId);
       const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
       console.log("[CascadeSelectorRenderer] \u8C03\u7528 viewEngine.render");
       await viewEngine.render(this.currentViewContainer, viewConfig, {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer
       });
-      console.log("[CascadeSelectorRenderer] \u6E32\u67D3\u5B8C\u6210\uFF0C\u5BB9\u5668\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
+      const finalContainerId = (_a = this.currentViewContainer) == null ? void 0 : _a.dataset.containerId;
+      const finalChildCount = (_b = this.currentViewContainer) == null ? void 0 : _b.children.length;
+      const firstChildClass = (_d = (_c = this.currentViewContainer) == null ? void 0 : _c.children[0]) == null ? void 0 : _d.className;
+      console.log("[CascadeSelectorRenderer] \u6E32\u67D3\u5B8C\u6210\uFF0C\u5BB9\u5668id:", finalContainerId, "\u5B50\u5143\u7D20:", finalChildCount, "\u7B2C\u4E00\u4E2A\u5B50\u5143\u7D20class:", firstChildClass);
     } catch (error) {
       console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
       if (this.currentViewContainer) {
