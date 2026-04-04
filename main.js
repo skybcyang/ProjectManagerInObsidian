@@ -4208,6 +4208,1778 @@ var GridRenderer = class {
 
 // src/main.ts
 init_constants();
+
+// src/view-engine/services/DataService.ts
+var DataService = class {
+  constructor(app, entityManager) {
+    this.app = app;
+    this.entityManager = entityManager;
+  }
+  /**
+   * 加载实体数据
+   */
+  async loadEntities(config) {
+    var _a, _b, _c, _d;
+    const type = config.type || "feature";
+    switch (type) {
+      case "version":
+        return this.entityManager.listVersions();
+      case "project":
+        return this.entityManager.listProjects({
+          versionId: (_a = config.filter) == null ? void 0 : _a.versionId
+        });
+      case "feature":
+      default:
+        return this.entityManager.listFeatures({
+          versionId: (_b = config.filter) == null ? void 0 : _b.versionId,
+          projectId: (_c = config.filter) == null ? void 0 : _c.projectId,
+          status: (_d = config.filter) == null ? void 0 : _d.status
+        });
+    }
+  }
+  /**
+   * 应用过滤器
+   */
+  applyFilters(entities, filter) {
+    if (!filter)
+      return entities;
+    return entities.filter((entity) => {
+      var _a;
+      if (filter.status && "status" in entity && entity.status !== filter.status) {
+        return false;
+      }
+      if (filter.priority && "priority" in entity && entity.priority !== filter.priority) {
+        return false;
+      }
+      if (filter.owner && entity.owner !== filter.owner) {
+        return false;
+      }
+      if (filter.tag && "tags" in entity && !((_a = entity.tags) == null ? void 0 : _a.includes(filter.tag))) {
+        return false;
+      }
+      return true;
+    });
+  }
+  /**
+   * 应用排序
+   */
+  applySort(entities, sortBy, sortOrder = "asc") {
+    if (!sortBy)
+      return entities;
+    const sorted = [...entities].sort((a, b) => {
+      var _a, _b;
+      let comparison = 0;
+      switch (sortBy) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "dueDate":
+          if ("dueDate" in a && "dueDate" in b) {
+            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+            comparison = dateA - dateB;
+          }
+          break;
+        case "priority":
+          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+          if ("priority" in a && "priority" in b) {
+            const orderA = (_a = priorityOrder[a.priority]) != null ? _a : 99;
+            const orderB = (_b = priorityOrder[b.priority]) != null ? _b : 99;
+            comparison = orderA - orderB;
+          }
+          break;
+        case "progress":
+          if ("progress" in a && "progress" in b) {
+            comparison = (a.progress || 0) - (b.progress || 0);
+          }
+          break;
+        case "created":
+          comparison = a.id.localeCompare(b.id);
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === "desc" ? -comparison : comparison;
+    });
+    return sorted;
+  }
+  /**
+   * 按字段分组
+   */
+  groupByField(entities, field) {
+    const groups = /* @__PURE__ */ new Map();
+    for (const entity of entities) {
+      const key = entity[field] || "\u672A\u5206\u914D";
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(entity);
+    }
+    return groups;
+  }
+  /**
+   * 计算统计数据
+   */
+  calculateStats(entities) {
+    const now = /* @__PURE__ */ new Date();
+    const byStatus = {};
+    const byPriority = {};
+    let completed = 0;
+    let inProgress = 0;
+    let totalProgress = 0;
+    let progressCount = 0;
+    let overdue = 0;
+    for (const entity of entities) {
+      if ("status" in entity) {
+        byStatus[entity.status] = (byStatus[entity.status] || 0) + 1;
+        if (entity.status === "completed")
+          completed++;
+        if (entity.status === "in-progress")
+          inProgress++;
+      }
+      if ("priority" in entity) {
+        byPriority[entity.priority] = (byPriority[entity.priority] || 0) + 1;
+      }
+      if ("progress" in entity && entity.progress !== void 0) {
+        totalProgress += entity.progress;
+        progressCount++;
+      }
+      if ("dueDate" in entity && entity.dueDate && "status" in entity) {
+        if (entity.status !== "completed" && new Date(entity.dueDate) < now) {
+          overdue++;
+        }
+      }
+    }
+    return {
+      total: entities.length,
+      byStatus,
+      byPriority,
+      completed,
+      inProgress,
+      averageProgress: progressCount > 0 ? Math.round(totalProgress / progressCount) : 0,
+      overdue
+    };
+  }
+};
+
+// src/view-engine/services/ActionService.ts
+var ActionService = class {
+  constructor(app, entityManager) {
+    this.app = app;
+    this.entityManager = entityManager;
+  }
+  /**
+   * 设置刷新回调
+   */
+  setRefreshCallback(callback) {
+    this.refreshCallback = callback;
+  }
+  /**
+   * 触发刷新
+   */
+  triggerRefresh() {
+    if (this.refreshCallback) {
+      this.refreshCallback();
+    }
+  }
+  /**
+   * 变更实体状态
+   */
+  async changeStatus(type, id, newStatus, confirmNeeded = true) {
+    try {
+      const entity = await this.getEntity(type, id);
+      if (!entity)
+        return false;
+      const currentStatus = entity.status;
+      if (confirmNeeded && currentStatus === "completed") {
+        const confirmed = await this.showConfirmDialog(
+          "\u786E\u8BA4\u72B6\u6001\u53D8\u66F4",
+          `\u786E\u5B9A\u8981\u5C06\u72B6\u6001\u4ECE "\u5DF2\u5B8C\u6210" \u53D8\u66F4\u4E3A "${newStatus}" \u5417\uFF1F`
+        );
+        if (!confirmed)
+          return false;
+      }
+      await this.updateEntity(type, id, { status: newStatus });
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u72B6\u6001\u53D8\u66F4\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
+   * 更新进度
+   */
+  async updateProgress(type, id, progress) {
+    try {
+      if (type !== "feature")
+        return false;
+      await this.entityManager.updateFeature(id, { progress });
+      await this.addProgressLog(id, progress);
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u8FDB\u5EA6\u66F4\u65B0\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
+   * 添加进展记录到特性文件
+   */
+  async addProgressLog(featureId, progress) {
+    const path = await this.entityManager.getFeaturePath(featureId);
+    if (!path)
+      return;
+    const obsidian = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof obsidian.TFile))
+      return;
+    const content = await this.app.vault.read(file);
+    const now = /* @__PURE__ */ new Date();
+    const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const progressEntry = `- [${timeStr}] \u8FDB\u5EA6\u66F4\u65B0\u81F3 ${progress}%
+`;
+    const progressSection = "## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988\u5386\u53F2\u8BB0\u5F55\n\n";
+    if (content.includes(progressSection)) {
+      const newContent = content.replace(
+        progressSection,
+        progressSection + progressEntry
+      );
+      await this.app.vault.modify(file, newContent);
+    }
+  }
+  /**
+   * 更新负责人
+   */
+  async updateOwner(type, id, owner) {
+    try {
+      await this.updateEntity(type, id, { owner });
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u8D1F\u8D23\u4EBA\u66F4\u65B0\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
+   * 更新优先级
+   */
+  async updatePriority(type, id, priority) {
+    try {
+      await this.updateEntity(type, id, { priority });
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u4F18\u5148\u7EA7\u66F4\u65B0\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
+   * 打开实体文件
+   */
+  async openEntity(type, id) {
+    const path = await this.entityManager.getEntityPath(type, id);
+    if (!path)
+      return;
+    const obsidian = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (file && file instanceof obsidian.TFile) {
+      await this.app.workspace.getLeaf().openFile(file);
+    }
+  }
+  /**
+   * 获取实体
+   */
+  async getEntity(type, id) {
+    switch (type) {
+      case "version":
+        return this.entityManager.getVersion(id);
+      case "project":
+        return this.entityManager.getProject(id);
+      case "feature":
+        return this.entityManager.getFeature(id);
+      default:
+        return null;
+    }
+  }
+  /**
+   * 更新实体
+   */
+  async updateEntity(type, id, data) {
+    switch (type) {
+      case "version":
+        await this.entityManager.updateVersion(id, data);
+        break;
+      case "project":
+        await this.entityManager.updateProject(id, data);
+        break;
+      case "feature":
+        await this.entityManager.updateFeature(id, data);
+        break;
+    }
+  }
+  /**
+   * 显示确认对话框
+   */
+  async showConfirmDialog(title, message) {
+    return new Promise((resolve) => {
+      const { Modal: Modal7, ButtonComponent } = require("obsidian");
+      class ConfirmModal2 extends Modal7 {
+        onOpen() {
+          const { contentEl } = this;
+          contentEl.createEl("h2", { text: title });
+          contentEl.createEl("p", { text: message });
+          const buttonContainer = contentEl.createDiv();
+          buttonContainer.style.display = "flex";
+          buttonContainer.style.justifyContent = "flex-end";
+          buttonContainer.style.gap = "10px";
+          buttonContainer.style.marginTop = "20px";
+          new ButtonComponent(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
+            resolve(false);
+            this.close();
+          });
+          new ButtonComponent(buttonContainer).setButtonText("\u786E\u8BA4").setCta().onClick(() => {
+            resolve(true);
+            this.close();
+          });
+        }
+        onClose() {
+          const { contentEl } = this;
+          contentEl.empty();
+        }
+      }
+      new ConfirmModal2(this.app).open();
+    });
+  }
+};
+
+// src/view-engine/types.ts
+function getEntityType(entity) {
+  if ("versionId" in entity && entity.versionId !== void 0) {
+    return "project";
+  }
+  if ("projectId" in entity && entity.projectId !== void 0) {
+    return "feature";
+  }
+  return "version";
+}
+
+// src/view-engine/renderers/BaseRenderer.ts
+var BaseRenderer = class {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.cardRegistry = cardRegistry;
+    this.dataService = dataService;
+    this.actionService = actionService;
+  }
+  /**
+   * 初始化渲染器
+   */
+  init(config, context) {
+    this.config = config;
+    this.context = context;
+  }
+  /**
+   * 创建视图容器
+   */
+  createContainer(parent) {
+    const container = parent.createDiv("pm-view-container");
+    return container;
+  }
+  /**
+   * 创建工具栏
+   */
+  createToolbar(container, title, stats) {
+    const toolbar = container.createDiv("pm-view-toolbar");
+    const titleEl = toolbar.createDiv("pm-view-title");
+    titleEl.textContent = title;
+    if (stats) {
+      const statsEl = toolbar.createDiv("pm-view-stats");
+      if (stats.filtered !== stats.total) {
+        statsEl.textContent = `${stats.filtered} / ${stats.total}`;
+        statsEl.setAttribute("title", `\u663E\u793A ${stats.filtered} \u9879 / \u5171 ${stats.total} \u9879`);
+      } else {
+        statsEl.textContent = `${stats.total} \u9879`;
+      }
+    }
+    return toolbar;
+  }
+  /**
+   * 创建空状态
+   */
+  createEmptyState(container, message = "\u6682\u65E0\u6570\u636E") {
+    const empty = container.createDiv("pm-view-empty");
+    empty.createEl("div", { cls: "pm-empty-icon", text: "\u{1F4ED}" });
+    empty.createEl("div", { cls: "pm-empty-text", text: message });
+    return empty;
+  }
+  /**
+   * 创建加载状态
+   */
+  createLoadingState(container) {
+    const loading = container.createDiv("pm-view-loading");
+    loading.createEl("div", { cls: "pm-loading-spinner" });
+    loading.createEl("div", { cls: "pm-loading-text", text: "\u52A0\u8F7D\u4E2D..." });
+    return loading;
+  }
+  /**
+   * 创建错误状态
+   */
+  createErrorState(container, error) {
+    const errorEl = container.createDiv("pm-view-error");
+    errorEl.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
+    errorEl.createEl("div", { cls: "pm-error-text", text: "\u52A0\u8F7D\u5931\u8D25" });
+    errorEl.createEl("div", { cls: "pm-error-detail", text: error });
+    return errorEl;
+  }
+  /**
+   * 渲染实体卡片
+   */
+  async renderEntityCard(container, entity, options) {
+    const cardEl = container.createDiv("pm-card");
+    cardEl.classList.add(`pm-card-${getEntityType(entity)}`);
+    const content = cardEl.createDiv("pm-card-content");
+    const typeIcon = this.getEntityTypeIcon(getEntityType(entity));
+    content.createEl("span", { cls: "pm-card-type-icon", text: typeIcon });
+    content.createEl("span", { cls: "pm-card-name", text: entity.name });
+    if ("status" in entity && entity.status) {
+      const statusBadge = content.createSpan("pm-card-status");
+      statusBadge.textContent = this.translateStatus(entity.status);
+      statusBadge.dataset.status = entity.status;
+    }
+    if ((options == null ? void 0 : options.showActions) !== false) {
+      await this.renderCardActions(cardEl, entity);
+    }
+    cardEl.addEventListener("click", () => {
+      this.actionService.openEntity(getEntityType(entity), entity.id);
+    });
+  }
+  /**
+   * 渲染卡片操作按钮
+   */
+  async renderCardActions(cardEl, entity) {
+    const actions = cardEl.createDiv("pm-card-actions");
+    actions.style.display = "none";
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
+      statusBtn.textContent = "\u72B6\u6001";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity);
+      };
+    }
+    if (getEntityType(entity) === "feature") {
+      const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
+      progressBtn.textContent = "\u8FDB\u5EA6";
+      progressBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showProgressPicker(entity);
+      };
+    }
+    cardEl.addEventListener("mouseenter", () => {
+      actions.style.display = "flex";
+    });
+    cardEl.addEventListener("mouseleave", () => {
+      actions.style.display = "none";
+    });
+  }
+  /**
+   * 显示状态选择器
+   */
+  showStatusPicker(entity, triggerEl) {
+    var _a;
+    const statuses = [
+      { value: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
+      { value: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
+      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" },
+      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "#6b7280" }
+    ];
+    const menu = document.createElement("div");
+    menu.className = "pm-status-picker";
+    menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 4px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    statuses.forEach((status) => {
+      const item = menu.createEl("div", { cls: "pm-status-item" });
+      item.style.cssText = `
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `;
+      item.innerHTML = `
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${status.color};"></span>
+        <span>${status.label}</span>
+      `;
+      item.onclick = () => {
+        this.actionService.changeStatus(getEntityType(entity), entity.id, status.value);
+        menu.remove();
+      };
+      item.onmouseenter = () => {
+        item.style.background = "var(--background-modifier-hover)";
+      };
+      item.onmouseleave = () => {
+        item.style.background = "";
+      };
+    });
+    document.body.appendChild(menu);
+    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 4}px`;
+    }
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+  }
+  /**
+   * 显示进度选择器
+   */
+  showProgressPicker(entity, triggerEl) {
+    var _a;
+    const menu = document.createElement("div");
+    menu.className = "pm-progress-picker";
+    menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 150px;
+    `;
+    const currentProgress = entity.progress || 0;
+    menu.createEl("div", {
+      text: "\u66F4\u65B0\u8FDB\u5EA6",
+      cls: "pm-picker-title"
+    }).style.cssText = "font-size: 12px; color: var(--text-muted); margin-bottom: 8px;";
+    const sliderContainer = menu.createDiv();
+    sliderContainer.style.cssText = "display: flex; align-items: center; gap: 8px;";
+    const slider = sliderContainer.createEl("input");
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = "100";
+    slider.value = String(currentProgress);
+    slider.style.cssText = "flex: 1;";
+    const valueDisplay = sliderContainer.createEl("span");
+    valueDisplay.textContent = `${currentProgress}%`;
+    valueDisplay.style.cssText = "min-width: 35px; text-align: right; font-size: 12px;";
+    slider.oninput = () => {
+      valueDisplay.textContent = `${slider.value}%`;
+    };
+    const btnContainer = menu.createDiv();
+    btnContainer.style.cssText = "display: flex; justify-content: flex-end; margin-top: 8px;";
+    const confirmBtn = btnContainer.createEl("button");
+    confirmBtn.textContent = "\u66F4\u65B0";
+    confirmBtn.onclick = () => {
+      this.actionService.updateProgress(getEntityType(entity), entity.id, parseInt(slider.value));
+      menu.remove();
+    };
+    document.body.appendChild(menu);
+    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 4}px`;
+    }
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+  }
+  /**
+   * 获取实体类型图标
+   */
+  getEntityTypeIcon(entityOrType) {
+    const icons = {
+      version: "\u{1F4E6}",
+      project: "\u{1F4C1}",
+      feature: "\u{1F4DD}"
+    };
+    const type = typeof entityOrType === "string" ? entityOrType : getEntityType(entityOrType);
+    return icons[type] || "\u{1F4C4}";
+  }
+  /**
+   * 翻译状态
+   */
+  translateStatus(status) {
+    const translations = {
+      backlog: "\u5F85\u5904\u7406",
+      todo: "\u5F85\u5F00\u59CB",
+      "in-progress": "\u8FDB\u884C\u4E2D",
+      testing: "\u6D4B\u8BD5\u4E2D",
+      completed: "\u5DF2\u5B8C\u6210",
+      archived: "\u5DF2\u5F52\u6863",
+      active: "\u8FDB\u884C\u4E2D",
+      suspended: "\u5DF2\u6682\u505C"
+    };
+    return translations[status] || status;
+  }
+  /**
+   * 翻译优先级
+   */
+  translatePriority(priority) {
+    const translations = {
+      critical: "\u7D27\u6025",
+      high: "\u9AD8",
+      medium: "\u4E2D",
+      low: "\u4F4E"
+    };
+    return translations[priority] || priority;
+  }
+};
+
+// src/view-engine/renderers/KanbanRenderer.ts
+var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+    this.entities = [];
+  }
+  /**
+   * 渲染看板视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-kanban-view");
+    this.entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(this.entities, this.config.filter);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
+    this.createToolbar(container, this.config.title || "\u770B\u677F\u89C6\u56FE", {
+      total: this.entities.length,
+      filtered: sorted.length
+    });
+    const boardContainer = container.createDiv("pm-kanban-container");
+    if (this.config.groupBy === "status" || !this.config.groupBy) {
+      this.renderStatusBoard(boardContainer, sorted);
+    } else if (this.config.groupBy === "version") {
+      this.renderGroupedBoard(boardContainer, sorted, "versionId", "\u7248\u672C");
+    } else if (this.config.groupBy === "project") {
+      this.renderGroupedBoard(boardContainer, sorted, "projectId", "\u9879\u76EE");
+    } else if (this.config.groupBy === "priority") {
+      this.renderPriorityBoard(boardContainer, sorted);
+    }
+  }
+  /**
+   * 按状态渲染看板
+   */
+  renderStatusBoard(container, entities) {
+    const board = container.createDiv("pm-kanban-board");
+    _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
+      const columnEl = this.createColumn(board, column.label, column.color);
+      const columnEntities = entities.filter(
+        (e) => "status" in e && e.status === column.id
+      );
+      const countEl = columnEl.querySelector(".pm-kanban-column-count");
+      if (countEl) {
+        countEl.textContent = String(columnEntities.length);
+      }
+      const cardsContainer = columnEl.querySelector(".pm-kanban-cards");
+      if (cardsContainer) {
+        columnEntities.forEach((entity) => {
+          this.renderKanbanCard(cardsContainer, entity);
+        });
+      }
+    });
+  }
+  /**
+   * 按优先级渲染看板
+   */
+  renderPriorityBoard(container, entities) {
+    const priorities = [
+      { id: "critical", label: "\u7D27\u6025", color: "#ef4444" },
+      { id: "high", label: "\u9AD8", color: "#f97316" },
+      { id: "medium", label: "\u4E2D", color: "#f59e0b" },
+      { id: "low", label: "\u4F4E", color: "#22c55e" }
+    ];
+    const board = container.createDiv("pm-kanban-board");
+    priorities.forEach((priority) => {
+      const columnEl = this.createColumn(board, priority.label, priority.color);
+      const columnEntities = entities.filter(
+        (e) => "priority" in e && e.priority === priority.id
+      );
+      const countEl = columnEl.querySelector(".pm-kanban-column-count");
+      if (countEl) {
+        countEl.textContent = String(columnEntities.length);
+      }
+      const cardsContainer = columnEl.querySelector(".pm-kanban-cards");
+      if (cardsContainer) {
+        columnEntities.forEach((entity) => {
+          this.renderKanbanCard(cardsContainer, entity);
+        });
+      }
+    });
+  }
+  /**
+   * 按字段分组渲染看板（版本/项目等）
+   */
+  renderGroupedBoard(container, entities, groupField, groupLabel) {
+    const groups = this.dataService.groupByField(entities, groupField);
+    groups.forEach((groupEntities, groupKey) => {
+      const section = container.createDiv("pm-kanban-section");
+      const header = section.createDiv("pm-kanban-section-header");
+      header.createSpan({ text: `${groupLabel}: ${groupKey}` });
+      header.createSpan({ cls: "pm-kanban-section-count", text: `(${groupEntities.length})` });
+      const board = section.createDiv("pm-kanban-board pm-kanban-board-nested");
+      _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
+        const columnEl = this.createColumn(board, column.label, column.color, true);
+        const columnEntities = groupEntities.filter(
+          (e) => "status" in e && e.status === column.id
+        );
+        const countEl = columnEl.querySelector(".pm-kanban-column-count");
+        if (countEl) {
+          countEl.textContent = String(columnEntities.length);
+        }
+        const cardsContainer = columnEl.querySelector(".pm-kanban-cards");
+        if (cardsContainer) {
+          columnEntities.forEach((entity) => {
+            this.renderKanbanCard(cardsContainer, entity, { compact: true });
+          });
+        }
+      });
+    });
+  }
+  /**
+   * 创建看板列
+   */
+  createColumn(board, title, color, compact = false) {
+    const column = board.createDiv("pm-kanban-column");
+    if (compact) {
+      column.addClass("pm-kanban-column-compact");
+    }
+    const header = column.createDiv("pm-kanban-column-header");
+    header.style.borderLeftColor = color;
+    const titleEl = header.createDiv("pm-kanban-column-title");
+    titleEl.createSpan({ cls: "pm-kanban-column-dot", attr: { style: `background: ${color}` } });
+    titleEl.createSpan({ text: title });
+    header.createSpan({ cls: "pm-kanban-column-count", text: "0" });
+    column.createDiv("pm-kanban-cards");
+    return column;
+  }
+  /**
+   * 渲染看板卡片
+   */
+  renderKanbanCard(container, entity, options) {
+    const card = container.createDiv("pm-kanban-card");
+    if (options == null ? void 0 : options.compact) {
+      card.addClass("pm-kanban-card-compact");
+    }
+    const header = card.createDiv("pm-kanban-card-header");
+    if ("priority" in entity && entity.priority) {
+      const priorityColors = {
+        critical: "#ef4444",
+        high: "#f97316",
+        medium: "#f59e0b",
+        low: "#22c55e"
+      };
+      header.createSpan({
+        cls: "pm-kanban-card-priority",
+        attr: { style: `background: ${priorityColors[entity.priority] || "#9ca3af"}` }
+      });
+    }
+    header.createEl("span", { cls: "pm-kanban-card-title", text: entity.name });
+    const content = card.createDiv("pm-kanban-card-content");
+    if ("tags" in entity && entity.tags && entity.tags.length > 0 && !(options == null ? void 0 : options.compact)) {
+      const tags = content.createDiv("pm-kanban-card-tags");
+      entity.tags.slice(0, 3).forEach((tag) => {
+        tags.createSpan({ cls: "pm-kanban-card-tag", text: tag });
+      });
+      if (entity.tags.length > 3) {
+        tags.createSpan({ cls: "pm-kanban-card-tag-more", text: `+${entity.tags.length - 3}` });
+      }
+    }
+    const footer = card.createDiv("pm-kanban-card-footer");
+    if (entity.owner) {
+      footer.createSpan({ cls: "pm-kanban-card-owner", text: entity.owner });
+    }
+    if ("dueDate" in entity && entity.dueDate && !(options == null ? void 0 : options.compact)) {
+      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
+      footer.createSpan({
+        cls: `pm-kanban-card-due${isOverdue ? " pm-overdue" : ""}`,
+        text: this.formatDate(entity.dueDate)
+      });
+    }
+    if (getEntityType(entity) === "feature" && "progress" in entity && !(options == null ? void 0 : options.compact)) {
+      const progress = entity.progress || 0;
+      const progressBar = footer.createDiv("pm-kanban-card-progress");
+      progressBar.createDiv({
+        cls: "pm-kanban-card-progress-bar",
+        attr: { style: `width: ${progress}%` }
+      });
+      progressBar.createSpan({ cls: "pm-kanban-card-progress-text", text: `${progress}%` });
+    }
+    const actions = card.createDiv("pm-kanban-card-actions");
+    actions.style.display = "none";
+    if ("status" in entity) {
+      const nextStatus = this.getNextStatus(entity.status);
+      if (nextStatus) {
+        const btn = actions.createEl("button", { cls: "pm-action-btn-small" });
+        btn.textContent = "\u2192";
+        btn.title = `\u79FB\u52A8\u5230: ${nextStatus.label}`;
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          this.actionService.changeStatus(getEntityType(entity), entity.id, nextStatus.id);
+        };
+      }
+    }
+    const openBtn = actions.createEl("button", { cls: "pm-action-btn-small" });
+    openBtn.textContent = "\u2197";
+    openBtn.title = "\u6253\u5F00\u6587\u4EF6";
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(getEntityType(entity), entity.id);
+    };
+    card.addEventListener("mouseenter", () => {
+      actions.style.display = "flex";
+    });
+    card.addEventListener("mouseleave", () => {
+      actions.style.display = "none";
+    });
+    card.addEventListener("click", () => {
+      this.actionService.openEntity(getEntityType(entity), entity.id);
+    });
+  }
+  /**
+   * 获取下一个状态（用于快速切换）
+   */
+  getNextStatus(currentStatus) {
+    const flow = {
+      backlog: "todo",
+      todo: "in-progress",
+      "in-progress": "testing",
+      testing: "completed"
+    };
+    const nextId = flow[currentStatus];
+    if (!nextId)
+      return null;
+    const column = _KanbanRenderer.STATUS_COLUMNS.find((c) => c.id === nextId);
+    return column ? { id: nextId, label: column.label } : null;
+  }
+  /**
+   * 格式化日期
+   */
+  formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+};
+// 状态列定义
+_KanbanRenderer.STATUS_COLUMNS = [
+  { id: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
+  { id: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
+  { id: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
+  { id: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
+  { id: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" }
+];
+var KanbanRenderer = _KanbanRenderer;
+
+// src/view-engine/renderers/GridRenderer.ts
+var GridRenderer2 = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+    this.entities = [];
+  }
+  /**
+   * 渲染网格视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-grid-view");
+    this.entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(this.entities, this.config.filter);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
+    const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
+    this.createToolbar(container, this.config.title || "\u7F51\u683C\u89C6\u56FE", {
+      total: this.entities.length,
+      filtered: limited.length
+    });
+    const gridContainer = container.createDiv("pm-grid-container");
+    const cols = this.config.cols || 3;
+    gridContainer.style.display = "grid";
+    gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    gridContainer.style.gap = "16px";
+    if (limited.length === 0) {
+      this.createEmptyState(gridContainer, "\u6CA1\u6709\u5339\u914D\u7684\u5B9E\u4F53");
+    } else {
+      for (const entity of limited) {
+        await this.renderGridCard(gridContainer, entity);
+      }
+    }
+  }
+  /**
+   * 渲染网格卡片
+   */
+  async renderGridCard(container, entity) {
+    const card = container.createDiv("pm-grid-card");
+    const header = card.createDiv("pm-grid-card-header");
+    const entityType = getEntityType(entity);
+    const typeLabel = header.createSpan("pm-grid-card-type");
+    typeLabel.textContent = this.getEntityTypeLabel(entityType);
+    if ("priority" in entity && entity.priority) {
+      const priorityColors = {
+        critical: "#ef4444",
+        high: "#f97316",
+        medium: "#f59e0b",
+        low: "#22c55e"
+      };
+      header.createSpan({
+        cls: "pm-grid-card-priority",
+        attr: { style: `background: ${priorityColors[entity.priority] || "#9ca3af"}` }
+      });
+    }
+    const body = card.createDiv("pm-grid-card-body");
+    body.createEl("h3", { cls: "pm-grid-card-title", text: entity.name });
+    if ("description" in entity && entity.description) {
+      const desc = body.createDiv("pm-grid-card-desc");
+      const descText = String(entity.description);
+      desc.textContent = descText.substring(0, 100);
+      if (descText.length > 100) {
+        desc.textContent += "...";
+      }
+    }
+    if ("status" in entity && entity.status) {
+      const statusColors = {
+        backlog: "#9ca3af",
+        todo: "#3b82f6",
+        "in-progress": "#f59e0b",
+        testing: "#8b5cf6",
+        completed: "#22c55e",
+        archived: "#6b7280"
+      };
+      const statusEl = body.createDiv("pm-grid-card-status");
+      statusEl.createSpan({
+        cls: "pm-status-dot",
+        attr: { style: `background: ${statusColors[entity.status] || "#9ca3af"}` }
+      });
+      statusEl.createSpan({ text: this.translateStatus(entity.status) });
+    }
+    if ("tags" in entity && entity.tags && entity.tags.length > 0) {
+      const tagsEl = body.createDiv("pm-grid-card-tags");
+      entity.tags.slice(0, 4).forEach((tag) => {
+        tagsEl.createSpan({ cls: "pm-grid-card-tag", text: tag });
+      });
+    }
+    const footer = card.createDiv("pm-grid-card-footer");
+    if (entity.owner) {
+      footer.createDiv({
+        cls: "pm-grid-card-owner",
+        text: `\u{1F464} ${entity.owner}`
+      });
+    }
+    if ("dueDate" in entity && entity.dueDate) {
+      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
+      footer.createDiv({
+        cls: `pm-grid-card-due${isOverdue ? " pm-overdue" : ""}`,
+        text: `\u{1F4C5} ${this.formatDate(entity.dueDate)}`
+      });
+    }
+    if (entityType === "feature" && "progress" in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = footer.createDiv("pm-grid-card-progress");
+      progressEl.createDiv({
+        cls: "pm-progress-bar",
+        attr: { style: `width: ${progress}%` }
+      });
+      progressEl.createSpan({ cls: "pm-progress-text", text: `${progress}%` });
+    }
+    if (entityType === "version" || entityType === "project") {
+      const statsEl = footer.createDiv("pm-grid-card-stats");
+      if ("stats" in entity && entity.stats) {
+        const stats = entity.stats;
+        statsEl.createSpan({ text: `\u{1F4CA} ${stats.total} \u7279\u6027` });
+        if (stats.completed > 0) {
+          statsEl.createSpan({ text: `\u2705 ${stats.completed} \u5B8C\u6210` });
+        }
+      }
+    }
+    const actions = card.createDiv("pm-grid-card-actions");
+    actions.style.display = "none";
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
+      statusBtn.textContent = "\u72B6\u6001";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity);
+      };
+    }
+    if (getEntityType(entity) === "feature") {
+      const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
+      progressBtn.textContent = "\u8FDB\u5EA6";
+      progressBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showProgressPicker(entity);
+      };
+    }
+    card.addEventListener("mouseenter", () => {
+      actions.style.display = "flex";
+    });
+    card.addEventListener("mouseleave", () => {
+      actions.style.display = "none";
+    });
+    card.addEventListener("click", () => {
+      this.actionService.openEntity(getEntityType(entity), entity.id);
+    });
+  }
+  /**
+   * 获取实体类型标签
+   */
+  getEntityTypeLabel(type) {
+    const labels = {
+      version: "\u7248\u672C",
+      project: "\u9879\u76EE",
+      feature: "\u7279\u6027"
+    };
+    return labels[type] || type;
+  }
+  /**
+   * 格式化日期
+   */
+  formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+  }
+};
+
+// src/view-engine/renderers/CascadeRenderer.ts
+var CascadeRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+  }
+  /**
+   * 渲染级联视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-cascade-view");
+    this.createToolbar(container, this.config.title || "\u7EA7\u8054\u89C6\u56FE");
+    const cascadeContainer = container.createDiv("pm-cascade-container");
+    if (this.config.id) {
+      await this.renderEntityCascade(cascadeContainer, this.config.id);
+    } else {
+      await this.renderAllVersions(cascadeContainer);
+    }
+  }
+  /**
+   * 渲染单个实体的级联视图
+   */
+  async renderEntityCascade(container, entityId) {
+    const type = this.config.type || "version";
+    switch (type) {
+      case "version":
+        await this.renderVersionCascade(container, entityId);
+        break;
+      case "project":
+        await this.renderProjectCascade(container, entityId);
+        break;
+      case "feature":
+        await this.renderFeatureDetail(container, entityId);
+        break;
+    }
+  }
+  /**
+   * 渲染版本级联
+   */
+  async renderVersionCascade(container, versionId) {
+    const version = await this.entityManager.getVersion(versionId);
+    if (!version) {
+      this.createEmptyState(container, "\u7248\u672C\u4E0D\u5B58\u5728");
+      return;
+    }
+    const versionCard = this.createEntityCard(container, version, 0);
+    const projects = await this.entityManager.listProjects({ versionId });
+    if (projects.length === 0) {
+      versionCard.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u9879\u76EE" });
+      return;
+    }
+    const projectsContainer = versionCard.createDiv("pm-cascade-children");
+    for (const project of projects) {
+      await this.renderProjectNode(projectsContainer, project, 1);
+    }
+  }
+  /**
+   * 渲染项目级联
+   */
+  async renderProjectCascade(container, projectId) {
+    const project = await this.entityManager.getProject(projectId);
+    if (!project) {
+      this.createEmptyState(container, "\u9879\u76EE\u4E0D\u5B58\u5728");
+      return;
+    }
+    const version = project.versionId ? await this.entityManager.getVersion(project.versionId) : null;
+    if (version) {
+      const versionCard = this.createEntityCard(container, version, 0);
+      versionCard.classList.add("pm-cascade-placeholder");
+      const projectsContainer = versionCard.createDiv("pm-cascade-children");
+      await this.renderProjectNode(projectsContainer, project, 1);
+    } else {
+      await this.renderProjectNode(container, project, 0);
+    }
+  }
+  /**
+   * 渲染项目节点
+   */
+  async renderProjectNode(container, project, level) {
+    const projectCard = this.createEntityCard(container, project, level);
+    const features = await this.entityManager.listFeatures({ projectId: project.id });
+    if (features.length === 0) {
+      projectCard.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u7279\u6027" });
+      return;
+    }
+    const featuresContainer = projectCard.createDiv("pm-cascade-children");
+    for (const feature of features) {
+      this.createFeatureCard(featuresContainer, feature, level + 1);
+    }
+  }
+  /**
+   * 渲染特性详情
+   */
+  async renderFeatureDetail(container, featureId) {
+    const feature = await this.entityManager.getFeature(featureId);
+    if (!feature) {
+      this.createEmptyState(container, "\u7279\u6027\u4E0D\u5B58\u5728");
+      return;
+    }
+    const project = feature.projectId ? await this.entityManager.getProject(feature.projectId) : null;
+    const version = (project == null ? void 0 : project.versionId) ? await this.entityManager.getVersion(project.versionId) : null;
+    if (version) {
+      const versionCard = this.createEntityCard(container, version, 0);
+      versionCard.classList.add("pm-cascade-placeholder");
+      if (project) {
+        const projectsContainer = versionCard.createDiv("pm-cascade-children");
+        const projectCard = this.createEntityCard(projectsContainer, project, 1);
+        projectCard.classList.add("pm-cascade-placeholder");
+        const featuresContainer = projectCard.createDiv("pm-cascade-children");
+        this.createFeatureDetailCard(featuresContainer, feature, 2);
+      } else {
+        const featuresContainer = versionCard.createDiv("pm-cascade-children");
+        this.createFeatureDetailCard(featuresContainer, feature, 1);
+      }
+    } else if (project) {
+      const projectCard = this.createEntityCard(container, project, 0);
+      projectCard.classList.add("pm-cascade-placeholder");
+      const featuresContainer = projectCard.createDiv("pm-cascade-children");
+      this.createFeatureDetailCard(featuresContainer, feature, 1);
+    } else {
+      this.createFeatureDetailCard(container, feature, 0);
+    }
+  }
+  /**
+   * 渲染所有版本
+   */
+  async renderAllVersions(container) {
+    const versions = await this.entityManager.listVersions();
+    if (versions.length === 0) {
+      this.createEmptyState(container, "\u6682\u65E0\u7248\u672C");
+      return;
+    }
+    for (const version of versions) {
+      await this.renderVersionCascade(container, version.id);
+    }
+  }
+  /**
+   * 创建实体卡片（通用）
+   */
+  createEntityCard(container, entity, level) {
+    const card = container.createDiv("pm-cascade-card");
+    card.classList.add(`pm-cascade-level-${level}`);
+    card.dataset.entityType = getEntityType(entity);
+    card.dataset.entityId = entity.id;
+    if (level > 0) {
+      const indent = card.createDiv("pm-cascade-indent");
+      indent.style.width = `${level * 24}px`;
+    }
+    const content = card.createDiv("pm-cascade-card-content");
+    const icon = this.getEntityTypeIcon(getEntityType(entity));
+    content.createSpan({ cls: "pm-cascade-icon", text: icon });
+    const info = content.createDiv("pm-cascade-info");
+    info.createEl("h4", { cls: "pm-cascade-name", text: entity.name });
+    const meta = info.createDiv("pm-cascade-meta");
+    if (entity.owner) {
+      meta.createSpan({ cls: "pm-cascade-owner", text: `\u{1F464} ${entity.owner}` });
+    }
+    if ("status" in entity && entity.status) {
+      meta.createSpan({
+        cls: `pm-cascade-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status)
+      });
+    }
+    if ("dueDate" in entity && entity.dueDate) {
+      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
+      meta.createSpan({
+        cls: `pm-cascade-due${isOverdue ? " pm-overdue" : ""}`,
+        text: `\u{1F4C5} ${this.formatDate(entity.dueDate)}`
+      });
+    }
+    if ("stats" in entity && entity.stats) {
+      const stats = entity.stats;
+      const progress = stats && stats.total > 0 ? Math.round(stats.completed / stats.total * 100) : 0;
+      const progressEl = content.createDiv("pm-cascade-progress");
+      progressEl.createDiv({
+        cls: "pm-progress-ring",
+        attr: { style: `--progress: ${progress}` }
+      });
+      progressEl.createSpan({ text: `${progress}%` });
+    }
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".pm-cascade-actions"))
+        return;
+      const children = card.querySelector(".pm-cascade-children");
+      if (children) {
+        children.style.display = children.style.display === "none" ? "block" : "none";
+        card.classList.toggle("pm-cascade-collapsed");
+      } else {
+        this.actionService.openEntity(getEntityType(entity), entity.id);
+      }
+    });
+    return card;
+  }
+  /**
+   * 创建特性卡片（简化版）
+   */
+  createFeatureCard(container, feature, level) {
+    const card = container.createDiv("pm-cascade-card pm-cascade-card-feature");
+    card.classList.add(`pm-cascade-level-${level}`);
+    if (level > 0) {
+      const indent = card.createDiv("pm-cascade-indent");
+      indent.style.width = `${level * 24}px`;
+    }
+    const content = card.createDiv("pm-cascade-card-content");
+    const priorityColors = {
+      critical: "#ef4444",
+      high: "#f97316",
+      medium: "#f59e0b",
+      low: "#22c55e"
+    };
+    if (feature.priority) {
+      content.createSpan({
+        cls: "pm-cascade-priority",
+        attr: { style: `background: ${priorityColors[feature.priority] || "#9ca3af"}` }
+      });
+    }
+    content.createSpan({ cls: "pm-cascade-feature-name", text: feature.name });
+    const progress = feature.progress || 0;
+    const progressEl = content.createDiv("pm-cascade-progress-mini");
+    progressEl.createDiv({
+      cls: "pm-progress-bar-mini",
+      attr: { style: `width: ${progress}%` }
+    });
+    if (feature.status) {
+      content.createSpan({
+        cls: `pm-cascade-status-mini pm-status-${feature.status}`,
+        text: this.translateStatus(feature.status)
+      });
+    }
+    card.addEventListener("click", () => {
+      this.actionService.openEntity("feature", feature.id);
+    });
+    return card;
+  }
+  /**
+   * 创建特性详情卡片（完整信息）
+   */
+  createFeatureDetailCard(container, feature, level) {
+    const card = container.createDiv("pm-cascade-card pm-cascade-card-detail");
+    card.classList.add(`pm-cascade-level-${level}`);
+    const content = card.createDiv("pm-cascade-detail-content");
+    const header = content.createDiv("pm-cascade-detail-header");
+    header.createSpan({ cls: "pm-cascade-icon", text: "\u{1F4DD}" });
+    header.createEl("h3", { text: feature.name });
+    if (feature.priority) {
+      header.createSpan({
+        cls: `pm-priority-badge pm-priority-${feature.priority}`,
+        text: this.translatePriority(feature.priority)
+      });
+    }
+    if (feature.description) {
+      content.createDiv({
+        cls: "pm-cascade-detail-desc",
+        text: String(feature.description)
+      });
+    }
+    const props = content.createDiv("pm-cascade-detail-props");
+    const statusRow = props.createDiv("pm-prop-row");
+    statusRow.createSpan({ cls: "pm-prop-label", text: "\u72B6\u6001" });
+    const statusVal = statusRow.createSpan({ cls: "pm-prop-value" });
+    statusVal.createSpan({
+      cls: `pm-status-badge pm-status-${feature.status}`,
+      text: this.translateStatus(feature.status)
+    });
+    if (feature.owner) {
+      const ownerRow = props.createDiv("pm-prop-row");
+      ownerRow.createSpan({ cls: "pm-prop-label", text: "\u8D1F\u8D23\u4EBA" });
+      ownerRow.createSpan({ cls: "pm-prop-value", text: feature.owner });
+    }
+    const progressRow = props.createDiv("pm-prop-row");
+    progressRow.createSpan({ cls: "pm-prop-label", text: "\u8FDB\u5EA6" });
+    const progressVal = progressRow.createDiv({ cls: "pm-prop-value" });
+    const progress = feature.progress || 0;
+    progressVal.createDiv({
+      cls: "pm-progress-bar",
+      attr: { style: `width: ${progress}%` }
+    });
+    progressVal.createSpan({ text: ` ${progress}%` });
+    if (feature.dueDate) {
+      const dueRow = props.createDiv("pm-prop-row");
+      dueRow.createSpan({ cls: "pm-prop-label", text: "\u622A\u6B62\u65E5\u671F" });
+      dueRow.createSpan({ cls: "pm-prop-value", text: this.formatDate(feature.dueDate) });
+    }
+    if (feature.tags && feature.tags.length > 0) {
+      const tagsRow = props.createDiv("pm-prop-row");
+      tagsRow.createSpan({ cls: "pm-prop-label", text: "\u6807\u7B7E" });
+      const tagsVal = tagsRow.createDiv({ cls: "pm-prop-value" });
+      feature.tags.forEach((tag) => {
+        tagsVal.createSpan({ cls: "pm-tag", text: tag });
+      });
+    }
+    const actions = content.createDiv("pm-cascade-detail-actions");
+    const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
+    statusBtn.textContent = "\u66F4\u6539\u72B6\u6001";
+    statusBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.showStatusPicker(feature);
+    };
+    const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
+    progressBtn.textContent = "\u66F4\u65B0\u8FDB\u5EA6";
+    progressBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.showProgressPicker(feature);
+    };
+    const openBtn = actions.createEl("button", { cls: "pm-action-btn pm-action-btn-primary" });
+    openBtn.textContent = "\u6253\u5F00\u6587\u4EF6";
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity("feature", feature.id);
+    };
+    return card;
+  }
+  /**
+   * 格式化日期
+   */
+  formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+  }
+};
+
+// src/view-engine/renderers/TimelineRenderer.ts
+var TimelineRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+  }
+  /**
+   * 渲染时间线视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-timeline-view");
+    const entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy || "dueDate",
+      this.config.sortOrder || "asc"
+    );
+    this.createToolbar(container, this.config.title || "\u65F6\u95F4\u7EBF\u89C6\u56FE", {
+      total: entities.length,
+      filtered: sorted.length
+    });
+    const direction = this.config.direction || "horizontal";
+    if (direction === "vertical") {
+      await this.renderVerticalTimeline(container, sorted);
+    } else {
+      await this.renderHorizontalTimeline(container, sorted);
+    }
+  }
+  /**
+   * 渲染水平时间线
+   */
+  async renderHorizontalTimeline(container, entities) {
+    const timelineContainer = container.createDiv("pm-timeline-horizontal");
+    if (entities.length === 0) {
+      this.createEmptyState(timelineContainer, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
+      return;
+    }
+    const track = timelineContainer.createDiv("pm-timeline-track");
+    const dates = entities.filter((e) => "dueDate" in e && e.dueDate).map((e) => new Date(e.dueDate).getTime());
+    if (dates.length === 0) {
+      track.createDiv({ text: "\u6CA1\u6709\u53EF\u663E\u793A\u7684\u65F6\u95F4\u4FE1\u606F" });
+      return;
+    }
+    const minDate = Math.min(...dates);
+    const maxDate = Math.max(...dates);
+    const dateRange = maxDate - minDate || 1;
+    entities.forEach((entity, index) => {
+      const point = track.createDiv("pm-timeline-point");
+      let position = 0;
+      if ("dueDate" in entity && entity.dueDate) {
+        const entityDate = new Date(entity.dueDate).getTime();
+        position = (entityDate - minDate) / dateRange * 100;
+      } else {
+        position = index / (entities.length - 1 || 1) * 100;
+      }
+      point.style.left = `${position}%`;
+      point.dataset.entityId = entity.id;
+      const marker = point.createDiv("pm-timeline-marker");
+      marker.classList.add(`pm-entity-${getEntityType(entity)}`);
+      if ("status" in entity && entity.status) {
+        marker.classList.add(`pm-status-${entity.status}`);
+      }
+      const card = point.createDiv("pm-timeline-card");
+      this.renderTimelineCard(card, entity);
+      point.addEventListener("click", () => {
+        this.actionService.openEntity(getEntityType(entity), entity.id);
+      });
+    });
+    const labels = timelineContainer.createDiv("pm-timeline-labels");
+    const startLabel = labels.createDiv("pm-timeline-label");
+    startLabel.textContent = this.formatDateShort(new Date(minDate));
+    startLabel.style.left = "0%";
+    const endLabel = labels.createDiv("pm-timeline-label");
+    endLabel.textContent = this.formatDateShort(new Date(maxDate));
+    endLabel.style.left = "100%";
+  }
+  /**
+   * 渲染垂直时间线
+   */
+  async renderVerticalTimeline(container, entities) {
+    const timelineContainer = container.createDiv("pm-timeline-vertical");
+    if (entities.length === 0) {
+      this.createEmptyState(timelineContainer, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
+      return;
+    }
+    const grouped = this.groupByDate(entities);
+    const sortedDates = Array.from(grouped.keys()).sort();
+    sortedDates.forEach((dateKey) => {
+      const group = timelineContainer.createDiv("pm-timeline-group");
+      const dateLabel = group.createDiv("pm-timeline-date");
+      dateLabel.textContent = this.formatDateLong(dateKey);
+      const items = group.createDiv("pm-timeline-items");
+      const groupEntities = grouped.get(dateKey) || [];
+      groupEntities.forEach((entity) => {
+        const item = items.createDiv("pm-timeline-item");
+        item.dataset.entityId = entity.id;
+        const typeMark = item.createDiv("pm-timeline-type-mark");
+        typeMark.classList.add(`pm-entity-${getEntityType(entity)}`);
+        const content = item.createDiv("pm-timeline-item-content");
+        this.renderTimelineCard(content, entity, true);
+        item.addEventListener("click", () => {
+          this.actionService.openEntity(getEntityType(entity), entity.id);
+        });
+      });
+    });
+  }
+  /**
+   * 渲染时间线卡片
+   */
+  renderTimelineCard(container, entity, compact = false) {
+    const header = container.createDiv("pm-timeline-card-header");
+    const icon = this.getEntityTypeIcon(getEntityType(entity));
+    header.createSpan({ cls: "pm-timeline-card-icon", text: icon });
+    header.createEl("span", { cls: "pm-timeline-card-title", text: entity.name });
+    if ("status" in entity && entity.status) {
+      header.createSpan({
+        cls: `pm-status-badge pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status)
+      });
+    }
+    if (compact)
+      return;
+    const body = container.createDiv("pm-timeline-card-body");
+    if (entity.owner) {
+      body.createDiv({
+        cls: "pm-timeline-card-owner",
+        text: `\u{1F464} ${entity.owner}`
+      });
+    }
+    if ("priority" in entity && entity.priority) {
+      body.createDiv({
+        cls: "pm-timeline-card-priority",
+        text: `\u4F18\u5148\u7EA7: ${this.translatePriority(entity.priority)}`
+      });
+    }
+    if (getEntityType(entity) === "feature" && "progress" in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = body.createDiv("pm-timeline-card-progress");
+      progressEl.createDiv({
+        cls: "pm-progress-bar",
+        attr: { style: `width: ${progress}%` }
+      });
+      progressEl.createSpan({ text: `${progress}%` });
+    }
+  }
+  /**
+   * 按日期分组
+   */
+  groupByDate(entities) {
+    const groups = /* @__PURE__ */ new Map();
+    entities.forEach((entity) => {
+      let dateKey = "\u672A\u5B89\u6392";
+      if ("dueDate" in entity && entity.dueDate) {
+        dateKey = entity.dueDate;
+      }
+      if (!groups.has(dateKey)) {
+        groups.set(dateKey, []);
+      }
+      groups.get(dateKey).push(entity);
+    });
+    return groups;
+  }
+  /**
+   * 格式化短日期
+   */
+  formatDateShort(date) {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+  /**
+   * 格式化长日期
+   */
+  formatDateLong(dateStr) {
+    if (dateStr === "\u672A\u5B89\u6392")
+      return dateStr;
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}\u5E74${date.getMonth() + 1}\u6708${date.getDate()}\u65E5`;
+  }
+};
+
+// src/view-engine/renderers/CalendarRenderer.ts
+var CalendarRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+    this.currentDate = /* @__PURE__ */ new Date();
+  }
+  /**
+   * 渲染日历视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-calendar-view");
+    const entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const datedEntities = filtered.filter(
+      (e) => "dueDate" in e && e.dueDate
+    );
+    const calendarContainer = container.createDiv("pm-calendar-container");
+    await this.renderMonthCalendar(calendarContainer, datedEntities);
+  }
+  /**
+   * 渲染月历
+   */
+  async renderMonthCalendar(container, entities) {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth();
+    const header = container.createDiv("pm-calendar-header");
+    const prevBtn = header.createEl("button", { cls: "pm-calendar-nav-btn" });
+    prevBtn.textContent = "\u25C0";
+    prevBtn.onclick = () => {
+      this.currentDate.setMonth(month - 1);
+      this.render(container.parentElement);
+    };
+    const title = header.createDiv("pm-calendar-title");
+    title.textContent = `${year}\u5E74${month + 1}\u6708`;
+    const nextBtn = header.createEl("button", { cls: "pm-calendar-nav-btn" });
+    nextBtn.textContent = "\u25B6";
+    nextBtn.onclick = () => {
+      this.currentDate.setMonth(month + 1);
+      this.render(container.parentElement);
+    };
+    const todayBtn = header.createEl("button", { cls: "pm-calendar-today-btn" });
+    todayBtn.textContent = "\u4ECA\u5929";
+    todayBtn.onclick = () => {
+      this.currentDate = /* @__PURE__ */ new Date();
+      this.render(container.parentElement);
+    };
+    const weekdays = container.createDiv("pm-calendar-weekdays");
+    const weekNames = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
+    weekNames.forEach((name) => {
+      weekdays.createDiv({ cls: "pm-calendar-weekday", text: name });
+    });
+    const grid = container.createDiv("pm-calendar-grid");
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startOffset = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = startOffset - 1; i >= 0; i--) {
+      const dayCell = grid.createDiv("pm-calendar-day pm-calendar-day-other");
+      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(prevMonthLastDay - i) });
+    }
+    const today = /* @__PURE__ */ new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayCell = grid.createDiv("pm-calendar-day");
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+        dayCell.classList.add("pm-calendar-day-today");
+      }
+      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(day) });
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const dayEntities = entities.filter((e) => {
+        const entityDate = e.dueDate;
+        return entityDate === dateStr;
+      });
+      if (dayEntities.length > 0) {
+        const list = dayCell.createDiv("pm-calendar-day-list");
+        dayEntities.forEach((entity) => {
+          this.renderCalendarItem(list, entity);
+        });
+      }
+      dayCell.addEventListener("click", (e) => {
+        if (e.target.closest(".pm-calendar-item"))
+          return;
+      });
+    }
+    const totalCells = startOffset + daysInMonth;
+    const remainingCells = (7 - totalCells % 7) % 7;
+    for (let day = 1; day <= remainingCells; day++) {
+      const dayCell = grid.createDiv("pm-calendar-day pm-calendar-day-other");
+      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(day) });
+    }
+  }
+  /**
+   * 渲染日历项
+   */
+  renderCalendarItem(container, entity) {
+    const item = container.createDiv("pm-calendar-item");
+    item.classList.add(`pm-entity-${getEntityType(entity)}`);
+    item.dataset.entityId = entity.id;
+    if ("priority" in entity && entity.priority) {
+      const priorityColors = {
+        critical: "#ef4444",
+        high: "#f97316",
+        medium: "#f59e0b",
+        low: "#22c55e"
+      };
+      item.style.borderLeftColor = priorityColors[entity.priority] || "#9ca3af";
+    }
+    if ("status" in entity && entity.status) {
+      item.classList.add(`pm-status-${entity.status}`);
+    }
+    const icon = this.getEntityTypeIcon(getEntityType(entity));
+    item.createSpan({ cls: "pm-calendar-item-icon", text: icon });
+    item.createSpan({ cls: "pm-calendar-item-name", text: entity.name });
+    item.title = `${entity.name} (${entity.owner || "\u672A\u5206\u914D"})`;
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(getEntityType(entity), entity.id);
+    });
+  }
+};
+
+// src/view-engine/ViewEngine.ts
+var ViewEngine = class {
+  constructor(app, entityManager, cardRegistry) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.cardRegistry = cardRegistry;
+    this.dataService = new DataService(app, entityManager);
+    this.actionService = new ActionService(app, entityManager);
+    this.renderers = /* @__PURE__ */ new Map([
+      ["kanban", new KanbanRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["grid", new GridRenderer2(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["cascade", new CascadeRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["timeline", new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
+      ["calendar", new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
+    ]);
+  }
+  /**
+   * 渲染视图
+   */
+  async render(container, config, context) {
+    container.empty();
+    const wrapper = container.createDiv("pm-view");
+    const mode = config.mode || "grid";
+    wrapper.dataset.viewMode = mode;
+    const renderer = this.renderers.get(mode);
+    if (!renderer) {
+      this.renderError(wrapper, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
+      return;
+    }
+    renderer.init(config, context);
+    this.actionService.setRefreshCallback(() => {
+      this.render(container, config, context);
+    });
+    try {
+      await renderer.render(wrapper);
+    } catch (error) {
+      console.error("\u89C6\u56FE\u6E32\u67D3\u5931\u8D25:", error);
+      this.renderError(wrapper, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+    }
+  }
+  /**
+   * 解析配置
+   */
+  parseConfig(source) {
+    const { parseYaml: parseYaml2 } = require("obsidian");
+    try {
+      const parsed = parseYaml2(source) || {};
+      return {
+        mode: parsed.mode || "grid",
+        type: parsed.type || "feature",
+        id: parsed.id,
+        title: parsed.title,
+        groupBy: parsed.groupBy,
+        filter: parsed.filter,
+        sortBy: parsed.sortBy,
+        sortOrder: parsed.sortOrder || "asc",
+        limit: parsed.limit,
+        cols: parsed.cols,
+        ...parsed
+        // 允许额外的配置参数
+      };
+    } catch (error) {
+      console.error("\u914D\u7F6E\u89E3\u6790\u5931\u8D25:", error);
+      return { mode: "grid", type: "feature" };
+    }
+  }
+  /**
+   * 渲染错误信息
+   */
+  renderError(container, message) {
+    const error = container.createDiv("pm-view-error");
+    error.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
+    error.createEl("div", { cls: "pm-error-text", text: "\u89C6\u56FE\u52A0\u8F7D\u5931\u8D25" });
+    error.createEl("div", { cls: "pm-error-detail", text: message });
+  }
+  /**
+   * 获取支持的视图模式
+   */
+  getSupportedModes() {
+    return [
+      { id: "kanban", name: "\u770B\u677F", description: "Trello \u98CE\u683C\u7684\u770B\u677F\u89C6\u56FE\uFF0C\u6309\u72B6\u6001\u5206\u7EC4" },
+      { id: "grid", name: "\u7F51\u683C", description: "\u5361\u7247\u7F51\u683C\u89C6\u56FE\uFF0C\u652F\u6301\u591A\u5217\u5E03\u5C40" },
+      { id: "cascade", name: "\u7EA7\u8054", description: "\u5C42\u7EA7\u7EA7\u8054\u89C6\u56FE\uFF0C\u7248\u672C\u2192\u9879\u76EE\u2192\u7279\u6027" },
+      { id: "timeline", name: "\u65F6\u95F4\u7EBF", description: "\u65F6\u95F4\u7EBF\u89C6\u56FE\uFF0C\u6309\u622A\u6B62\u65E5\u671F\u6392\u5217" },
+      { id: "calendar", name: "\u65E5\u5386", description: "\u6708\u5386\u89C6\u56FE\uFF0C\u663E\u793A\u622A\u6B62\u65E5\u671F" }
+    ];
+  }
+};
+
+// src/main.ts
 var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   async onload() {
     this.entityManager = new EntityManager(this.app);
@@ -4219,6 +5991,8 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
     this.gridRenderer = new GridRenderer(this.app, this.entityManager, this.cardRegistry);
+    this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    this.registerMarkdownCodeBlockProcessor("pm-view", this.processViewBlock.bind(this));
     this.registerMarkdownCodeBlockProcessor("pm-kanban", this.processKanbanBlock.bind(this));
     this.registerMarkdownCodeBlockProcessor("pm-card", this.processCardBlock.bind(this));
     this.registerMarkdownCodeBlockProcessor("pm-selector", this.processSelectorBlock.bind(this));
@@ -4362,6 +6136,25 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
       console.error("[processSelectorBlock] \u9519\u8BEF:", error);
       el.createEl("div", {
         text: `\u9009\u62E9\u5668\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
+        cls: "pm-error"
+      });
+    }
+  }
+  /**
+   * 处理 pm-view 代码块（新的统一视图）
+   */
+  async processViewBlock(source, el, ctx) {
+    try {
+      const config = this.viewEngine.parseConfig(source);
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
+      };
+      await this.viewEngine.render(el, config, viewContext);
+    } catch (error) {
+      console.error("[processViewBlock] \u9519\u8BEF:", error);
+      el.createEl("div", {
+        text: `\u89C6\u56FE\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
         cls: "pm-error"
       });
     }

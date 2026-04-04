@@ -8,6 +8,7 @@ import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } 
 import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature } from './types';
 import type { KanbanConfig } from './ui';
 import type { SingleCardConfig } from './ui';
+import { ViewEngine } from './view-engine';
 
 export default class ProjectManagerPlugin extends Plugin {
   private entityManager: EntityManager;
@@ -19,6 +20,7 @@ export default class ProjectManagerPlugin extends Plugin {
   private button: Button;
   private progressInput: ProgressInput;
   private gridRenderer: GridRenderer;
+  private viewEngine: ViewEngine;
 
   async onload(): Promise<void> {
     // 初始化核心层
@@ -33,6 +35,10 @@ export default class ProjectManagerPlugin extends Plugin {
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
     this.gridRenderer = new GridRenderer(this.app, this.entityManager, this.cardRegistry);
+    this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+
+    // 注册代码块处理器：pm-view（新的统一视图）
+    this.registerMarkdownCodeBlockProcessor('pm-view', this.processViewBlock.bind(this));
 
     // 注册代码块处理器：pm-kanban
     this.registerMarkdownCodeBlockProcessor('pm-kanban', this.processKanbanBlock.bind(this));
@@ -232,6 +238,30 @@ export default class ProjectManagerPlugin extends Plugin {
       console.error('[processSelectorBlock] 错误:', error);
       el.createEl('div', {
         text: `选择器配置错误: ${(error as Error).message}`,
+        cls: 'pm-error',
+      });
+    }
+  }
+
+  /**
+   * 处理 pm-view 代码块（新的统一视图）
+   */
+  private async processViewBlock(
+    source: string,
+    el: HTMLElement,
+    ctx: MarkdownPostProcessorContext
+  ): Promise<void> {
+    try {
+      const config = this.viewEngine.parseConfig(source);
+      const viewContext: import('./view-engine').ViewContext = {
+        sourcePath: ctx.sourcePath,
+        el,
+      };
+      await this.viewEngine.render(el, config, viewContext);
+    } catch (error) {
+      console.error('[processViewBlock] 错误:', error);
+      el.createEl('div', {
+        text: `视图配置错误: ${(error as Error).message}`,
         cls: 'pm-error',
       });
     }
