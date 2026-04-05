@@ -25,7 +25,7 @@ export class ExportICSModal extends Modal {
     this.versions = await this.entityManager.listVersions();
     this.projects = await this.entityManager.listProjects();
 
-    contentEl.createEl('h2', { text: '导出日历 (.ics)' });
+    contentEl.createEl('h2', { text: '导出ICS邮件' });
 
     // 导出范围
     new Setting(contentEl)

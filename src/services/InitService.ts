@@ -95,7 +95,7 @@ Border: off
 
 --- column-break ---
 
-<span class="pm-btn" data-action="export-ics">📅 导出日历</span>
+<span class="pm-btn" data-action="export-ics">📅 导出ICS</span>
 
 --- end-multi-column
 

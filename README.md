@@ -7,12 +7,11 @@
 - 📦 **版本管理** - 规划和管理产品版本迭代
 - 📁 **项目管理** - 组织和管理项目，必须关联版本
 - ✨ **特性管理** - 跟踪特性开发进度，支持优先级、截止日期
-- 📊 **看板视图** - 通过 `pm-kanban` 代码块展示特性状态
-- 🃏 **独立卡片** - 通过 `pm-card` 代码块在任何笔记中嵌入单个实体卡片
-- 🔗 **级联卡片** - 展示版本→项目→特性的完整层级结构和实时状态
-- 🎯 **实体选择器** - 通过下拉选择动态查看级联状态
+- 📊 **统一视图** - 通过 `pm-view` 代码块统一展示所有视图类型
+- 🔄 **兼容代码块** - `pm-grid`, `pm-card`, `pm-kanban`, `pm-selector` 仍可使用
+- 🔗 **级联展示** - 展示版本→项目→特性的完整层级结构和实时状态
 - 🧭 **面包屑导航** - 层级导航，支持点击穿透
-- 📅 **日历导出** - 导出特性截止日期到 .ics 文件
+- 📅 **ICS导出** - 导出特性截止日期到 .ics 文件
 
 ## 📦 安装
 
@@ -40,9 +39,58 @@
 - **创建项目** - 点击总览页面的"📁 创建项目"按钮（需要先创建版本）
 - **创建特性** - 点击总览页面的"✨ 创建特性"按钮（需要先创建项目和版本）
 
-### 看板视图
+---
 
-在任意 Markdown 文件中添加以下代码块：
+## 📊 统一视图 (pm-view)
+
+使用 `pm-view` 代码块统一展示所有视图类型：
+
+```markdown
+```pm-view
+mode: kanban
+type: feature
+groupBy: status
+```
+```
+
+### 支持的视图模式
+
+| 模式 | 说明 | 示例配置 |
+|------|------|----------|
+| `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
+| `grid` | 网格视图 | `mode: grid`<br>`type: feature`<br>`cols: 3` |
+| `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
+| `card` | 单卡片视图 | `mode: card`<br>`type: feature`<br>`id: feat-001` |
+| `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
+| `calendar` | 日历视图 | `mode: calendar`<br>`type: feature` |
+| `selector` | 选择器视图 | `mode: selector`<br>`type: version` |
+| `cascade-selector` | 级联选择器 | `mode: cascade-selector` |
+
+### 通用配置参数
+
+```yaml
+mode: kanban          # 视图模式（必填）
+type: feature         # 实体类型：version/project/feature
+id: feat-001          # 具体实体ID（单卡片模式用）
+groupBy: status       # 分组方式：status/priority/version/project
+cols: 3               # 网格列数：1/2/3/4
+filter:               # 过滤条件
+  status: in-progress
+  priority: high
+  versionId: ver-001
+  projectId: proj-001
+sortBy: dueDate       # 排序字段
+sortOrder: desc       # 排序方向：asc/desc
+limit: 20             # 限制数量
+```
+
+---
+
+## 🔄 兼容代码块（旧版）
+
+以下代码块仍可使用，内部自动映射到 `pm-view`：
+
+### 看板视图 (pm-kanban)
 
 ```markdown
 ```pm-kanban
@@ -56,65 +104,53 @@ view: all
 - `by-project` - 按项目分组
 - `grid` - 网格卡片布局
 
-**点击看板中的卡片可以直接跳转到对应的特性文件！**
+筛选参数：
+```yaml
+view: all
+version: ver-001      # 按版本筛选
+project: proj-001     # 按项目筛选
+owner: 张三           # 按负责人筛选
+tag: 前端             # 按标签筛选
+```
 
-### 独立卡片
-
-在任何笔记中嵌入单个实体卡片：
+### 网格视图 (pm-grid)
 
 ```markdown
-```pm-card
-id: abc12345
+```pm-grid
+type: feature
+cols: 3
+filter:
+  status: in-progress
 ```
 ```
 
-这会在文档中渲染一个可点击的卡片，显示该实体的信息。适用于：
-- 在周记中引用本周要完成的任务
-- 在会议记录中引用相关项目
-- 创建个人仪表板
+### 单卡片 (pm-card)
 
-### 级联卡片 (Cascade)
+嵌入单个实体卡片：
 
-展示版本或项目的完整层级结构，包括下属项目和特性的实时状态：
-
-**展示版本级联（版本 → 项目 → 特性）**
 ```markdown
 ```pm-card
-id: ver001
+id: feat-001
+```
+```
+
+级联展示（显示层级结构）：
+
+```markdown
+```pm-card
+id: ver-001
 expanded: true
+maxProjects: 5
+maxFeaturesPerProject: 3
 ```
 ```
 
-**展示项目级联（项目 → 特性）**
-```markdown
-```pm-card
-id: proj001
-expanded: true
-```
-```
-
-**级联卡片参数说明**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| id | string | 实体ID（版本 verXXX / 项目 projXXX） |
-| expanded | boolean | 启用级联展示（必须设置为 true） |
-| maxProjects | number | 限制显示项目数量（默认10） |
-| maxFeaturesPerProject | number | 每个项目显示特性数量限制（默认5） |
-
-**级联卡片特性**
-- 📊 实时统计：显示项目/特性总数、完成数、进行中数
-- ⚠️ 风险预警：标记延期（红色）和即将到期（7天内，橙色）的特性
-- 💬 最新进展：自动提取特性文件中的最近进展反馈
-- 🔗 点击穿透：点击版本/项目/特性头部可直接跳转到对应文件
-
-### 实体选择器
-
-在总览页面或任意笔记中使用下拉选择器动态查看级联状态：
+### 实体选择器 (pm-selector)
 
 ```markdown
 ```pm-selector
 type: version
+defaultId: ver-001
 ```
 ```
 
@@ -124,26 +160,7 @@ type: project
 ```
 ```
 
-**参数说明**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| type | string | 实体类型：`version` 或 `project` |
-| defaultId | string | （可选）默认选中的实体ID |
-
-选择器会自动加载所有版本/项目列表，选择后即可查看对应的级联卡片。
-
-### 筛选看板
-
-```markdown
-```pm-kanban
-view: all
-version: xxx       # 按版本筛选
-project: xxx       # 按项目筛选
-owner: 张三        # 按负责人筛选
-tag: 前端          # 按标签筛选
-```
-```
+---
 
 ## 📁 文件结构
 
@@ -159,14 +176,12 @@ ProjectManager/
 
 ## 🏗️ 架构设计
 
-本插件采用双层架构设计：
-
 ```
 ┌─────────────────────────────────────────┐
 │              UI Layer                    │
 │  ┌──────────┐ ┌──────────┐ ┌─────────┐ │
-│  │ Kanban   │ │  Cards   │ │Breadcrumb│ │
-│  │  Board   │ │ Registry │ │          │ │
+│  │  View    │ │  Cards   │ │Breadcrumb│ │
+│  │ Engine   │ │ Registry │ │          │ │
 │  └────┬─────┘ └────┬─────┘ └────┬────┘ │
 │       └─────────────┴────────────┘      │
 │                   │                      │
@@ -189,7 +204,7 @@ ProjectManager/
 ```
 
 - **Core 层** - 负责文件读写和数据一致性
-- **UI 层** - 负责展示，通过 CardRegistry 实现卡片组件化
+- **UI 层** - 通过 ViewEngine 统一处理所有视图，CardRegistry 实现卡片组件化
 
 ## 📝 数据格式
 
@@ -220,7 +235,7 @@ tags:
 | 创建版本 | 创建新版本 |
 | 创建项目 | 创建新项目 |
 | 创建特性 | 创建新特性 |
-| 导出截止日期到日历 | 导出 .ics 文件 |
+| 导出ICS | 导出 .ics 文件 |
 
 ## 🖱️ 右键菜单
 
@@ -238,6 +253,15 @@ tags:
 - 仅支持桌面端
 
 ## 📜 版本历史
+
+### v0.3.0 (2026-04-05)
+
+- 新增统一视图引擎 `pm-view`，支持 8 种视图模式
+- 新增 `card` 单卡片视图模式
+- 新增 `cascade-selector` 级联选择器模式
+- 旧代码块（pm-grid, pm-card, pm-kanban, pm-selector）内部统一映射到 ViewEngine
+- 删除冗余 UI 类，简化架构
+- 代码块文字"导出日历"改为"导出ICS"
 
 ### v0.2.0 (2026-04-03)
 

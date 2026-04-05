@@ -353,10 +353,10 @@ var InitService_exports = {};
 __export(InitService_exports, {
   InitService: () => InitService
 });
-var import_obsidian15, InitService;
+var import_obsidian12, InitService;
 var init_InitService = __esm({
   "src/services/InitService.ts"() {
-    import_obsidian15 = require("obsidian");
+    import_obsidian12 = require("obsidian");
     InitService = class {
       constructor(app) {
         this.app = app;
@@ -370,7 +370,7 @@ var init_InitService = __esm({
           return false;
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        return dashboardFile instanceof import_obsidian15.TFile;
+        return dashboardFile instanceof import_obsidian12.TFile;
       }
       async initialize() {
         await this.ensureFolder(this.BASE_FOLDER);
@@ -382,7 +382,7 @@ var init_InitService = __esm({
       async openDashboard() {
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const file = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (file instanceof import_obsidian15.TFile) {
+        if (file instanceof import_obsidian12.TFile) {
           await this.app.workspace.getLeaf().openFile(file);
         } else {
           await this.initialize();
@@ -402,7 +402,7 @@ var init_InitService = __esm({
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const content = this.generateDashboardContent();
         const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (existingFile instanceof import_obsidian15.TFile) {
+        if (existingFile instanceof import_obsidian12.TFile) {
           await this.app.vault.modify(existingFile, content);
         } else {
           await this.app.vault.create(dashboardPath, content);
@@ -441,7 +441,7 @@ Border: off
 
 --- column-break ---
 
-<span class="pm-btn" data-action="export-ics">\u{1F4C5} \u5BFC\u51FA\u65E5\u5386</span>
+<span class="pm-btn" data-action="export-ics">\u{1F4C5} \u5BFC\u51FAICS</span>
 
 --- end-multi-column
 
@@ -476,7 +476,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian16 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -2735,7 +2735,7 @@ var ExportICSModal = class extends import_obsidian9.Modal {
     contentEl.addClass("pm-modal");
     this.versions = await this.entityManager.listVersions();
     this.projects = await this.entityManager.listProjects();
-    contentEl.createEl("h2", { text: "\u5BFC\u51FA\u65E5\u5386 (.ics)" });
+    contentEl.createEl("h2", { text: "\u5BFC\u51FAICS\u90AE\u4EF6" });
     new import_obsidian9.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
       dropdown.addOption("all", "\u5168\u90E8\u7279\u6027");
       dropdown.addOption("version", "\u6309\u7248\u672C\u7B5B\u9009");
@@ -3123,1089 +3123,6 @@ var ProgressInputContainer = class extends import_obsidian11.MarkdownRenderChild
   }
 };
 
-// src/ui/KanbanBoard.ts
-var import_obsidian12 = require("obsidian");
-init_constants();
-var KanbanBoard = class {
-  constructor(app, entityManager, cardRegistry) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.cardRegistry = cardRegistry;
-  }
-  /**
-   * 渲染看板
-   */
-  async render(container, config) {
-    container.empty();
-    container.addClass("pm-kanban-block");
-    const features = await this.loadFeatures(config);
-    this.renderToolbar(container, config, features.length);
-    switch (config.view) {
-      case "by-version":
-        await this.renderByVersion(container, features, config);
-        break;
-      case "by-project":
-        await this.renderByProject(container, features, config);
-        break;
-      case "grid":
-        await this.renderGrid(container, features, config);
-        break;
-      case "all":
-      default:
-        await this.renderAll(container, features, config);
-        break;
-    }
-  }
-  /**
-   * 加载特性数据
-   */
-  async loadFeatures(config) {
-    const allFeatures = await this.entityManager.listFeatures();
-    return allFeatures.filter((f) => {
-      if (config.version && f.versionId !== config.version)
-        return false;
-      if (config.project && f.projectId !== config.project)
-        return false;
-      if (config.owner && f.owner !== config.owner)
-        return false;
-      if (config.tag && !f.tags.includes(config.tag))
-        return false;
-      return true;
-    });
-  }
-  /**
-   * 渲染工具栏
-   */
-  renderToolbar(container, config, count) {
-    const toolbar = container.createDiv({ cls: "pm-kanban-block__toolbar" });
-    const titleEl = toolbar.createDiv({ cls: "pm-kanban-block__title" });
-    let title = "\u7279\u6027\u770B\u677F";
-    if (config.project)
-      title = "\u9879\u76EE\u7279\u6027";
-    if (config.version)
-      title = "\u7248\u672C\u7279\u6027";
-    titleEl.createEl("span", { text: title });
-    titleEl.createEl("span", {
-      text: `(${count})`,
-      cls: "pm-badge pm-badge--version"
-    });
-    const actionsEl = toolbar.createDiv({ cls: "pm-kanban-block__actions" });
-    if (count > 0) {
-      const refreshBtn = actionsEl.createEl("button", {
-        text: "\u{1F504}",
-        cls: "pm-btn pm-btn--sm pm-btn--ghost",
-        title: "\u5237\u65B0"
-      });
-      refreshBtn.addEventListener("click", () => {
-        container.empty();
-        this.render(container, config);
-      });
-    }
-  }
-  /**
-   * 渲染全部特性（按状态分组）
-   */
-  async renderAll(container, features, config) {
-    var _a;
-    const board = container.createDiv({ cls: "pm-kanban-block__board" });
-    const columns = this.groupByStatus(features);
-    const statuses = FEATURE_STATUSES.map((s) => s.value);
-    const isCompact = config.cardStyle === "compact";
-    for (const status of statuses) {
-      const column = this.createColumn(board, status, (_a = columns[status]) != null ? _a : [], isCompact);
-      board.appendChild(column);
-    }
-  }
-  /**
-   * 按版本渲染（分组看板）
-   */
-  async renderByVersion(container, features, config) {
-    var _a, _b;
-    const versionGroups = /* @__PURE__ */ new Map();
-    for (const feature of features) {
-      const versionId = feature.versionId || "\u672A\u5206\u914D";
-      if (!versionGroups.has(versionId)) {
-        versionGroups.set(versionId, []);
-      }
-      versionGroups.get(versionId).push(feature);
-    }
-    for (const [versionId, versionFeatures] of versionGroups) {
-      const section = container.createDiv({ cls: "pm-kanban-block__section" });
-      const version = await this.entityManager.getVersion(versionId);
-      const titleEl = section.createEl("h4", {
-        text: (_a = version == null ? void 0 : version.name) != null ? _a : "\u672A\u5206\u914D\u7248\u672C",
-        cls: "pm-kanban-block__section-title"
-      });
-      titleEl.createEl("span", {
-        text: `${versionFeatures.length} \u4E2A\u7279\u6027`,
-        cls: "pm-section__count"
-      });
-      const board = section.createDiv({ cls: "pm-kanban-block__board" });
-      const columns = this.groupByStatus(versionFeatures);
-      const statuses = FEATURE_STATUSES.map((s) => s.value);
-      for (const status of statuses) {
-        const column = this.createColumn(board, status, (_b = columns[status]) != null ? _b : [], true);
-        board.appendChild(column);
-      }
-    }
-  }
-  /**
-   * 按项目渲染（分组看板）
-   */
-  async renderByProject(container, features, config) {
-    var _a, _b;
-    const projectGroups = /* @__PURE__ */ new Map();
-    for (const feature of features) {
-      const projectId = feature.projectId || "\u672A\u5206\u914D";
-      if (!projectGroups.has(projectId)) {
-        projectGroups.set(projectId, []);
-      }
-      projectGroups.get(projectId).push(feature);
-    }
-    for (const [projectId, projectFeatures] of projectGroups) {
-      const section = container.createDiv({ cls: "pm-kanban-block__section" });
-      const project = await this.entityManager.getProject(projectId);
-      const titleEl = section.createEl("h4", {
-        text: (_a = project == null ? void 0 : project.name) != null ? _a : "\u672A\u5206\u914D\u9879\u76EE",
-        cls: "pm-kanban-block__section-title"
-      });
-      titleEl.createEl("span", {
-        text: `${projectFeatures.length} \u4E2A\u7279\u6027`,
-        cls: "pm-section__count"
-      });
-      const board = section.createDiv({ cls: "pm-kanban-block__board" });
-      const columns = this.groupByStatus(projectFeatures);
-      const statuses = FEATURE_STATUSES.map((s) => s.value);
-      for (const status of statuses) {
-        const column = this.createColumn(board, status, (_b = columns[status]) != null ? _b : [], true);
-        board.appendChild(column);
-      }
-    }
-  }
-  /**
-   * 网格布局渲染
-   */
-  async renderGrid(container, features, config) {
-    const grid = container.createDiv({ cls: "pm-card-grid" });
-    if (config.columns) {
-      grid.classList.add(`pm-card-grid--${config.columns}col`);
-    }
-    const cardRenderer = this.cardRegistry.get("feature");
-    if (!cardRenderer)
-      return;
-    for (const feature of features) {
-      const onClick = () => this.openFeatureFile(feature);
-      const card = cardRenderer.render(feature, onClick);
-      grid.appendChild(card);
-    }
-    if (features.length === 0) {
-      grid.createEl("div", {
-        cls: "pm-empty",
-        text: "\u6682\u65E0\u7279\u6027"
-      });
-    }
-  }
-  /**
-   * 创建看板列
-   */
-  createColumn(container, status, features, isCompact) {
-    var _a, _b, _c;
-    const column = container.createDiv({ cls: "pm-kanban-block__column" });
-    if (isCompact) {
-      column.addClass("pm-kanban-block__column--compact");
-    }
-    column.dataset.status = status;
-    const header = column.createDiv({ cls: "pm-kanban-block__header" });
-    const statusInfo = FEATURE_STATUSES.find((s) => s.value === status);
-    const statusDot = header.createEl("span", { cls: "pm-status-dot" });
-    statusDot.style.backgroundColor = (_a = statusInfo == null ? void 0 : statusInfo.color) != null ? _a : "var(--text-muted)";
-    header.createEl("span", {
-      text: getStatusLabel(status),
-      cls: "pm-kanban-block__column-title"
-    });
-    header.createEl("span", {
-      text: String(features.length),
-      cls: "pm-kanban-block__column-count"
-    });
-    const cardList = column.createDiv({ cls: "pm-kanban-block__card-list" });
-    const cardRenderer = this.cardRegistry.get("feature");
-    if (cardRenderer) {
-      for (const feature of features) {
-        const onClick = () => this.openFeatureFile(feature);
-        const card = isCompact ? (_c = (_b = cardRenderer.renderCompact) == null ? void 0 : _b.call(cardRenderer, feature, onClick)) != null ? _c : cardRenderer.render(feature, onClick) : cardRenderer.render(feature, onClick);
-        cardList.appendChild(card);
-      }
-    }
-    return column;
-  }
-  /**
-   * 按状态分组
-   */
-  groupByStatus(features) {
-    const result = {
-      backlog: [],
-      todo: [],
-      "in-progress": [],
-      testing: [],
-      completed: [],
-      archived: []
-    };
-    for (const feature of features) {
-      if (result[feature.status]) {
-        result[feature.status].push(feature);
-      }
-    }
-    return result;
-  }
-  /**
-   * 打开特性文件
-   */
-  async openFeatureFile(feature) {
-    const path = await this.entityManager.getFeaturePath(feature.id);
-    if (!path)
-      return;
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof import_obsidian12.TFile) {
-      await this.app.workspace.getLeaf().openFile(file);
-    }
-  }
-};
-
-// src/ui/SingleCardRenderer.ts
-var import_obsidian13 = require("obsidian");
-var SingleCardRenderer = class {
-  constructor(app, entityManager, cardRegistry) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.cardRegistry = cardRegistry;
-  }
-  /**
-   * 渲染单个卡片
-   */
-  async render(container, config) {
-    container.empty();
-    container.addClass("pm-single-card");
-    if (!config.id) {
-      this.renderError(container, "\u8BF7\u63D0\u4F9B\u5B9E\u4F53 ID");
-      return;
-    }
-    const result = await this.entityManager.findById(config.id);
-    if (!result) {
-      this.renderError(container, `\u672A\u627E\u5230 ID \u4E3A "${config.id}" \u7684\u5B9E\u4F53`);
-      return;
-    }
-    if (config.expanded && result.type !== "feature") {
-      await this.renderCascade(container, result, config);
-      return;
-    }
-    await this.renderStandard(container, result);
-  }
-  /**
-   * 渲染标准卡片（非级联模式）
-   */
-  async renderStandard(container, result) {
-    const cardRenderer = this.cardRegistry.findRenderer(result.entity);
-    if (!cardRenderer) {
-      this.renderError(container, `\u65E0\u6CD5\u6E32\u67D3\u8BE5\u5B9E\u4F53\u7C7B\u578B: ${result.type}`);
-      return;
-    }
-    const onClick = async () => {
-      const path = await this.entityManager.getEntityPath(result.type, result.entity.id);
-      if (!path)
-        return;
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian13.TFile) {
-        await this.app.workspace.getLeaf().openFile(file);
-      }
-    };
-    const card = cardRenderer.render(result.entity, onClick);
-    container.appendChild(card);
-  }
-  /**
-   * 渲染级联卡片
-   */
-  async renderCascade(container, result, config) {
-    if (result.type === "feature") {
-      await this.renderStandard(container, result);
-      return;
-    }
-    const cascadeData = await this.loadCascadeData(result, config);
-    if (!cascadeData) {
-      this.renderError(container, "\u52A0\u8F7D\u7EA7\u8054\u6570\u636E\u5931\u8D25");
-      return;
-    }
-    const card = this.createCascadeCard(cascadeData, config);
-    container.appendChild(card);
-  }
-  /**
-   * 加载级联数据
-   */
-  async loadCascadeData(result, config) {
-    if (result.type === "version") {
-      return this.loadVersionCascade(result.entity, config);
-    } else {
-      return this.loadProjectCascade(result.entity, config);
-    }
-  }
-  /**
-   * 加载版本级联数据
-   */
-  async loadVersionCascade(version, config) {
-    const projects = await this.entityManager.listProjects({ versionId: version.id });
-    const cascadeProjects = [];
-    let totalFeatures = 0;
-    let completedFeatures = 0;
-    const maxProjects = config.maxProjects || 10;
-    const limitedProjects = projects.slice(0, maxProjects);
-    for (const project of limitedProjects) {
-      const features = await this.loadFeaturesWithProgress(project.id);
-      const maxFeatures = config.maxFeaturesPerProject || 5;
-      const limitedFeatures = features.slice(0, maxFeatures);
-      const now = /* @__PURE__ */ new Date();
-      const completed = features.filter((f) => f.status === "completed").length;
-      const inProgress = features.filter((f) => f.status === "in-progress").length;
-      const testing = features.filter((f) => f.status === "testing").length;
-      const todo = features.filter((f) => f.status === "todo" || f.status === "backlog").length;
-      const overdue = features.filter((f) => {
-        if (!f.dueDate || f.status === "completed")
-          return false;
-        return new Date(f.dueDate) < now;
-      }).length;
-      const upcoming = features.filter((f) => {
-        if (!f.dueDate || f.status === "completed")
-          return false;
-        const due = new Date(f.dueDate);
-        const diffDays = Math.floor((due.getTime() - now.getTime()) / (1e3 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 7;
-      }).length;
-      const averageProgress = features.length > 0 ? Math.round(features.reduce((sum, f) => sum + f.progress, 0) / features.length) : 0;
-      cascadeProjects.push({
-        entity: project,
-        features: limitedFeatures,
-        stats: {
-          total: features.length,
-          completed,
-          inProgress,
-          testing,
-          todo,
-          averageProgress,
-          overdue,
-          upcoming
-        }
-      });
-      totalFeatures += features.length;
-      completedFeatures += completed;
-    }
-    const completedProjects = projects.filter((p) => p.status === "completed").length;
-    return {
-      type: "version",
-      entity: version,
-      projects: cascadeProjects,
-      stats: {
-        totalProjects: projects.length,
-        totalFeatures,
-        completedProjects,
-        completedFeatures
-      }
-    };
-  }
-  /**
-   * 加载项目级联数据
-   */
-  async loadProjectCascade(project, config) {
-    const features = await this.loadFeaturesWithProgress(project.id);
-    const completed = features.filter((f) => f.status === "completed").length;
-    const inProgress = features.filter((f) => f.status === "in-progress").length;
-    const testing = features.filter((f) => f.status === "testing").length;
-    const todo = features.filter((f) => f.status === "todo" || f.status === "backlog").length;
-    const highPriority = features.filter((f) => f.priority === "critical" || f.priority === "high").length;
-    const now = /* @__PURE__ */ new Date();
-    const overdue = features.filter((f) => {
-      if (!f.dueDate || f.status === "completed")
-        return false;
-      return new Date(f.dueDate) < now;
-    }).length;
-    const averageProgress = features.length > 0 ? Math.round(features.reduce((sum, f) => sum + f.progress, 0) / features.length) : 0;
-    return {
-      type: "project",
-      entity: project,
-      features,
-      stats: {
-        total: features.length,
-        completed,
-        inProgress,
-        testing,
-        todo,
-        highPriority,
-        overdue,
-        averageProgress
-      }
-    };
-  }
-  /**
-   * 加载特性并提取最新进展
-   */
-  async loadFeaturesWithProgress(projectId) {
-    const features = await this.entityManager.listFeatures({ projectId });
-    const featuresWithProgress = [];
-    for (const feature of features) {
-      const progress = await this.extractLatestProgress(feature.id);
-      featuresWithProgress.push({
-        ...feature,
-        latestProgress: progress.content,
-        progressTime: progress.time
-      });
-    }
-    return featuresWithProgress;
-  }
-  /**
-   * 从特性文件中提取最新进展
-   */
-  async extractLatestProgress(featureId) {
-    try {
-      const path = await this.entityManager.getEntityPath("feature", featureId);
-      if (!path)
-        return {};
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (!(file instanceof import_obsidian13.TFile))
-        return {};
-      const content = await this.app.vault.read(file);
-      const progressRegex = /^-\s*\[(\d{2}\/\d{2}\s+\d{2}:\d{2})\]\s*(.+)$/gm;
-      const matches = [];
-      let match;
-      while ((match = progressRegex.exec(content)) !== null) {
-        matches.push({
-          time: match[1],
-          content: match[2].trim()
-        });
-      }
-      if (matches.length > 0) {
-        const latest = matches[matches.length - 1];
-        return {
-          time: latest.time,
-          content: latest.content
-        };
-      }
-      return {};
-    } catch (error) {
-      console.error("\u63D0\u53D6\u6700\u65B0\u8FDB\u5C55\u5931\u8D25:", error);
-      return {};
-    }
-  }
-  /**
-   * 创建级联卡片
-   */
-  createCascadeCard(data, config) {
-    const card = document.createElement("div");
-    card.className = "pm-card pm-card--cascade";
-    if (data.type === "version") {
-      this.renderVersionCascade(card, data, config);
-    } else {
-      this.renderProjectCascade(card, data, config);
-    }
-    return card;
-  }
-  /**
-   * 渲染版本级联视图
-   */
-  renderVersionCascade(container, data, config) {
-    const version = data.entity;
-    const header = container.createDiv({ cls: "pm-cascade__header pm-cascade__header--clickable" });
-    header.createEl("div", {
-      text: `\u{1F4E6} ${version.name}`,
-      cls: "pm-cascade__title"
-    });
-    const statusEl = header.createEl("span", {
-      text: this.getStatusLabel(version.status),
-      cls: `pm-cascade__status pm-cascade__status--${version.status}`
-    });
-    header.style.cursor = "pointer";
-    header.addEventListener("click", async (e) => {
-      if (e.target.closest(".pm-cascade__projects"))
-        return;
-      const path = await this.entityManager.getEntityPath("version", version.id);
-      if (!path)
-        return;
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian13.TFile) {
-        await this.app.workspace.getLeaf().openFile(file);
-      }
-    });
-    const summary = container.createDiv({ cls: "pm-cascade__summary" });
-    summary.createEl("span", {
-      text: `\u{1F4C1} ${data.stats.totalProjects} \u9879\u76EE \xB7 \u2728 ${data.stats.completedFeatures}/${data.stats.totalFeatures} \u7279\u6027`,
-      cls: "pm-cascade__summary-text"
-    });
-    const projectsList = container.createDiv({ cls: "pm-cascade__projects" });
-    for (const projectData of data.projects) {
-      this.renderProjectItem(projectsList, projectData, config);
-    }
-    if (data.stats.totalProjects > data.projects.length) {
-      const moreEl = projectsList.createDiv({ cls: "pm-cascade__more" });
-      moreEl.createEl("span", {
-        text: `+${data.stats.totalProjects - data.projects.length} \u66F4\u591A\u9879\u76EE...`
-      });
-    }
-  }
-  /**
-   * 渲染项目条目（在版本级联中）
-   */
-  renderProjectItem(container, projectData, config) {
-    const project = projectData.entity;
-    const item = container.createDiv({ cls: "pm-cascade__project" });
-    const header = item.createDiv({ cls: "pm-cascade__project-header" });
-    const priorityEmoji = { critical: "\u{1F534}", high: "\u{1F7E0}", medium: "\u{1F535}", low: "\u{1F7E2}" }[project.priority] || "\u26AA";
-    header.createEl("span", { text: `${priorityEmoji} \u{1F4C1}`, cls: "pm-cascade__icon" });
-    header.createEl("span", {
-      text: project.name,
-      cls: "pm-cascade__project-name"
-    });
-    const progressBar = header.createDiv({ cls: "pm-cascade__mini-progress" });
-    const progressFill = progressBar.createDiv({ cls: "pm-cascade__mini-progress-fill" });
-    progressFill.style.width = `${projectData.stats.averageProgress}%`;
-    header.createEl("span", {
-      text: `${projectData.stats.averageProgress}%`,
-      cls: "pm-cascade__progress-text"
-    });
-    const stats = item.createDiv({ cls: "pm-cascade__project-stats" });
-    let statsText = `\u2705 ${projectData.stats.completed} \xB7 \u{1F504} ${projectData.stats.inProgress} \xB7 \u{1F4CB} ${projectData.stats.todo}`;
-    if (projectData.stats.overdue > 0) {
-      statsText += ` \xB7 <span class="pm-cascade__risk-high">\u26A0\uFE0F ${projectData.stats.overdue} \u5EF6\u671F</span>`;
-    }
-    if (projectData.stats.upcoming > 0) {
-      statsText += ` \xB7 <span class="pm-cascade__risk-medium">\u23F0 ${projectData.stats.upcoming} \u5373\u5C06\u5230\u671F</span>`;
-    }
-    const statsEl = stats.createEl("span", {
-      cls: "pm-cascade__stats-text"
-    });
-    statsEl.innerHTML = statsText;
-    if (projectData.features.length > 0) {
-      const featuresList = item.createDiv({ cls: "pm-cascade__features" });
-      for (const feature of projectData.features) {
-        this.renderFeatureItem(featuresList, feature);
-      }
-      const totalFeatures = projectData.stats.total;
-      if (totalFeatures > projectData.features.length) {
-        const moreEl = featuresList.createDiv({ cls: "pm-cascade__more-features" });
-        moreEl.createEl("span", {
-          text: `+${totalFeatures - projectData.features.length} \u66F4\u591A...`
-        });
-      }
-    }
-    item.style.cursor = "pointer";
-    item.addEventListener("click", async (e) => {
-      if (e.target.closest(".pm-cascade__features"))
-        return;
-      const path = await this.entityManager.getEntityPath("project", project.id);
-      if (!path)
-        return;
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian13.TFile) {
-        await this.app.workspace.getLeaf().openFile(file);
-      }
-    });
-  }
-  /**
-   * 渲染项目级联视图
-   */
-  renderProjectCascade(container, data, config) {
-    const project = data.entity;
-    const header = container.createDiv({ cls: "pm-cascade__header pm-cascade__header--clickable" });
-    const priorityEmoji = { critical: "\u{1F534}", high: "\u{1F7E0}", medium: "\u{1F535}", low: "\u{1F7E2}" }[project.priority] || "\u26AA";
-    header.createEl("div", {
-      text: `${priorityEmoji} \u{1F4C1} ${project.name}`,
-      cls: "pm-cascade__title"
-    });
-    const mainProgress = header.createDiv({ cls: "pm-cascade__main-progress" });
-    const mainProgressFill = mainProgress.createDiv({ cls: "pm-cascade__main-progress-fill" });
-    mainProgressFill.style.width = `${data.stats.averageProgress}%`;
-    header.createEl("span", {
-      text: `${data.stats.averageProgress}%`,
-      cls: "pm-cascade__main-progress-text"
-    });
-    header.style.cursor = "pointer";
-    header.addEventListener("click", async (e) => {
-      if (e.target.closest(".pm-cascade__features-list"))
-        return;
-      const path = await this.entityManager.getEntityPath("project", project.id);
-      if (!path)
-        return;
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian13.TFile) {
-        await this.app.workspace.getLeaf().openFile(file);
-      }
-    });
-    const summary = container.createDiv({ cls: "pm-cascade__summary" });
-    summary.createEl("span", {
-      text: `\u2728 ${data.stats.total} \u7279\u6027 \xB7 \u2705 ${data.stats.completed} \xB7 \u{1F504} ${data.stats.inProgress} \xB7 \u{1F9EA} ${data.stats.testing}`,
-      cls: "pm-cascade__summary-text"
-    });
-    if (data.stats.overdue > 0) {
-      const riskEl = summary.createEl("span", {
-        text: ` \u26A0\uFE0F ${data.stats.overdue} \u5EF6\u671F`,
-        cls: "pm-cascade__risk-high"
-      });
-    }
-    if (data.stats.highPriority > 0) {
-      summary.createEl("span", {
-        text: ` \u{1F534} ${data.stats.highPriority} \u9AD8\u4F18`,
-        cls: "pm-cascade__risk-medium"
-      });
-    }
-    const featuresList = container.createDiv({ cls: "pm-cascade__features-list" });
-    const inProgressFeatures = data.features.filter((f) => f.status === "in-progress");
-    if (inProgressFeatures.length > 0) {
-      this.renderFeatureGroup(featuresList, "\u{1F504} \u8FDB\u884C\u4E2D", inProgressFeatures, "in-progress");
-    }
-    const testingFeatures = data.features.filter((f) => f.status === "testing");
-    if (testingFeatures.length > 0) {
-      this.renderFeatureGroup(featuresList, "\u{1F9EA} \u6D4B\u8BD5\u4E2D", testingFeatures, "testing");
-    }
-    const todoFeatures = data.features.filter((f) => f.status === "todo" || f.status === "backlog");
-    if (todoFeatures.length > 0) {
-      this.renderFeatureGroup(featuresList, "\u{1F4CB} \u5F85\u5904\u7406", todoFeatures, "todo");
-    }
-    const completedFeatures = data.features.filter((f) => f.status === "completed");
-    if (completedFeatures.length > 0) {
-      this.renderFeatureGroup(featuresList, "\u2705 \u5DF2\u5B8C\u6210", completedFeatures, "completed");
-    }
-  }
-  /**
-   * 渲染特性分组
-   */
-  renderFeatureGroup(container, title, features, status) {
-    const group = container.createDiv({ cls: "pm-cascade__feature-group" });
-    group.createEl("div", {
-      text: `${title} (${features.length})`,
-      cls: `pm-cascade__group-title pm-cascade__group-title--${status}`
-    });
-    for (const feature of features) {
-      this.renderFeatureItem(group, feature);
-    }
-  }
-  /**
-   * 渲染特性条目
-   */
-  renderFeatureItem(container, feature) {
-    const item = container.createDiv({ cls: "pm-cascade__feature" });
-    const priorityEmoji = { critical: "\u{1F534}", high: "\u{1F7E0}", medium: "\u{1F535}", low: "\u{1F7E2}" }[feature.priority] || "\u26AA";
-    item.createEl("span", { text: priorityEmoji, cls: "pm-cascade__feature-priority" });
-    item.createEl("span", { text: "\u2728", cls: "pm-cascade__feature-icon" });
-    const nameContainer = item.createDiv({ cls: "pm-cascade__feature-name-container" });
-    nameContainer.createEl("span", {
-      text: feature.name,
-      cls: "pm-cascade__feature-name"
-    });
-    if (feature.latestProgress) {
-      const progressText = feature.latestProgress.length > 20 ? feature.latestProgress.slice(0, 20) + "..." : feature.latestProgress;
-      nameContainer.createEl("span", {
-        text: `\u{1F4AC} ${progressText}`,
-        cls: "pm-cascade__feature-latest-progress",
-        title: `[${feature.progressTime}] ${feature.latestProgress}`
-      });
-    }
-    if (feature.progress > 0) {
-      item.createEl("span", {
-        text: `${feature.progress}%`,
-        cls: "pm-cascade__feature-progress"
-      });
-    }
-    if (feature.dueDate && feature.status !== "completed") {
-      const now = /* @__PURE__ */ new Date();
-      const due = new Date(feature.dueDate);
-      const isOverdue = due < now;
-      const diffDays = Math.floor((due.getTime() - now.getTime()) / (1e3 * 60 * 60 * 24));
-      const isUpcoming = diffDays >= 0 && diffDays <= 7;
-      const dueEl = item.createEl("span", {
-        text: feature.dueDate.slice(5),
-        // 显示 MM-DD
-        cls: `pm-cascade__feature-due ${isOverdue ? "pm-cascade__feature-due--overdue" : ""} ${isUpcoming ? "pm-cascade__feature-due--upcoming" : ""}`
-      });
-      if (isUpcoming) {
-        dueEl.setAttribute("title", `\u23F0 ${diffDays === 0 ? "\u4ECA\u5929" : diffDays + "\u5929\u540E"}\u5230\u671F`);
-      } else if (isOverdue) {
-        dueEl.setAttribute("title", `\u26A0\uFE0F \u5DF2\u5EF6\u671F ${Math.abs(diffDays)} \u5929`);
-      }
-    } else if (feature.dueDate) {
-      item.createEl("span", {
-        text: feature.dueDate.slice(5),
-        cls: "pm-cascade__feature-due pm-cascade__feature-due--completed"
-      });
-    }
-    if (feature.owner) {
-      item.createEl("span", {
-        text: `@${feature.owner}`,
-        cls: "pm-cascade__feature-owner"
-      });
-    }
-    item.style.cursor = "pointer";
-    item.addEventListener("click", async () => {
-      const path = await this.entityManager.getEntityPath("feature", feature.id);
-      if (!path)
-        return;
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian13.TFile) {
-        await this.app.workspace.getLeaf().openFile(file);
-      }
-    });
-  }
-  /**
-   * 获取状态标签
-   */
-  getStatusLabel(status) {
-    const labels = {
-      planning: "\u89C4\u5212\u4E2D",
-      "in-progress": "\u8FDB\u884C\u4E2D",
-      completed: "\u5DF2\u5B8C\u6210",
-      archived: "\u5DF2\u5F52\u6863",
-      backlog: "\u5F85\u529E",
-      todo: "\u5F85\u5F00\u59CB",
-      testing: "\u6D4B\u8BD5\u4E2D"
-    };
-    return labels[status] || status;
-  }
-  /**
-   * 渲染错误信息
-   */
-  renderError(container, message) {
-    const errorEl = container.createDiv({ cls: "pm-error" });
-    errorEl.createEl("span", { text: "\u26A0\uFE0F " });
-    errorEl.createEl("span", { text: message });
-  }
-};
-
-// src/ui/EntitySelector.ts
-var EntitySelector = class {
-  constructor(app, entityManager, singleCardRenderer) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.singleCardRenderer = singleCardRenderer;
-  }
-  /**
-   * 渲染实体选择器
-   */
-  async render(container, config) {
-    console.log("[EntitySelector] \u5F00\u59CB\u6E32\u67D3, config:", config);
-    container.empty();
-    container.addClass("pm-entity-selector");
-    const type = config == null ? void 0 : config.type;
-    if (!type || type !== "version" && type !== "project") {
-      container.createEl("div", {
-        text: '\u26A0\uFE0F \u914D\u7F6E\u9519\u8BEF: type \u5FC5\u987B\u662F "version" \u6216 "project"\n\n\u793A\u4F8B:\n```pm-selector\ntype: version\n```',
-        cls: "pm-error",
-        attr: { style: "white-space: pre-wrap;" }
-      });
-      return;
-    }
-    const selectorContainer = container.createDiv({ cls: "pm-entity-selector__container" });
-    let entities = [];
-    try {
-      entities = await this.loadEntities(type);
-      console.log("[EntitySelector] \u52A0\u8F7D\u5B9E\u4F53\u5217\u8868:", entities.length, "\u4E2A");
-    } catch (error) {
-      console.error("[EntitySelector] \u52A0\u8F7D\u5B9E\u4F53\u5217\u8868\u5931\u8D25:", error);
-      container.createEl("div", {
-        text: `\u26A0\uFE0F \u52A0\u8F7D\u5931\u8D25: ${error.message}`,
-        cls: "pm-error"
-      });
-      return;
-    }
-    if (entities.length === 0) {
-      this.renderEmptyState(selectorContainer, type);
-      return;
-    }
-    const selectEl = selectorContainer.createEl("select", {
-      cls: "pm-entity-selector__dropdown"
-    });
-    selectEl.createEl("option", {
-      text: `\u8BF7\u9009\u62E9${type === "version" ? "\u7248\u672C" : "\u9879\u76EE"}...`,
-      value: ""
-    });
-    for (const entity of entities) {
-      selectEl.createEl("option", {
-        text: entity.name,
-        value: entity.id
-      });
-    }
-    const cardContainer = container.createDiv({ cls: "pm-entity-selector__card" });
-    const defaultId = config == null ? void 0 : config.defaultId;
-    if (defaultId) {
-      const defaultEntity = entities.find((e) => e.id === defaultId);
-      if (defaultEntity) {
-        selectEl.value = defaultId;
-        await this.renderCascadeCard(cardContainer, defaultId);
-      }
-    }
-    selectEl.addEventListener("change", async () => {
-      const selectedId = selectEl.value;
-      if (selectedId) {
-        await this.renderCascadeCard(cardContainer, selectedId);
-      } else {
-        cardContainer.empty();
-      }
-    });
-  }
-  /**
-   * 加载实体列表
-   */
-  async loadEntities(type) {
-    if (type === "version") {
-      const versions = await this.entityManager.listVersions();
-      return versions.map((v) => ({ id: v.id, name: v.name }));
-    } else {
-      const projects = await this.entityManager.listProjects();
-      return projects.map((p) => ({ id: p.id, name: p.name }));
-    }
-  }
-  /**
-   * 渲染级联卡片
-   */
-  async renderCascadeCard(container, id) {
-    container.empty();
-    container.addClass("pm-entity-selector__card-container");
-    const loadingEl = container.createDiv({ cls: "pm-entity-selector__loading" });
-    loadingEl.setText("\u52A0\u8F7D\u4E2D...");
-    try {
-      await this.singleCardRenderer.render(container, {
-        id,
-        expanded: true
-      });
-    } catch (error) {
-      container.empty();
-      const errorEl = container.createDiv({ cls: "pm-error" });
-      errorEl.createEl("span", { text: "\u26A0\uFE0F \u52A0\u8F7D\u5931\u8D25: " });
-      errorEl.createEl("span", { text: error.message });
-    }
-  }
-  /**
-   * 渲染空状态
-   */
-  renderEmptyState(container, type) {
-    const emptyEl = container.createDiv({ cls: "pm-entity-selector__empty" });
-    const typeName = type === "version" ? "\u7248\u672C" : "\u9879\u76EE";
-    emptyEl.createEl("span", { text: `\u{1F4ED} \u6682\u65E0${typeName}\u6570\u636E` });
-    emptyEl.createEl("p", {
-      text: `\u70B9\u51FB\u4E0A\u65B9"\u521B\u5EFA${typeName}"\u6309\u94AE\u6DFB\u52A0\u9996\u4E2A${typeName}`,
-      cls: "pm-entity-selector__hint"
-    });
-  }
-};
-
-// src/ui/GridRenderer.ts
-var import_obsidian14 = require("obsidian");
-var GridRenderer = class {
-  constructor(app, entityManager, cardRegistry) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.cardRegistry = cardRegistry;
-  }
-  /**
-   * 渲染网格
-   */
-  async render(container, config) {
-    container.empty();
-    container.addClass("pm-grid-block");
-    const entities = await this.loadEntities(config);
-    const filtered = this.applyFilters(entities, config.filter);
-    const sorted = this.applySort(filtered, config.sortBy, config.sortOrder);
-    const limited = config.limit ? sorted.slice(0, config.limit) : sorted;
-    this.renderToolbar(container, config, limited.length, sorted.length);
-    if (limited.length === 0) {
-      this.renderEmpty(container);
-    } else {
-      await this.renderGrid(container, limited, config);
-    }
-  }
-  /**
-   * 加载实体数据
-   */
-  async loadEntities(config) {
-    var _a, _b, _c, _d;
-    const type = config.type || "feature";
-    switch (type) {
-      case "version":
-        return this.entityManager.listVersions();
-      case "project":
-        return this.entityManager.listProjects({
-          versionId: (_a = config.filter) == null ? void 0 : _a.versionId
-        });
-      case "feature":
-      default:
-        return this.entityManager.listFeatures({
-          versionId: (_b = config.filter) == null ? void 0 : _b.versionId,
-          projectId: (_c = config.filter) == null ? void 0 : _c.projectId,
-          status: (_d = config.filter) == null ? void 0 : _d.status
-        });
-    }
-  }
-  /**
-   * 应用过滤器
-   */
-  applyFilters(entities, filter) {
-    if (!filter)
-      return entities;
-    return entities.filter((entity) => {
-      var _a;
-      if (filter.status && "status" in entity && entity.status !== filter.status) {
-        return false;
-      }
-      if (filter.priority && "priority" in entity && entity.priority !== filter.priority) {
-        return false;
-      }
-      if (filter.owner && entity.owner !== filter.owner) {
-        return false;
-      }
-      if (filter.tag && "tags" in entity && !((_a = entity.tags) == null ? void 0 : _a.includes(filter.tag))) {
-        return false;
-      }
-      return true;
-    });
-  }
-  /**
-   * 应用排序
-   */
-  applySort(entities, sortBy, sortOrder = "asc") {
-    if (!sortBy)
-      return entities;
-    const sorted = [...entities].sort((a, b) => {
-      var _a, _b;
-      let comparison = 0;
-      switch (sortBy) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "dueDate":
-          if ("dueDate" in a && "dueDate" in b) {
-            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-            comparison = dateA - dateB;
-          }
-          break;
-        case "priority":
-          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-          if ("priority" in a && "priority" in b) {
-            const orderA = (_a = priorityOrder[a.priority]) != null ? _a : 99;
-            const orderB = (_b = priorityOrder[b.priority]) != null ? _b : 99;
-            comparison = orderA - orderB;
-          }
-          break;
-        case "progress":
-          if ("progress" in a && "progress" in b) {
-            comparison = (a.progress || 0) - (b.progress || 0);
-          }
-          break;
-        case "created":
-          comparison = a.id.localeCompare(b.id);
-          break;
-        default:
-          comparison = 0;
-      }
-      return sortOrder === "desc" ? -comparison : comparison;
-    });
-    return sorted;
-  }
-  /**
-   * 渲染工具栏
-   */
-  renderToolbar(container, config, displayCount, totalCount) {
-    const toolbar = container.createDiv({ cls: "pm-grid-block__toolbar" });
-    const titleEl = toolbar.createDiv({ cls: "pm-grid-block__title" });
-    const typeLabel = this.getTypeLabel(config.type);
-    titleEl.createEl("span", { text: `${typeLabel}\u7F51\u683C` });
-    if (displayCount !== totalCount) {
-      titleEl.createEl("span", {
-        text: `(${displayCount}/${totalCount})`,
-        cls: "pm-badge pm-badge--version"
-      });
-    } else {
-      titleEl.createEl("span", {
-        text: `(${displayCount})`,
-        cls: "pm-badge pm-badge--version"
-      });
-    }
-    if (displayCount > 0) {
-      const actionsEl = toolbar.createDiv({ cls: "pm-grid-block__actions" });
-      const refreshBtn = actionsEl.createEl("button", {
-        text: "\u{1F504}",
-        cls: "pm-btn pm-btn--sm pm-btn--ghost",
-        title: "\u5237\u65B0"
-      });
-      refreshBtn.addEventListener("click", () => {
-        container.empty();
-        this.render(container, config);
-      });
-    }
-  }
-  /**
-   * 渲染网格
-   */
-  async renderGrid(container, entities, config) {
-    const grid = container.createDiv({ cls: "pm-card-grid" });
-    const cols = config.cols || 3;
-    if (cols >= 2 && cols <= 4) {
-      grid.classList.add(`pm-card-grid--${cols}col`);
-    }
-    const type = config.type || "feature";
-    const cardRenderer = this.cardRegistry.get(type);
-    if (!cardRenderer) {
-      grid.createEl("div", {
-        cls: "pm-error",
-        text: `\u672A\u627E\u5230 ${type} \u7C7B\u578B\u7684\u5361\u7247\u6E32\u67D3\u5668`
-      });
-      return;
-    }
-    for (const entity of entities) {
-      const onClick = () => this.openEntityFile(entity, type);
-      const card = cardRenderer.render(entity, onClick);
-      grid.appendChild(card);
-    }
-  }
-  /**
-   * 渲染空状态
-   */
-  renderEmpty(container) {
-    const empty = container.createDiv({ cls: "pm-empty" });
-    empty.createEl("div", {
-      cls: "pm-empty__icon",
-      text: "\u{1F4ED}"
-    });
-    empty.createEl("div", {
-      cls: "pm-empty__title",
-      text: "\u6682\u65E0\u6570\u636E"
-    });
-    empty.createEl("div", {
-      cls: "pm-empty__description",
-      text: "\u5F53\u524D\u8FC7\u6EE4\u6761\u4EF6\u4E0B\u6CA1\u6709\u627E\u5230\u4EFB\u4F55\u5B9E\u4F53"
-    });
-  }
-  /**
-   * 打开实体文件
-   */
-  async openEntityFile(entity, type) {
-    const path = await this.entityManager.getEntityPath(
-      type,
-      entity.id
-    );
-    if (!path)
-      return;
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof import_obsidian14.TFile) {
-      await this.app.workspace.getLeaf().openFile(file);
-    }
-  }
-  /**
-   * 获取类型标签
-   */
-  getTypeLabel(type) {
-    const labels = {
-      version: "\u7248\u672C",
-      project: "\u9879\u76EE",
-      feature: "\u7279\u6027"
-    };
-    return labels[type || "feature"] || "\u5B9E\u4F53";
-  }
-};
-
 // src/main.ts
 init_constants();
 
@@ -4221,7 +3138,6 @@ var DataService = class {
   async loadEntities(config) {
     var _a, _b, _c, _d;
     const type = config.type || "feature";
-    console.log("[DataService] loadEntities:", type, "filter:", config.filter);
     if (config.id) {
       switch (type) {
         case "version": {
@@ -4258,7 +3174,6 @@ var DataService = class {
         });
         break;
     }
-    console.log("[DataService] loaded", entities.length, type + "s");
     return entities;
   }
   /**
@@ -4905,7 +3820,6 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
       });
     }
     const boardContainer = container.createDiv("pm-kanban-container");
-    console.log("[KanbanRenderer] \u6E32\u67D3", sorted.length, "\u4E2A\u5B9E\u4F53");
     if (this.config.groupBy === "status" || !this.config.groupBy) {
       this.renderStatusBoard(boardContainer, sorted);
     } else if (this.config.groupBy === "version") {
@@ -5130,7 +4044,7 @@ _KanbanRenderer.STATUS_COLUMNS = [
 var KanbanRenderer = _KanbanRenderer;
 
 // src/view-engine/renderers/GridRenderer.ts
-var GridRenderer2 = class extends BaseRenderer {
+var GridRenderer = class extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
     this.entities = [];
@@ -5160,16 +4074,13 @@ var GridRenderer2 = class extends BaseRenderer {
     gridContainer.style.display = "grid";
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridContainer.style.gap = "16px";
-    console.log("[GridRenderer] \u6E32\u67D3", limited.length, "\u4E2A\u5B9E\u4F53");
     if (limited.length === 0) {
       this.createEmptyState(gridContainer, "\u6CA1\u6709\u5339\u914D\u7684\u5B9E\u4F53");
     } else {
       for (const entity of limited) {
-        console.log("[GridRenderer] \u6E32\u67D3\u5361\u7247:", entity.name, entity.id);
         await this.renderGridCard(gridContainer, entity);
       }
     }
-    console.log("[GridRenderer] \u5BB9\u5668\u5B50\u5143\u7D20\u6570\u91CF:", gridContainer.children.length);
   }
   /**
    * 渲染网格卡片
@@ -5859,32 +4770,41 @@ var ViewEngine = class {
     this.cardRegistry = cardRegistry;
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
-    this.renderers = /* @__PURE__ */ new Map([
-      ["kanban", new KanbanRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["grid", new GridRenderer2(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["cascade", new CascadeRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["timeline", new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["calendar", new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["selector", new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ["cascade-selector", new CascadeSelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)]
-    ]);
+  }
+  /**
+   * 创建新的渲染器实例（避免状态污染）
+   */
+  createRenderer(mode) {
+    switch (mode) {
+      case "kanban":
+        return new KanbanRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "grid":
+        return new GridRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "cascade":
+        return new CascadeRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "timeline":
+        return new TimelineRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "calendar":
+        return new CalendarRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "selector":
+        return new SelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "cascade-selector":
+        return new CascadeSelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case "card":
+        return new CardRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      default:
+        return null;
+    }
   }
   /**
    * 渲染视图
    */
   async render(container, config, context) {
-    console.log("[ViewEngine] \u5F00\u59CB\u6E32\u67D3:", config.mode, config.type, config.id);
     container.empty();
     const wrapper = container.createDiv("pm-view");
     const mode = config.mode || "grid";
     wrapper.dataset.viewMode = mode;
-    const debugId = Math.random().toString(36).substring(2, 8);
-    wrapper.dataset.renderId = debugId;
-    wrapper.style.border = "2px solid red";
-    wrapper.style.padding = "10px";
-    wrapper.style.margin = "5px 0";
-    console.log("[ViewEngine] \u521B\u5EFA\u89C6\u56FE wrapper, mode:", mode, "renderId:", debugId);
-    const renderer = this.renderers.get(mode);
+    const renderer = this.createRenderer(mode);
     if (!renderer) {
       console.error("[ViewEngine] \u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F:", mode);
       this.renderError(wrapper, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
@@ -5895,9 +4815,7 @@ var ViewEngine = class {
       this.render(container, config, context);
     });
     try {
-      console.log("[ViewEngine] \u8C03\u7528\u6E32\u67D3\u5668:", mode, "wrapper\u5B50\u5143\u7D20:", wrapper.children.length);
       await renderer.render(wrapper);
-      console.log("[ViewEngine] \u6E32\u67D3\u5668\u5B8C\u6210:", mode, "wrapper\u5B50\u5143\u7D20:", wrapper.children.length);
     } catch (error) {
       console.error("[ViewEngine] \u6E32\u67D3\u5931\u8D25:", error);
       this.renderError(wrapper, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
@@ -6204,19 +5122,12 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     };
   }
   /**
-   * 获取或创建 ViewEngine
-   */
-  getViewEngine() {
-    if (!this.viewEngine) {
-      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-    }
-    return this.viewEngine;
-  }
-  /**
    * 渲染级联选择器视图
    */
   async render(container) {
     var _a, _b, _c;
+    this.viewEngine = void 0;
+    this.currentViewContainer = void 0;
     container.empty();
     container.addClass("pm-cascade-selector-view");
     const config = this.config;
@@ -6224,43 +5135,36 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
     this.currentState.entityType = ((_a = selectorConfig.entityType) == null ? void 0 : _a.defaultValue) || "feature";
     this.currentState.entityId = ((_b = selectorConfig.entity) == null ? void 0 : _b.defaultValue) || "";
     this.currentState.viewMode = ((_c = selectorConfig.viewMode) == null ? void 0 : _c.defaultValue) || "kanban";
-    const selectorContainer = container.createDiv("pm-cascade-selector-container");
-    const entityTypeSelect = await this.renderEntityTypeSelector(selectorContainer, selectorConfig.entityType);
-    const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
-    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
+    this.selectorContainer = container.createDiv("pm-cascade-selector-container");
+    this.entityTypeSelect = await this.renderEntityTypeSelector(this.selectorContainer, selectorConfig.entityType);
+    this.entitySelect = await this.renderEntitySelector(this.selectorContainer, selectorConfig.entity);
+    this.viewModeSelect = await this.renderViewModeSelector(this.selectorContainer, selectorConfig.viewMode);
     this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
-    this.currentViewContainer.style.backgroundColor = "rgba(0, 255, 0, 0.1)";
-    this.currentViewContainer.style.minHeight = "300px";
-    this.currentViewContainer.dataset.containerId = Math.random().toString(36).substring(2, 8);
-    console.log("[CascadeSelectorRenderer] \u521B\u5EFA\u89C6\u56FE\u5BB9\u5668, id:", this.currentViewContainer.dataset.containerId);
-    await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
+    await this.refreshEntityOptions(this.entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
-      const exists = Array.from(entitySelect.options).some((o) => o.value === this.currentState.entityId);
+      const exists = Array.from(this.entitySelect.options).some((o) => o.value === this.currentState.entityId);
       if (exists) {
-        entitySelect.value = this.currentState.entityId;
+        this.entitySelect.value = this.currentState.entityId;
       } else {
         this.currentState.entityId = "";
-        entitySelect.value = "";
+        this.entitySelect.value = "";
       }
     }
-    console.log("[CascadeSelectorRenderer] \u521D\u59CB\u72B6\u6001:", JSON.stringify(this.currentState));
     await this.renderCurrentView();
-    entityTypeSelect.addEventListener("change", () => {
-      this.currentState.entityType = entityTypeSelect.value;
+    this.entityTypeSelect.addEventListener("change", () => {
+      this.currentState.entityType = this.entityTypeSelect.value;
       this.currentState.entityId = "";
-      entitySelect.value = "";
-      this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
+      this.entitySelect.value = "";
+      this.refreshEntityOptions(this.entitySelect, this.currentState.entityType).then(() => {
         this.renderCurrentView();
       });
     });
-    entitySelect.addEventListener("change", () => {
-      this.currentState.entityId = entitySelect.value;
-      console.log("[CascadeSelectorRenderer] \u5B9E\u4F53\u53D8\u5316:", this.currentState.entityType, this.currentState.entityId);
+    this.entitySelect.addEventListener("change", () => {
+      this.currentState.entityId = this.entitySelect.value;
       this.renderCurrentView();
     });
-    viewModeSelect.addEventListener("change", () => {
-      this.currentState.viewMode = viewModeSelect.value;
-      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u6A21\u5F0F\u53D8\u5316:", this.currentState.viewMode);
+    this.viewModeSelect.addEventListener("change", () => {
+      this.currentState.viewMode = this.viewModeSelect.value;
       this.renderCurrentView();
     });
   }
@@ -6383,96 +5287,119 @@ var CascadeSelectorRenderer = class extends BaseRenderer {
       }
     }
   }
+  // viewEngine 已在类顶部声明
+  /**
+   * 获取或创建 ViewEngine
+   */
+  getViewEngine() {
+    if (!this.viewEngine) {
+      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    }
+    return this.viewEngine;
+  }
   /**
    * 渲染当前视图
    */
   async renderCurrentView() {
-    var _a, _b, _c, _d;
     if (!this.currentViewContainer) {
-      console.error("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u4E0D\u5B58\u5728");
       return;
     }
     this.currentViewContainer.empty();
     const loadingEl = this.currentViewContainer.createDiv("pm-cascade-selector-loading");
     loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
     try {
-      console.log("[CascadeSelectorRenderer] \u5F00\u59CB\u6E32\u67D3:", this.currentState);
-      let viewConfig;
-      if (this.currentState.viewMode === "cascade") {
-        viewConfig = {
-          mode: "cascade",
-          type: this.currentState.entityId ? this.currentState.entityType : "version",
-          id: this.currentState.entityId,
-          expanded: true,
-          _hideToolbar: true
-        };
-      } else if (this.currentState.entityType === "feature" && this.currentState.entityId) {
-        viewConfig = {
-          mode: this.currentState.viewMode,
-          type: "feature",
-          id: this.currentState.entityId,
-          _hideToolbar: true
-        };
-        if (this.currentState.viewMode === "kanban") {
-          viewConfig.groupBy = "status";
-        } else if (this.currentState.viewMode === "grid") {
-          viewConfig.cols = 3;
-        }
-      } else {
-        viewConfig = {
-          mode: this.currentState.viewMode,
-          type: "feature",
-          _hideToolbar: true
-        };
-        if (this.currentState.entityType === "version" && this.currentState.entityId) {
-          viewConfig.filter = { versionId: this.currentState.entityId };
-        } else if (this.currentState.entityType === "project" && this.currentState.entityId) {
-          viewConfig.filter = { projectId: this.currentState.entityId };
-        }
-        if (this.currentState.viewMode === "kanban") {
-          viewConfig.groupBy = "status";
-        } else if (this.currentState.viewMode === "grid") {
-          viewConfig.cols = 3;
-        }
-      }
-      console.log("[CascadeSelectorRenderer] viewConfig:", JSON.stringify(viewConfig));
-      const containerId = this.currentViewContainer.dataset.containerId;
-      console.log("[CascadeSelectorRenderer] \u51C6\u5907\u6E05\u7A7A\u5BB9\u5668, id:", containerId, "\u5F53\u524D\u5B50\u5143\u7D20:", this.currentViewContainer.children.length);
+      const viewConfig = this.buildViewConfig();
       this.currentViewContainer.empty();
-      console.log("[CascadeSelectorRenderer] \u89C6\u56FE\u5BB9\u5668\u5DF2\u6E05\u7A7A\uFF0Cid:", containerId);
-      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-      console.log("[CascadeSelectorRenderer] \u8C03\u7528 viewEngine.render");
-      await viewEngine.render(this.currentViewContainer, viewConfig, {
+      const viewEngine = this.getViewEngine();
+      const context = {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer
-      });
-      const finalContainerId = (_a = this.currentViewContainer) == null ? void 0 : _a.dataset.containerId;
-      const finalChildCount = (_b = this.currentViewContainer) == null ? void 0 : _b.children.length;
-      const firstChildClass = (_d = (_c = this.currentViewContainer) == null ? void 0 : _c.children[0]) == null ? void 0 : _d.className;
-      console.log("[CascadeSelectorRenderer] \u6E32\u67D3\u5B8C\u6210\uFF0C\u5BB9\u5668id:", finalContainerId, "\u5B50\u5143\u7D20:", finalChildCount, "\u7B2C\u4E00\u4E2A\u5B50\u5143\u7D20class:", firstChildClass);
+      };
+      await viewEngine.render(this.currentViewContainer, viewConfig, context);
     } catch (error) {
       console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
-      if (this.currentViewContainer) {
-        this.currentViewContainer.empty();
-        const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
-        errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
-      }
+      this.currentViewContainer.empty();
+      const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
+      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
     }
+  }
+  /**
+   * 构建视图配置
+   * 
+   * 逻辑：
+   * - 选择了具体实体 -> 显示该实体本身（单卡片）
+   * - 未选择实体（全部）-> 显示该类型下的所有实体列表
+   */
+  buildViewConfig() {
+    const { entityType, entityId, viewMode } = this.currentState;
+    if (viewMode === "cascade") {
+      return {
+        mode: "cascade",
+        type: entityId ? entityType : "version",
+        id: entityId,
+        expanded: true,
+        _hideToolbar: true
+      };
+    }
+    if (entityId) {
+      const config2 = {
+        mode: viewMode,
+        type: entityType,
+        id: entityId,
+        _hideToolbar: true
+      };
+      if (viewMode === "grid")
+        config2.cols = 1;
+      return config2;
+    }
+    const config = {
+      mode: viewMode,
+      type: entityType,
+      _hideToolbar: true
+    };
+    if (viewMode === "kanban")
+      config.groupBy = "status";
+    if (viewMode === "grid")
+      config.cols = 3;
+    return config;
+  }
+};
+
+// src/view-engine/renderers/CardRenderer.ts
+var CardRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+    super(app, entityManager, cardRegistry, dataService, actionService);
+  }
+  /**
+   * 渲染单卡片视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-card-view");
+    const entities = await this.dataService.loadEntities(this.config);
+    if (entities.length === 0) {
+      this.createEmptyState(container, "\u672A\u627E\u5230\u5B9E\u4F53");
+      return;
+    }
+    const entity = entities[0];
+    const cardWrapper = container.createDiv("pm-card-single-wrapper");
+    cardWrapper.style.cssText = `
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    `;
+    await this.renderEntityCard(cardWrapper, entity, { showActions: true });
   }
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
   async onload() {
     this.entityManager = new EntityManager(this.app);
     this.cardRegistry = CardRegistry.createDefault();
-    this.kanbanBoard = new KanbanBoard(this.app, this.entityManager, this.cardRegistry);
-    this.singleCardRenderer = new SingleCardRenderer(this.app, this.entityManager, this.cardRegistry);
-    this.entitySelector = new EntitySelector(this.app, this.entityManager, this.singleCardRenderer);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
-    this.gridRenderer = new GridRenderer(this.app, this.entityManager, this.cardRegistry);
     this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
     this.registerMarkdownCodeBlockProcessor("pm-view", this.processViewBlock.bind(this));
     this.registerMarkdownCodeBlockProcessor("pm-kanban", this.processKanbanBlock.bind(this));
@@ -6518,7 +5445,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian16.TFile) {
+        if (file instanceof import_obsidian13.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -6526,7 +5453,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian16.TFile) {
+        if (file instanceof import_obsidian13.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -6565,11 +5492,32 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   }
   /**
    * 处理 pm-kanban 代码块
+   * 统一使用 ViewEngine 渲染
    */
   async processKanbanBlock(source, el, ctx) {
     try {
-      const config = (0, import_obsidian16.parseYaml)(source) || {};
-      await this.kanbanBoard.render(el, config);
+      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const filter = {};
+      if (oldConfig.version)
+        filter.versionId = oldConfig.version;
+      if (oldConfig.project)
+        filter.projectId = oldConfig.project;
+      if (oldConfig.owner)
+        filter.owner = oldConfig.owner;
+      if (oldConfig.tag)
+        filter.tag = oldConfig.tag;
+      const viewConfig = {
+        mode: "kanban",
+        type: "feature",
+        groupBy: oldConfig.view === "by-version" ? "version" : oldConfig.view === "by-project" ? "project" : "status",
+        filter: Object.keys(filter).length > 0 ? filter : void 0,
+        cardStyle: oldConfig.cardStyle
+      };
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
+      };
+      await this.viewEngine.render(el, viewConfig, viewContext);
     } catch (error) {
       el.createEl("div", {
         text: `\u770B\u677F\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
@@ -6579,11 +5527,32 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   }
   /**
    * 处理 pm-card 代码块
+   * 统一使用 ViewEngine 渲染
    */
   async processCardBlock(source, el, ctx) {
     try {
-      const config = (0, import_obsidian16.parseYaml)(source) || {};
-      await this.singleCardRenderer.render(el, config);
+      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const result = await this.entityManager.findById(oldConfig.id);
+      if (!result) {
+        el.createEl("div", {
+          text: `\u672A\u627E\u5230 ID \u4E3A "${oldConfig.id}" \u7684\u5B9E\u4F53`,
+          cls: "pm-error"
+        });
+        return;
+      }
+      const viewConfig = {
+        mode: oldConfig.expanded && result.type !== "feature" ? "cascade" : "card",
+        type: result.type,
+        id: oldConfig.id,
+        expanded: oldConfig.expanded,
+        maxProjects: oldConfig.maxProjects,
+        maxFeaturesPerProject: oldConfig.maxFeaturesPerProject
+      };
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
+      };
+      await this.viewEngine.render(el, viewConfig, viewContext);
     } catch (error) {
       el.createEl("div", {
         text: `\u5361\u7247\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
@@ -6593,11 +5562,25 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   }
   /**
    * 处理 pm-grid 代码块
+   * 统一使用 ViewEngine 渲染
    */
   async processGridBlock(source, el, ctx) {
     try {
-      const config = (0, import_obsidian16.parseYaml)(source) || {};
-      await this.gridRenderer.render(el, config);
+      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const viewConfig = {
+        mode: "grid",
+        type: oldConfig.type || "feature",
+        cols: oldConfig.cols || 3,
+        filter: oldConfig.filter,
+        sortBy: oldConfig.sortBy,
+        sortOrder: oldConfig.sortOrder,
+        limit: oldConfig.limit
+      };
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
+      };
+      await this.viewEngine.render(el, viewConfig, viewContext);
     } catch (error) {
       el.createEl("div", {
         text: `\u7F51\u683C\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
@@ -6607,15 +5590,35 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   }
   /**
    * 处理 pm-selector 代码块
+   * 统一使用 ViewEngine 渲染
    */
   async processSelectorBlock(source, el, ctx) {
-    console.log("[processSelectorBlock] \u5904\u7406 pm-selector, source:", source);
     try {
-      const config = (0, import_obsidian16.parseYaml)(source) || {};
-      console.log("[processSelectorBlock] \u89E3\u6790\u914D\u7F6E:", config);
-      await this.entitySelector.render(el, config);
+      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const viewConfig = {
+        mode: "cascade-selector",
+        cascadeSelector: {
+          entityType: {
+            label: "\u5B9E\u4F53\u7C7B\u578B",
+            defaultValue: oldConfig.type
+          },
+          entity: {
+            label: `\u9009\u62E9${oldConfig.type === "version" ? "\u7248\u672C" : "\u9879\u76EE"}`,
+            defaultValue: oldConfig.defaultId || "",
+            allowEmpty: true
+          },
+          viewMode: {
+            label: "\u89C6\u56FE\u6A21\u5F0F",
+            defaultValue: "cascade"
+          }
+        }
+      };
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
+      };
+      await this.viewEngine.render(el, viewConfig, viewContext);
     } catch (error) {
-      console.error("[processSelectorBlock] \u9519\u8BEF:", error);
       el.createEl("div", {
         text: `\u9009\u62E9\u5668\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
         cls: "pm-error"
@@ -6626,30 +5629,25 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
    * 处理 pm-view 代码块（新的统一视图）
    */
   async processViewBlock(source, el, ctx) {
+    if (el._pmViewRendered) {
+      return;
+    }
+    el._pmViewRendered = true;
     try {
       const config = this.viewEngine.parseConfig(source);
-      const renderView = async () => {
-        const viewContext = {
-          sourcePath: ctx.sourcePath,
-          el
-        };
-        try {
-          await this.viewEngine.render(el, config, viewContext);
-        } catch (error) {
-          console.error("[processViewBlock] \u6E32\u67D3\u9519\u8BEF:", error);
-          el.empty();
-          el.createEl("div", {
-            text: `\u6E32\u67D3\u5931\u8D25: ${error.message}`,
-            cls: "pm-error"
-          });
-        }
+      const viewContext = {
+        sourcePath: ctx.sourcePath,
+        el
       };
-      if (typeof window !== "undefined") {
-        window.requestAnimationFrame(() => {
-          setTimeout(renderView, 100);
+      try {
+        await this.viewEngine.render(el, config, viewContext);
+      } catch (error) {
+        console.error("[processViewBlock] \u6E32\u67D3\u9519\u8BEF:", error);
+        el.empty();
+        el.createEl("div", {
+          text: `\u6E32\u67D3\u5931\u8D25: ${error.message}`,
+          cls: "pm-error"
         });
-      } else {
-        await renderView();
       }
     } catch (error) {
       console.error("[processViewBlock] \u9519\u8BEF:", error);
@@ -6691,7 +5689,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian16.TFile))
+    if (!(file instanceof import_obsidian13.TFile))
       return;
     const containerEl = ctx.containerEl;
     if (!containerEl)

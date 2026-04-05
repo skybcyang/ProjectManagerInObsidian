@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
-import type { ViewConfig, EntityType, CascadeSelectorConfig } from '../types';
+import type { ViewConfig, ViewContext, EntityType, CascadeSelectorConfig } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { ViewEngine } from '../ViewEngine';
 
@@ -31,20 +31,19 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     super(app, entityManager, cardRegistry, dataService, actionService);
   }
 
-  /**
-   * 获取或创建 ViewEngine
-   */
-  private getViewEngine(): ViewEngine {
-    if (!this.viewEngine) {
-      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-    }
-    return this.viewEngine;
-  }
+  private selectorContainer?: HTMLElement;
+  private entityTypeSelect?: HTMLSelectElement;
+  private entitySelect?: HTMLSelectElement;
+  private viewModeSelect?: HTMLSelectElement;
 
   /**
    * 渲染级联选择器视图
    */
   async render(container: HTMLElement): Promise<void> {
+    // 每次重新渲染时重置状态
+    this.viewEngine = undefined;
+    this.currentViewContainer = undefined;
+    
     container.empty();
     container.addClass('pm-cascade-selector-view');
 
@@ -57,57 +56,50 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     this.currentState.viewMode = selectorConfig.viewMode?.defaultValue || 'kanban';
 
     // 创建选择器容器
-    const selectorContainer = container.createDiv('pm-cascade-selector-container');
+    this.selectorContainer = container.createDiv('pm-cascade-selector-container');
 
     // 渲染三级选择器（顺序：实体类型 → 具体实体 → 视图模式）
-    const entityTypeSelect = await this.renderEntityTypeSelector(selectorContainer, selectorConfig.entityType);
-    const entitySelect = await this.renderEntitySelector(selectorContainer, selectorConfig.entity);
-    const viewModeSelect = await this.renderViewModeSelector(selectorContainer, selectorConfig.viewMode);
+    this.entityTypeSelect = await this.renderEntityTypeSelector(this.selectorContainer, selectorConfig.entityType);
+    this.entitySelect = await this.renderEntitySelector(this.selectorContainer, selectorConfig.entity);
+    this.viewModeSelect = await this.renderViewModeSelector(this.selectorContainer, selectorConfig.viewMode);
 
     // 创建视图容器
     this.currentViewContainer = container.createDiv('pm-cascade-selector-view-container');
-    this.currentViewContainer.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
-    this.currentViewContainer.style.minHeight = '300px';
-    this.currentViewContainer.dataset.containerId = Math.random().toString(36).substring(2, 8);
-    console.log('[CascadeSelectorRenderer] 创建视图容器, id:', this.currentViewContainer.dataset.containerId);
 
     // 初始渲染：先加载实体列表
-    await this.refreshEntityOptions(entitySelect, this.currentState.entityType);
+    await this.refreshEntityOptions(this.entitySelect, this.currentState.entityType);
     if (this.currentState.entityId) {
       // 检查默认值是否在选项中
-      const exists = Array.from(entitySelect.options).some(o => o.value === this.currentState.entityId);
+      const exists = Array.from(this.entitySelect!.options).some((o: HTMLOptionElement) => o.value === this.currentState.entityId);
       if (exists) {
-        entitySelect.value = this.currentState.entityId;
+        this.entitySelect!.value = this.currentState.entityId;
       } else {
         // 默认值不在当前类型的列表中，清空选择
         this.currentState.entityId = '';
-        entitySelect.value = '';
+        this.entitySelect!.value = '';
       }
     }
-    console.log('[CascadeSelectorRenderer] 初始状态:', JSON.stringify(this.currentState));
     await this.renderCurrentView();
 
     // 监听实体类型变化
-    entityTypeSelect.addEventListener('change', () => {
-      this.currentState.entityType = entityTypeSelect.value as EntityType;
+    this.entityTypeSelect.addEventListener('change', () => {
+      this.currentState.entityType = this.entityTypeSelect!.value as EntityType;
       this.currentState.entityId = ''; // 清空实体选择
-      entitySelect.value = ''; // 重置下拉框
-      this.refreshEntityOptions(entitySelect, this.currentState.entityType).then(() => {
+      this.entitySelect!.value = ''; // 重置下拉框
+      this.refreshEntityOptions(this.entitySelect!, this.currentState.entityType).then(() => {
         this.renderCurrentView();
       });
     });
 
     // 监听实体变化
-    entitySelect.addEventListener('change', () => {
-      this.currentState.entityId = entitySelect.value;
-      console.log('[CascadeSelectorRenderer] 实体变化:', this.currentState.entityType, this.currentState.entityId);
+    this.entitySelect.addEventListener('change', () => {
+      this.currentState.entityId = this.entitySelect!.value;
       this.renderCurrentView();
     });
 
     // 监听视图模式变化
-    viewModeSelect.addEventListener('change', () => {
-      this.currentState.viewMode = viewModeSelect.value;
-      console.log('[CascadeSelectorRenderer] 视图模式变化:', this.currentState.viewMode);
+    this.viewModeSelect.addEventListener('change', () => {
+      this.currentState.viewMode = this.viewModeSelect!.value;
       this.renderCurrentView();
     });
   }
@@ -273,103 +265,99 @@ export class CascadeSelectorRenderer extends BaseRenderer {
     }
   }
 
+  // viewEngine 已在类顶部声明
+
+  /**
+   * 获取或创建 ViewEngine
+   */
+  private getViewEngine(): ViewEngine {
+    if (!this.viewEngine) {
+      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    }
+    return this.viewEngine;
+  }
+
   /**
    * 渲染当前视图
    */
   private async renderCurrentView(): Promise<void> {
     if (!this.currentViewContainer) {
-      console.error('[CascadeSelectorRenderer] 视图容器不存在');
       return;
     }
 
     // 显示加载状态
     this.currentViewContainer.empty();
+    
     const loadingEl = this.currentViewContainer.createDiv('pm-cascade-selector-loading');
     loadingEl.textContent = '加载中...';
 
     try {
-      console.log('[CascadeSelectorRenderer] 开始渲染:', this.currentState);
-
       // 构建视图配置
-      let viewConfig: ViewConfig & { _hideToolbar?: boolean };
-
-      // 根据实体类型和视图模式调整配置
-      if (this.currentState.viewMode === 'cascade') {
-        // 级联视图显示完整层级（版本→项目→特性）
-        // 如果选择了具体实体，从该实体开始展开；否则显示全部
-        viewConfig = {
-          mode: 'cascade',
-          type: this.currentState.entityId ? this.currentState.entityType : 'version',
-          id: this.currentState.entityId,
-          expanded: true,
-          _hideToolbar: true,
-        };
-      } else if (this.currentState.entityType === 'feature' && this.currentState.entityId) {
-        // 选择了具体特性 - 显示该特性详情（级联展示）
-        viewConfig = {
-          mode: this.currentState.viewMode as any,
-          type: 'feature',
-          id: this.currentState.entityId,
-          _hideToolbar: true,
-        };
-
-        // 看板默认按状态分组
-        if (this.currentState.viewMode === 'kanban') {
-          viewConfig.groupBy = 'status';
-        } else if (this.currentState.viewMode === 'grid') {
-          viewConfig.cols = 3;
-        }
-      } else {
-        // 看板/网格/时间线/日历视图显示该实体下的特性列表
-        viewConfig = {
-          mode: this.currentState.viewMode as any,
-          type: 'feature',
-          _hideToolbar: true,
-        };
-
-        // 根据实体类型添加过滤条件
-        if (this.currentState.entityType === 'version' && this.currentState.entityId) {
-          viewConfig.filter = { versionId: this.currentState.entityId };
-        } else if (this.currentState.entityType === 'project' && this.currentState.entityId) {
-          viewConfig.filter = { projectId: this.currentState.entityId };
-        }
-
-        // 看板默认按状态分组
-        if (this.currentState.viewMode === 'kanban') {
-          viewConfig.groupBy = 'status';
-        } else if (this.currentState.viewMode === 'grid') {
-          viewConfig.cols = 3;
-        }
-      }
-      
-      console.log('[CascadeSelectorRenderer] viewConfig:', JSON.stringify(viewConfig));
+      const viewConfig = this.buildViewConfig();
 
       // 清空加载状态
-      const containerId = this.currentViewContainer.dataset.containerId;
-      console.log('[CascadeSelectorRenderer] 准备清空容器, id:', containerId, '当前子元素:', this.currentViewContainer.children.length);
       this.currentViewContainer.empty();
-      console.log('[CascadeSelectorRenderer] 视图容器已清空，id:', containerId);
 
-      // 创建新的 ViewEngine 并渲染
-      const viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-      console.log('[CascadeSelectorRenderer] 调用 viewEngine.render');
-      
-      await viewEngine.render(this.currentViewContainer, viewConfig, {
+      // 使用缓存的 ViewEngine 渲染
+      const viewEngine = this.getViewEngine();
+      const context: ViewContext = {
         sourcePath: this.context.sourcePath,
         el: this.currentViewContainer,
-      });
+      };
       
-      const finalContainerId = this.currentViewContainer?.dataset.containerId;
-      const finalChildCount = this.currentViewContainer?.children.length;
-      const firstChildClass = this.currentViewContainer?.children[0]?.className;
-      console.log('[CascadeSelectorRenderer] 渲染完成，容器id:', finalContainerId, '子元素:', finalChildCount, '第一个子元素class:', firstChildClass);
+      await viewEngine.render(this.currentViewContainer, viewConfig, context);
     } catch (error) {
       console.error('[CascadeSelectorRenderer] 渲染错误:', error);
-      if (this.currentViewContainer) {
-        this.currentViewContainer.empty();
-        const errorEl = this.currentViewContainer.createDiv('pm-cascade-selector-error');
-        errorEl.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
-      }
+      this.currentViewContainer.empty();
+      const errorEl = this.currentViewContainer.createDiv('pm-cascade-selector-error');
+      errorEl.textContent = `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`;
     }
+  }
+
+  /**
+   * 构建视图配置
+   * 
+   * 逻辑：
+   * - 选择了具体实体 -> 显示该实体本身（单卡片）
+   * - 未选择实体（全部）-> 显示该类型下的所有实体列表
+   */
+  private buildViewConfig(): ViewConfig & { _hideToolbar?: boolean } {
+    const { entityType, entityId, viewMode } = this.currentState;
+
+    // 级联视图显示完整层级
+    if (viewMode === 'cascade') {
+      return {
+        mode: 'cascade',
+        type: entityId ? entityType : 'version',
+        id: entityId,
+        expanded: true,
+        _hideToolbar: true,
+      };
+    }
+
+    // 选择了具体实体 - 显示该实体本身
+    if (entityId) {
+      const config: ViewConfig & { _hideToolbar?: boolean } = {
+        mode: viewMode as any,
+        type: entityType,
+        id: entityId,
+        _hideToolbar: true,
+      };
+      if (viewMode === 'grid') config.cols = 1; // 单卡片，单列显示
+      return config;
+    }
+
+    // 未选择具体实体 - 显示该类型下的所有实体列表
+    const config: ViewConfig & { _hideToolbar?: boolean } = {
+      mode: viewMode as any,
+      type: entityType,
+      _hideToolbar: true,
+    };
+
+    // 设置视图特定选项
+    if (viewMode === 'kanban') config.groupBy = 'status';
+    if (viewMode === 'grid') config.cols = 3;
+
+    return config;
   }
 }

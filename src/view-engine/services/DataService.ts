@@ -17,7 +17,6 @@ export class DataService {
    */
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
     const type = config.type || 'feature';
-    console.log('[DataService] loadEntities:', type, 'filter:', config.filter);
 
     // 如果指定了 id，加载特定实体
     if (config.id) {
@@ -58,7 +57,6 @@ export class DataService {
         }) as Entity[];
         break;
     }
-    console.log('[DataService] loaded', entities.length, type + 's');
     return entities;
   }
 

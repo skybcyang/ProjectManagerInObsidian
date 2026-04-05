@@ -12,6 +12,7 @@ import {
   CalendarRenderer,
   SelectorRenderer,
   CascadeSelectorRenderer,
+  CardRenderer,
 } from './renderers';
 
 /**
@@ -21,7 +22,6 @@ import {
 export class ViewEngine {
   private dataService: DataService;
   private actionService: ActionService;
-  private renderers: Map<ViewMode, BaseRenderer>;
 
   constructor(
     private app: App,
@@ -31,17 +31,32 @@ export class ViewEngine {
     // 初始化服务
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
+  }
 
-    // 初始化渲染器
-    this.renderers = new Map<ViewMode, BaseRenderer>([
-      ['kanban', new KanbanRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['grid', new GridRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['cascade', new CascadeRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['timeline', new TimelineRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['calendar', new CalendarRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['selector', new SelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-      ['cascade-selector', new CascadeSelectorRenderer(app, entityManager, cardRegistry, this.dataService, this.actionService)],
-    ]);
+  /**
+   * 创建新的渲染器实例（避免状态污染）
+   */
+  private createRenderer(mode: ViewMode): BaseRenderer | null {
+    switch (mode) {
+      case 'kanban':
+        return new KanbanRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'grid':
+        return new GridRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'cascade':
+        return new CascadeRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'timeline':
+        return new TimelineRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'calendar':
+        return new CalendarRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'selector':
+        return new SelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'cascade-selector':
+        return new CascadeSelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      case 'card':
+        return new CardRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+      default:
+        return null;
+    }
   }
 
   /**
@@ -52,8 +67,6 @@ export class ViewEngine {
     config: ViewConfig,
     context: ViewContext
   ): Promise<void> {
-    console.log('[ViewEngine] 开始渲染:', config.mode, config.type, config.id);
-    
     // 清空容器
     container.empty();
 
@@ -61,17 +74,9 @@ export class ViewEngine {
     const wrapper = container.createDiv('pm-view');
     const mode = config.mode || 'grid';
     wrapper.dataset.viewMode = mode;
-    
-    // 调试用：添加视觉标识和边框
-    const debugId = Math.random().toString(36).substring(2, 8);
-    wrapper.dataset.renderId = debugId;
-    wrapper.style.border = '2px solid red';
-    wrapper.style.padding = '10px';
-    wrapper.style.margin = '5px 0';
-    console.log('[ViewEngine] 创建视图 wrapper, mode:', mode, 'renderId:', debugId);
 
-    // 获取对应的渲染器
-    const renderer = this.renderers.get(mode);
+    // 创建新的渲染器实例（避免复用导致的状态污染）
+    const renderer = this.createRenderer(mode);
     if (!renderer) {
       console.error('[ViewEngine] 不支持的视图模式:', mode);
       this.renderError(wrapper, `不支持的视图模式: ${mode}`);
@@ -88,9 +93,7 @@ export class ViewEngine {
 
     // 渲染视图
     try {
-      console.log('[ViewEngine] 调用渲染器:', mode, 'wrapper子元素:', wrapper.children.length);
       await renderer.render(wrapper);
-      console.log('[ViewEngine] 渲染器完成:', mode, 'wrapper子元素:', wrapper.children.length);
     } catch (error) {
       console.error('[ViewEngine] 渲染失败:', error);
       this.renderError(wrapper, `渲染失败: ${error instanceof Error ? error.message : '未知错误'}`);
