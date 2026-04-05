@@ -133,11 +133,11 @@ export default class ProjectManagerPlugin extends Plugin {
       })
     );
 
-    console.log('Project Manager 插件已加载');
+    // 插件已加载
   }
 
   onunload(): void {
-    console.log('Project Manager 插件已卸载');
+    // 插件已卸载
   }
 
   /**

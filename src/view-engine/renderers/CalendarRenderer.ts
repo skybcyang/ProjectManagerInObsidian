@@ -4,6 +4,7 @@ import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { QuickCreateModal } from '../../modals/QuickCreateModal';
 
 /**
  * 日历渲染器
@@ -134,10 +135,24 @@ export class CalendarRenderer extends BaseRenderer {
         });
       }
 
-      // 点击添加新实体（可扩展）
+      // 点击添加新实体
       dayCell.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.pm-calendar-item')) return;
-        // TODO: 快速创建实体
+        // 快速创建特性，预填充截止日期
+        new QuickCreateModal(
+          this.app,
+          this.entityManager,
+          dateStr,
+          async (data) => {
+            try {
+              await this.entityManager.createFeature(data);
+              // 刷新视图
+              this.render(container);
+            } catch (error) {
+              console.error('创建特性失败:', error);
+            }
+          }
+        ).open();
       });
     }
 

@@ -68,7 +68,7 @@ export class Button {
         await this.handleExportICS();
         break;
       default:
-        console.log('未知动作:', action);
+        // 未知动作: action
     }
   }
 

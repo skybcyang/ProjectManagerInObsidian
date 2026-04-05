@@ -353,10 +353,10 @@ var InitService_exports = {};
 __export(InitService_exports, {
   InitService: () => InitService
 });
-var import_obsidian12, InitService;
+var import_obsidian13, InitService;
 var init_InitService = __esm({
   "src/services/InitService.ts"() {
-    import_obsidian12 = require("obsidian");
+    import_obsidian13 = require("obsidian");
     InitService = class {
       constructor(app) {
         this.app = app;
@@ -370,7 +370,7 @@ var init_InitService = __esm({
           return false;
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        return dashboardFile instanceof import_obsidian12.TFile;
+        return dashboardFile instanceof import_obsidian13.TFile;
       }
       async initialize() {
         await this.ensureFolder(this.BASE_FOLDER);
@@ -382,7 +382,7 @@ var init_InitService = __esm({
       async openDashboard() {
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const file = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (file instanceof import_obsidian12.TFile) {
+        if (file instanceof import_obsidian13.TFile) {
           await this.app.workspace.getLeaf().openFile(file);
         } else {
           await this.initialize();
@@ -402,7 +402,7 @@ var init_InitService = __esm({
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const content = this.generateDashboardContent();
         const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (existingFile instanceof import_obsidian12.TFile) {
+        if (existingFile instanceof import_obsidian13.TFile) {
           await this.app.vault.modify(existingFile, content);
         } else {
           await this.app.vault.create(dashboardPath, content);
@@ -476,7 +476,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian13 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -1876,7 +1876,7 @@ var Breadcrumb = class {
 };
 
 // src/ui/components/Button.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 
 // src/modals/CreateVersionModal.ts
 var import_obsidian3 = require("obsidian");
@@ -2416,13 +2416,140 @@ var CreateFeatureModal = class extends import_obsidian5.Modal {
   }
 };
 
+// src/modals/QuickCreateModal.ts
+var import_obsidian6 = require("obsidian");
+init_constants();
+var QuickCreateModal = class extends import_obsidian6.Modal {
+  constructor(app, entityManager, defaultDate, onSubmit) {
+    super(app);
+    this.entityManager = entityManager;
+    this.defaultDate = defaultDate;
+    this.onSubmit = onSubmit;
+    this.result = {
+      name: "",
+      versionId: "",
+      projectId: "",
+      status: "backlog",
+      priority: "medium",
+      progress: 0,
+      tags: []
+    };
+    this.versions = [];
+    this.projects = [];
+    this.filteredProjects = [];
+  }
+  async onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("pm-modal");
+    this.versions = await this.entityManager.listVersions();
+    this.projects = await this.entityManager.listProjects();
+    if (this.versions.length === 0 || this.projects.length === 0) {
+      contentEl.createEl("h2", { text: "\u5FEB\u901F\u521B\u5EFA\u7279\u6027" });
+      contentEl.createEl("p", {
+        text: "\u9700\u8981\u5148\u521B\u5EFA\u7248\u672C\u548C\u9879\u76EE",
+        cls: "pm-modal__warning"
+      });
+      const btn = contentEl.createEl("button", { text: "\u786E\u5B9A" });
+      btn.addEventListener("click", () => this.close());
+      return;
+    }
+    this.result.versionId = this.versions[0].id;
+    this.result.projectId = this.projects[0].id;
+    this.result.dueDate = this.defaultDate;
+    this.updateFilteredProjects();
+    contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
+    new import_obsidian6.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
+      text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
+      text.onChange((value) => {
+        this.result.name = value;
+      });
+      setTimeout(() => text.inputEl.focus(), 0);
+    });
+    new import_obsidian6.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
+      this.versions.forEach((v) => {
+        dropdown.addOption(v.id, v.name);
+      });
+      dropdown.setValue(this.result.versionId);
+      dropdown.onChange((value) => {
+        this.result.versionId = value;
+        this.updateFilteredProjects();
+        this.renderProjectDropdown();
+      });
+    });
+    const projectSetting = new import_obsidian6.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
+    this.projectDropdown = projectSetting.addDropdown((dropdown) => {
+      this.filteredProjects.forEach((p) => {
+        dropdown.addOption(p.id, p.name);
+      });
+      dropdown.setValue(this.result.projectId);
+      dropdown.onChange((value) => {
+        this.result.projectId = value;
+      });
+    });
+    new import_obsidian6.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+      FEATURE_STATUSES.forEach((s) => {
+        dropdown.addOption(s.value, s.label);
+      });
+      dropdown.setValue(this.result.status || "backlog");
+      dropdown.onChange((value) => {
+        this.result.status = value;
+      });
+    });
+    new import_obsidian6.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+      PRIORITIES.forEach((p) => {
+        dropdown.addOption(p.value, p.label);
+      });
+      dropdown.setValue(this.result.priority || "medium");
+      dropdown.onChange((value) => {
+        this.result.priority = value;
+      });
+    });
+    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+    cancelButton.addEventListener("click", () => this.close());
+    const createButton = buttonContainer.createEl("button", {
+      text: "\u521B\u5EFA",
+      cls: "mod-cta"
+    });
+    createButton.addEventListener("click", async () => {
+      if (!this.result.name.trim()) {
+        new import_obsidian6.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
+        return;
+      }
+      this.onSubmit(this.result);
+      this.close();
+    });
+  }
+  updateFilteredProjects() {
+    this.filteredProjects = this.projects.filter((p) => p.versionId === this.result.versionId);
+    if (this.filteredProjects.length > 0 && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
+      this.result.projectId = this.filteredProjects[0].id;
+    }
+  }
+  renderProjectDropdown() {
+    if (!this.projectDropdown)
+      return;
+    const dropdown = this.projectDropdown;
+    dropdown.selectEl.empty();
+    this.filteredProjects.forEach((p) => {
+      dropdown.addOption(p.id, p.name);
+    });
+    dropdown.setValue(this.result.projectId);
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+};
+
 // src/modals/EditFeatureModal.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 init_constants();
 
 // src/modals/ConfirmModal.ts
-var import_obsidian6 = require("obsidian");
-var ConfirmModal = class extends import_obsidian6.Modal {
+var import_obsidian7 = require("obsidian");
+var ConfirmModal = class extends import_obsidian7.Modal {
   constructor(app, title, message, onConfirm, onCancel) {
     super(app);
     this.title = title;
@@ -2461,7 +2588,7 @@ var ConfirmModal = class extends import_obsidian6.Modal {
 };
 
 // src/utils/fileManager.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 
 // src/utils/validator.ts
 init_constants();
@@ -2551,7 +2678,7 @@ function downloadICS(content, filename) {
 }
 
 // src/modals/EditFeatureModal.ts
-var EditFeatureModal = class extends import_obsidian8.Modal {
+var EditFeatureModal = class extends import_obsidian9.Modal {
   constructor(app, entityManager, feature, onSubmit, onDelete) {
     super(app);
     // 用于存储输入元素引用
@@ -2576,10 +2703,10 @@ var EditFeatureModal = class extends import_obsidian8.Modal {
     contentEl.empty();
     contentEl.addClass("pm-modal");
     contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
-    new import_obsidian8.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
+    new import_obsidian9.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    new import_obsidian8.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian9.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       FEATURE_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -2603,7 +2730,7 @@ var EditFeatureModal = class extends import_obsidian8.Modal {
         }
       });
     });
-    new import_obsidian8.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+    new import_obsidian9.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
       PRIORITIES.forEach((priority) => {
         dropdown.addOption(priority.value, priority.label);
       });
@@ -2612,10 +2739,10 @@ var EditFeatureModal = class extends import_obsidian8.Modal {
         this.result.priority = value;
       });
     });
-    new import_obsidian8.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+    new import_obsidian9.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
-    this.dueDateSetting = new import_obsidian8.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
+    this.dueDateSetting = new import_obsidian9.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
         type: "date",
@@ -2637,10 +2764,10 @@ var EditFeatureModal = class extends import_obsidian8.Modal {
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
       });
     });
-    new import_obsidian8.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian9.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian8.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
+    new import_obsidian9.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
       var _a;
       return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -2716,8 +2843,8 @@ var EditFeatureModal = class extends import_obsidian8.Modal {
 };
 
 // src/modals/ExportICSModal.ts
-var import_obsidian9 = require("obsidian");
-var ExportICSModal = class extends import_obsidian9.Modal {
+var import_obsidian10 = require("obsidian");
+var ExportICSModal = class extends import_obsidian10.Modal {
   constructor(app, entityManager) {
     super(app);
     this.entityManager = entityManager;
@@ -2736,7 +2863,7 @@ var ExportICSModal = class extends import_obsidian9.Modal {
     this.versions = await this.entityManager.listVersions();
     this.projects = await this.entityManager.listProjects();
     contentEl.createEl("h2", { text: "\u5BFC\u51FAICS\u90AE\u4EF6" });
-    new import_obsidian9.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
+    new import_obsidian10.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
       dropdown.addOption("all", "\u5168\u90E8\u7279\u6027");
       dropdown.addOption("version", "\u6309\u7248\u672C\u7B5B\u9009");
       dropdown.addOption("project", "\u6309\u9879\u76EE\u7B5B\u9009");
@@ -2754,7 +2881,7 @@ var ExportICSModal = class extends import_obsidian9.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u7248\u672C\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian9.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
+        new import_obsidian10.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
           var _a;
           this.versions.forEach((v) => {
             dropdown.addOption(v.id, v.name);
@@ -2770,7 +2897,7 @@ var ExportICSModal = class extends import_obsidian9.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u9879\u76EE\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian9.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
+        new import_obsidian10.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
           var _a;
           this.projects.forEach((p) => {
             dropdown.addOption(p.id, p.name);
@@ -2798,21 +2925,21 @@ var ExportICSModal = class extends import_obsidian9.Modal {
     if (this.exportScope === "version") {
       const versionId = this.selectedVersionId;
       if (!versionId) {
-        new import_obsidian9.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
+        new import_obsidian10.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
         return;
       }
       features = features.filter((f) => f.versionId === versionId);
     } else if (this.exportScope === "project") {
       const projectId = this.selectedProjectId;
       if (!projectId) {
-        new import_obsidian9.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
+        new import_obsidian10.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
         return;
       }
       features = features.filter((f) => f.projectId === projectId);
     }
     const featuresWithDueDate = features.filter((f) => f.dueDate);
     if (featuresWithDueDate.length === 0) {
-      new import_obsidian9.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
+      new import_obsidian10.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
       return;
     }
     let filename = "\u9879\u76EE\u7BA1\u7406_\u622A\u6B62\u65E5\u671F";
@@ -2827,7 +2954,7 @@ var ExportICSModal = class extends import_obsidian9.Modal {
     }
     const icsContent = generateICS(featuresWithDueDate);
     downloadICS(icsContent, filename);
-    new import_obsidian9.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
+    new import_obsidian10.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
     this.close();
   }
   onClose() {
@@ -2883,7 +3010,6 @@ var Button = class {
         await this.handleExportICS();
         break;
       default:
-        console.log("\u672A\u77E5\u52A8\u4F5C:", action);
     }
   }
   /**
@@ -2970,10 +3096,10 @@ var Button = class {
    * 显示通知
    */
   showNotice(message, timeout = 4e3) {
-    new import_obsidian10.Notice(message, timeout);
+    new import_obsidian11.Notice(message, timeout);
   }
 };
-var ButtonContainer = class extends import_obsidian10.MarkdownRenderChild {
+var ButtonContainer = class extends import_obsidian11.MarkdownRenderChild {
   constructor(containerEl, button) {
     super(containerEl);
     this.button = button;
@@ -2998,7 +3124,7 @@ var ButtonContainer = class extends import_obsidian10.MarkdownRenderChild {
 };
 
 // src/ui/components/ProgressInput.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 var ProgressInput = class {
   constructor(app) {
     this.app = app;
@@ -3099,7 +3225,7 @@ var ProgressInput = class {
     }, 5e3);
   }
 };
-var ProgressInputContainer = class extends import_obsidian11.MarkdownRenderChild {
+var ProgressInputContainer = class extends import_obsidian12.MarkdownRenderChild {
   constructor(containerEl, progressInput) {
     super(containerEl);
     this.progressInput = progressInput;
@@ -3468,8 +3594,8 @@ var ActionService = class {
    */
   async showConfirmDialog(title, message) {
     return new Promise((resolve) => {
-      const { Modal: Modal7, ButtonComponent } = require("obsidian");
-      class ConfirmModal2 extends Modal7 {
+      const { Modal: Modal8, ButtonComponent } = require("obsidian");
+      class ConfirmModal2 extends Modal8 {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl("h2", { text: title });
@@ -4723,6 +4849,19 @@ var CalendarRenderer = class extends BaseRenderer {
       dayCell.addEventListener("click", (e) => {
         if (e.target.closest(".pm-calendar-item"))
           return;
+        new QuickCreateModal(
+          this.app,
+          this.entityManager,
+          dateStr,
+          async (data) => {
+            try {
+              await this.entityManager.createFeature(data);
+              this.render(container);
+            } catch (error) {
+              console.error("\u521B\u5EFA\u7279\u6027\u5931\u8D25:", error);
+            }
+          }
+        ).open();
       });
     }
     const totalCells = startOffset + daysInMonth;
@@ -5393,7 +5532,7 @@ var CardRenderer = class extends BaseRenderer {
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian14.Plugin {
   async onload() {
     this.entityManager = new EntityManager(this.app);
     this.cardRegistry = CardRegistry.createDefault();
@@ -5445,7 +5584,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian13.TFile) {
+        if (file instanceof import_obsidian14.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -5453,7 +5592,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian13.TFile) {
+        if (file instanceof import_obsidian14.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -5473,10 +5612,8 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
         }, 100);
       })
     );
-    console.log("Project Manager \u63D2\u4EF6\u5DF2\u52A0\u8F7D");
   }
   onunload() {
-    console.log("Project Manager \u63D2\u4EF6\u5DF2\u5378\u8F7D");
   }
   /**
    * 打开总览页面
@@ -5496,7 +5633,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
    */
   async processKanbanBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian14.parseYaml)(source) || {};
       const filter = {};
       if (oldConfig.version)
         filter.versionId = oldConfig.version;
@@ -5531,7 +5668,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
    */
   async processCardBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian14.parseYaml)(source) || {};
       const result = await this.entityManager.findById(oldConfig.id);
       if (!result) {
         el.createEl("div", {
@@ -5566,7 +5703,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
    */
   async processGridBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian14.parseYaml)(source) || {};
       const viewConfig = {
         mode: "grid",
         type: oldConfig.type || "feature",
@@ -5594,7 +5731,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
    */
   async processSelectorBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian13.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian14.parseYaml)(source) || {};
       const viewConfig = {
         mode: "cascade-selector",
         cascadeSelector: {
@@ -5689,7 +5826,7 @@ var ProjectManagerPlugin = class extends import_obsidian13.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian13.TFile))
+    if (!(file instanceof import_obsidian14.TFile))
       return;
     const containerEl = ctx.containerEl;
     if (!containerEl)
