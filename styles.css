@@ -268,6 +268,20 @@
   color: var(--text-muted);
 }
 
+.pm-card__owner,
+.pm-kanban-card-owner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pm-card__owner .pi-avatar,
+.pm-kanban-card-owner .pi-avatar,
+.pm-grid-card-owner .pi-avatar {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
 /* ----------------------------------------
    Badge System
    ---------------------------------------- */
@@ -1946,10 +1960,6 @@
   justify-content: space-between;
   font-size: 11px;
   color: var(--pm-text-muted);
-}
-
-.pm-kanban-card-owner {
-  font-weight: 500;
 }
 
 .pm-kanban-card-due.pm-overdue {

@@ -1071,3 +1071,52 @@
     padding: 2px 4px;
   }
 }
+
+/* ========================================
+   看板拖拽样式
+   Kanban Drag & Drop Styles
+   ======================================== */
+
+/* 可拖拽卡片 */
+.pm-kanban-card-draggable {
+  cursor: grab;
+}
+
+.pm-kanban-card-draggable:active {
+  cursor: grabbing;
+}
+
+/* 拖拽中的卡片 */
+.pm-kanban-card-dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* 拖放区域高亮 */
+.pm-kanban-drag-over {
+  background: var(--background-modifier-hover);
+  border: 2px dashed var(--interactive-accent);
+  border-radius: 6px;
+}
+
+/* 快速创建按钮 */
+.pm-kanban-quick-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  margin-top: 8px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pm-kanban-quick-add:hover {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}

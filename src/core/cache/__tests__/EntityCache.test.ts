@@ -33,6 +33,7 @@ describe('EntityCache', () => {
         name: 'Test Project',
         versionId: 'ver-001',
         status: 'backlog',
+        priority: 'medium',
         tags: [],
       };
       cache.setProject(project);
@@ -70,7 +71,7 @@ describe('EntityCache', () => {
     });
 
     it('should delete project from cache', () => {
-      const project: Project = { id: 'proj-001', name: 'Test', versionId: 'ver-001', status: 'backlog', tags: [] };
+      const project: Project = { id: 'proj-001', name: 'Test', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] };
       cache.setProject(project);
       cache.deleteProject('proj-001');
       expect(cache.getProject('proj-001')).toBeUndefined();
@@ -94,8 +95,8 @@ describe('EntityCache', () => {
     });
 
     it('should get all projects', () => {
-      const p1: Project = { id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', tags: [] };
-      const p2: Project = { id: 'proj-002', name: 'P2', versionId: 'ver-001', status: 'backlog', tags: [] };
+      const p1: Project = { id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] };
+      const p2: Project = { id: 'proj-002', name: 'P2', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] };
       cache.setProject(p1);
       cache.setProject(p2);
       expect(cache.getAllProjects()).toHaveLength(2);
@@ -113,7 +114,7 @@ describe('EntityCache', () => {
   describe('stats', () => {
     it('should return correct stats', () => {
       cache.setVersion({ id: 'ver-001', name: 'v1.0', status: 'planning', tags: [] });
-      cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', tags: [] });
+      cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] });
       cache.setFeature({ id: 'feat-001', name: 'F1', projectId: 'proj-001', versionId: 'ver-001', status: 'todo', priority: 'medium', progress: 0, tags: [] });
       
       const stats = cache.getStats();
@@ -124,7 +125,7 @@ describe('EntityCache', () => {
   describe('clear', () => {
     it('should clear all caches', () => {
       cache.setVersion({ id: 'ver-001', name: 'v1.0', status: 'planning', tags: [] });
-      cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', tags: [] });
+      cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] });
       cache.setFeature({ id: 'feat-001', name: 'F1', projectId: 'proj-001', versionId: 'ver-001', status: 'todo', priority: 'medium', progress: 0, tags: [] });
       
       cache.clear();

@@ -44,13 +44,31 @@ export class EntityManager {
 
   /**
    * 删除版本（带关联检查）
+   * @param cascade 是否级联删除关联项目
    */
-  async deleteVersion(id: string): Promise<boolean> {
+  async deleteVersion(id: string, cascade: boolean = false): Promise<boolean> {
     // 检查是否有关联项目
-    if (await this.version.hasProjects(id)) {
-      throw new Error('无法删除版本：存在关联项目，请先删除或转移关联项目');
+    const relatedProjects = await this.getVersionProjects(id);
+    
+    if (relatedProjects.length > 0) {
+      if (!cascade) {
+        throw new Error(`无法删除版本：存在 ${relatedProjects.length} 个关联项目，请先删除或转移关联项目`);
+      }
+      // 级联删除关联项目
+      for (const project of relatedProjects) {
+        await this.deleteProject(project.id, true);
+      }
     }
+    
     return this.version.delete(id);
+  }
+
+  /**
+   * 获取版本的关联项目
+   */
+  async getVersionProjects(versionId: string): Promise<Project[]> {
+    const allProjects = await this.listProjects();
+    return allProjects.filter(p => p.versionId === versionId);
   }
 
   async getVersion(id: string): Promise<Version | null> {
@@ -77,11 +95,31 @@ export class EntityManager {
 
   /**
    * 删除项目（带级联处理）
+   * @param cascade 是否级联删除关联特性
    */
-  async deleteProject(id: string): Promise<boolean> {
-    // 先孤儿化关联特性
-    await this.project.orphanFeatures(id);
+  async deleteProject(id: string, cascade: boolean = false): Promise<boolean> {
+    // 检查是否有关联特性
+    const relatedFeatures = await this.getProjectFeatures(id);
+    
+    if (relatedFeatures.length > 0) {
+      if (!cascade) {
+        throw new Error(`无法删除项目：存在 ${relatedFeatures.length} 个关联特性，请先删除或转移关联特性`);
+      }
+      // 级联删除关联特性
+      for (const feature of relatedFeatures) {
+        await this.deleteFeature(feature.id);
+      }
+    }
+    
     return this.project.delete(id);
+  }
+
+  /**
+   * 获取项目的关联特性
+   */
+  async getProjectFeatures(projectId: string): Promise<Feature[]> {
+    const allFeatures = await this.listFeatures();
+    return allFeatures.filter(f => f.projectId === projectId);
   }
 
   async getProject(id: string): Promise<Project | null> {

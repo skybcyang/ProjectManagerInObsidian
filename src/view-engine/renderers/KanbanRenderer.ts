@@ -3,7 +3,9 @@ import type { EntityManager } from '../../core';
 import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, ViewContext, Entity, EntityType, getEntityType } from '../types';
+import type { CreateFeatureData, FeatureStatus } from '../../types';
 import { BaseRenderer } from './BaseRenderer';
+import { getUserAvatarElement } from '../../utils/avatar';
 
 /**
  * 看板渲染器
@@ -83,7 +85,7 @@ export class KanbanRenderer extends BaseRenderer {
     const board = container.createDiv('pm-kanban-board');
 
     KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
-      const columnEl = this.createColumn(board, column.label, column.color);
+      const columnEl = this.createColumn(board, column.label, column.color, false, column.id);
       
       // 过滤该状态的实体
       const columnEntities = entities.filter(
@@ -165,7 +167,7 @@ export class KanbanRenderer extends BaseRenderer {
       const board = section.createDiv('pm-kanban-board pm-kanban-board-nested');
 
       KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
-        const columnEl = this.createColumn(board, column.label, column.color, true);
+        const columnEl = this.createColumn(board, column.label, column.color, true, column.id);
 
         const columnEntities = groupEntities.filter(
           (e) => 'status' in e && e.status === column.id
@@ -193,7 +195,8 @@ export class KanbanRenderer extends BaseRenderer {
     board: HTMLElement,
     title: string,
     color: string,
-    compact: boolean = false
+    compact: boolean = false,
+    statusId?: string
   ): HTMLElement {
     const column = board.createDiv('pm-kanban-column');
     if (compact) {
@@ -211,9 +214,76 @@ export class KanbanRenderer extends BaseRenderer {
     header.createSpan({ cls: 'pm-kanban-column-count', text: '0' });
 
     // 卡片容器
-    column.createDiv('pm-kanban-cards');
+    const cardsContainer = column.createDiv('pm-kanban-cards');
+
+    // 设置拖放区域（仅状态列）
+    if (statusId) {
+      this.setupDropZone(cardsContainer, statusId);
+    }
 
     return column;
+  }
+
+  /**
+   * 设置拖放区域
+   */
+  private setupDropZone(container: HTMLElement, statusId: string): void {
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      container.addClass('pm-kanban-drag-over');
+    });
+
+    container.addEventListener('dragleave', () => {
+      container.removeClass('pm-kanban-drag-over');
+    });
+
+    container.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      container.removeClass('pm-kanban-drag-over');
+
+      const entityId = e.dataTransfer?.getData('text/plain');
+      const entityType = e.dataTransfer?.getData('entity-type') as EntityType;
+
+      if (entityId && entityType) {
+        await this.actionService.changeStatus(entityType, entityId, statusId);
+        // 刷新视图
+        const boardContainer = container.closest('.pm-kanban-view') as HTMLElement;
+        if (boardContainer) {
+          this.render(boardContainer);
+        }
+      }
+    });
+
+    // 添加快速创建按钮
+    const quickAddBtn = container.createDiv('pm-kanban-quick-add');
+    quickAddBtn.textContent = '+ 新建特性';
+    quickAddBtn.addEventListener('click', () => {
+      this.showQuickCreateModal(statusId);
+    });
+  }
+
+  /**
+   * 显示快速创建模态框
+   */
+  private showQuickCreateModal(status: string): void {
+    const { QuickCreateModal } = require('../../modals/QuickCreateModal');
+    
+    new QuickCreateModal(
+      this.app,
+      this.entityManager,
+      new Date().toISOString().split('T')[0],
+      async (data: CreateFeatureData) => {
+        try {
+          // 使用看板列的状态
+          const featureData = { ...data, status: status as FeatureStatus };
+          await this.entityManager.createFeature(featureData);
+          // 刷新视图
+          this.render(document.querySelector('.pm-kanban-view') as HTMLElement);
+        } catch (error) {
+          console.error('创建特性失败:', error);
+        }
+      }
+    ).open();
   }
 
   /**
@@ -227,6 +297,23 @@ export class KanbanRenderer extends BaseRenderer {
     const card = container.createDiv('pm-kanban-card');
     if (options?.compact) {
       card.addClass('pm-kanban-card-compact');
+    }
+
+    // 设置拖拽（仅特性支持拖拽）
+    const entityType = getEntityType(entity);
+    if (entityType === 'feature' && 'status' in entity) {
+      card.setAttribute('draggable', 'true');
+      card.addClass('pm-kanban-card-draggable');
+
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer?.setData('text/plain', entity.id);
+        e.dataTransfer?.setData('entity-type', entityType);
+        card.addClass('pm-kanban-card-dragging');
+      });
+
+      card.addEventListener('dragend', () => {
+        card.removeClass('pm-kanban-card-dragging');
+      });
     }
 
     // 卡片头部
@@ -268,7 +355,15 @@ export class KanbanRenderer extends BaseRenderer {
 
     // 负责人
     if (entity.owner) {
-      footer.createSpan({ cls: 'pm-kanban-card-owner', text: entity.owner });
+      const ownerEl = footer.createDiv({ cls: 'pm-kanban-card-owner' });
+      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
+      if (avatar) {
+        ownerEl.appendChild(avatar);
+      }
+      ownerEl.createEl('span', {
+        cls: 'pm-kanban-card-owner-name',
+        text: entity.owner,
+      });
     }
 
     // 截止日期

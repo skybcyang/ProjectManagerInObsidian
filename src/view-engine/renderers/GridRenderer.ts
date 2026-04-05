@@ -5,6 +5,7 @@ import type { DataService, ActionService } from '../services';
 import type { ViewConfig, Entity, EntityType } from '../types';
 import { getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { getUserAvatarElement } from '../../utils/avatar';
 
 /**
  * 网格渲染器
@@ -161,9 +162,14 @@ export class GridRenderer extends BaseRenderer {
 
     // 负责人
     if (entity.owner) {
-      footer.createDiv({
-        cls: 'pm-grid-card-owner',
-        text: `👤 ${entity.owner}`,
+      const ownerEl = footer.createDiv({ cls: 'pm-grid-card-owner' });
+      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
+      if (avatar) {
+        ownerEl.appendChild(avatar);
+      }
+      ownerEl.createEl('span', {
+        cls: 'pm-grid-card-owner-name',
+        text: entity.owner,
       });
     }
 

@@ -80,18 +80,18 @@ export class CardRegistry {
   /**
    * 创建默认的卡片注册表（包含内置卡片）
    */
-  static createDefault(): CardRegistry {
+  static createDefault(app?: App): CardRegistry {
     const registry = new CardRegistry();
-    
+
     // 延迟加载以避免循环依赖
     const { FeatureCard } = require('./FeatureCard');
     const { ProjectCard } = require('./ProjectCard');
     const { VersionCard } = require('./VersionCard');
-    
-    registry.register(new FeatureCard());
+
+    registry.register(new FeatureCard(app));
     registry.register(new ProjectCard());
     registry.register(new VersionCard());
-    
+
     return registry;
   }
 }

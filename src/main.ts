@@ -21,7 +21,7 @@ export default class ProjectManagerPlugin extends Plugin {
     this.entityManager = new EntityManager(this.app);
     
     // 初始化 UI 层
-    this.cardRegistry = CardRegistry.createDefault();
+    this.cardRegistry = CardRegistry.createDefault(this.app);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);

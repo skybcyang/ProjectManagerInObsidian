@@ -95,6 +95,24 @@ var init_constants = __esm({
   }
 });
 
+// src/utils/avatar.ts
+function getUserAvatarElement(app, userId, size = 16) {
+  var _a, _b, _c, _d, _e, _f;
+  const userProfile = app.plugins.getPlugin("user-profile");
+  if (!(userProfile == null ? void 0 : userProfile.api))
+    return null;
+  const me = (_b = (_a = userProfile.api).getMe) == null ? void 0 : _b.call(_a);
+  if ((me == null ? void 0 : me.id) === userId) {
+    return ((_d = (_c = userProfile.api).createMyAvatarElement) == null ? void 0 : _d.call(_c, size)) || null;
+  }
+  const dummyUser = { id: userId, name: userId, createdAt: "", updatedAt: "" };
+  return ((_f = (_e = userProfile.api).createAvatarElement) == null ? void 0 : _f.call(_e, dummyUser, size)) || null;
+}
+var init_avatar = __esm({
+  "src/utils/avatar.ts"() {
+  }
+});
+
 // src/ui/cards/FeatureCard.ts
 var FeatureCard_exports = {};
 __export(FeatureCard_exports, {
@@ -104,9 +122,11 @@ var FeatureCard;
 var init_FeatureCard = __esm({
   "src/ui/cards/FeatureCard.ts"() {
     init_constants();
+    init_avatar();
     FeatureCard = class {
-      constructor() {
+      constructor(app) {
         this.id = "feature";
+        this.app = app;
       }
       /**
        * 判断是否匹配特性实体
@@ -200,9 +220,16 @@ var init_FeatureCard = __esm({
       renderFooter(container, feature) {
         const footer = container.createDiv({ cls: "pm-card__footer" });
         if (feature.owner) {
-          footer.createEl("span", {
-            text: `\u{1F464} ${feature.owner}`,
-            cls: "pm-card__owner"
+          const ownerEl = footer.createDiv({ cls: "pm-card__owner" });
+          if (this.app) {
+            const avatar = getUserAvatarElement(this.app, feature.owner, 16);
+            if (avatar) {
+              ownerEl.appendChild(avatar);
+            }
+          }
+          ownerEl.createEl("span", {
+            text: feature.owner,
+            cls: "pm-card__owner-name"
           });
         }
         if (feature.dueDate) {
@@ -348,15 +375,151 @@ var init_VersionCard = __esm({
   }
 });
 
+// src/modals/QuickCreateModal.ts
+var QuickCreateModal_exports = {};
+__export(QuickCreateModal_exports, {
+  QuickCreateModal: () => QuickCreateModal
+});
+var import_obsidian7, QuickCreateModal;
+var init_QuickCreateModal = __esm({
+  "src/modals/QuickCreateModal.ts"() {
+    import_obsidian7 = require("obsidian");
+    init_constants();
+    QuickCreateModal = class extends import_obsidian7.Modal {
+      constructor(app, entityManager, defaultDate, onSubmit) {
+        super(app);
+        this.entityManager = entityManager;
+        this.defaultDate = defaultDate;
+        this.onSubmit = onSubmit;
+        this.result = {
+          name: "",
+          versionId: "",
+          projectId: "",
+          status: "backlog",
+          priority: "medium",
+          progress: 0,
+          tags: []
+        };
+        this.versions = [];
+        this.projects = [];
+        this.filteredProjects = [];
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        this.versions = await this.entityManager.listVersions();
+        this.projects = await this.entityManager.listProjects();
+        if (this.versions.length === 0 || this.projects.length === 0) {
+          contentEl.createEl("h2", { text: "\u5FEB\u901F\u521B\u5EFA\u7279\u6027" });
+          contentEl.createEl("p", {
+            text: "\u9700\u8981\u5148\u521B\u5EFA\u7248\u672C\u548C\u9879\u76EE",
+            cls: "pm-modal__warning"
+          });
+          const btn = contentEl.createEl("button", { text: "\u786E\u5B9A" });
+          btn.addEventListener("click", () => this.close());
+          return;
+        }
+        this.result.versionId = this.versions[0].id;
+        this.result.projectId = this.projects[0].id;
+        this.result.dueDate = this.defaultDate;
+        this.updateFilteredProjects();
+        contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
+        new import_obsidian7.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
+          text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
+          text.onChange((value) => {
+            this.result.name = value;
+          });
+          setTimeout(() => text.inputEl.focus(), 0);
+        });
+        new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
+          this.versions.forEach((v) => {
+            dropdown.addOption(v.id, v.name);
+          });
+          dropdown.setValue(this.result.versionId);
+          dropdown.onChange((value) => {
+            this.result.versionId = value;
+            this.updateFilteredProjects();
+            this.renderProjectDropdown();
+          });
+        });
+        const projectSetting = new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
+        this.projectDropdown = projectSetting.addDropdown((dropdown) => {
+          this.filteredProjects.forEach((p) => {
+            dropdown.addOption(p.id, p.name);
+          });
+          dropdown.setValue(this.result.projectId);
+          dropdown.onChange((value) => {
+            this.result.projectId = value;
+          });
+        });
+        new import_obsidian7.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          FEATURE_STATUSES.forEach((s) => {
+            dropdown.addOption(s.value, s.label);
+          });
+          dropdown.setValue(this.result.status || "backlog");
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        new import_obsidian7.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((p) => {
+            dropdown.addOption(p.value, p.label);
+          });
+          dropdown.setValue(this.result.priority || "medium");
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const createButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        createButton.addEventListener("click", async () => {
+          if (!this.result.name.trim()) {
+            new import_obsidian7.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      updateFilteredProjects() {
+        this.filteredProjects = this.projects.filter((p) => p.versionId === this.result.versionId);
+        if (this.filteredProjects.length > 0 && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
+          this.result.projectId = this.filteredProjects[0].id;
+        }
+      }
+      renderProjectDropdown() {
+        if (!this.projectDropdown)
+          return;
+        const dropdown = this.projectDropdown;
+        dropdown.selectEl.empty();
+        this.filteredProjects.forEach((p) => {
+          dropdown.addOption(p.id, p.name);
+        });
+        dropdown.setValue(this.result.projectId);
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
 // src/services/InitService.ts
 var InitService_exports = {};
 __export(InitService_exports, {
   InitService: () => InitService
 });
-var import_obsidian14, InitService;
+var import_obsidian15, InitService;
 var init_InitService = __esm({
   "src/services/InitService.ts"() {
-    import_obsidian14 = require("obsidian");
+    import_obsidian15 = require("obsidian");
     InitService = class {
       constructor(app) {
         this.app = app;
@@ -370,7 +533,7 @@ var init_InitService = __esm({
           return false;
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        return dashboardFile instanceof import_obsidian14.TFile;
+        return dashboardFile instanceof import_obsidian15.TFile;
       }
       async initialize() {
         await this.ensureFolder(this.BASE_FOLDER);
@@ -382,7 +545,7 @@ var init_InitService = __esm({
       async openDashboard() {
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const file = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (file instanceof import_obsidian14.TFile) {
+        if (file instanceof import_obsidian15.TFile) {
           await this.app.workspace.getLeaf().openFile(file);
         } else {
           await this.initialize();
@@ -402,7 +565,7 @@ var init_InitService = __esm({
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const content = this.generateDashboardContent();
         const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (existingFile instanceof import_obsidian14.TFile) {
+        if (existingFile instanceof import_obsidian15.TFile) {
           await this.app.vault.modify(existingFile, content);
         } else {
           await this.app.vault.create(dashboardPath, content);
@@ -476,7 +639,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian15 = require("obsidian");
+var import_obsidian16 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -1872,12 +2035,26 @@ var EntityManager = class {
   }
   /**
    * 删除版本（带关联检查）
+   * @param cascade 是否级联删除关联项目
    */
-  async deleteVersion(id) {
-    if (await this.version.hasProjects(id)) {
-      throw new Error("\u65E0\u6CD5\u5220\u9664\u7248\u672C\uFF1A\u5B58\u5728\u5173\u8054\u9879\u76EE\uFF0C\u8BF7\u5148\u5220\u9664\u6216\u8F6C\u79FB\u5173\u8054\u9879\u76EE");
+  async deleteVersion(id, cascade = false) {
+    const relatedProjects = await this.getVersionProjects(id);
+    if (relatedProjects.length > 0) {
+      if (!cascade) {
+        throw new Error(`\u65E0\u6CD5\u5220\u9664\u7248\u672C\uFF1A\u5B58\u5728 ${relatedProjects.length} \u4E2A\u5173\u8054\u9879\u76EE\uFF0C\u8BF7\u5148\u5220\u9664\u6216\u8F6C\u79FB\u5173\u8054\u9879\u76EE`);
+      }
+      for (const project of relatedProjects) {
+        await this.deleteProject(project.id, true);
+      }
     }
     return this.version.delete(id);
+  }
+  /**
+   * 获取版本的关联项目
+   */
+  async getVersionProjects(versionId) {
+    const allProjects = await this.listProjects();
+    return allProjects.filter((p) => p.versionId === versionId);
   }
   async getVersion(id) {
     return this.version.getById(id);
@@ -1897,10 +2074,26 @@ var EntityManager = class {
   }
   /**
    * 删除项目（带级联处理）
+   * @param cascade 是否级联删除关联特性
    */
-  async deleteProject(id) {
-    await this.project.orphanFeatures(id);
+  async deleteProject(id, cascade = false) {
+    const relatedFeatures = await this.getProjectFeatures(id);
+    if (relatedFeatures.length > 0) {
+      if (!cascade) {
+        throw new Error(`\u65E0\u6CD5\u5220\u9664\u9879\u76EE\uFF1A\u5B58\u5728 ${relatedFeatures.length} \u4E2A\u5173\u8054\u7279\u6027\uFF0C\u8BF7\u5148\u5220\u9664\u6216\u8F6C\u79FB\u5173\u8054\u7279\u6027`);
+      }
+      for (const feature of relatedFeatures) {
+        await this.deleteFeature(feature.id);
+      }
+    }
     return this.project.delete(id);
+  }
+  /**
+   * 获取项目的关联特性
+   */
+  async getProjectFeatures(projectId) {
+    const allFeatures = await this.listFeatures();
+    return allFeatures.filter((f) => f.projectId === projectId);
   }
   async getProject(id) {
     return this.project.getById(id);
@@ -2012,12 +2205,12 @@ var CardRegistry = class _CardRegistry {
   /**
    * 创建默认的卡片注册表（包含内置卡片）
    */
-  static createDefault() {
+  static createDefault(app) {
     const registry = new _CardRegistry();
     const { FeatureCard: FeatureCard2 } = (init_FeatureCard(), __toCommonJS(FeatureCard_exports));
     const { ProjectCard: ProjectCard2 } = (init_ProjectCard(), __toCommonJS(ProjectCard_exports));
     const { VersionCard: VersionCard2 } = (init_VersionCard(), __toCommonJS(VersionCard_exports));
-    registry.register(new FeatureCard2());
+    registry.register(new FeatureCard2(app));
     registry.register(new ProjectCard2());
     registry.register(new VersionCard2());
     return registry;
@@ -2179,7 +2372,7 @@ var Breadcrumb = class {
 };
 
 // src/ui/components/Button.ts
-var import_obsidian12 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 
 // src/modals/CreateVersionModal.ts
 var import_obsidian4 = require("obsidian");
@@ -2719,140 +2912,19 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
   }
 };
 
-// src/modals/QuickCreateModal.ts
-var import_obsidian7 = require("obsidian");
-init_constants();
-var QuickCreateModal = class extends import_obsidian7.Modal {
-  constructor(app, entityManager, defaultDate, onSubmit) {
-    super(app);
-    this.entityManager = entityManager;
-    this.defaultDate = defaultDate;
-    this.onSubmit = onSubmit;
-    this.result = {
-      name: "",
-      versionId: "",
-      projectId: "",
-      status: "backlog",
-      priority: "medium",
-      progress: 0,
-      tags: []
-    };
-    this.versions = [];
-    this.projects = [];
-    this.filteredProjects = [];
-  }
-  async onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    this.versions = await this.entityManager.listVersions();
-    this.projects = await this.entityManager.listProjects();
-    if (this.versions.length === 0 || this.projects.length === 0) {
-      contentEl.createEl("h2", { text: "\u5FEB\u901F\u521B\u5EFA\u7279\u6027" });
-      contentEl.createEl("p", {
-        text: "\u9700\u8981\u5148\u521B\u5EFA\u7248\u672C\u548C\u9879\u76EE",
-        cls: "pm-modal__warning"
-      });
-      const btn = contentEl.createEl("button", { text: "\u786E\u5B9A" });
-      btn.addEventListener("click", () => this.close());
-      return;
-    }
-    this.result.versionId = this.versions[0].id;
-    this.result.projectId = this.projects[0].id;
-    this.result.dueDate = this.defaultDate;
-    this.updateFilteredProjects();
-    contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
-    new import_obsidian7.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
-      text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
-      text.onChange((value) => {
-        this.result.name = value;
-      });
-      setTimeout(() => text.inputEl.focus(), 0);
-    });
-    new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
-      this.versions.forEach((v) => {
-        dropdown.addOption(v.id, v.name);
-      });
-      dropdown.setValue(this.result.versionId);
-      dropdown.onChange((value) => {
-        this.result.versionId = value;
-        this.updateFilteredProjects();
-        this.renderProjectDropdown();
-      });
-    });
-    const projectSetting = new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
-    this.projectDropdown = projectSetting.addDropdown((dropdown) => {
-      this.filteredProjects.forEach((p) => {
-        dropdown.addOption(p.id, p.name);
-      });
-      dropdown.setValue(this.result.projectId);
-      dropdown.onChange((value) => {
-        this.result.projectId = value;
-      });
-    });
-    new import_obsidian7.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-      FEATURE_STATUSES.forEach((s) => {
-        dropdown.addOption(s.value, s.label);
-      });
-      dropdown.setValue(this.result.status || "backlog");
-      dropdown.onChange((value) => {
-        this.result.status = value;
-      });
-    });
-    new import_obsidian7.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
-      PRIORITIES.forEach((p) => {
-        dropdown.addOption(p.value, p.label);
-      });
-      dropdown.setValue(this.result.priority || "medium");
-      dropdown.onChange((value) => {
-        this.result.priority = value;
-      });
-    });
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const createButton = buttonContainer.createEl("button", {
-      text: "\u521B\u5EFA",
-      cls: "mod-cta"
-    });
-    createButton.addEventListener("click", async () => {
-      if (!this.result.name.trim()) {
-        new import_obsidian7.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
-        return;
-      }
-      this.onSubmit(this.result);
-      this.close();
-    });
-  }
-  updateFilteredProjects() {
-    this.filteredProjects = this.projects.filter((p) => p.versionId === this.result.versionId);
-    if (this.filteredProjects.length > 0 && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
-      this.result.projectId = this.filteredProjects[0].id;
-    }
-  }
-  renderProjectDropdown() {
-    if (!this.projectDropdown)
-      return;
-    const dropdown = this.projectDropdown;
-    dropdown.selectEl.empty();
-    this.filteredProjects.forEach((p) => {
-      dropdown.addOption(p.id, p.name);
-    });
-    dropdown.setValue(this.result.projectId);
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
+// src/modals/index.ts
+init_QuickCreateModal();
+
+// src/modals/DeleteConfirmModal.ts
+var import_obsidian8 = require("obsidian");
 
 // src/modals/EditFeatureModal.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 init_constants();
 
 // src/modals/ConfirmModal.ts
-var import_obsidian8 = require("obsidian");
-var ConfirmModal = class extends import_obsidian8.Modal {
+var import_obsidian9 = require("obsidian");
+var ConfirmModal = class extends import_obsidian9.Modal {
   constructor(app, title, message, onConfirm, onCancel) {
     super(app);
     this.title = title;
@@ -2891,7 +2963,7 @@ var ConfirmModal = class extends import_obsidian8.Modal {
 };
 
 // src/utils/fileManager.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/utils/validator.ts
 init_constants();
@@ -2980,8 +3052,11 @@ function downloadICS(content, filename) {
   URL.revokeObjectURL(url);
 }
 
+// src/utils/index.ts
+init_avatar();
+
 // src/modals/EditFeatureModal.ts
-var EditFeatureModal = class extends import_obsidian10.Modal {
+var EditFeatureModal = class extends import_obsidian11.Modal {
   constructor(app, entityManager, feature, onSubmit, onDelete) {
     super(app);
     // 用于存储输入元素引用
@@ -3006,10 +3081,10 @@ var EditFeatureModal = class extends import_obsidian10.Modal {
     contentEl.empty();
     contentEl.addClass("pm-modal");
     contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
-    new import_obsidian10.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
+    new import_obsidian11.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    new import_obsidian10.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian11.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       FEATURE_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -3033,7 +3108,7 @@ var EditFeatureModal = class extends import_obsidian10.Modal {
         }
       });
     });
-    new import_obsidian10.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+    new import_obsidian11.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
       PRIORITIES.forEach((priority) => {
         dropdown.addOption(priority.value, priority.label);
       });
@@ -3042,10 +3117,10 @@ var EditFeatureModal = class extends import_obsidian10.Modal {
         this.result.priority = value;
       });
     });
-    new import_obsidian10.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+    new import_obsidian11.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
-    this.dueDateSetting = new import_obsidian10.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
+    this.dueDateSetting = new import_obsidian11.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
         type: "date",
@@ -3067,10 +3142,10 @@ var EditFeatureModal = class extends import_obsidian10.Modal {
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
       });
     });
-    new import_obsidian10.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian11.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian10.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
+    new import_obsidian11.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
       var _a;
       return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -3146,8 +3221,8 @@ var EditFeatureModal = class extends import_obsidian10.Modal {
 };
 
 // src/modals/ExportICSModal.ts
-var import_obsidian11 = require("obsidian");
-var ExportICSModal = class extends import_obsidian11.Modal {
+var import_obsidian12 = require("obsidian");
+var ExportICSModal = class extends import_obsidian12.Modal {
   constructor(app, entityManager) {
     super(app);
     this.entityManager = entityManager;
@@ -3166,7 +3241,7 @@ var ExportICSModal = class extends import_obsidian11.Modal {
     this.versions = await this.entityManager.listVersions();
     this.projects = await this.entityManager.listProjects();
     contentEl.createEl("h2", { text: "\u5BFC\u51FAICS\u90AE\u4EF6" });
-    new import_obsidian11.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
+    new import_obsidian12.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
       dropdown.addOption("all", "\u5168\u90E8\u7279\u6027");
       dropdown.addOption("version", "\u6309\u7248\u672C\u7B5B\u9009");
       dropdown.addOption("project", "\u6309\u9879\u76EE\u7B5B\u9009");
@@ -3184,7 +3259,7 @@ var ExportICSModal = class extends import_obsidian11.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u7248\u672C\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian11.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
+        new import_obsidian12.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
           var _a;
           this.versions.forEach((v) => {
             dropdown.addOption(v.id, v.name);
@@ -3200,7 +3275,7 @@ var ExportICSModal = class extends import_obsidian11.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u9879\u76EE\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian11.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
+        new import_obsidian12.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
           var _a;
           this.projects.forEach((p) => {
             dropdown.addOption(p.id, p.name);
@@ -3228,21 +3303,21 @@ var ExportICSModal = class extends import_obsidian11.Modal {
     if (this.exportScope === "version") {
       const versionId = this.selectedVersionId;
       if (!versionId) {
-        new import_obsidian11.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
+        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
         return;
       }
       features = features.filter((f) => f.versionId === versionId);
     } else if (this.exportScope === "project") {
       const projectId = this.selectedProjectId;
       if (!projectId) {
-        new import_obsidian11.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
+        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
         return;
       }
       features = features.filter((f) => f.projectId === projectId);
     }
     const featuresWithDueDate = features.filter((f) => f.dueDate);
     if (featuresWithDueDate.length === 0) {
-      new import_obsidian11.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
+      new import_obsidian12.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
       return;
     }
     let filename = "\u9879\u76EE\u7BA1\u7406_\u622A\u6B62\u65E5\u671F";
@@ -3257,7 +3332,7 @@ var ExportICSModal = class extends import_obsidian11.Modal {
     }
     const icsContent = generateICS(featuresWithDueDate);
     downloadICS(icsContent, filename);
-    new import_obsidian11.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
+    new import_obsidian12.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
     this.close();
   }
   onClose() {
@@ -3399,10 +3474,10 @@ var Button = class {
    * 显示通知
    */
   showNotice(message, timeout = 4e3) {
-    new import_obsidian12.Notice(message, timeout);
+    new import_obsidian13.Notice(message, timeout);
   }
 };
-var ButtonContainer = class extends import_obsidian12.MarkdownRenderChild {
+var ButtonContainer = class extends import_obsidian13.MarkdownRenderChild {
   constructor(containerEl, button) {
     super(containerEl);
     this.button = button;
@@ -3427,7 +3502,7 @@ var ButtonContainer = class extends import_obsidian12.MarkdownRenderChild {
 };
 
 // src/ui/components/ProgressInput.ts
-var import_obsidian13 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 var ProgressInput = class {
   constructor(app) {
     this.app = app;
@@ -3528,7 +3603,7 @@ var ProgressInput = class {
     }, 5e3);
   }
 };
-var ProgressInputContainer = class extends import_obsidian13.MarkdownRenderChild {
+var ProgressInputContainer = class extends import_obsidian14.MarkdownRenderChild {
   constructor(containerEl, progressInput) {
     super(containerEl);
     this.progressInput = progressInput;
@@ -3897,8 +3972,8 @@ var ActionService = class {
    */
   async showConfirmDialog(title, message) {
     return new Promise((resolve) => {
-      const { Modal: Modal8, ButtonComponent } = require("obsidian");
-      class ConfirmModal2 extends Modal8 {
+      const { Modal: Modal9, ButtonComponent: ButtonComponent2 } = require("obsidian");
+      class ConfirmModal2 extends Modal9 {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl("h2", { text: title });
@@ -3908,11 +3983,11 @@ var ActionService = class {
           buttonContainer.style.justifyContent = "flex-end";
           buttonContainer.style.gap = "10px";
           buttonContainer.style.marginTop = "20px";
-          new ButtonComponent(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
+          new ButtonComponent2(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
             resolve(false);
             this.close();
           });
-          new ButtonComponent(buttonContainer).setButtonText("\u786E\u8BA4").setCta().onClick(() => {
+          new ButtonComponent2(buttonContainer).setButtonText("\u786E\u8BA4").setCta().onClick(() => {
             resolve(true);
             this.close();
           });
@@ -4224,6 +4299,7 @@ var BaseRenderer = class {
 };
 
 // src/view-engine/renderers/KanbanRenderer.ts
+init_avatar();
 var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
@@ -4265,7 +4341,7 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
   renderStatusBoard(container, entities) {
     const board = container.createDiv("pm-kanban-board");
     _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
-      const columnEl = this.createColumn(board, column.label, column.color);
+      const columnEl = this.createColumn(board, column.label, column.color, false, column.id);
       const columnEntities = entities.filter(
         (e) => "status" in e && e.status === column.id
       );
@@ -4321,7 +4397,7 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
       header.createSpan({ cls: "pm-kanban-section-count", text: `(${groupEntities.length})` });
       const board = section.createDiv("pm-kanban-board pm-kanban-board-nested");
       _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
-        const columnEl = this.createColumn(board, column.label, column.color, true);
+        const columnEl = this.createColumn(board, column.label, column.color, true, column.id);
         const columnEntities = groupEntities.filter(
           (e) => "status" in e && e.status === column.id
         );
@@ -4341,7 +4417,7 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
   /**
    * 创建看板列
    */
-  createColumn(board, title, color, compact = false) {
+  createColumn(board, title, color, compact = false, statusId) {
     const column = board.createDiv("pm-kanban-column");
     if (compact) {
       column.addClass("pm-kanban-column-compact");
@@ -4352,8 +4428,62 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     titleEl.createSpan({ cls: "pm-kanban-column-dot", attr: { style: `background: ${color}` } });
     titleEl.createSpan({ text: title });
     header.createSpan({ cls: "pm-kanban-column-count", text: "0" });
-    column.createDiv("pm-kanban-cards");
+    const cardsContainer = column.createDiv("pm-kanban-cards");
+    if (statusId) {
+      this.setupDropZone(cardsContainer, statusId);
+    }
     return column;
+  }
+  /**
+   * 设置拖放区域
+   */
+  setupDropZone(container, statusId) {
+    container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      container.addClass("pm-kanban-drag-over");
+    });
+    container.addEventListener("dragleave", () => {
+      container.removeClass("pm-kanban-drag-over");
+    });
+    container.addEventListener("drop", async (e) => {
+      var _a, _b;
+      e.preventDefault();
+      container.removeClass("pm-kanban-drag-over");
+      const entityId = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain");
+      const entityType = (_b = e.dataTransfer) == null ? void 0 : _b.getData("entity-type");
+      if (entityId && entityType) {
+        await this.actionService.changeStatus(entityType, entityId, statusId);
+        const boardContainer = container.closest(".pm-kanban-view");
+        if (boardContainer) {
+          this.render(boardContainer);
+        }
+      }
+    });
+    const quickAddBtn = container.createDiv("pm-kanban-quick-add");
+    quickAddBtn.textContent = "+ \u65B0\u5EFA\u7279\u6027";
+    quickAddBtn.addEventListener("click", () => {
+      this.showQuickCreateModal(statusId);
+    });
+  }
+  /**
+   * 显示快速创建模态框
+   */
+  showQuickCreateModal(status) {
+    const { QuickCreateModal: QuickCreateModal2 } = (init_QuickCreateModal(), __toCommonJS(QuickCreateModal_exports));
+    new QuickCreateModal2(
+      this.app,
+      this.entityManager,
+      (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+      async (data) => {
+        try {
+          const featureData = { ...data, status };
+          await this.entityManager.createFeature(featureData);
+          this.render(document.querySelector(".pm-kanban-view"));
+        } catch (error) {
+          console.error("\u521B\u5EFA\u7279\u6027\u5931\u8D25:", error);
+        }
+      }
+    ).open();
   }
   /**
    * 渲染看板卡片
@@ -4362,6 +4492,20 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     const card = container.createDiv("pm-kanban-card");
     if (options == null ? void 0 : options.compact) {
       card.addClass("pm-kanban-card-compact");
+    }
+    const entityType = getEntityType(entity);
+    if (entityType === "feature" && "status" in entity) {
+      card.setAttribute("draggable", "true");
+      card.addClass("pm-kanban-card-draggable");
+      card.addEventListener("dragstart", (e) => {
+        var _a, _b;
+        (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
+        (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", entityType);
+        card.addClass("pm-kanban-card-dragging");
+      });
+      card.addEventListener("dragend", () => {
+        card.removeClass("pm-kanban-card-dragging");
+      });
     }
     const header = card.createDiv("pm-kanban-card-header");
     if ("priority" in entity && entity.priority) {
@@ -4389,7 +4533,15 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     }
     const footer = card.createDiv("pm-kanban-card-footer");
     if (entity.owner) {
-      footer.createSpan({ cls: "pm-kanban-card-owner", text: entity.owner });
+      const ownerEl = footer.createDiv({ cls: "pm-kanban-card-owner" });
+      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
+      if (avatar) {
+        ownerEl.appendChild(avatar);
+      }
+      ownerEl.createEl("span", {
+        cls: "pm-kanban-card-owner-name",
+        text: entity.owner
+      });
     }
     if ("dueDate" in entity && entity.dueDate && !(options == null ? void 0 : options.compact)) {
       const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
@@ -4473,6 +4625,7 @@ _KanbanRenderer.STATUS_COLUMNS = [
 var KanbanRenderer = _KanbanRenderer;
 
 // src/view-engine/renderers/GridRenderer.ts
+init_avatar();
 var GridRenderer = class extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
@@ -4577,9 +4730,14 @@ var GridRenderer = class extends BaseRenderer {
     }
     const footer = card.createDiv("pm-grid-card-footer");
     if (entity.owner) {
-      footer.createDiv({
-        cls: "pm-grid-card-owner",
-        text: `\u{1F464} ${entity.owner}`
+      const ownerEl = footer.createDiv({ cls: "pm-grid-card-owner" });
+      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
+      if (avatar) {
+        ownerEl.appendChild(avatar);
+      }
+      ownerEl.createEl("span", {
+        cls: "pm-grid-card-owner-name",
+        text: entity.owner
       });
     }
     if ("dueDate" in entity && entity.dueDate) {
@@ -5070,6 +5228,7 @@ var TimelineRenderer = class extends BaseRenderer {
 };
 
 // src/view-engine/renderers/CalendarRenderer.ts
+init_QuickCreateModal();
 var CalendarRenderer = class extends BaseRenderer {
   constructor(app, entityManager, cardRegistry, dataService, actionService) {
     super(app, entityManager, cardRegistry, dataService, actionService);
@@ -5835,10 +5994,10 @@ var CardRenderer = class extends BaseRenderer {
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
   async onload() {
     this.entityManager = new EntityManager(this.app);
-    this.cardRegistry = CardRegistry.createDefault();
+    this.cardRegistry = CardRegistry.createDefault(this.app);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
@@ -5891,7 +6050,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian15.TFile) {
+        if (file instanceof import_obsidian16.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -5899,7 +6058,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian15.TFile) {
+        if (file instanceof import_obsidian16.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -5940,7 +6099,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
    */
   async processKanbanBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian15.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
       const filter = {};
       if (oldConfig.version)
         filter.versionId = oldConfig.version;
@@ -5975,7 +6134,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
    */
   async processCardBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian15.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
       const result = await this.entityManager.findById(oldConfig.id);
       if (!result) {
         el.createEl("div", {
@@ -6010,7 +6169,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
    */
   async processGridBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian15.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
       const viewConfig = {
         mode: "grid",
         type: oldConfig.type || "feature",
@@ -6038,7 +6197,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
    */
   async processSelectorBlock(source, el, ctx) {
     try {
-      const oldConfig = (0, import_obsidian15.parseYaml)(source) || {};
+      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
       const viewConfig = {
         mode: "cascade-selector",
         cascadeSelector: {
@@ -6133,7 +6292,7 @@ var ProjectManagerPlugin = class extends import_obsidian15.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian15.TFile))
+    if (!(file instanceof import_obsidian16.TFile))
       return;
     const containerEl = ctx.containerEl;
     if (!containerEl)
