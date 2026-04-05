@@ -1,13 +1,16 @@
 import { BaseStore } from './BaseStore';
 import { FileSystem } from '../filesystem/FileSystem';
 import type { Project, CreateProjectData, UpdateProjectData } from '../../types';
+import type { EntityCache } from '../cache';
 import { App } from 'obsidian';
 
 export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdateProjectData> {
   private readonly FOLDER = 'ProjectManager/Projects';
+  private cache?: EntityCache;
 
-  constructor(fs: FileSystem, app: App) {
+  constructor(fs: FileSystem, app: App, cache?: EntityCache) {
     super(fs, app);
+    this.cache = cache;
   }
 
   private async writeTemplate(path: string, template: string): Promise<void> {
@@ -70,6 +73,12 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
   }
 
   async getById(id: string): Promise<Project | null> {
+    // 优先从缓存获取
+    if (this.cache) {
+      const cached = this.cache.getProject(id);
+      if (cached) return cached;
+    }
+    // 回退到列表查找
     const projects = await this.list();
     return projects.find(p => p.id === id) || null;
   }
@@ -82,13 +91,20 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
   }
 
   async list(filters?: { versionId?: string }): Promise<Project[]> {
-    const files = this.fs.listFiles(this.FOLDER);
-    let projects: Project[] = [];
-
-    for (const file of files) {
-      const fileData = await this.fs.readFile(file.path);
-      if (fileData?.frontmatter?.id) {
-        projects.push(fileData.frontmatter as unknown as Project);
+    let projects: Project[];
+    
+    // 优先从缓存获取
+    if (this.cache) {
+      projects = this.cache.getAllProjects();
+    } else {
+      // 回退到文件读取
+      const files = this.fs.listFiles(this.FOLDER);
+      projects = [];
+      for (const file of files) {
+        const fileData = await this.fs.readFile(file.path);
+        if (fileData?.frontmatter?.id) {
+          projects.push(fileData.frontmatter as unknown as Project);
+        }
       }
     }
 

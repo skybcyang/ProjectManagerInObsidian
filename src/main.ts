@@ -27,6 +27,12 @@ export default class ProjectManagerPlugin extends Plugin {
     this.progressInput = new ProgressInput(this.app);
     this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
 
+    // 初始化缓存
+    this.entityManager.initialize().then(() => {
+      const stats = this.entityManager.cache.getStats();
+      console.log('【ProjectManager】缓存初始化完成:', stats);
+    });
+
     // 注册代码块处理器：pm-view（新的统一视图）
     this.registerMarkdownCodeBlockProcessor('pm-view', this.processViewBlock.bind(this));
 

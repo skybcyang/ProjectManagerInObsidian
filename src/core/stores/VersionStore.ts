@@ -1,13 +1,16 @@
 import { BaseStore } from './BaseStore';
 import { FileSystem } from '../filesystem/FileSystem';
 import type { Version, CreateVersionData, UpdateVersionData } from '../../types';
+import type { EntityCache } from '../cache';
 import { App } from 'obsidian';
 
 export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVersionData> {
   private readonly FOLDER = 'ProjectManager/Versions';
+  private cache?: EntityCache;
 
-  constructor(fs: FileSystem, app: App) {
+  constructor(fs: FileSystem, app: App, cache?: EntityCache) {
     super(fs, app);
+    this.cache = cache;
   }
 
   private async writeTemplate(path: string, template: string): Promise<void> {
@@ -70,6 +73,12 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
   }
 
   async getById(id: string): Promise<Version | null> {
+    // 优先从缓存获取
+    if (this.cache) {
+      const cached = this.cache.getVersion(id);
+      if (cached) return cached;
+    }
+    // 回退到列表查找
     const versions = await this.list();
     return versions.find(v => v.id === id) || null;
   }
@@ -82,6 +91,11 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
   }
 
   async list(): Promise<Version[]> {
+    // 优先从缓存获取
+    if (this.cache) {
+      return this.cache.getAllVersions();
+    }
+    // 回退到文件读取
     const files = this.fs.listFiles(this.FOLDER);
     const versions: Version[] = [];
 

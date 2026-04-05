@@ -1,6 +1,7 @@
 import { App } from 'obsidian';
 import { FileSystem } from './filesystem';
 import { VersionStore, ProjectStore, FeatureStore } from './stores';
+import { EntityCache } from './cache';
 import type { Version, Project, Feature } from '../types';
 import type { CreateVersionData, UpdateVersionData } from '../types';
 import type { CreateProjectData, UpdateProjectData } from '../types';
@@ -14,12 +15,21 @@ export class EntityManager {
   readonly version: VersionStore;
   readonly project: ProjectStore;
   readonly feature: FeatureStore;
+  readonly cache: EntityCache;
 
   constructor(app: App) {
     const fs = new FileSystem(app);
-    this.version = new VersionStore(fs, app);
-    this.project = new ProjectStore(fs, app);
-    this.feature = new FeatureStore(fs, app);
+    this.cache = new EntityCache(app);
+    this.version = new VersionStore(fs, app, this.cache);
+    this.project = new ProjectStore(fs, app, this.cache);
+    this.feature = new FeatureStore(fs, app, this.cache);
+  }
+
+  /**
+   * 初始化缓存（插件加载时调用）
+   */
+  async initialize(): Promise<void> {
+    await this.cache.initialize();
   }
 
   // ==================== 版本操作 ====================

@@ -1,6 +1,8 @@
+import type { App } from 'obsidian';
 import type { CardComponent } from './CardRegistry';
 import type { Feature } from '../../types';
 import { getPriorityLabel } from '../../constants';
+import { getUserAvatarElement } from '../../utils/avatar';
 
 /**
  * 特性卡片组件
@@ -8,6 +10,11 @@ import { getPriorityLabel } from '../../constants';
  */
 export class FeatureCard implements CardComponent {
   readonly id = 'feature';
+  private app?: App;
+
+  constructor(app?: App) {
+    this.app = app;
+  }
 
   /**
    * 判断是否匹配特性实体
@@ -132,9 +139,16 @@ export class FeatureCard implements CardComponent {
 
     // 负责人
     if (feature.owner) {
-      footer.createEl('span', {
-        text: `👤 ${feature.owner}`,
-        cls: 'pm-card__owner',
+      const ownerEl = footer.createDiv({ cls: 'pm-card__owner' });
+      if (this.app) {
+        const avatar = getUserAvatarElement(this.app, feature.owner, 16);
+        if (avatar) {
+          ownerEl.appendChild(avatar);
+        }
+      }
+      ownerEl.createEl('span', {
+        text: feature.owner,
+        cls: 'pm-card__owner-name',
       });
     }
 

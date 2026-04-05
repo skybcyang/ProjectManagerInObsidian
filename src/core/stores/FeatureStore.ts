@@ -1,13 +1,16 @@
 import { BaseStore } from './BaseStore';
 import { FileSystem } from '../filesystem/FileSystem';
 import type { Feature, CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../../types';
+import type { EntityCache } from '../cache';
 import { App } from 'obsidian';
 
 export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFeatureData> {
   private readonly FOLDER = 'ProjectManager/Features';
+  private cache?: EntityCache;
 
-  constructor(fs: FileSystem, app: App) {
+  constructor(fs: FileSystem, app: App, cache?: EntityCache) {
     super(fs, app);
+    this.cache = cache;
   }
 
   private async writeTemplate(path: string, template: string): Promise<void> {
@@ -73,6 +76,12 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
   }
 
   async getById(id: string): Promise<Feature | null> {
+    // 优先从缓存获取
+    if (this.cache) {
+      const cached = this.cache.getFeature(id);
+      if (cached) return cached;
+    }
+    // 回退到列表查找
     const features = await this.list();
     return features.find(f => f.id === id) || null;
   }
@@ -85,13 +94,20 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
   }
 
   async list(filters?: { versionId?: string; projectId?: string; status?: FeatureStatus }): Promise<Feature[]> {
-    const files = this.fs.listFiles(this.FOLDER);
-    let features: Feature[] = [];
-
-    for (const file of files) {
-      const fileData = await this.fs.readFile(file.path);
-      if (fileData?.frontmatter?.id) {
-        features.push(fileData.frontmatter as unknown as Feature);
+    let features: Feature[];
+    
+    // 优先从缓存获取
+    if (this.cache) {
+      features = this.cache.getAllFeatures();
+    } else {
+      // 回退到文件读取
+      const files = this.fs.listFiles(this.FOLDER);
+      features = [];
+      for (const file of files) {
+        const fileData = await this.fs.readFile(file.path);
+        if (fileData?.frontmatter?.id) {
+          features.push(fileData.frontmatter as unknown as Feature);
+        }
       }
     }
 

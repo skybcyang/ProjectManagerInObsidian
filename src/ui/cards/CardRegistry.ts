@@ -1,3 +1,4 @@
+import type { App } from 'obsidian';
 import type { Version, Project, Feature } from '../../types';
 
 /**
