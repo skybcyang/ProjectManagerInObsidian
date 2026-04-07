@@ -34,49 +34,42 @@ pm-dashboard: true
 
 # \u{1F4CA} \u9879\u76EE\u7BA1\u7406\u603B\u89C8
 
-> \u6700\u540E\u66F4\u65B0: {{date}} \xB7 \u7CFB\u7EDF\u72B6\u6001: \u6B63\u5E38\u8FD0\u884C
+> \u6700\u540E\u66F4\u65B0: {{createTime}}
 
 ---
 
 ## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
 
---- start-multi-column: ID_quick_actions
-\`\`\`column-settings
-Number of Columns: 4
-Largest Column: standard
-Border: off
-\`\`\`
-
-<span class="pm-btn pm-btn--primary" data-action="create-version">\u{1F4E6} \u521B\u5EFA\u7248\u672C</span>
-
---- column-break ---
-
-<span class="pm-btn pm-btn--primary" data-action="create-project">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
-
---- column-break ---
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature">\u2728 \u521B\u5EFA\u7279\u6027</span>
-
---- column-break ---
-
-<span class="pm-btn" data-action="export-ics">\u{1F4C5} \u5BFC\u51FAICS</span>
-
---- end-multi-column
+- [[#\u{1F4E6} \u7248\u672C\u7BA1\u7406|\u{1F4E6} \u521B\u5EFA\u7248\u672C]]
+- [[#\u{1F4C1} \u9879\u76EE\u7BA1\u7406|\u{1F4C1} \u521B\u5EFA\u9879\u76EE]]
+- [[#\u2728 \u7279\u6027\u7BA1\u7406|\u2728 \u521B\u5EFA\u7279\u6027]]
 
 ---
 
-## \u{1F4E6} \u7248\u672C\u6982\u89C8
+## \u{1F4E6} \u7248\u672C\u7BA1\u7406
 
-\`\`\`pm-selector
-type: version
+\`\`\`pm-view
+mode: list
+entityType: version
 \`\`\`
 
 ---
 
-## \u{1F4C1} \u9879\u76EE\u6982\u89C8
+## \u{1F4C1} \u9879\u76EE\u7BA1\u7406
 
-\`\`\`pm-selector
-type: project
+\`\`\`pm-view
+mode: grid
+entityType: project
+\`\`\`
+
+---
+
+## \u2728 \u7279\u6027\u7BA1\u7406
+
+\`\`\`pm-view
+mode: kanban
+entityType: feature
+groupBy: status
 \`\`\`
 
 ---
@@ -86,6 +79,7 @@ type: project
     DEFAULT_VERSION_TEMPLATE = `---
 id: {{id}}
 name: {{name}}
+type: version
 status: {{status}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
@@ -96,8 +90,11 @@ status: {{status}}
 
 # \u{1F4E6} {{name}}
 
-> \u7248\u672C ID: {{id}} | \u72B6\u6001: {{status}}
-
+> **\u72B6\u6001**: {{status}} | **ID**: {{id}}
+{{#if owner}}> **\u8D1F\u8D23\u4EBA**: @{{owner}}
+{{/if}}{{#if startDate}}> **\u5F00\u59CB\u65E5\u671F**: {{startDate}}
+{{/if}}{{#if endDate}}> **\u76EE\u6807\u65E5\u671F**: {{endDate}}
+{{/if}}
 ---
 
 ## \u{1F3AF} \u7248\u672C\u76EE\u6807
@@ -114,28 +111,9 @@ status: {{status}}
 
 ## \u{1F4CA} \u8FDB\u5EA6\u6982\u89C8
 
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "{{id}}");
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "{{id}}");
-const completed = features.filter(f => f.status === 'completed').length;
-const progress = features.length > 0 ? Math.round((completed / features.length) * 100) : 0;
-
-dv.el('div', \`
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700;">\${projects.length}</div>
-    <div style="font-size: 12px; color: var(--text-muted);">\u5173\u8054\u9879\u76EE</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700;">\${features.length}</div>
-    <div style="font-size: 12px; color: var(--text-muted);">\u603B\u7279\u6027</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 32px; font-weight: 700; color: var(--interactive-accent);">\${progress}%</div>
-    <div style="font-size: 12px; color: var(--text-muted);">\u5B8C\u6210\u5EA6</div>
-  </div>
-</div>
-\`);
+\`\`\`pm-view
+mode: cascade
+versionId: {{id}}
 \`\`\`
 
 ---
@@ -144,9 +122,8 @@ dv.el('div', \`
 
 \`\`\`pm-view
 mode: grid
-type: project
-filter:
-  versionId: {{id}}
+entityType: project
+versionId: {{id}}
 \`\`\`
 
 ---
@@ -155,64 +132,56 @@ filter:
 
 \`\`\`pm-view
 mode: kanban
-type: feature
-filter:
-  versionId: {{id}}
+entityType: feature
+versionId: {{id}}
 groupBy: status
 \`\`\`
+
+---
+
+## \u{1F4DD} \u7248\u672C\u5907\u6CE8
+
+<!-- \u8BB0\u5F55\u7248\u672C\u76F8\u5173\u7684\u91CD\u8981\u4FE1\u606F -->
 `;
     DEFAULT_PROJECT_TEMPLATE = `---
 id: {{id}}
 name: {{name}}
+type: project
 versionId: {{versionId}}
 status: {{status}}
+priority: {{priority}}
 {{#if owner}}owner: {{owner}}
-{{/if}}priority: {{priority}}
-tags:
+{{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
 
 # {{priorityEmoji}} {{name}}
 
-> \u9879\u76EE ID: {{id}} | \u72B6\u6001: {{status}} | \u4F18\u5148\u7EA7: {{priority}}
-
+> **\u72B6\u6001**: {{status}} | **\u4F18\u5148\u7EA7**: {{priority}} | **ID**: {{id}}
+{{#if owner}}> **\u8D1F\u8D23\u4EBA**: @{{owner}}
+{{/if}}
 ---
 
 ## \u{1F4CB} \u9879\u76EE\u6982\u89C8
 
 <!-- \u5728\u6B64\u63CF\u8FF0\u9879\u76EE\u7684\u80CC\u666F\u3001\u76EE\u6807\u548C\u8303\u56F4 -->
 
+### \u76EE\u6807\u63CF\u8FF0
+
+<!-- \u9879\u76EE\u7684\u6838\u5FC3\u76EE\u6807 -->
+
+### \u8303\u56F4\u8FB9\u754C
+
+<!-- \u9879\u76EE\u7684\u8303\u56F4\u8FB9\u754C\uFF0C\u5305\u542B\u4EC0\u4E48\u548C\u4E0D\u5305\u542B\u4EC0\u4E48 -->
+
 ---
 
 ## \u{1F4CA} \u8FDB\u5EA6\u7EDF\u8BA1
 
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "{{id}}");
-const total = features.length;
-const completed = features.filter(f => f.status === 'completed').length;
-const inProgress = features.filter(f => f.status === 'in-progress' || f.status === 'testing').length;
-const avgProgress = total > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / total) : 0;
-
-dv.el('div', \`
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700;">\${total}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">\u603B\u7279\u6027</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--text-success);">\${completed}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">\u5DF2\u5B8C\u6210</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--text-accent);">\${inProgress}</div>
-    <div style="font-size: 11px; color: var(--text-muted);">\u8FDB\u884C\u4E2D</div>
-  </div>
-  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-    <div style="font-size: 28px; font-weight: 700; color: var(--interactive-accent);">\${avgProgress}%</div>
-    <div style="font-size: 11px; color: var(--text-muted);">\u5E73\u5747\u8FDB\u5EA6</div>
-  </div>
-</div>
-\`);
+\`\`\`pm-view
+mode: list
+entityType: feature
+projectId: {{id}}
 \`\`\`
 
 ---
@@ -221,15 +190,21 @@ dv.el('div', \`
 
 \`\`\`pm-view
 mode: kanban
-type: feature
-filter:
-  projectId: {{id}}
+entityType: feature
+projectId: {{id}}
 groupBy: status
 \`\`\`
+
+---
+
+## \u{1F4DD} \u9879\u76EE\u5907\u6CE8
+
+<!-- \u8BB0\u5F55\u9879\u76EE\u76F8\u5173\u7684\u91CD\u8981\u4FE1\u606F\u3001\u51B3\u7B56\u3001\u4F1A\u8BAE\u7EAA\u8981\u7B49 -->
 `;
     DEFAULT_FEATURE_TEMPLATE = `---
 id: {{id}}
 name: {{name}}
+type: feature
 versionId: {{versionId}}
 projectId: {{projectId}}
 status: {{status}}
@@ -237,35 +212,46 @@ priority: {{priority}}
 progress: {{progress}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if dueDate}}dueDate: {{dueDate}}
-{{/if}}{{#if tags}}tags: [{{#each tags}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}]
-{{/if}}---
+{{/if}}tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
 
 # {{priorityEmoji}} {{statusEmoji}} {{name}}
 
-<!-- \u7279\u6027\u5143\u6570\u636E\u5DF2\u5728\u4E0A\u65B9 YAML \u4E2D\u5B9A\u4E49 -->
+> **\u72B6\u6001**: {{status}} | **\u4F18\u5148\u7EA7**: {{priority}} | **\u8FDB\u5EA6**: {{progress}}%
+> **ID**: {{id}}
+{{#if owner}}> **\u8D1F\u8D23\u4EBA**: @{{owner}}
+{{/if}}{{#if dueDate}}> **\u622A\u6B62\u65E5\u671F**: {{dueDate}}
+{{/if}}
+---
 
-## \u{1F4CB} \u9700\u6C42 AR \u5217\u8868
+## \u{1F4CB} \u9700\u6C42\u63CF\u8FF0
 
-| AR \u7F16\u53F7 | \u63CF\u8FF0 | \u72B6\u6001 |
-|---------|------|------|
-| AR001 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u2705 \u5DF2\u5B8C\u6210 |
-| AR002 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u{1F504} \u8FDB\u884C\u4E2D |
-| AR003 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u23F3 \u672A\u5F00\u59CB |
+<!-- \u8BE6\u7EC6\u63CF\u8FF0\u672C\u7279\u6027\u7684\u9700\u6C42\u80CC\u666F\u3001\u7528\u6237\u6545\u4E8B\u3001\u9A8C\u6536\u6807\u51C6 -->
 
-**AR \u72B6\u6001\u8BF4\u660E**: \u2705 \u5DF2\u5B8C\u6210 | \u{1F504} \u8FDB\u884C\u4E2D | \u23F3 \u672A\u5F00\u59CB | \u274C \u5DF2\u53D6\u6D88
+### \u7528\u6237\u6545\u4E8B
 
-## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988
+\u4F5C\u4E3A [\u89D2\u8272]\uFF0C\u6211\u5E0C\u671B [\u529F\u80FD]\uFF0C\u4EE5\u4FBF [\u4EF7\u503C]
+
+### \u9A8C\u6536\u6807\u51C6
+
+- [ ] \u9A8C\u6536\u6807\u51C61
+- [ ] \u9A8C\u6536\u6807\u51C62
+- [ ] \u9A8C\u6536\u6807\u51C63
+
+---
+
+## \u{1F4DD} \u8FDB\u5C55\u8BB0\u5F55
 
 ### \u5386\u53F2\u8BB0\u5F55
-<!-- \u8FDB\u5C55\u5C06\u81EA\u52A8\u8BB0\u5F55\u5728\u8FD9\u91CC -->
 - [{{createTime}}] \u7279\u6027\u521B\u5EFA
 
-### \u6DFB\u52A0\u65B0\u8FDB\u5C55
-<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\uFF0C\u6309 Enter \u4FDD\u5B58...">
+### \u6700\u65B0\u8FDB\u5C55
+<!-- \u8BB0\u5F55\u6700\u65B0\u8FDB\u5C55 -->
 
-## \u{1F4C5} \u5BF9\u9F50\u8BA1\u5212
+---
 
-### \u91CC\u7A0B\u7891\u8282\u70B9
+## \u{1F4C5} \u91CC\u7A0B\u7891\u8BA1\u5212
 
 | \u8282\u70B9 | \u8BA1\u5212\u65E5\u671F | \u5B9E\u9645\u65E5\u671F | \u72B6\u6001 |
 |------|----------|----------|------|
@@ -276,103 +262,54 @@ progress: {{progress}}
 | \u6D4B\u8BD5\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
 | \u4E0A\u7EBF\u53D1\u5E03 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
 
-## \u{1F465} \u5468\u8FB9\u56E2\u961F\u4E0E\u8D1F\u8D23\u4EBA
+---
+
+## \u{1F465} \u56E2\u961F\u4E0E\u534F\u4F5C
 
 ### \u6838\u5FC3\u56E2\u961F
 
-| \u89D2\u8272 | \u8D1F\u8D23\u4EBA | \u56E2\u961F/\u90E8\u95E8 |
-|------|--------|-----------|
-| \u4EA7\u54C1\u7ECF\u7406 | <!-- @\u59D3\u540D --> | \u4EA7\u54C1\u90E8 |
-| \u524D\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u524D\u7AEF\u7EC4 |
-| \u540E\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u540E\u7AEF\u7EC4 |
-| \u6D4B\u8BD5\u5DE5\u7A0B\u5E08 | <!-- @\u59D3\u540D --> | QA\u7EC4 |
-| UI/UX\u8BBE\u8BA1 | <!-- @\u59D3\u540D --> | \u8BBE\u8BA1\u7EC4 |
+| \u89D2\u8272 | \u8D1F\u8D23\u4EBA | \u5907\u6CE8 |
+|------|--------|------|
+| \u4EA7\u54C1\u7ECF\u7406 | <!-- @\u59D3\u540D --> | |
+| \u5F00\u53D1\u8D1F\u8D23\u4EBA | <!-- @\u59D3\u540D --> | |
+| \u6D4B\u8BD5\u8D1F\u8D23\u4EBA | <!-- @\u59D3\u540D --> | |
 
 ### \u4F9D\u8D56\u534F\u4F5C
 
-- [ ] \u8FD0\u7EF4\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u5B89\u5168\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u6570\u636E\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u6CD5\u52A1\u5408\u89C4 - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+- [ ] \u534F\u4F5C\u65B91 - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+- [ ] \u534F\u4F5C\u65B92 - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+
+---
 
 ## \u{1F4BB} \u5F00\u53D1\u72B6\u6001
 
 ### \u4EE3\u7801\u4FE1\u606F
 
-- **Change ID**: <!-- \u4EE3\u7801\u53D8\u66F4ID -->
 - **\u5F00\u53D1\u5206\u652F**: \`feature/{{id}}\`
-- **\u76EE\u6807\u5206\u652F**: \`main\`
-- **MR/PR \u94FE\u63A5**: <!-- \u586B\u5165 Merge Request \u6216 Pull Request \u94FE\u63A5 -->
+- **MR/PR \u94FE\u63A5**: <!-- \u586B\u5165\u94FE\u63A5 -->
 
 ### \u5404\u9636\u6BB5\u72B6\u6001
 
-#### \u{1F528} \u5F00\u53D1\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u8D1F\u8D23\u4EBA**: <!-- @\u5F00\u53D1\u4EBA\u5458 -->
-- **\u5B8C\u6210\u5EA6**: {{progress}}%
-- **\u5907\u6CE8**: <!-- \u5F00\u53D1\u5907\u6CE8 -->
+- **\u5F00\u53D1**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u8054\u8C03**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u6D4B\u8BD5**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u6587\u6863**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u4EE3\u7801\u68C0\u89C6**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u901A\u8FC7
+- **\u5408\u5165**: \u2B1C \u672A\u5408\u5E76 / \u{1F7E1} \u5408\u5E76\u4E2D / \u{1F7E2} \u5DF2\u5408\u5E76
 
-#### \u{1F517} \u8054\u8C03\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u8D1F\u8D23\u4EBA**: <!-- @\u8054\u8C03\u8D1F\u8D23\u4EBA -->
-- **\u963B\u585E\u95EE\u9898**: <!-- \u8BB0\u5F55\u8054\u8C03\u963B\u585E\u95EE\u9898 -->
-- **\u4F9D\u8D56\u670D\u52A1**: <!-- \u5217\u51FA\u4F9D\u8D56\u7684\u5176\u4ED6\u670D\u52A1/\u63A5\u53E3 -->
+---
 
-#### \u{1F9EA} \u8F6C\u6D4B\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210 / \u{1F534} \u6709\u963B\u585E
-- **\u6D4B\u8BD5\u8D1F\u8D23\u4EBA**: <!-- @\u6D4B\u8BD5\u4EBA\u5458 -->
-- **Bug \u7EDF\u8BA1**:
-  - \u{1F534} P0 \u963B\u585E: 0
-  - \u{1F7E0} P1 \u4E25\u91CD: 0
-  - \u{1F7E1} P2 \u4E00\u822C: 0
-  - \u{1F7E2} P3 \u8F7B\u5FAE: 0
-- **\u6D4B\u8BD5\u62A5\u544A**: <!-- \u94FE\u63A5\u5230\u6D4B\u8BD5\u62A5\u544A -->
+## \u{1F41B} \u95EE\u9898\u8BB0\u5F55
 
-#### \u{1F4D6} \u6587\u6863\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u6587\u6863\u6E05\u5355**:
-  - [ ] API \u63A5\u53E3\u6587\u6863
-  - [ ] \u4F7F\u7528\u624B\u518C
-  - [ ] \u90E8\u7F72\u6587\u6863
-  - [ ] \u53D8\u66F4\u65E5\u5FD7
+| \u95EE\u9898 | \u4F18\u5148\u7EA7 | \u72B6\u6001 | \u5907\u6CE8 |
+|------|--------|------|------|
+| <!-- \u95EE\u9898\u63CF\u8FF0 --> | P0/P1/P2 | \u5F85\u5904\u7406/\u5904\u7406\u4E2D/\u5DF2\u89E3\u51B3 | |
 
-#### \u{1F440} \u4EE3\u7801\u68C0\u89C6
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u901A\u8FC7 / \u{1F534} \u9700\u4FEE\u6539
-- **\u68C0\u89C6\u4EBA**: <!-- @\u68C0\u89C6\u4EBA -->
-- **\u68C0\u89C6\u610F\u89C1**: <!-- \u8BB0\u5F55\u68C0\u89C6\u610F\u89C1 -->
-- **\u68C0\u89C6\u94FE\u63A5**: <!-- \u4EE3\u7801\u68C0\u89C6\u5DE5\u5177\u94FE\u63A5 -->
-
-#### \u{1F500} \u5408\u5165\u5206\u652F
-- **\u72B6\u6001**: \u2B1C \u672A\u5408\u5E76 / \u{1F7E1} \u5408\u5E76\u4E2D / \u{1F7E2} \u5DF2\u5408\u5E76 / \u{1F534} \u51B2\u7A81
-- **MR/PR \u72B6\u6001**: <!-- \u5F00\u542F/\u5DF2\u5408\u5E76/\u5DF2\u5173\u95ED -->
-- **\u5408\u5E76\u51B2\u7A81**: <!-- \u6709\u5219\u8BB0\u5F55\u51B2\u7A81\u8BE6\u60C5 -->
-- **\u56DE\u6EDA\u65B9\u6848**: <!-- \u8BB0\u5F55\u56DE\u6EDA\u65B9\u6848 -->
-
-## \u{1F517} \u5173\u8054\u4FE1\u606F
-
-### \u6240\u5C5E\u9879\u76EE
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.id === "{{projectId}}");
-if (projects.length > 0) {
-  dv.paragraph("> \u{1F4C1} \u6240\u5C5E\u9879\u76EE: [[" + projects[0].file.path + "|" + projects[0].name + "]]");
-} else {
-  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u9879\u76EE");
-}
-\`\`\`
-
-### \u6240\u5C5E\u7248\u672C
-\`\`\`dataviewjs
-const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "{{versionId}}");
-if (versions.length > 0) {
-  dv.paragraph("> \u{1F4E6} \u6240\u5C5E\u7248\u672C: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
-} else {
-  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u7248\u672C");
-}
-\`\`\`
+---
 
 ## \u{1F3F7}\uFE0F \u6807\u7B7E
 
-{{#if tags}}{{#each tags}}#{{this}} {{/each}}{{else}}<!-- \u6DFB\u52A0\u6807\u7B7E -->{{/if}}
+{{#if tags}}{{#each tags}}#{{this}} {{/each}}{{/if}}
 
 ---
 *\u521B\u5EFA\u4E8E: {{createTime}}*
