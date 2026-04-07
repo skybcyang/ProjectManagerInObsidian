@@ -291,10 +291,43 @@ export class EntityCache {
 
   /**
    * 处理文件删除
+   * 从缓存中删除对应的实体
    */
   private handleFileDelete(file: TFile): void {
-    // 简化为下次 list 时重新加载
-    // 或者可以通过路径反查 ID
+    const path = file.path;
+    
+    // 通过文件名查找并删除对应缓存
+    // 文件名格式: 版本名.md / 版本名-项目名.md / 版本名-项目名-特性名.md
+    const fileName = file.basename;
+    
+    if (path.startsWith('ProjectManager/Versions/')) {
+      // 查找匹配的版本缓存
+      for (const [id, version] of this.versionCache.entries()) {
+        if (version.name === fileName) {
+          this.versionCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith('ProjectManager/Projects/')) {
+      // 查找匹配的项目缓存
+      for (const [id, project] of this.projectCache.entries()) {
+        // 项目文件名格式: 版本名-项目名
+        const expectedName = `${project.name}`;
+        if (fileName.endsWith(expectedName) || fileName === expectedName) {
+          this.projectCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith('ProjectManager/Features/')) {
+      // 查找匹配的特性缓存
+      for (const [id, feature] of this.featureCache.entries()) {
+        // 特性文件名格式: 版本名-项目名-特性名
+        if (fileName.endsWith(feature.name)) {
+          this.featureCache.delete(id);
+          break;
+        }
+      }
+    }
   }
 
   /**

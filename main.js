@@ -1921,8 +1921,34 @@ var EntityCache = class {
   }
   /**
    * 处理文件删除
+   * 从缓存中删除对应的实体
    */
   handleFileDelete(file) {
+    const path = file.path;
+    const fileName = file.basename;
+    if (path.startsWith("ProjectManager/Versions/")) {
+      for (const [id, version] of this.versionCache.entries()) {
+        if (version.name === fileName) {
+          this.versionCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith("ProjectManager/Projects/")) {
+      for (const [id, project] of this.projectCache.entries()) {
+        const expectedName = `${project.name}`;
+        if (fileName.endsWith(expectedName) || fileName === expectedName) {
+          this.projectCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith("ProjectManager/Features/")) {
+      for (const [id, feature] of this.featureCache.entries()) {
+        if (fileName.endsWith(feature.name)) {
+          this.featureCache.delete(id);
+          break;
+        }
+      }
+    }
   }
   /**
    * 处理文件重命名
