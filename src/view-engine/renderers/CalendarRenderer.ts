@@ -39,11 +39,24 @@ export class CalendarRenderer extends BaseRenderer {
       (e) => 'dueDate' in e && e.dueDate
     ) as Entity[];
 
+    // DEBUG: 显示加载的实体数量
+    const debugInfo = container.createDiv('pm-calendar-debug');
+    debugInfo.style.cssText = 'padding: 8px; background: var(--background-modifier-form-field); margin-bottom: 8px; font-size: 12px;';
+    debugInfo.textContent = `加载实体: ${entities.length}, 过滤后: ${filtered.length}, 有日期: ${datedEntities.length}`;
+    
+    // DEBUG: 显示前5个实体的日期
+    if (datedEntities.length > 0) {
+      const sampleDates = datedEntities.slice(0, 5).map(e => (e as any).dueDate).join(', ');
+      const sampleEl = container.createDiv('pm-calendar-debug-sample');
+      sampleEl.style.cssText = 'padding: 4px 8px; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;';
+      sampleEl.textContent = `示例日期: ${sampleDates}`;
+    }
+
     // 创建日历容器
     const calendarContainer = container.createDiv('pm-calendar-container');
 
-    // 渲染月历
-    await this.renderMonthCalendar(calendarContainer, datedEntities);
+    // 渲染月历（传入 viewContainer 用于刷新）
+    await this.renderMonthCalendar(calendarContainer, datedEntities, container);
   }
 
   /**
@@ -51,7 +64,8 @@ export class CalendarRenderer extends BaseRenderer {
    */
   private async renderMonthCalendar(
     container: HTMLElement,
-    entities: Entity[]
+    entities: Entity[],
+    viewContainer: HTMLElement
   ): Promise<void> {
     const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
@@ -63,7 +77,7 @@ export class CalendarRenderer extends BaseRenderer {
     prevBtn.textContent = '◀';
     prevBtn.onclick = () => {
       this.currentDate.setMonth(month - 1);
-      this.render(container.parentElement!);
+      this.render(viewContainer);
     };
 
     const title = header.createDiv('pm-calendar-title');
@@ -73,14 +87,14 @@ export class CalendarRenderer extends BaseRenderer {
     nextBtn.textContent = '▶';
     nextBtn.onclick = () => {
       this.currentDate.setMonth(month + 1);
-      this.render(container.parentElement!);
+      this.render(viewContainer);
     };
 
     const todayBtn = header.createEl('button', { cls: 'pm-calendar-today-btn' });
     todayBtn.textContent = '今天';
     todayBtn.onclick = () => {
       this.currentDate = new Date();
-      this.render(container.parentElement!);
+      this.render(viewContainer);
     };
 
     // 星期标题
@@ -124,7 +138,10 @@ export class CalendarRenderer extends BaseRenderer {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayEntities = entities.filter((e) => {
         const entityDate = (e as any).dueDate;
-        return entityDate === dateStr;
+        if (!entityDate) return false;
+        // 处理 ISO 格式 (2026-04-08T00:00:00.000Z) 和简单格式 (2026-04-08)
+        const normalizedDate = entityDate.split('T')[0];
+        return normalizedDate === dateStr;
       });
 
       // 渲染实体列表
@@ -146,8 +163,8 @@ export class CalendarRenderer extends BaseRenderer {
           async (data) => {
             try {
               await this.entityManager.createFeature(data);
-              // 刷新视图
-              this.render(container);
+              // 刷新视图（使用 viewContainer 而不是 calendarContainer）
+              this.render(viewContainer);
             } catch (error) {
               console.error('创建特性失败:', error);
             }
@@ -173,36 +190,25 @@ export class CalendarRenderer extends BaseRenderer {
     const entityType = getEntityType(entity);
     const wrapper = container.createDiv('pm-calendar-card-wrapper');
 
-    // 使用 EntityCard 组件
-    // 日历视图：从配置读取，但日期格子空间极小
-    const cardFields = this.config.cardFields || { required: ['name', 'priority'], optional: ['status'] };
-    const required = cardFields.required || ['name', 'priority'];
-    const optional = cardFields.optional || [];
-    const allFields = [...required, ...optional];
+    // 简化版本：直接显示名称，确保可见
+    const simpleCard = wrapper.createDiv('pm-calendar-simple-item');
+    simpleCard.style.cssText = `
+      padding: 4px 6px;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    `;
+    simpleCard.textContent = entity.name;
+    simpleCard.title = `${entity.name} (${(entity as any).dueDate})`;
     
-    const entityCard = new EntityCard(this.app);
-    entityCard.render(
-      wrapper,
-      entity,
-      {
-        showPriority: allFields.includes('priority'),
-        showStatus: allFields.includes('status'),
-        showProgress: false, // 日历空间不足，强制不显示
-        showOwner: false,
-        showDueDate: false,
-        showTags: false,
-        showParent: false,
-        showDescription: false,
-        showTypeIcon: false,
-        showStats: false,
-        showActions: false,
-        smallTitle: true,
-      },
-      {
-        onOpen: () => {
-          this.actionService.openEntity(entityType as EntityType, entity.id);
-        },
-      }
-    );
+    simpleCard.addEventListener('click', () => {
+      this.actionService.openEntity(entityType as EntityType, entity.id);
+    });
   }
 }

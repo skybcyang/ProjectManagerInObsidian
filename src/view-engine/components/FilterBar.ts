@@ -67,7 +67,7 @@ export class FilterBar {
   }
 
   /**
-   * 渲染筛选器 - 长条卡片式，筛选在上，视图在下
+   * 渲染筛选器 - 横向紧凑卡片式，6个筛选+重置按钮排成一排
    */
   render(parent: HTMLElement, initialFilters?: Partial<ViewConfig>): HTMLElement {
     this.container = parent.createDiv('pm-filter-container');
@@ -76,14 +76,11 @@ export class FilterBar {
       this.filters = { ...this.filters, ...initialFilters };
     }
 
-    // 筛选器卡片
-    const filterCard = this.container.createDiv('pm-filter-card');
+    // 筛选器横向条
+    const filterBar = this.container.createDiv('pm-filter-bar-compact');
 
-    // 中间：6个下拉栏（横向排列）
-    const filtersRow = filterCard.createDiv('pm-filter-row');
-
-    // 版本
-    this.createSelect(filtersRow, '版本', this.versions, this.filters.version || '', (value) => {
+    // 版本筛选
+    this.createSelectCompact(filterBar, '版本', this.versions, this.filters.version || '', (value) => {
       this.filters.version = value || undefined;
       this.filters.project = undefined;
       this.filters.feature = undefined;
@@ -91,59 +88,44 @@ export class FilterBar {
       this.updateProjectOptions();
     });
 
-    // 分隔线
-    filtersRow.createDiv('pm-filter-divider');
-
-    // 项目
-    this.createSelect(filtersRow, '项目', this.projects, this.filters.project || '', (value) => {
+    // 项目筛选
+    this.createSelectCompact(filterBar, '项目', this.projects, this.filters.project || '', (value) => {
       this.filters.project = value || undefined;
       this.filters.feature = undefined;
       this.onFilterChange();
       this.updateFeatureOptions();
     });
 
-    // 分隔线
-    filtersRow.createDiv('pm-filter-divider');
-
-    // 特性
-    this.createSelect(filtersRow, '特性', this.features, this.filters.feature || '', (value) => {
+    // 特性筛选
+    this.createSelectCompact(filterBar, '特性', this.features, this.filters.feature || '', (value) => {
       this.filters.feature = value || undefined;
       this.onFilterChange();
     });
 
-    // 分隔线
-    filtersRow.createDiv('pm-filter-divider');
-
-    // 状态
-    this.createSelect(filtersRow, '状态', this.statusOptions, this.filters.status || '', (value) => {
+    // 状态筛选
+    this.createSelectCompact(filterBar, '状态', this.statusOptions, this.filters.status || '', (value) => {
       this.filters.status = value || undefined;
       this.onFilterChange();
     });
 
-    // 分隔线
-    filtersRow.createDiv('pm-filter-divider');
-
-    // 优先级
-    this.createSelect(filtersRow, '优先级', this.priorityOptions, this.filters.priority || '', (value) => {
+    // 优先级筛选
+    this.createSelectCompact(filterBar, '优先级', this.priorityOptions, this.filters.priority || '', (value) => {
       this.filters.priority = value || undefined;
       this.onFilterChange();
     });
 
-    // 分隔线
-    filtersRow.createDiv('pm-filter-divider');
-
-    // 负责人
-    this.createSelect(filtersRow, '负责人', 
+    // 负责人筛选
+    this.createSelectCompact(filterBar, '负责人', 
       this.owners.map(o => ({ value: o === '全部负责人' ? '' : o, label: o })), 
       this.filters.owner || '', (value) => {
         this.filters.owner = value || undefined;
         this.onFilterChange();
       });
 
-    // 右侧：重置按钮
-    const resetBtn = filterCard.createEl('button', {
-      cls: 'pm-filter-action',
-      text: '重置',
+    // 重置按钮
+    const resetBtn = filterBar.createEl('button', {
+      cls: 'pm-filter-reset-compact',
+      text: '↺ 重置',
     });
     resetBtn.addEventListener('click', () => {
       this.resetFilters();
@@ -297,6 +279,45 @@ export class FilterBar {
     
     const select = wrapper.createEl('select', { cls: 'pm-filter-select' });
     options.forEach(opt => {
+      const option = select.createEl('option', {
+        text: opt.label,
+        value: opt.value,
+      });
+      if (opt.value === value) {
+        option.selected = true;
+      }
+    });
+
+    select.addEventListener('change', () => {
+      onChange(select.value);
+    });
+
+    return wrapper;
+  }
+
+  /**
+   * 创建紧凑版下拉选择器（无标签，placeholder形式）
+   */
+  private createSelectCompact(
+    container: HTMLElement,
+    placeholder: string,
+    options: Array<{ value: string; label: string }>,
+    value: string,
+    onChange: (value: string) => void
+  ): HTMLElement {
+    const wrapper = container.createDiv('pm-filter-field-compact');
+    
+    const select = wrapper.createEl('select', { cls: 'pm-filter-select-compact' });
+    
+    // 添加 placeholder 选项
+    const placeholderOption = select.createEl('option', {
+      text: placeholder,
+      value: '',
+    });
+    placeholderOption.disabled = true;
+    
+    options.forEach(opt => {
+      if (opt.value === '') return; // 跳过已添加的 placeholder
       const option = select.createEl('option', {
         text: opt.label,
         value: opt.value,

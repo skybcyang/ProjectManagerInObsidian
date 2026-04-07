@@ -4135,47 +4135,41 @@ var FilterBar = class {
     this.owners = ["\u5168\u90E8\u8D1F\u8D23\u4EBA", ...Array.from(ownersSet).sort()];
   }
   /**
-   * 渲染筛选器 - 长条卡片式，筛选在上，视图在下
+   * 渲染筛选器 - 横向紧凑卡片式，6个筛选+重置按钮排成一排
    */
   render(parent, initialFilters) {
     this.container = parent.createDiv("pm-filter-container");
     if (initialFilters) {
       this.filters = { ...this.filters, ...initialFilters };
     }
-    const filterCard = this.container.createDiv("pm-filter-card");
-    const filtersRow = filterCard.createDiv("pm-filter-row");
-    this.createSelect(filtersRow, "\u7248\u672C", this.versions, this.filters.version || "", (value) => {
+    const filterBar = this.container.createDiv("pm-filter-bar-compact");
+    this.createSelectCompact(filterBar, "\u7248\u672C", this.versions, this.filters.version || "", (value) => {
       this.filters.version = value || void 0;
       this.filters.project = void 0;
       this.filters.feature = void 0;
       this.onFilterChange();
       this.updateProjectOptions();
     });
-    filtersRow.createDiv("pm-filter-divider");
-    this.createSelect(filtersRow, "\u9879\u76EE", this.projects, this.filters.project || "", (value) => {
+    this.createSelectCompact(filterBar, "\u9879\u76EE", this.projects, this.filters.project || "", (value) => {
       this.filters.project = value || void 0;
       this.filters.feature = void 0;
       this.onFilterChange();
       this.updateFeatureOptions();
     });
-    filtersRow.createDiv("pm-filter-divider");
-    this.createSelect(filtersRow, "\u7279\u6027", this.features, this.filters.feature || "", (value) => {
+    this.createSelectCompact(filterBar, "\u7279\u6027", this.features, this.filters.feature || "", (value) => {
       this.filters.feature = value || void 0;
       this.onFilterChange();
     });
-    filtersRow.createDiv("pm-filter-divider");
-    this.createSelect(filtersRow, "\u72B6\u6001", this.statusOptions, this.filters.status || "", (value) => {
+    this.createSelectCompact(filterBar, "\u72B6\u6001", this.statusOptions, this.filters.status || "", (value) => {
       this.filters.status = value || void 0;
       this.onFilterChange();
     });
-    filtersRow.createDiv("pm-filter-divider");
-    this.createSelect(filtersRow, "\u4F18\u5148\u7EA7", this.priorityOptions, this.filters.priority || "", (value) => {
+    this.createSelectCompact(filterBar, "\u4F18\u5148\u7EA7", this.priorityOptions, this.filters.priority || "", (value) => {
       this.filters.priority = value || void 0;
       this.onFilterChange();
     });
-    filtersRow.createDiv("pm-filter-divider");
-    this.createSelect(
-      filtersRow,
+    this.createSelectCompact(
+      filterBar,
       "\u8D1F\u8D23\u4EBA",
       this.owners.map((o) => ({ value: o === "\u5168\u90E8\u8D1F\u8D23\u4EBA" ? "" : o, label: o })),
       this.filters.owner || "",
@@ -4184,9 +4178,9 @@ var FilterBar = class {
         this.onFilterChange();
       }
     );
-    const resetBtn = filterCard.createEl("button", {
-      cls: "pm-filter-action",
-      text: "\u91CD\u7F6E"
+    const resetBtn = filterBar.createEl("button", {
+      cls: "pm-filter-reset-compact",
+      text: "\u21BA \u91CD\u7F6E"
     });
     resetBtn.addEventListener("click", () => {
       this.resetFilters();
@@ -4299,6 +4293,33 @@ var FilterBar = class {
     const wrapper = container.createDiv("pm-filter-field");
     const select = wrapper.createEl("select", { cls: "pm-filter-select" });
     options.forEach((opt) => {
+      const option = select.createEl("option", {
+        text: opt.label,
+        value: opt.value
+      });
+      if (opt.value === value) {
+        option.selected = true;
+      }
+    });
+    select.addEventListener("change", () => {
+      onChange(select.value);
+    });
+    return wrapper;
+  }
+  /**
+   * 创建紧凑版下拉选择器（无标签，placeholder形式）
+   */
+  createSelectCompact(container, placeholder, options, value, onChange) {
+    const wrapper = container.createDiv("pm-filter-field-compact");
+    const select = wrapper.createEl("select", { cls: "pm-filter-select-compact" });
+    const placeholderOption = select.createEl("option", {
+      text: placeholder,
+      value: ""
+    });
+    placeholderOption.disabled = true;
+    options.forEach((opt) => {
+      if (opt.value === "")
+        return;
       const option = select.createEl("option", {
         text: opt.label,
         value: opt.value
@@ -4689,249 +4710,6 @@ var ProgressPicker = class {
     }
     this.menu.style.top = `${top}px`;
     this.menu.style.left = `${left}px`;
-  }
-};
-
-// src/view-engine/components/EntityCard.ts
-var EntityCard = class {
-  constructor(app) {
-    this.app = app;
-  }
-  /**
-   * 渲染实体卡片
-   */
-  render(container, entity, options, callbacks) {
-    const entityType = getEntityType(entity);
-    const card = container.createDiv("pm-entity-card");
-    card.addClass(`pm-entity-card--${entityType}`);
-    if (options.selected) {
-      card.addClass("pm-entity-card--selected");
-    }
-    if (options.draggable && entityType === "feature") {
-      card.setAttribute("draggable", "true");
-      card.addClass("pm-entity-card--draggable");
-      this.setupDragEvents(card, entity, callbacks);
-    }
-    this.renderHeader(card, entity, options);
-    this.renderBody(card, entity, options);
-    this.renderFooter(card, entity, options);
-    if (options.showActions) {
-      this.renderActions(card, entity, options, callbacks);
-    }
-    card.addEventListener("click", () => {
-      var _a;
-      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
-    });
-    return card;
-  }
-  /**
-   * 渲染卡片头部
-   */
-  renderHeader(card, entity, options) {
-    const header = card.createDiv("pm-entity-card__header");
-    const entityType = getEntityType(entity);
-    if (options.showPriority && "priority" in entity && entity.priority) {
-      const priorityEl = header.createSpan("pm-entity-card__priority");
-      priorityEl.addClass(`pm-entity-card__priority--${entity.priority}`);
-    }
-    if (options.showTypeIcon) {
-      const iconEl = header.createSpan("pm-entity-card__type-icon");
-      iconEl.textContent = getEntityIcon(entityType);
-    }
-    const titleEl = header.createEl(options.smallTitle ? "span" : "h3", {
-      cls: "pm-entity-card__title"
-    });
-    titleEl.textContent = entity.name;
-    if (options.showStatus && "status" in entity && entity.status) {
-      const statusEl = header.createSpan("pm-entity-card__status");
-      statusEl.addClass(`pm-status-badge--${entity.status}`);
-      statusEl.textContent = translateStatus(entity.status);
-    }
-  }
-  /**
-   * 渲染卡片主体
-   */
-  renderBody(card, entity, options) {
-    if (!options.showParent && !options.showDescription && !options.showTags)
-      return;
-    const body = card.createDiv("pm-entity-card__body");
-    const entityType = getEntityType(entity);
-    if (options.showParent && entityType === "feature") {
-      const feature = entity;
-      if (feature.projectId || feature.versionId) {
-        const parentEl = body.createDiv("pm-entity-card__parent");
-        if (feature.projectId) {
-          parentEl.textContent = feature.projectId;
-        } else if (feature.versionId) {
-          parentEl.textContent = feature.versionId;
-        }
-      }
-    }
-    if (options.showDescription && "description" in entity && entity.description) {
-      const descEl = body.createDiv("pm-entity-card__description");
-      const descText = String(entity.description);
-      descEl.textContent = descText.length > 100 ? descText.substring(0, 100) + "..." : descText;
-    }
-    if (options.showTags && "tags" in entity && entity.tags && entity.tags.length > 0) {
-      const tagsEl = body.createDiv("pm-entity-card__tags");
-      const limit = 3;
-      entity.tags.slice(0, limit).forEach((tag) => {
-        tagsEl.createSpan({ cls: "pm-entity-card__tag", text: tag });
-      });
-      if (entity.tags.length > limit) {
-        tagsEl.createSpan({
-          cls: "pm-entity-card__tag-more",
-          text: `+${entity.tags.length - limit}`
-        });
-      }
-    }
-  }
-  /**
-   * 渲染卡片底部
-   */
-  renderFooter(card, entity, options) {
-    const footer = card.createDiv("pm-entity-card__footer");
-    const entityType = getEntityType(entity);
-    const metaLeft = footer.createDiv("pm-entity-card__meta-left");
-    if (options.showOwner && entity.owner) {
-      const ownerEl = metaLeft.createDiv("pm-entity-card__owner");
-      ownerEl.textContent = entity.owner;
-    }
-    if (options.showDueDate && "dueDate" in entity && entity.dueDate) {
-      const overdue = isOverdue(entity.dueDate, "status" in entity ? entity.status : void 0);
-      const dueEl = metaLeft.createDiv("pm-entity-card__due");
-      dueEl.textContent = DateFormat.medium(entity.dueDate);
-      if (overdue) {
-        dueEl.addClass("pm-entity-card__due--overdue");
-      }
-    }
-    const metaRight = footer.createDiv("pm-entity-card__meta-right");
-    if (options.showProgress && entityType === "feature" && "progress" in entity) {
-      const progress = entity.progress || 0;
-      const progressEl = metaRight.createDiv("pm-entity-card__progress");
-      const trackEl = progressEl.createDiv("pm-entity-card__progress-track");
-      const fillEl = trackEl.createDiv("pm-entity-card__progress-fill");
-      fillEl.style.width = `${progress}%`;
-      progressEl.createSpan({
-        cls: "pm-entity-card__progress-text",
-        text: `${progress}%`
-      });
-    }
-    if (options.showStats && (entityType === "version" || entityType === "project")) {
-      if ("stats" in entity && entity.stats) {
-        const stats = entity.stats;
-        if (stats.total > 0) {
-          const statsEl = metaRight.createDiv("pm-entity-card__stats");
-          statsEl.textContent = `${stats.completed || 0}/${stats.total}`;
-        }
-      }
-    }
-    if (!metaRight.hasChildNodes()) {
-      metaRight.remove();
-    }
-    if (!metaLeft.hasChildNodes()) {
-      metaLeft.remove();
-    }
-  }
-  /**
-   * 渲染操作按钮
-   */
-  renderActions(card, entity, options, callbacks) {
-    const actions = card.createDiv("pm-entity-card__actions");
-    if ("status" in entity) {
-      const statusBtn = actions.createEl("button", {
-        cls: "pm-entity-card__action-btn",
-        attr: { title: "\u53D8\u66F4\u72B6\u6001" }
-      });
-      statusBtn.textContent = "\u26A1";
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity, statusBtn, callbacks);
-      };
-    }
-    if (getEntityType(entity) === "feature" && options.showProgress) {
-      const progressBtn = actions.createEl("button", {
-        cls: "pm-entity-card__action-btn",
-        attr: { title: "\u66F4\u65B0\u8FDB\u5EA6" }
-      });
-      progressBtn.textContent = "\u{1F4CA}";
-      progressBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressPicker(entity, progressBtn, callbacks);
-      };
-    }
-    if (getEntityType(entity) === "feature") {
-      const noteBtn = actions.createEl("button", {
-        cls: "pm-entity-card__action-btn",
-        attr: { title: "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988" }
-      });
-      noteBtn.textContent = "\u{1F4DD}";
-      noteBtn.onclick = (e) => {
-        var _a;
-        e.stopPropagation();
-        (_a = callbacks == null ? void 0 : callbacks.onAddNote) == null ? void 0 : _a.call(callbacks, entity);
-      };
-    }
-    const openBtn = actions.createEl("button", {
-      cls: "pm-entity-card__action-btn",
-      attr: { title: "\u6253\u5F00\u6587\u4EF6" }
-    });
-    openBtn.textContent = "\u2197";
-    openBtn.onclick = (e) => {
-      var _a;
-      e.stopPropagation();
-      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
-    };
-  }
-  /**
-   * 设置拖拽事件
-   */
-  setupDragEvents(card, entity, callbacks) {
-    card.addEventListener("dragstart", (e) => {
-      var _a, _b, _c;
-      (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
-      (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", getEntityType(entity));
-      card.addClass("pm-entity-card--dragging");
-      (_c = callbacks == null ? void 0 : callbacks.onDragStart) == null ? void 0 : _c.call(callbacks, entity, e);
-    });
-    card.addEventListener("dragend", (e) => {
-      var _a;
-      card.removeClass("pm-entity-card--dragging");
-      (_a = callbacks == null ? void 0 : callbacks.onDragEnd) == null ? void 0 : _a.call(callbacks, entity, e);
-    });
-  }
-  /**
-   * 显示状态选择器
-   */
-  showStatusPicker(entity, triggerEl, callbacks) {
-    if (!this.statusPicker) {
-      this.statusPicker = new StatusPicker();
-    }
-    this.statusPicker.show(
-      triggerEl,
-      "status" in entity ? entity.status : void 0,
-      (status) => {
-        var _a;
-        (_a = callbacks == null ? void 0 : callbacks.onStatusChange) == null ? void 0 : _a.call(callbacks, entity, status);
-      }
-    );
-  }
-  /**
-   * 显示进度选择器
-   */
-  showProgressPicker(entity, triggerEl, callbacks) {
-    if (!this.progressPicker) {
-      this.progressPicker = new ProgressPicker();
-    }
-    const currentProgress = entity.progress || 0;
-    this.progressPicker.show(
-      triggerEl,
-      currentProgress,
-      (progress) => {
-        var _a;
-        (_a = callbacks == null ? void 0 : callbacks.onProgressChange) == null ? void 0 : _a.call(callbacks, entity, progress);
-      }
-    );
   }
 };
 
@@ -6248,13 +6026,22 @@ var CalendarRenderer = class extends BaseRenderer {
     const datedEntities = filtered.filter(
       (e) => "dueDate" in e && e.dueDate
     );
+    const debugInfo = container.createDiv("pm-calendar-debug");
+    debugInfo.style.cssText = "padding: 8px; background: var(--background-modifier-form-field); margin-bottom: 8px; font-size: 12px;";
+    debugInfo.textContent = `\u52A0\u8F7D\u5B9E\u4F53: ${entities.length}, \u8FC7\u6EE4\u540E: ${filtered.length}, \u6709\u65E5\u671F: ${datedEntities.length}`;
+    if (datedEntities.length > 0) {
+      const sampleDates = datedEntities.slice(0, 5).map((e) => e.dueDate).join(", ");
+      const sampleEl = container.createDiv("pm-calendar-debug-sample");
+      sampleEl.style.cssText = "padding: 4px 8px; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;";
+      sampleEl.textContent = `\u793A\u4F8B\u65E5\u671F: ${sampleDates}`;
+    }
     const calendarContainer = container.createDiv("pm-calendar-container");
-    await this.renderMonthCalendar(calendarContainer, datedEntities);
+    await this.renderMonthCalendar(calendarContainer, datedEntities, container);
   }
   /**
    * 渲染月历
    */
-  async renderMonthCalendar(container, entities) {
+  async renderMonthCalendar(container, entities, viewContainer) {
     const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
     const header = container.createDiv("pm-calendar-header");
@@ -6262,7 +6049,7 @@ var CalendarRenderer = class extends BaseRenderer {
     prevBtn.textContent = "\u25C0";
     prevBtn.onclick = () => {
       this.currentDate.setMonth(month - 1);
-      this.render(container.parentElement);
+      this.render(viewContainer);
     };
     const title = header.createDiv("pm-calendar-title");
     title.textContent = `${year}\u5E74${month + 1}\u6708`;
@@ -6270,13 +6057,13 @@ var CalendarRenderer = class extends BaseRenderer {
     nextBtn.textContent = "\u25B6";
     nextBtn.onclick = () => {
       this.currentDate.setMonth(month + 1);
-      this.render(container.parentElement);
+      this.render(viewContainer);
     };
     const todayBtn = header.createEl("button", { cls: "pm-calendar-today-btn" });
     todayBtn.textContent = "\u4ECA\u5929";
     todayBtn.onclick = () => {
       this.currentDate = /* @__PURE__ */ new Date();
-      this.render(container.parentElement);
+      this.render(viewContainer);
     };
     const weekdays = container.createDiv("pm-calendar-weekdays");
     const weekNames = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
@@ -6303,7 +6090,10 @@ var CalendarRenderer = class extends BaseRenderer {
       const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const dayEntities = entities.filter((e) => {
         const entityDate = e.dueDate;
-        return entityDate === dateStr;
+        if (!entityDate)
+          return false;
+        const normalizedDate = entityDate.split("T")[0];
+        return normalizedDate === dateStr;
       });
       if (dayEntities.length > 0) {
         const list = dayCell.createDiv("pm-calendar-day-list");
@@ -6321,7 +6111,7 @@ var CalendarRenderer = class extends BaseRenderer {
           async (data) => {
             try {
               await this.entityManager.createFeature(data);
-              this.render(container);
+              this.render(viewContainer);
             } catch (error) {
               console.error("\u521B\u5EFA\u7279\u6027\u5931\u8D25:", error);
             }
@@ -6343,35 +6133,24 @@ var CalendarRenderer = class extends BaseRenderer {
   renderCalendarItem(container, entity) {
     const entityType = getEntityType(entity);
     const wrapper = container.createDiv("pm-calendar-card-wrapper");
-    const cardFields = this.config.cardFields || { required: ["name", "priority"], optional: ["status"] };
-    const required = cardFields.required || ["name", "priority"];
-    const optional = cardFields.optional || [];
-    const allFields = [...required, ...optional];
-    const entityCard = new EntityCard(this.app);
-    entityCard.render(
-      wrapper,
-      entity,
-      {
-        showPriority: allFields.includes("priority"),
-        showStatus: allFields.includes("status"),
-        showProgress: false,
-        // 日历空间不足，强制不显示
-        showOwner: false,
-        showDueDate: false,
-        showTags: false,
-        showParent: false,
-        showDescription: false,
-        showTypeIcon: false,
-        showStats: false,
-        showActions: false,
-        smallTitle: true
-      },
-      {
-        onOpen: () => {
-          this.actionService.openEntity(entityType, entity.id);
-        }
-      }
-    );
+    const simpleCard = wrapper.createDiv("pm-calendar-simple-item");
+    simpleCard.style.cssText = `
+      padding: 4px 6px;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    `;
+    simpleCard.textContent = entity.name;
+    simpleCard.title = `${entity.name} (${entity.dueDate})`;
+    simpleCard.addEventListener("click", () => {
+      this.actionService.openEntity(entityType, entity.id);
+    });
   }
 };
 
@@ -6585,8 +6364,9 @@ var ViewEngine = class {
         // 实体类型筛选
         entityType: parsed.entityType || "feature",
         // 单实体筛选（旧版兼容）
-        version: parsed.version,
-        project: parsed.project,
+        // 支持 version/versionId, project/projectId 两种写法
+        version: parsed.version || parsed.versionId,
+        project: parsed.project || parsed.projectId,
         feature: parsed.feature,
         // 新版组合筛选
         filters: parsed.filters,

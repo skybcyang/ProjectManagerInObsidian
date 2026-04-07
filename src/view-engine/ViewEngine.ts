@@ -326,8 +326,9 @@ export class ViewEngine {
         entityType: parsed.entityType || 'feature',
 
         // 单实体筛选（旧版兼容）
-        version: parsed.version,
-        project: parsed.project,
+        // 支持 version/versionId, project/projectId 两种写法
+        version: parsed.version || parsed.versionId,
+        project: parsed.project || parsed.projectId,
         feature: parsed.feature,
 
         // 新版组合筛选
