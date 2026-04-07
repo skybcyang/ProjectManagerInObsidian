@@ -233,6 +233,9 @@ progress: {{progress}}
 ### 最新进展
 <!-- 记录最新进展 -->
 
+### 添加新进展
+<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="输入当前进展，按 Enter 保存...">
+
 ---
 
 ## 📅 里程碑计划

@@ -249,6 +249,9 @@ progress: {{progress}}
 ### \u6700\u65B0\u8FDB\u5C55
 <!-- \u8BB0\u5F55\u6700\u65B0\u8FDB\u5C55 -->
 
+### \u6DFB\u52A0\u65B0\u8FDB\u5C55
+<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\uFF0C\u6309 Enter \u4FDD\u5B58...">
+
 ---
 
 ## \u{1F4C5} \u91CC\u7A0B\u7891\u8BA1\u5212
