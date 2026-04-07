@@ -271,14 +271,12 @@ progress: {{progress}}
 
 ## \u{1F4C5} \u91CC\u7A0B\u7891\u8BA1\u5212
 
-| \u8282\u70B9 | \u8BA1\u5212\u65E5\u671F | \u5B9E\u9645\u65E5\u671F | \u72B6\u6001 |
-|------|----------|----------|------|
-| \u9700\u6C42\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u8BBE\u8BA1\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u5F00\u53D1\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u8054\u8C03\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u6D4B\u8BD5\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u4E0A\u7EBF\u53D1\u5E03 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+- [ ] **\u9700\u6C42\u8BC4\u5BA1** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
+- [ ] **\u8BBE\u8BA1\u8BC4\u5BA1** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
+- [ ] **\u5F00\u53D1\u5B8C\u6210** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
+- [ ] **\u8054\u8C03\u5B8C\u6210** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
+- [ ] **\u6D4B\u8BD5\u5B8C\u6210** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
+- [ ] **\u4E0A\u7EBF\u53D1\u5E03** - \u8BA1\u5212: <!-- YYYY-MM-DD --> / \u5B9E\u9645: <!-- YYYY-MM-DD -->
 
 ---
 
@@ -286,11 +284,9 @@ progress: {{progress}}
 
 ### \u6838\u5FC3\u56E2\u961F
 
-| \u89D2\u8272 | \u8D1F\u8D23\u4EBA | \u5907\u6CE8 |
-|------|--------|------|
-| \u4EA7\u54C1\u7ECF\u7406 | <!-- @\u59D3\u540D --> | |
-| \u5F00\u53D1\u8D1F\u8D23\u4EBA | <!-- @\u59D3\u540D --> | |
-| \u6D4B\u8BD5\u8D1F\u8D23\u4EBA | <!-- @\u59D3\u540D --> | |
+- **\u4EA7\u54C1\u7ECF\u7406**: <!-- @\u59D3\u540D -->
+- **\u5F00\u53D1\u8D1F\u8D23\u4EBA**: <!-- @\u59D3\u540D -->
+- **\u6D4B\u8BD5\u8D1F\u8D23\u4EBA**: <!-- @\u59D3\u540D -->
 
 ### \u4F9D\u8D56\u534F\u4F5C
 
@@ -355,9 +351,17 @@ progress: {{progress}}
 
 ## \u{1F41B} \u95EE\u9898\u8BB0\u5F55
 
-| \u95EE\u9898 | \u4F18\u5148\u7EA7 | \u72B6\u6001 | \u5907\u6CE8 |
-|------|--------|------|------|
-| <!-- \u95EE\u9898\u63CF\u8FF0 --> | P0/P1/P2 | \u5F85\u5904\u7406/\u5904\u7406\u4E2D/\u5DF2\u89E3\u51B3 | |
+### \u95EE\u98981
+- **\u63CF\u8FF0**: <!-- \u95EE\u9898\u63CF\u8FF0 -->
+- **\u4F18\u5148\u7EA7**: P0/P1/P2
+- **\u72B6\u6001**: \u5F85\u5904\u7406/\u5904\u7406\u4E2D/\u5DF2\u89E3\u51B3
+- **\u5907\u6CE8**: 
+
+### \u95EE\u98982
+- **\u63CF\u8FF0**: 
+- **\u4F18\u5148\u7EA7**: 
+- **\u72B6\u6001**: 
+- **\u5907\u6CE8**: 
 
 ---
 
