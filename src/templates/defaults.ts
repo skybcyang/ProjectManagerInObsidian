@@ -18,9 +18,28 @@ pm-dashboard: true
 
 ## 🚀 快速操作
 
-- [[#📦 版本管理|📦 创建版本]]
-- [[#📁 项目管理|📁 创建项目]]
-- [[#✨ 特性管理|✨ 创建特性]]
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 4
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-version">📦 创建版本</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-project">📁 创建项目</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature">✨ 创建特性</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="export-ics">📅 导出ICS</span>
+
+--- end-multi-column
 
 ---
 
@@ -80,8 +99,20 @@ status: {{status}}
 
 ## 🚀 快速操作
 
-- <span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">📁 创建项目</span>
-- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">✨ 创建特性</span>
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">📁 创建项目</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">✨ 创建特性</span>
+
+--- end-multi-column
 
 ---
 
@@ -155,7 +186,16 @@ priority: {{priority}}
 
 ## 🚀 快速操作
 
-- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">✨ 创建特性</span>
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 1
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">✨ 创建特性</span>
+
+--- end-multi-column
 
 ---
 

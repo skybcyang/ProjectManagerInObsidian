@@ -40,9 +40,28 @@ pm-dashboard: true
 
 ## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
 
-- [[#\u{1F4E6} \u7248\u672C\u7BA1\u7406|\u{1F4E6} \u521B\u5EFA\u7248\u672C]]
-- [[#\u{1F4C1} \u9879\u76EE\u7BA1\u7406|\u{1F4C1} \u521B\u5EFA\u9879\u76EE]]
-- [[#\u2728 \u7279\u6027\u7BA1\u7406|\u2728 \u521B\u5EFA\u7279\u6027]]
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 4
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-version">\u{1F4E6} \u521B\u5EFA\u7248\u672C</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-project">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature">\u2728 \u521B\u5EFA\u7279\u6027</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="export-ics">\u{1F4C5} \u5BFC\u51FAICS</span>
+
+--- end-multi-column
 
 ---
 
@@ -100,8 +119,20 @@ status: {{status}}
 
 ## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
 
-- <span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
-- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+
+--- end-multi-column
 
 ---
 
@@ -173,7 +204,16 @@ priority: {{priority}}
 
 ## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
 
-- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 1
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+
+--- end-multi-column
 
 ---
 
