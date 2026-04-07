@@ -1048,6 +1048,13 @@ var BaseStore = class {
     const random = Math.random().toString(36).substring(2, 6);
     return `${prefix}${timestamp}${random}`;
   }
+  /**
+   * 生成安全的文件名
+   * 移除非法字符，限制长度
+   */
+  sanitizeFileName(name) {
+    return name.replace(/[\\/:*?"<>|]/g, "").trim().substring(0, 100);
+  }
 };
 
 // src/core/stores/VersionStore.ts
@@ -1089,7 +1096,8 @@ var VersionStore = class extends BaseStore {
       endDate: data.endDate,
       tags: data.tags || []
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    const fileName = this.sanitizeFileName(data.name);
+    const path = `${this.FOLDER}/${fileName}.md`;
     const content = await this.templateService.renderVersionTemplate({
       id: version.id,
       name: version.name,
@@ -1111,7 +1119,14 @@ var VersionStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    let path = await this.findFilePathById(id);
+    if (data.name && data.name !== existing.name) {
+      const newFileName = this.sanitizeFileName(data.name);
+      path = `${this.FOLDER}/${newFileName}.md`;
+    }
+    if (!path) {
+      throw new Error(`\u627E\u4E0D\u5230\u7248\u672C ${id} \u7684\u6587\u4EF6`);
+    }
     const content = await this.templateService.renderVersionTemplate({
       id: updated.id,
       name: updated.name,
@@ -1125,8 +1140,10 @@ var VersionStore = class extends BaseStore {
     return updated;
   }
   async delete(id) {
-    const path = `${this.FOLDER}/${id}.md`;
-    await this.fs.deleteFile(path);
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
     return true;
   }
   async getById(id) {
@@ -1139,10 +1156,24 @@ var VersionStore = class extends BaseStore {
     return versions.find((v) => v.id === id) || null;
   }
   /**
+   * 根据ID查找文件路径（兼容旧版ID文件名和新版name文件名）
+   */
+  async findFilePathById(id) {
+    var _a;
+    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(this.FOLDER));
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+  /**
    * 根据ID获取文件路径
    */
-  getPath(id) {
-    return `${this.FOLDER}/${id}.md`;
+  async getPath(id) {
+    return this.findFilePathById(id);
   }
   async list() {
     var _a;
@@ -1204,6 +1235,7 @@ var ProjectStore = class extends BaseStore {
     }
   }
   async create(data) {
+    var _a;
     const id = this.generateId("proj");
     const project = {
       id,
@@ -1214,7 +1246,17 @@ var ProjectStore = class extends BaseStore {
       priority: data.priority || "medium",
       tags: data.tags || []
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    let versionName = "";
+    try {
+      const versionFile = this.app.vault.getAbstractFileByPath(`ProjectManager/Versions/${data.versionId}.md`);
+      if (versionFile) {
+        const metadata = this.app.metadataCache.getFileCache(versionFile);
+        versionName = ((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.name) || "";
+      }
+    } catch (e) {
+    }
+    const fileName = versionName ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(data.name)}` : this.sanitizeFileName(data.name);
+    const path = `${this.FOLDER}/${fileName}.md`;
     const content = await this.templateService.renderProjectTemplate({
       id: project.id,
       name: project.name,
@@ -1228,6 +1270,7 @@ var ProjectStore = class extends BaseStore {
     return project;
   }
   async update(id, data) {
+    var _a;
     const existing = await this.getById(id);
     if (!existing) {
       throw new Error(`\u9879\u76EE ${id} \u4E0D\u5B58\u5728`);
@@ -1236,7 +1279,29 @@ var ProjectStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    let path = await this.findFilePathById(id);
+    const versionChanged = data.versionId && data.versionId !== existing.versionId;
+    const nameChanged = data.name && data.name !== existing.name;
+    if (versionChanged || nameChanged) {
+      const versionId = updated.versionId;
+      let versionName = "";
+      try {
+        const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+        for (const file of versionFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === versionId) {
+            versionName = metadata.frontmatter.name || "";
+            break;
+          }
+        }
+      } catch (e) {
+      }
+      const fileName = versionName ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(updated.name)}` : this.sanitizeFileName(updated.name);
+      path = `${this.FOLDER}/${fileName}.md`;
+    }
+    if (!path) {
+      throw new Error(`\u627E\u4E0D\u5230\u9879\u76EE ${id} \u7684\u6587\u4EF6`);
+    }
     const content = await this.templateService.renderProjectTemplate({
       id: updated.id,
       name: updated.name,
@@ -1250,8 +1315,10 @@ var ProjectStore = class extends BaseStore {
     return updated;
   }
   async delete(id) {
-    const path = `${this.FOLDER}/${id}.md`;
-    await this.fs.deleteFile(path);
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
     return true;
   }
   async getById(id) {
@@ -1264,10 +1331,24 @@ var ProjectStore = class extends BaseStore {
     return projects.find((p) => p.id === id) || null;
   }
   /**
+   * 根据ID查找文件路径（兼容旧版ID文件名和新版name文件名）
+   */
+  async findFilePathById(id) {
+    var _a;
+    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(this.FOLDER));
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+  /**
    * 根据ID获取文件路径
    */
-  getPath(id) {
-    return `${this.FOLDER}/${id}.md`;
+  async getPath(id) {
+    return this.findFilePathById(id);
   }
   async list(filters) {
     var _a;
@@ -1356,6 +1437,7 @@ var FeatureStore = class extends BaseStore {
     }
   }
   async create(data) {
+    var _a, _b;
     const id = this.generateId("feat");
     const feature = {
       id,
@@ -1369,7 +1451,34 @@ var FeatureStore = class extends BaseStore {
       progress: data.progress || 0,
       dueDate: data.dueDate
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    let versionName = "";
+    let projectName = "";
+    try {
+      const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+      for (const file of versionFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === data.versionId) {
+          versionName = metadata.frontmatter.name || "";
+          break;
+        }
+      }
+      const projectFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Projects/"));
+      for (const file of projectFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (((_b = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _b.id) === data.projectId) {
+          projectName = metadata.frontmatter.name || "";
+          break;
+        }
+      }
+    } catch (e) {
+    }
+    const parts = [
+      versionName,
+      projectName,
+      data.name
+    ].filter(Boolean);
+    const fileName = parts.map((p) => this.sanitizeFileName(p)).join("-");
+    const path = `${this.FOLDER}/${fileName}.md`;
     const content = await this.templateService.renderFeatureTemplate({
       id: feature.id,
       name: feature.name,
@@ -1386,6 +1495,7 @@ var FeatureStore = class extends BaseStore {
     return feature;
   }
   async update(id, data) {
+    var _a, _b;
     const existing = await this.getById(id);
     if (!existing) {
       throw new Error(`\u7279\u6027 ${id} \u4E0D\u5B58\u5728`);
@@ -1394,7 +1504,43 @@ var FeatureStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    const path = `${this.FOLDER}/${id}.md`;
+    let path = await this.findFilePathById(id);
+    const versionChanged = data.versionId && data.versionId !== existing.versionId;
+    const projectChanged = data.projectId && data.projectId !== existing.projectId;
+    const nameChanged = data.name && data.name !== existing.name;
+    if (versionChanged || projectChanged || nameChanged) {
+      let versionName = "";
+      let projectName = "";
+      try {
+        const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+        for (const file of versionFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === updated.versionId) {
+            versionName = metadata.frontmatter.name || "";
+            break;
+          }
+        }
+        const projectFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Projects/"));
+        for (const file of projectFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (((_b = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _b.id) === updated.projectId) {
+            projectName = metadata.frontmatter.name || "";
+            break;
+          }
+        }
+      } catch (e) {
+      }
+      const parts = [
+        versionName,
+        projectName,
+        updated.name
+      ].filter(Boolean);
+      const fileName = parts.map((p) => this.sanitizeFileName(p)).join("-");
+      path = `${this.FOLDER}/${fileName}.md`;
+    }
+    if (!path) {
+      throw new Error(`\u627E\u4E0D\u5230\u7279\u6027 ${id} \u7684\u6587\u4EF6`);
+    }
     const content = await this.templateService.renderFeatureTemplate({
       id: updated.id,
       name: updated.name,
@@ -1411,8 +1557,10 @@ var FeatureStore = class extends BaseStore {
     return updated;
   }
   async delete(id) {
-    const path = `${this.FOLDER}/${id}.md`;
-    await this.fs.deleteFile(path);
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
     return true;
   }
   async getById(id) {
@@ -1425,10 +1573,24 @@ var FeatureStore = class extends BaseStore {
     return features.find((f) => f.id === id) || null;
   }
   /**
+   * 根据ID查找文件路径（兼容旧版ID文件名和新版name文件名）
+   */
+  async findFilePathById(id) {
+    var _a;
+    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(this.FOLDER));
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+  /**
    * 根据ID获取文件路径
    */
-  getPath(id) {
-    return `${this.FOLDER}/${id}.md`;
+  async getPath(id) {
+    return this.findFilePathById(id);
   }
   async list(filters) {
     var _a;

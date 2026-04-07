@@ -48,7 +48,9 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
       tags: data.tags || [],
     };
 
-    const path = `${this.FOLDER}/${id}.md`;
+    // 使用版本 name 作为文件名
+    const fileName = this.sanitizeFileName(data.name);
+    const path = `${this.FOLDER}/${fileName}.md`;
     
     // 使用模板服务渲染内容
     const content = await this.templateService.renderVersionTemplate({
@@ -76,7 +78,18 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
       ...data,
     };
 
-    const path = `${this.FOLDER}/${id}.md`;
+    // 查找现有文件路径
+    let path = await this.findFilePathById(id);
+    
+    // 如果名称变更，生成新文件名
+    if (data.name && data.name !== existing.name) {
+      const newFileName = this.sanitizeFileName(data.name);
+      path = `${this.FOLDER}/${newFileName}.md`;
+    }
+    
+    if (!path) {
+      throw new Error(`找不到版本 ${id} 的文件`);
+    }
     
     // 使用模板服务渲染内容
     const content = await this.templateService.renderVersionTemplate({
@@ -94,8 +107,10 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
   }
 
   async delete(id: string): Promise<boolean> {
-    const path = `${this.FOLDER}/${id}.md`;
-    await this.fs.deleteFile(path);
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
     return true;
   }
 
@@ -111,10 +126,27 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
   }
 
   /**
+   * 根据ID查找文件路径（兼容旧版ID文件名和新版name文件名）
+   */
+  private async findFilePathById(id: string): Promise<string | null> {
+    // 扫描文件夹查找匹配 id 的文件
+    const files = this.app.vault.getMarkdownFiles()
+      .filter(f => f.path.startsWith(this.FOLDER));
+    
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (metadata?.frontmatter?.id === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+
+  /**
    * 根据ID获取文件路径
    */
-  getPath(id: string): string {
-    return `${this.FOLDER}/${id}.md`;
+  async getPath(id: string): Promise<string | null> {
+    return this.findFilePathById(id);
   }
 
   async list(): Promise<Version[]> {

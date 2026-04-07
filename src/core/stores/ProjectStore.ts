@@ -48,7 +48,22 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       tags: data.tags || [],
     };
 
-    const path = `${this.FOLDER}/${id}.md`;
+    // 获取版本名称，组合成文件名：版本name+项目name
+    let versionName = '';
+    try {
+      const versionFile = this.app.vault.getAbstractFileByPath(`ProjectManager/Versions/${data.versionId}.md`);
+      if (versionFile) {
+        const metadata = this.app.metadataCache.getFileCache(versionFile as any);
+        versionName = metadata?.frontmatter?.name || '';
+      }
+    } catch {
+      // 如果找不到版本文件，尝试从缓存或其他方式获取
+    }
+    
+    const fileName = versionName 
+      ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(data.name)}`
+      : this.sanitizeFileName(data.name);
+    const path = `${this.FOLDER}/${fileName}.md`;
     
     // 使用模板服务渲染内容
     const content = await this.templateService.renderProjectTemplate({
@@ -76,7 +91,38 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       ...data,
     };
 
-    const path = `${this.FOLDER}/${id}.md`;
+    // 查找现有文件路径
+    let path = await this.findFilePathById(id);
+    
+    // 如果名称或版本变更，生成新文件名
+    const versionChanged = data.versionId && data.versionId !== existing.versionId;
+    const nameChanged = data.name && data.name !== existing.name;
+    
+    if (versionChanged || nameChanged) {
+      const versionId = updated.versionId;
+      let versionName = '';
+      
+      try {
+        const versionFiles = this.app.vault.getMarkdownFiles()
+          .filter(f => f.path.startsWith('ProjectManager/Versions/'));
+        for (const file of versionFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (metadata?.frontmatter?.id === versionId) {
+            versionName = metadata.frontmatter.name || '';
+            break;
+          }
+        }
+      } catch {}
+      
+      const fileName = versionName 
+        ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(updated.name)}`
+        : this.sanitizeFileName(updated.name);
+      path = `${this.FOLDER}/${fileName}.md`;
+    }
+    
+    if (!path) {
+      throw new Error(`找不到项目 ${id} 的文件`);
+    }
     
     // 使用模板服务渲染内容
     const content = await this.templateService.renderProjectTemplate({
@@ -94,8 +140,10 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
   }
 
   async delete(id: string): Promise<boolean> {
-    const path = `${this.FOLDER}/${id}.md`;
-    await this.fs.deleteFile(path);
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
     return true;
   }
 
@@ -111,10 +159,26 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
   }
 
   /**
+   * 根据ID查找文件路径（兼容旧版ID文件名和新版name文件名）
+   */
+  private async findFilePathById(id: string): Promise<string | null> {
+    const files = this.app.vault.getMarkdownFiles()
+      .filter(f => f.path.startsWith(this.FOLDER));
+    
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (metadata?.frontmatter?.id === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+
+  /**
    * 根据ID获取文件路径
    */
-  getPath(id: string): string {
-    return `${this.FOLDER}/${id}.md`;
+  async getPath(id: string): Promise<string | null> {
+    return this.findFilePathById(id);
   }
 
   async list(filters?: { versionId?: string }): Promise<Project[]> {

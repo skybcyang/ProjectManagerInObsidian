@@ -24,6 +24,18 @@ export abstract class BaseStore<T, CreateData, UpdateData> {
   }
 
   /**
+   * 生成安全的文件名
+   * 移除非法字符，限制长度
+   */
+  protected sanitizeFileName(name: string): string {
+    // 移除非法字符: / \ : * ? " < > |
+    return name
+      .replace(/[\\/:*?"<>|]/g, '')
+      .trim()
+      .substring(0, 100); // 限制长度
+  }
+
+  /**
    * 创建实体
    */
   abstract create(data: CreateData): Promise<T>;
