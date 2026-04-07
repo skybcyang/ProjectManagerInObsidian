@@ -100,6 +100,8 @@ versionId: {{id}}
 
 ## 📁 关联项目
 
+<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">+ 创建项目</span>
+
 \`\`\`pm-view
 mode: grid
 entityType: project
@@ -109,6 +111,8 @@ versionId: {{id}}
 ---
 
 ## ✨ 版本特性
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">+ 创建特性</span>
 
 \`\`\`pm-view
 mode: kanban
@@ -169,6 +173,8 @@ projectId: {{id}}
 ---
 
 ## ✨ 关联特性
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">+ 创建特性</span>
 
 \`\`\`pm-view
 mode: kanban

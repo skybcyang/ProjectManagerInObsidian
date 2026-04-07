@@ -120,6 +120,8 @@ versionId: {{id}}
 
 ## \u{1F4C1} \u5173\u8054\u9879\u76EE
 
+<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">+ \u521B\u5EFA\u9879\u76EE</span>
+
 \`\`\`pm-view
 mode: grid
 entityType: project
@@ -129,6 +131,8 @@ versionId: {{id}}
 ---
 
 ## \u2728 \u7248\u672C\u7279\u6027
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">+ \u521B\u5EFA\u7279\u6027</span>
 
 \`\`\`pm-view
 mode: kanban
@@ -187,6 +191,8 @@ projectId: {{id}}
 ---
 
 ## \u2728 \u5173\u8054\u7279\u6027
+
+<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">+ \u521B\u5EFA\u7279\u6027</span>
 
 \`\`\`pm-view
 mode: kanban
