@@ -95,6 +95,14 @@ status: {{status}}
 {{/if}}{{#if startDate}}> **\u5F00\u59CB\u65E5\u671F**: {{startDate}}
 {{/if}}{{#if endDate}}> **\u76EE\u6807\u65E5\u671F**: {{endDate}}
 {{/if}}
+
+---
+
+## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
+
+- <span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
+- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+
 ---
 
 ## \u{1F3AF} \u7248\u672C\u76EE\u6807
@@ -120,8 +128,6 @@ versionId: {{id}}
 
 ## \u{1F4C1} \u5173\u8054\u9879\u76EE
 
-<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">+ \u521B\u5EFA\u9879\u76EE</span>
-
 \`\`\`pm-view
 mode: grid
 entityType: project
@@ -131,8 +137,6 @@ versionId: {{id}}
 ---
 
 ## \u2728 \u7248\u672C\u7279\u6027
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">+ \u521B\u5EFA\u7279\u6027</span>
 
 \`\`\`pm-view
 mode: kanban
@@ -164,6 +168,13 @@ priority: {{priority}}
 > **\u72B6\u6001**: {{status}} | **\u4F18\u5148\u7EA7**: {{priority}} | **ID**: {{id}}
 {{#if owner}}> **\u8D1F\u8D23\u4EBA**: @{{owner}}
 {{/if}}
+
+---
+
+## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
+
+- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">\u2728 \u521B\u5EFA\u7279\u6027</span>
+
 ---
 
 ## \u{1F4CB} \u9879\u76EE\u6982\u89C8
@@ -191,8 +202,6 @@ projectId: {{id}}
 ---
 
 ## \u2728 \u5173\u8054\u7279\u6027
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">+ \u521B\u5EFA\u7279\u6027</span>
 
 \`\`\`pm-view
 mode: kanban

@@ -75,6 +75,14 @@ status: {{status}}
 {{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
 {{/if}}{{#if endDate}}> **目标日期**: {{endDate}}
 {{/if}}
+
+---
+
+## 🚀 快速操作
+
+- <span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">📁 创建项目</span>
+- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">✨ 创建特性</span>
+
 ---
 
 ## 🎯 版本目标
@@ -100,8 +108,6 @@ versionId: {{id}}
 
 ## 📁 关联项目
 
-<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="{{id}}">+ 创建项目</span>
-
 \`\`\`pm-view
 mode: grid
 entityType: project
@@ -111,8 +117,6 @@ versionId: {{id}}
 ---
 
 ## ✨ 版本特性
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">+ 创建特性</span>
 
 \`\`\`pm-view
 mode: kanban
@@ -146,6 +150,13 @@ priority: {{priority}}
 > **状态**: {{status}} | **优先级**: {{priority}} | **ID**: {{id}}
 {{#if owner}}> **负责人**: @{{owner}}
 {{/if}}
+
+---
+
+## 🚀 快速操作
+
+- <span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">✨ 创建特性</span>
+
 ---
 
 ## 📋 项目概览
@@ -173,8 +184,6 @@ projectId: {{id}}
 ---
 
 ## ✨ 关联特性
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">+ 创建特性</span>
 
 \`\`\`pm-view
 mode: kanban
