@@ -1239,10 +1239,13 @@ var ProjectStore = class extends BaseStore {
     };
     let versionName = "";
     try {
-      const versionFile = this.app.vault.getAbstractFileByPath(`ProjectManager/Versions/${data.versionId}.md`);
-      if (versionFile) {
-        const metadata = this.app.metadataCache.getFileCache(versionFile);
-        versionName = ((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.name) || "";
+      const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+      for (const file of versionFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === data.versionId) {
+          versionName = metadata.frontmatter.name || "";
+          break;
+        }
       }
     } catch (e) {
     }

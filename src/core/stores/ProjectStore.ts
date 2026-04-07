@@ -51,13 +51,18 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
     // 获取版本名称，组合成文件名：版本name+项目name
     let versionName = '';
     try {
-      const versionFile = this.app.vault.getAbstractFileByPath(`ProjectManager/Versions/${data.versionId}.md`);
-      if (versionFile) {
-        const metadata = this.app.metadataCache.getFileCache(versionFile as any);
-        versionName = metadata?.frontmatter?.name || '';
+      // 扫描版本文件夹找到匹配 versionId 的文件
+      const versionFiles = this.app.vault.getMarkdownFiles()
+        .filter(f => f.path.startsWith('ProjectManager/Versions/'));
+      for (const file of versionFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (metadata?.frontmatter?.id === data.versionId) {
+          versionName = metadata.frontmatter.name || '';
+          break;
+        }
       }
     } catch {
-      // 如果找不到版本文件，尝试从缓存或其他方式获取
+      // 忽略错误
     }
     
     const fileName = versionName 
