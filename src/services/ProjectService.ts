@@ -1,16 +1,19 @@
 import { App } from 'obsidian';
 import { FileManager } from '../utils/fileManager';
 import { generateId } from '../utils/idGenerator';
-import type { Project, CreateProjectData, UpdateProjectData } from '../types';
+import { TemplateService } from './TemplateService';
+import type { Project, CreateProjectData, UpdateProjectData, ProjectManagerSettings } from '../types';
 
 export class ProjectService {
   private fileManager: FileManager;
-  private readonly FOLDER = 'ProjectManager/Projects';
   private app: App;
+  private templateService: TemplateService;
+  private readonly FOLDER = 'ProjectManager/Projects';
 
-  constructor(app: App) {
+  constructor(app: App, settings?: ProjectManagerSettings) {
     this.app = app;
     this.fileManager = new FileManager(app);
+    this.templateService = new TemplateService(app, settings);
   }
 
   async createProject(data: CreateProjectData): Promise<Project> {
@@ -32,7 +35,19 @@ export class ProjectService {
     };
 
     const path = await this.ensureUniquePath(this.buildPath(project));
-    await this.fileManager.writeFile(path, project, this.generateTemplate(project));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderProjectTemplate({
+      id: project.id,
+      name: project.name,
+      versionId: project.versionId,
+      status: project.status,
+      owner: project.owner,
+      priority: project.priority,
+      tags: project.tags,
+    });
+
+    await this.fileManager.writeFile(path, project, content);
     return project;
   }
 
@@ -164,12 +179,5 @@ export class ProjectService {
       priority: String(frontmatter.priority ?? 'medium') as Project['priority'],
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     };
-  }
-
-  private generateTemplate(project: Project): string {
-    const priorityEmoji = { critical: '🔴', high: '🟠', medium: '🔵', low: '🟢' }[project.priority] || '⚪';
-    const today = new Date().toISOString().split('T')[0];
-
-    return `---\nid: ${project.id}\nname: ${project.name}\nversionId: ${project.versionId}\nstatus: ${project.status}\n${project.owner ? `owner: ${project.owner}\n` : ''}priority: ${project.priority}\ntags:\n${project.tags.map(t => `  - ${t}`).join('\n')}\n---\n\n# ${priorityEmoji} ${project.name}\n\n> 项目 ID: ${project.id} | 状态: ${project.status} | 优先级: ${project.priority}\n\n---\n\n## 📋 项目概览\n\n<!-- 在此描述项目的背景、目标和范围 -->\n\n---\n\n## 📊 进度统计\n\n\`\`\`dataviewjs\nconst features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");\nconst total = features.length;\nconst completed = features.filter(f => f.status === 'completed').length;\nconst inProgress = features.filter(f => f.status === 'in-progress' || f.status === 'testing').length;\nconst avgProgress = total > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / total) : 0;\n\ndv.el('div', \`\n<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 28px; font-weight: 700;">\${total}</div>\n    <div style="font-size: 11px; color: var(--text-muted);">总特性</div>\n  </div>\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 28px; font-weight: 700; color: var(--text-success);">\${completed}</div>\n    <div style="font-size: 11px; color: var(--text-muted);">已完成</div>\n  </div>\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 28px; font-weight: 700; color: var(--text-accent);">\${inProgress}</div>\n    <div style="font-size: 11px; color: var(--text-muted);">进行中</div>\n  </div>\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 28px; font-weight: 700; color: var(--interactive-accent);">\${avgProgress}%</div>\n    <div style="font-size: 11px; color: var(--text-muted);">平均进度</div>\n  </div>\n</div>\n\`);\n\`\`\`\n\n---\n\n## 📁 关联特性\n\n\`\`\`dataview\nTABLE status, priority, progress + "%" as "进度"\nFROM "ProjectManager/Features"\nWHERE projectId = "${project.id}"\nSORT priority DESC\n\`\`\`\n\n---\n\n*项目文件由 Project Manager 插件自动生成*\n`;
   }
 }

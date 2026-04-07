@@ -27,9 +27,12 @@ export class Breadcrumb {
     const items = await this.buildBreadcrumb(file);
     if (items.length === 0) return;
 
-    const breadcrumb = containerEl.createDiv({ cls: 'pm-breadcrumb' });
-    // 插入到容器最前面
-    containerEl.prepend(breadcrumb);
+    // 使用 createEl 创建并直接插入到最前面
+    const breadcrumb = containerEl.createEl('div', { cls: 'pm-breadcrumb' });
+    // 确保插入到容器最前面
+    if (containerEl.firstChild) {
+      containerEl.insertBefore(breadcrumb, containerEl.firstChild);
+    }
 
     items.forEach((item, index) => {
       if (index > 0) {

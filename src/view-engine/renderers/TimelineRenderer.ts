@@ -1,23 +1,22 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 
 /**
- * 时间线渲染器
- * 水平/垂直时间线视图
+ * 时间线渲染器 - 卡片式时间线视图
+ * 支持水平和垂直两种布局
  */
 export class TimelineRenderer extends BaseRenderer {
   constructor(
     app: App,
     entityManager: EntityManager,
-    cardRegistry: CardRegistry,
     dataService: DataService,
     actionService: ActionService
   ) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+    super(app, entityManager, dataService, actionService);
   }
 
   /**
@@ -29,18 +28,12 @@ export class TimelineRenderer extends BaseRenderer {
 
     // 加载数据
     const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
       this.config.sortBy || 'dueDate',
       this.config.sortOrder || 'asc'
     );
-
-    // 创建工具栏
-    this.createToolbar(container, (this.config as any).title || '时间线视图', {
-      total: entities.length,
-      filtered: sorted.length,
-    });
 
     // 根据方向渲染
     const direction = (this.config as any).direction || 'horizontal';
@@ -93,7 +86,6 @@ export class TimelineRenderer extends BaseRenderer {
         const entityDate = new Date(entity.dueDate).getTime();
         position = ((entityDate - minDate) / dateRange) * 100;
       } else {
-        // 没有日期的实体均匀分布
         position = (index / (entities.length - 1 || 1)) * 100;
       }
 
@@ -104,14 +96,19 @@ export class TimelineRenderer extends BaseRenderer {
       const marker = point.createDiv('pm-timeline-marker');
       marker.classList.add(`pm-entity-${getEntityType(entity)}`);
 
-      // 状态颜色
+      // 优先级颜色
+      if ('priority' in entity && entity.priority) {
+        marker.style.background = getPriorityColor(entity.priority).bg;
+      }
+
+      // 状态样式
       if ('status' in entity && entity.status) {
         marker.classList.add(`pm-status-${entity.status}`);
       }
 
-      // 内容卡片（悬停显示）
-      const card = point.createDiv('pm-timeline-card');
-      this.renderTimelineCard(card, entity);
+      // 悬停卡片
+      const card = point.createDiv('pm-timeline-hover-card');
+      this.renderTimelineHoverCard(card, entity);
 
       // 点击打开
       point.addEventListener('click', () => {
@@ -122,12 +119,10 @@ export class TimelineRenderer extends BaseRenderer {
     // 时间轴标签
     const labels = timelineContainer.createDiv('pm-timeline-labels');
     const startLabel = labels.createDiv('pm-timeline-label');
-    startLabel.textContent = this.formatDateShort(new Date(minDate));
-    startLabel.style.left = '0%';
+    startLabel.textContent = DateFormat.short(new Date(minDate));
 
     const endLabel = labels.createDiv('pm-timeline-label');
-    endLabel.textContent = this.formatDateShort(new Date(maxDate));
-    endLabel.style.left = '100%';
+    endLabel.textContent = DateFormat.short(new Date(maxDate));
   }
 
   /**
@@ -154,26 +149,31 @@ export class TimelineRenderer extends BaseRenderer {
 
       // 日期标签
       const dateLabel = group.createDiv('pm-timeline-date');
-      dateLabel.textContent = this.formatDateLong(dateKey);
+      if (dateKey === '未安排') {
+        dateLabel.textContent = dateKey;
+        dateLabel.addClass('pm-timeline-date--unscheduled');
+      } else {
+        const date = new Date(dateKey);
+        dateLabel.textContent = `${date.getMonth() + 1}月${date.getDate()}日`;
+        dateLabel.createEl('span', { 
+          cls: 'pm-timeline-date-weekday',
+          text: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+        });
+      }
 
-      // 该日期的实体
+      // 该日期的实体卡片
       const items = group.createDiv('pm-timeline-items');
       const groupEntities = grouped.get(dateKey) || [];
 
       groupEntities.forEach((entity) => {
-        const item = items.createDiv('pm-timeline-item');
-        item.dataset.entityId = entity.id;
+        const card = items.createDiv('pm-timeline-card');
+        card.dataset.entityId = entity.id;
 
-        // 类型标记
-        const typeMark = item.createDiv('pm-timeline-type-mark');
-        typeMark.classList.add(`pm-entity-${getEntityType(entity)}`);
-
-        // 内容
-        const content = item.createDiv('pm-timeline-item-content');
-        this.renderTimelineCard(content, entity, true);
+        // 渲染卡片内容
+        this.renderTimelineVerticalCard(card, entity);
 
         // 点击打开
-        item.addEventListener('click', () => {
+        card.addEventListener('click', () => {
           this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
         });
       });
@@ -181,57 +181,113 @@ export class TimelineRenderer extends BaseRenderer {
   }
 
   /**
-   * 渲染时间线卡片
+   * 渲染时间线悬停卡片（水平时间线用）
    */
-  private renderTimelineCard(
-    container: HTMLElement,
-    entity: Entity,
-    compact: boolean = false
-  ): void {
-    // 头部
-    const header = container.createDiv('pm-timeline-card-header');
-    
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    header.createSpan({ cls: 'pm-timeline-card-icon', text: icon });
-    header.createEl('span', { cls: 'pm-timeline-card-title', text: entity.name });
+  private renderTimelineHoverCard(container: HTMLElement, entity: Entity): void {
+    const entityType = getEntityType(entity);
 
-    // 状态徽章
+    // 优先级条
+    if ('priority' in entity && entity.priority) {
+      const priorityBar = container.createDiv('pm-timeline-hover-priority');
+      priorityBar.style.background = getPriorityColor(entity.priority).bg;
+    }
+
+    const content = container.createDiv('pm-timeline-hover-content');
+
+    // 类型 + 标题
+    const header = content.createDiv('pm-timeline-hover-header');
+    header.createSpan({ 
+      cls: 'pm-timeline-hover-type', 
+      text: this.getEntityTypeIcon(entityType) 
+    });
+    header.createSpan({ 
+      cls: 'pm-timeline-hover-title', 
+      text: entity.name 
+    });
+
+    // 状态
     if ('status' in entity && entity.status) {
-      header.createSpan({
-        cls: `pm-status-badge pm-status-${entity.status}`,
+      content.createSpan({
+        cls: `pm-timeline-hover-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status),
       });
     }
 
-    if (compact) return;
-
-    // 详细信息
-    const body = container.createDiv('pm-timeline-card-body');
-
-    if (entity.owner) {
-      body.createDiv({
-        cls: 'pm-timeline-card-owner',
-        text: `👤 ${entity.owner}`,
+    // 进度
+    if ('progress' in entity && entity.progress !== undefined) {
+      const progressEl = content.createDiv('pm-timeline-hover-progress');
+      const progressBar = progressEl.createDiv('pm-timeline-hover-progress-bar');
+      progressBar.createDiv({
+        cls: 'pm-timeline-hover-progress-fill',
+        attr: { style: `width: ${entity.progress}%` }
       });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
+  }
 
+  /**
+   * 渲染垂直时间线卡片
+   */
+  private renderTimelineVerticalCard(card: HTMLElement, entity: Entity): void {
+    const entityType = getEntityType(entity);
+
+    // 优先级标记条
     if ('priority' in entity && entity.priority) {
-      body.createDiv({
-        cls: 'pm-timeline-card-priority',
-        text: `优先级: ${this.translatePriority(entity.priority)}`,
+      const priorityBar = card.createDiv('pm-timeline-card-priority-bar');
+      priorityBar.style.background = getPriorityColor(entity.priority).bg;
+    }
+
+    const content = card.createDiv('pm-timeline-card-content');
+
+    // 头部：类型图标 + 标题
+    const header = content.createDiv('pm-timeline-card-header');
+    
+    const typeIcon = header.createDiv('pm-timeline-card-type-icon');
+    typeIcon.textContent = this.getEntityTypeIcon(entityType);
+
+    const titleSection = header.createDiv('pm-timeline-card-title-section');
+    titleSection.createDiv({ 
+      cls: 'pm-timeline-card-title', 
+      text: entity.name 
+    });
+
+    // 元信息
+    const meta = content.createDiv('pm-timeline-card-meta');
+
+    // 状态
+    if ('status' in entity && entity.status) {
+      meta.createSpan({
+        cls: `pm-timeline-card-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status),
       });
     }
 
-    // 进度条（特性）
-    if (getEntityType(entity) === 'feature' && 'progress' in entity) {
-      const progress = entity.progress || 0;
-      const progressEl = body.createDiv('pm-timeline-card-progress');
-      progressEl.createDiv({
-        cls: 'pm-progress-bar',
-        attr: { style: `width: ${progress}%` },
+    // 进度
+    if ('progress' in entity && entity.progress !== undefined) {
+      const progressEl = meta.createDiv('pm-timeline-card-progress');
+      const progressBar = progressEl.createDiv('pm-timeline-card-progress-bar');
+      progressBar.createDiv({
+        cls: 'pm-timeline-card-progress-fill',
+        attr: { style: `width: ${entity.progress}%` }
       });
-      progressEl.createSpan({ text: `${progress}%` });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
+
+    // 负责人
+    if (entity.owner) {
+      meta.createSpan({ cls: 'pm-timeline-card-owner', text: `@${entity.owner}` });
+    }
+
+    // 操作按钮
+    const actions = content.createDiv('pm-timeline-card-actions');
+    
+    const openBtn = actions.createEl('button', { cls: 'pm-timeline-action-btn' });
+    openBtn.textContent = '↗';
+    openBtn.title = '打开文件';
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(entityType, entity.id);
+    };
   }
 
   /**
@@ -253,21 +309,5 @@ export class TimelineRenderer extends BaseRenderer {
     });
 
     return groups;
-  }
-
-  /**
-   * 格式化短日期
-   */
-  private formatDateShort(date: Date): string {
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  }
-
-  /**
-   * 格式化长日期
-   */
-  private formatDateLong(dateStr: string): string {
-    if (dateStr === '未安排') return dateStr;
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
   }
 }

@@ -1,16 +1,19 @@
 import { App } from 'obsidian';
 import { FileManager } from '../utils/fileManager';
 import { generateId } from '../utils/idGenerator';
-import type { Version, CreateVersionData, UpdateVersionData } from '../types';
+import { TemplateService } from './TemplateService';
+import type { Version, CreateVersionData, UpdateVersionData, ProjectManagerSettings } from '../types';
 
 export class VersionService {
   private fileManager: FileManager;
   private app: App;
+  private templateService: TemplateService;
   private readonly FOLDER = 'ProjectManager/Versions';
 
-  constructor(app: App) {
+  constructor(app: App, settings?: ProjectManagerSettings) {
     this.app = app;
     this.fileManager = new FileManager(app);
+    this.templateService = new TemplateService(app, settings);
   }
 
   async createVersion(data: CreateVersionData): Promise<Version> {
@@ -28,7 +31,19 @@ export class VersionService {
     };
 
     const path = await this.ensureUniquePath(this.buildPath(version));
-    await this.fileManager.writeFile(path, version, this.generateTemplate(version));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderVersionTemplate({
+      id: version.id,
+      name: version.name,
+      status: version.status,
+      owner: version.owner,
+      startDate: version.startDate,
+      endDate: version.endDate,
+      tags: version.tags,
+    });
+
+    await this.fileManager.writeFile(path, version, content);
     return version;
   }
 
@@ -151,11 +166,5 @@ export class VersionService {
       endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     };
-  }
-
-  private generateTemplate(version: Version): string {
-    const today = new Date().toISOString().split('T')[0];
-
-    return `---\nid: ${version.id}\nname: ${version.name}\nstatus: ${version.status}\n${version.owner ? `owner: ${version.owner}\n` : ''}${version.startDate ? `startDate: ${version.startDate}\n` : ''}${version.endDate ? `endDate: ${version.endDate}\n` : ''}tags:\n${version.tags.map(t => `  - ${t}`).join('\n')}\n---\n\n# 📦 ${version.name}\n\n> 版本 ID: ${version.id} | 状态: ${version.status}\n\n---\n\n## 🎯 版本目标\n\n<!-- 描述本版本的核心目标和预期成果 -->\n\n### 关键指标\n\n- [ ] 指标1: 描述\n- [ ] 指标2: 描述\n- [ ] 指标3: 描述\n\n---\n\n## 📊 进度概览\n\n\`\`\`dataviewjs\nconst projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "${version.id}");\nconst features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");\nconst completed = features.filter(f => f.status === 'completed').length;\nconst progress = features.length > 0 ? Math.round((completed / features.length) * 100) : 0;\n\ndv.el('div', \`\n<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 32px; font-weight: 700;">\${projects.length}</div>\n    <div style="font-size: 12px; color: var(--text-muted);">关联项目</div>\n  </div>\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 32px; font-weight: 700;">\${features.length}</div>\n    <div style="font-size: 12px; color: var(--text-muted);">总特性</div>\n  </div>\n  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">\n    <div style="font-size: 32px; font-weight: 700; color: var(--interactive-accent);">\${progress}%</div>\n    <div style="font-size: 12px; color: var(--text-muted);">完成进度</div>\n  </div>\n</div>\n\`);\n\`\`\`\n\n---\n\n## 🗓️ 里程碑\n\n### 里程碑1: 规划完成\n- [x] 需求收集\n- [x] 技术方案\n- [ ] 资源分配\n\n### 里程碑2: 开发完成\n- [ ] 核心功能开发\n- [ ] 单元测试\n- [ ] 代码审查\n\n### 里程碑3: 发布上线\n- [ ] 集成测试\n- [ ] 文档更新\n- [ ] 正式发布\n\n---\n\n## 📝 变更日志\n\n| 日期 | 变更内容 | 负责人 |\n|------|---------|--------|\n| ${today} | 版本创建 | ${version.owner || '-'} |\n\n---\n\n*版本文件由 Project Manager 插件自动生成*\n`;
   }
 }

@@ -1,8 +1,3 @@
-// Cards
-export { CardRegistry } from './cards';
-export type { CardComponent } from './cards';
-export { FeatureCard, ProjectCard, VersionCard } from './cards';
-
 // UI Components
 export { Breadcrumb } from './components/Breadcrumb';
 export { Button, ButtonContainer } from './components/Button';

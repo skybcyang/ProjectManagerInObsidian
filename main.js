@@ -24,562 +24,17 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/constants/statuses.ts
-function getStatusLabel(status, type = "feature") {
-  var _a;
-  let statuses;
-  switch (type) {
-    case "version":
-      statuses = VERSION_STATUSES;
-      break;
-    case "project":
-      statuses = PROJECT_STATUSES;
-      break;
-    case "feature":
-    default:
-      statuses = FEATURE_STATUSES;
-      break;
-  }
-  const found = statuses.find((s) => s.value === status);
-  return (_a = found == null ? void 0 : found.label) != null ? _a : status;
-}
-var VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES;
-var init_statuses = __esm({
-  "src/constants/statuses.ts"() {
-    VERSION_STATUSES = [
-      { value: "planning", label: "\u89C4\u5212\u4E2D", color: "var(--text-muted)" },
-      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
-      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
-      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
-    ];
-    PROJECT_STATUSES = [
-      { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
-      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
-      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
-      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
-    ];
-    FEATURE_STATUSES = [
-      { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
-      { value: "todo", label: "\u5F85\u529E", color: "var(--text-muted)" },
-      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
-      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "var(--text-warning)" },
-      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
-      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
-    ];
-  }
-});
-
-// src/constants/priorities.ts
-function getPriorityLabel(priority) {
-  var _a;
-  const found = PRIORITIES.find((p) => p.value === priority);
-  return (_a = found == null ? void 0 : found.label) != null ? _a : priority;
-}
-var PRIORITIES;
-var init_priorities = __esm({
-  "src/constants/priorities.ts"() {
-    PRIORITIES = [
-      { value: "critical", label: "\u7D27\u6025", color: "#ef4444" },
-      { value: "high", label: "\u9AD8", color: "#f97316" },
-      { value: "medium", label: "\u4E2D", color: "#3b82f6" },
-      { value: "low", label: "\u4F4E", color: "#22c55e" }
-    ];
-  }
-});
-
-// src/constants/index.ts
-var init_constants = __esm({
-  "src/constants/index.ts"() {
-    init_statuses();
-    init_priorities();
-  }
-});
-
-// src/utils/avatar.ts
-function getUserAvatarElement(app, userId, size = 16) {
-  var _a, _b, _c, _d, _e, _f;
-  const userProfile = app.plugins.getPlugin("user-profile");
-  if (!(userProfile == null ? void 0 : userProfile.api))
-    return null;
-  const me = (_b = (_a = userProfile.api).getMe) == null ? void 0 : _b.call(_a);
-  if ((me == null ? void 0 : me.id) === userId) {
-    return ((_d = (_c = userProfile.api).createMyAvatarElement) == null ? void 0 : _d.call(_c, size)) || null;
-  }
-  const dummyUser = { id: userId, name: userId, createdAt: "", updatedAt: "" };
-  return ((_f = (_e = userProfile.api).createAvatarElement) == null ? void 0 : _f.call(_e, dummyUser, size)) || null;
-}
-var init_avatar = __esm({
-  "src/utils/avatar.ts"() {
-  }
-});
-
-// src/ui/cards/FeatureCard.ts
-var FeatureCard_exports = {};
-__export(FeatureCard_exports, {
-  FeatureCard: () => FeatureCard
-});
-var FeatureCard;
-var init_FeatureCard = __esm({
-  "src/ui/cards/FeatureCard.ts"() {
-    init_constants();
-    init_avatar();
-    FeatureCard = class {
-      constructor(app) {
-        this.id = "feature";
-        this.app = app;
-      }
-      /**
-       * 判断是否匹配特性实体
-       */
-      matches(entity) {
-        const f = entity;
-        return (f == null ? void 0 : f.progress) !== void 0 && (f == null ? void 0 : f.projectId) !== void 0;
-      }
-      /**
-       * 渲染特性卡片
-       */
-      render(entity, onClick) {
-        const feature = entity;
-        const card = document.createElement("div");
-        card.className = "pm-card pm-card--feature";
-        card.dataset.id = feature.id;
-        card.dataset.priority = feature.priority;
-        card.dataset.status = feature.status;
-        if (onClick) {
-          card.style.cursor = "pointer";
-          card.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClick();
-          });
-        }
-        this.renderHeader(card, feature);
-        this.renderBody(card, feature);
-        this.renderFooter(card, feature);
-        return card;
-      }
-      /**
-       * 渲染紧凑版卡片（用于看板）
-       */
-      renderCompact(entity, onClick) {
-        const feature = entity;
-        const card = document.createElement("div");
-        card.className = "pm-card pm-card--feature pm-card--compact";
-        card.dataset.id = feature.id;
-        card.dataset.priority = feature.priority;
-        card.dataset.status = feature.status;
-        if (onClick) {
-          card.style.cursor = "pointer";
-          card.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClick();
-          });
-        }
-        const header = card.createDiv({ cls: "pm-card__header" });
-        header.createEl("span", {
-          text: getPriorityLabel(feature.priority),
-          cls: `pm-badge pm-badge--priority-${feature.priority}`
-        });
-        if (feature.progress > 0) {
-          header.createEl("span", {
-            text: `${feature.progress}%`,
-            cls: "pm-progress-text"
-          });
-        }
-        card.createEl("div", {
-          text: feature.name,
-          cls: "pm-card__title"
-        });
-        return card;
-      }
-      renderHeader(container, feature) {
-        const header = container.createDiv({ cls: "pm-card__header" });
-        header.createEl("span", {
-          text: getPriorityLabel(feature.priority),
-          cls: `pm-badge pm-badge--priority-${feature.priority}`
-        });
-        if (feature.progress > 0) {
-          header.createEl("span", {
-            text: `${feature.progress}%`,
-            cls: "pm-progress-text"
-          });
-        }
-      }
-      renderBody(container, feature) {
-        container.createEl("div", {
-          text: feature.name,
-          cls: "pm-card__title"
-        });
-        if (feature.progress > 0) {
-          const progressBar = container.createDiv({ cls: "pm-progress" });
-          const fill = progressBar.createDiv({ cls: "pm-progress__fill" });
-          fill.style.width = `${feature.progress}%`;
-        }
-      }
-      renderFooter(container, feature) {
-        const footer = container.createDiv({ cls: "pm-card__footer" });
-        if (feature.owner) {
-          const ownerEl = footer.createDiv({ cls: "pm-card__owner" });
-          if (this.app) {
-            const avatar = getUserAvatarElement(this.app, feature.owner, 16);
-            if (avatar) {
-              ownerEl.appendChild(avatar);
-            }
-          }
-          ownerEl.createEl("span", {
-            text: feature.owner,
-            cls: "pm-card__owner-name"
-          });
-        }
-        if (feature.dueDate) {
-          const dueEl = footer.createEl("span", {
-            text: `\u{1F4C5} ${feature.dueDate}`,
-            cls: "pm-card__due"
-          });
-          if (new Date(feature.dueDate) < /* @__PURE__ */ new Date() && feature.status !== "completed") {
-            dueEl.addClass("pm-card__due--overdue");
-          }
-        }
-      }
-    };
-  }
-});
-
-// src/ui/cards/ProjectCard.ts
-var ProjectCard_exports = {};
-__export(ProjectCard_exports, {
-  ProjectCard: () => ProjectCard
-});
-var ProjectCard;
-var init_ProjectCard = __esm({
-  "src/ui/cards/ProjectCard.ts"() {
-    init_constants();
-    ProjectCard = class {
-      constructor() {
-        this.id = "project";
-      }
-      /**
-       * 判断是否匹配项目实体
-       */
-      matches(entity) {
-        return (entity == null ? void 0 : entity.versionId) !== void 0 && (entity == null ? void 0 : entity.priority) !== void 0;
-      }
-      /**
-       * 渲染项目卡片
-       */
-      render(entity, onClick) {
-        const project = entity;
-        const priorityEmoji = { critical: "\u{1F534}", high: "\u{1F7E0}", medium: "\u{1F535}", low: "\u{1F7E2}" }[project.priority] || "\u26AA";
-        const card = document.createElement("div");
-        card.className = "pm-card pm-card--project";
-        card.dataset.id = project.id;
-        card.dataset.priority = project.priority;
-        card.dataset.status = project.status;
-        if (onClick) {
-          card.style.cursor = "pointer";
-          card.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClick();
-          });
-        }
-        const header = card.createDiv({ cls: "pm-card__header" });
-        header.createEl("span", {
-          text: priorityEmoji,
-          cls: "pm-emoji-icon"
-        });
-        header.createEl("span", {
-          text: getPriorityLabel(project.priority),
-          cls: `pm-badge pm-badge--priority-${project.priority}`
-        });
-        card.createEl("div", {
-          text: project.name,
-          cls: "pm-card__title"
-        });
-        const footer = card.createDiv({ cls: "pm-card__footer" });
-        if (project.owner) {
-          footer.createEl("span", {
-            text: `\u{1F464} ${project.owner}`,
-            cls: "pm-card__owner"
-          });
-        }
-        return card;
-      }
-    };
-  }
-});
-
-// src/ui/cards/VersionCard.ts
-var VersionCard_exports = {};
-__export(VersionCard_exports, {
-  VersionCard: () => VersionCard
-});
-var VersionCard;
-var init_VersionCard = __esm({
-  "src/ui/cards/VersionCard.ts"() {
-    VersionCard = class {
-      constructor() {
-        this.id = "version";
-      }
-      /**
-       * 判断是否匹配版本实体
-       */
-      matches(entity) {
-        const v = entity;
-        return ((v == null ? void 0 : v.startDate) !== void 0 || (v == null ? void 0 : v.endDate) !== void 0) && v.priority === void 0;
-      }
-      /**
-       * 渲染版本卡片
-       */
-      render(entity, onClick) {
-        const version = entity;
-        const card = document.createElement("div");
-        card.className = "pm-card pm-card--version";
-        card.dataset.id = version.id;
-        card.dataset.status = version.status;
-        if (onClick) {
-          card.style.cursor = "pointer";
-          card.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClick();
-          });
-        }
-        const header = card.createDiv({ cls: "pm-card__header" });
-        header.createEl("span", {
-          text: "\u{1F4E6}",
-          cls: "pm-emoji-icon"
-        });
-        card.createEl("div", {
-          text: version.name,
-          cls: "pm-card__title"
-        });
-        const footer = card.createDiv({ cls: "pm-card__footer" });
-        if (version.owner) {
-          footer.createEl("span", {
-            text: `\u{1F464} ${version.owner}`,
-            cls: "pm-card__owner"
-          });
-        }
-        if (version.startDate || version.endDate) {
-          const dateRange = `${version.startDate || "?"} ~ ${version.endDate || "?"}`;
-          footer.createEl("span", {
-            text: `\u{1F4C5} ${dateRange}`,
-            cls: "pm-card__date"
-          });
-        }
-        return card;
-      }
-    };
-  }
-});
-
-// src/modals/QuickCreateModal.ts
-var QuickCreateModal_exports = {};
-__export(QuickCreateModal_exports, {
-  QuickCreateModal: () => QuickCreateModal
-});
-var import_obsidian7, QuickCreateModal;
-var init_QuickCreateModal = __esm({
-  "src/modals/QuickCreateModal.ts"() {
-    import_obsidian7 = require("obsidian");
-    init_constants();
-    QuickCreateModal = class extends import_obsidian7.Modal {
-      constructor(app, entityManager, defaultDate, onSubmit) {
-        super(app);
-        this.entityManager = entityManager;
-        this.defaultDate = defaultDate;
-        this.onSubmit = onSubmit;
-        this.result = {
-          name: "",
-          versionId: "",
-          projectId: "",
-          status: "backlog",
-          priority: "medium",
-          progress: 0,
-          tags: []
-        };
-        this.versions = [];
-        this.projects = [];
-        this.filteredProjects = [];
-      }
-      async onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.addClass("pm-modal");
-        this.versions = await this.entityManager.listVersions();
-        this.projects = await this.entityManager.listProjects();
-        if (this.versions.length === 0 || this.projects.length === 0) {
-          contentEl.createEl("h2", { text: "\u5FEB\u901F\u521B\u5EFA\u7279\u6027" });
-          contentEl.createEl("p", {
-            text: "\u9700\u8981\u5148\u521B\u5EFA\u7248\u672C\u548C\u9879\u76EE",
-            cls: "pm-modal__warning"
-          });
-          const btn = contentEl.createEl("button", { text: "\u786E\u5B9A" });
-          btn.addEventListener("click", () => this.close());
-          return;
-        }
-        this.result.versionId = this.versions[0].id;
-        this.result.projectId = this.projects[0].id;
-        this.result.dueDate = this.defaultDate;
-        this.updateFilteredProjects();
-        contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
-        new import_obsidian7.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
-          text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
-          text.onChange((value) => {
-            this.result.name = value;
-          });
-          setTimeout(() => text.inputEl.focus(), 0);
-        });
-        new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
-          this.versions.forEach((v) => {
-            dropdown.addOption(v.id, v.name);
-          });
-          dropdown.setValue(this.result.versionId);
-          dropdown.onChange((value) => {
-            this.result.versionId = value;
-            this.updateFilteredProjects();
-            this.renderProjectDropdown();
-          });
-        });
-        const projectSetting = new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
-        this.projectDropdown = projectSetting.addDropdown((dropdown) => {
-          this.filteredProjects.forEach((p) => {
-            dropdown.addOption(p.id, p.name);
-          });
-          dropdown.setValue(this.result.projectId);
-          dropdown.onChange((value) => {
-            this.result.projectId = value;
-          });
-        });
-        new import_obsidian7.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-          FEATURE_STATUSES.forEach((s) => {
-            dropdown.addOption(s.value, s.label);
-          });
-          dropdown.setValue(this.result.status || "backlog");
-          dropdown.onChange((value) => {
-            this.result.status = value;
-          });
-        });
-        new import_obsidian7.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
-          PRIORITIES.forEach((p) => {
-            dropdown.addOption(p.value, p.label);
-          });
-          dropdown.setValue(this.result.priority || "medium");
-          dropdown.onChange((value) => {
-            this.result.priority = value;
-          });
-        });
-        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-        cancelButton.addEventListener("click", () => this.close());
-        const createButton = buttonContainer.createEl("button", {
-          text: "\u521B\u5EFA",
-          cls: "mod-cta"
-        });
-        createButton.addEventListener("click", async () => {
-          if (!this.result.name.trim()) {
-            new import_obsidian7.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
-            return;
-          }
-          this.onSubmit(this.result);
-          this.close();
-        });
-      }
-      updateFilteredProjects() {
-        this.filteredProjects = this.projects.filter((p) => p.versionId === this.result.versionId);
-        if (this.filteredProjects.length > 0 && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
-          this.result.projectId = this.filteredProjects[0].id;
-        }
-      }
-      renderProjectDropdown() {
-        if (!this.projectDropdown)
-          return;
-        const dropdown = this.projectDropdown;
-        dropdown.selectEl.empty();
-        this.filteredProjects.forEach((p) => {
-          dropdown.addOption(p.id, p.name);
-        });
-        dropdown.setValue(this.result.projectId);
-      }
-      onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-      }
-    };
-  }
-});
-
-// src/services/InitService.ts
-var InitService_exports = {};
-__export(InitService_exports, {
-  InitService: () => InitService
-});
-var import_obsidian15, InitService;
-var init_InitService = __esm({
-  "src/services/InitService.ts"() {
-    import_obsidian15 = require("obsidian");
-    InitService = class {
-      constructor(app) {
-        this.app = app;
-        this.BASE_FOLDER = "ProjectManager";
-        this.SUB_FOLDERS = ["Versions", "Projects", "Features"];
-        this.DASHBOARD_FILE = "\u603B\u89C8.md";
-      }
-      async isInitialized() {
-        const folder = this.app.vault.getAbstractFileByPath(this.BASE_FOLDER);
-        if (!folder)
-          return false;
-        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
-        const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        return dashboardFile instanceof import_obsidian15.TFile;
-      }
-      async initialize() {
-        await this.ensureFolder(this.BASE_FOLDER);
-        for (const subFolder of this.SUB_FOLDERS) {
-          await this.ensureFolder(`${this.BASE_FOLDER}/${subFolder}`);
-        }
-        await this.createDashboard();
-      }
-      async openDashboard() {
-        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
-        const file = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (file instanceof import_obsidian15.TFile) {
-          await this.app.workspace.getLeaf().openFile(file);
-        } else {
-          await this.initialize();
-          await this.openDashboard();
-        }
-      }
-      getDashboardPath() {
-        return `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
-      }
-      async ensureFolder(path) {
-        const folder = this.app.vault.getAbstractFileByPath(path);
-        if (!folder) {
-          await this.app.vault.createFolder(path);
-        }
-      }
-      async createDashboard() {
-        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
-        const content = this.generateDashboardContent();
-        const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (existingFile instanceof import_obsidian15.TFile) {
-          await this.app.vault.modify(existingFile, content);
-        } else {
-          await this.app.vault.create(dashboardPath, content);
-        }
-      }
-      generateDashboardContent() {
-        const date = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-        return `---
+// src/templates/defaults.ts
+var DEFAULT_OVERVIEW_TEMPLATE, DEFAULT_VERSION_TEMPLATE, DEFAULT_PROJECT_TEMPLATE, DEFAULT_FEATURE_TEMPLATE, DEFAULT_TEMPLATES, PRIORITY_EMOJI, STATUS_EMOJI;
+var init_defaults = __esm({
+  "src/templates/defaults.ts"() {
+    DEFAULT_OVERVIEW_TEMPLATE = `---
 pm-dashboard: true
 ---
 
 # \u{1F4CA} \u9879\u76EE\u7BA1\u7406\u603B\u89C8
 
-> \u6700\u540E\u66F4\u65B0: ${date} \xB7 \u7CFB\u7EDF\u72B6\u6001: \u6B63\u5E38\u8FD0\u884C
+> \u6700\u540E\u66F4\u65B0: {{date}} \xB7 \u7CFB\u7EDF\u72B6\u6001: \u6B63\u5E38\u8FD0\u884C
 
 ---
 
@@ -628,6 +83,791 @@ type: project
 
 *Powered by Project Manager Plugin*
 `;
+    DEFAULT_VERSION_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+status: {{status}}
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
+
+# \u{1F4E6} {{name}}
+
+> \u7248\u672C ID: {{id}} | \u72B6\u6001: {{status}}
+
+---
+
+## \u{1F3AF} \u7248\u672C\u76EE\u6807
+
+<!-- \u63CF\u8FF0\u672C\u7248\u672C\u7684\u6838\u5FC3\u76EE\u6807\u548C\u9884\u671F\u6210\u679C -->
+
+### \u5173\u952E\u6307\u6807
+
+- [ ] \u6307\u68071: \u63CF\u8FF0
+- [ ] \u6307\u68072: \u63CF\u8FF0
+- [ ] \u6307\u68073: \u63CF\u8FF0
+
+---
+
+## \u{1F4CA} \u8FDB\u5EA6\u6982\u89C8
+
+\`\`\`dataviewjs
+const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "{{id}}");
+const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "{{id}}");
+const completed = features.filter(f => f.status === 'completed').length;
+const progress = features.length > 0 ? Math.round((completed / features.length) * 100) : 0;
+
+dv.el('div', \`
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 32px; font-weight: 700;">\${projects.length}</div>
+    <div style="font-size: 12px; color: var(--text-muted);">\u5173\u8054\u9879\u76EE</div>
+  </div>
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 32px; font-weight: 700;">\${features.length}</div>
+    <div style="font-size: 12px; color: var(--text-muted);">\u603B\u7279\u6027</div>
+  </div>
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 32px; font-weight: 700; color: var(--interactive-accent);">\${progress}%</div>
+    <div style="font-size: 12px; color: var(--text-muted);">\u5B8C\u6210\u5EA6</div>
+  </div>
+</div>
+\`);
+\`\`\`
+
+---
+
+## \u{1F4C1} \u5173\u8054\u9879\u76EE
+
+\`\`\`pm-view
+mode: grid
+type: project
+filter:
+  versionId: {{id}}
+\`\`\`
+
+---
+
+## \u2728 \u7248\u672C\u7279\u6027
+
+\`\`\`pm-view
+mode: kanban
+type: feature
+filter:
+  versionId: {{id}}
+groupBy: status
+\`\`\`
+`;
+    DEFAULT_PROJECT_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+versionId: {{versionId}}
+status: {{status}}
+{{#if owner}}owner: {{owner}}
+{{/if}}priority: {{priority}}
+tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
+
+# {{priorityEmoji}} {{name}}
+
+> \u9879\u76EE ID: {{id}} | \u72B6\u6001: {{status}} | \u4F18\u5148\u7EA7: {{priority}}
+
+---
+
+## \u{1F4CB} \u9879\u76EE\u6982\u89C8
+
+<!-- \u5728\u6B64\u63CF\u8FF0\u9879\u76EE\u7684\u80CC\u666F\u3001\u76EE\u6807\u548C\u8303\u56F4 -->
+
+---
+
+## \u{1F4CA} \u8FDB\u5EA6\u7EDF\u8BA1
+
+\`\`\`dataviewjs
+const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "{{id}}");
+const total = features.length;
+const completed = features.filter(f => f.status === 'completed').length;
+const inProgress = features.filter(f => f.status === 'in-progress' || f.status === 'testing').length;
+const avgProgress = total > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / total) : 0;
+
+dv.el('div', \`
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 28px; font-weight: 700;">\${total}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">\u603B\u7279\u6027</div>
+  </div>
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 28px; font-weight: 700; color: var(--text-success);">\${completed}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">\u5DF2\u5B8C\u6210</div>
+  </div>
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 28px; font-weight: 700; color: var(--text-accent);">\${inProgress}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">\u8FDB\u884C\u4E2D</div>
+  </div>
+  <div style="text-align: center; padding: 16px; background: var(--background-primary); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+    <div style="font-size: 28px; font-weight: 700; color: var(--interactive-accent);">\${avgProgress}%</div>
+    <div style="font-size: 11px; color: var(--text-muted);">\u5E73\u5747\u8FDB\u5EA6</div>
+  </div>
+</div>
+\`);
+\`\`\`
+
+---
+
+## \u2728 \u5173\u8054\u7279\u6027
+
+\`\`\`pm-view
+mode: kanban
+type: feature
+filter:
+  projectId: {{id}}
+groupBy: status
+\`\`\`
+`;
+    DEFAULT_FEATURE_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+versionId: {{versionId}}
+projectId: {{projectId}}
+status: {{status}}
+priority: {{priority}}
+progress: {{progress}}
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if dueDate}}dueDate: {{dueDate}}
+{{/if}}{{#if tags}}tags: [{{#each tags}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}]
+{{/if}}---
+
+# {{priorityEmoji}} {{statusEmoji}} {{name}}
+
+<!-- \u7279\u6027\u5143\u6570\u636E\u5DF2\u5728\u4E0A\u65B9 YAML \u4E2D\u5B9A\u4E49 -->
+
+## \u{1F4CB} \u9700\u6C42 AR \u5217\u8868
+
+| AR \u7F16\u53F7 | \u63CF\u8FF0 | \u72B6\u6001 |
+|---------|------|------|
+| AR001 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u2705 \u5DF2\u5B8C\u6210 |
+| AR002 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u{1F504} \u8FDB\u884C\u4E2D |
+| AR003 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u23F3 \u672A\u5F00\u59CB |
+
+**AR \u72B6\u6001\u8BF4\u660E**: \u2705 \u5DF2\u5B8C\u6210 | \u{1F504} \u8FDB\u884C\u4E2D | \u23F3 \u672A\u5F00\u59CB | \u274C \u5DF2\u53D6\u6D88
+
+## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988
+
+### \u5386\u53F2\u8BB0\u5F55
+<!-- \u8FDB\u5C55\u5C06\u81EA\u52A8\u8BB0\u5F55\u5728\u8FD9\u91CC -->
+- [{{createTime}}] \u7279\u6027\u521B\u5EFA
+
+### \u6DFB\u52A0\u65B0\u8FDB\u5C55
+<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\uFF0C\u6309 Enter \u4FDD\u5B58...">
+
+## \u{1F4C5} \u5BF9\u9F50\u8BA1\u5212
+
+### \u91CC\u7A0B\u7891\u8282\u70B9
+
+| \u8282\u70B9 | \u8BA1\u5212\u65E5\u671F | \u5B9E\u9645\u65E5\u671F | \u72B6\u6001 |
+|------|----------|----------|------|
+| \u9700\u6C42\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+| \u8BBE\u8BA1\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+| \u5F00\u53D1\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+| \u8054\u8C03\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+| \u6D4B\u8BD5\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+| \u4E0A\u7EBF\u53D1\u5E03 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
+
+## \u{1F465} \u5468\u8FB9\u56E2\u961F\u4E0E\u8D1F\u8D23\u4EBA
+
+### \u6838\u5FC3\u56E2\u961F
+
+| \u89D2\u8272 | \u8D1F\u8D23\u4EBA | \u56E2\u961F/\u90E8\u95E8 |
+|------|--------|-----------|
+| \u4EA7\u54C1\u7ECF\u7406 | <!-- @\u59D3\u540D --> | \u4EA7\u54C1\u90E8 |
+| \u524D\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u524D\u7AEF\u7EC4 |
+| \u540E\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u540E\u7AEF\u7EC4 |
+| \u6D4B\u8BD5\u5DE5\u7A0B\u5E08 | <!-- @\u59D3\u540D --> | QA\u7EC4 |
+| UI/UX\u8BBE\u8BA1 | <!-- @\u59D3\u540D --> | \u8BBE\u8BA1\u7EC4 |
+
+### \u4F9D\u8D56\u534F\u4F5C
+
+- [ ] \u8FD0\u7EF4\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+- [ ] \u5B89\u5168\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+- [ ] \u6570\u636E\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+- [ ] \u6CD5\u52A1\u5408\u89C4 - <!-- \u534F\u4F5C\u4E8B\u9879 -->
+
+## \u{1F4BB} \u5F00\u53D1\u72B6\u6001
+
+### \u4EE3\u7801\u4FE1\u606F
+
+- **Change ID**: <!-- \u4EE3\u7801\u53D8\u66F4ID -->
+- **\u5F00\u53D1\u5206\u652F**: \`feature/{{id}}\`
+- **\u76EE\u6807\u5206\u652F**: \`main\`
+- **MR/PR \u94FE\u63A5**: <!-- \u586B\u5165 Merge Request \u6216 Pull Request \u94FE\u63A5 -->
+
+### \u5404\u9636\u6BB5\u72B6\u6001
+
+#### \u{1F528} \u5F00\u53D1\u9636\u6BB5
+- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u8D1F\u8D23\u4EBA**: <!-- @\u5F00\u53D1\u4EBA\u5458 -->
+- **\u5B8C\u6210\u5EA6**: {{progress}}%
+- **\u5907\u6CE8**: <!-- \u5F00\u53D1\u5907\u6CE8 -->
+
+#### \u{1F517} \u8054\u8C03\u9636\u6BB5
+- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u8D1F\u8D23\u4EBA**: <!-- @\u8054\u8C03\u8D1F\u8D23\u4EBA -->
+- **\u963B\u585E\u95EE\u9898**: <!-- \u8BB0\u5F55\u8054\u8C03\u963B\u585E\u95EE\u9898 -->
+- **\u4F9D\u8D56\u670D\u52A1**: <!-- \u5217\u51FA\u4F9D\u8D56\u7684\u5176\u4ED6\u670D\u52A1/\u63A5\u53E3 -->
+
+#### \u{1F9EA} \u8F6C\u6D4B\u9636\u6BB5
+- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210 / \u{1F534} \u6709\u963B\u585E
+- **\u6D4B\u8BD5\u8D1F\u8D23\u4EBA**: <!-- @\u6D4B\u8BD5\u4EBA\u5458 -->
+- **Bug \u7EDF\u8BA1**:
+  - \u{1F534} P0 \u963B\u585E: 0
+  - \u{1F7E0} P1 \u4E25\u91CD: 0
+  - \u{1F7E1} P2 \u4E00\u822C: 0
+  - \u{1F7E2} P3 \u8F7B\u5FAE: 0
+- **\u6D4B\u8BD5\u62A5\u544A**: <!-- \u94FE\u63A5\u5230\u6D4B\u8BD5\u62A5\u544A -->
+
+#### \u{1F4D6} \u6587\u6863\u9636\u6BB5
+- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
+- **\u6587\u6863\u6E05\u5355**:
+  - [ ] API \u63A5\u53E3\u6587\u6863
+  - [ ] \u4F7F\u7528\u624B\u518C
+  - [ ] \u90E8\u7F72\u6587\u6863
+  - [ ] \u53D8\u66F4\u65E5\u5FD7
+
+#### \u{1F440} \u4EE3\u7801\u68C0\u89C6
+- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u901A\u8FC7 / \u{1F534} \u9700\u4FEE\u6539
+- **\u68C0\u89C6\u4EBA**: <!-- @\u68C0\u89C6\u4EBA -->
+- **\u68C0\u89C6\u610F\u89C1**: <!-- \u8BB0\u5F55\u68C0\u89C6\u610F\u89C1 -->
+- **\u68C0\u89C6\u94FE\u63A5**: <!-- \u4EE3\u7801\u68C0\u89C6\u5DE5\u5177\u94FE\u63A5 -->
+
+#### \u{1F500} \u5408\u5165\u5206\u652F
+- **\u72B6\u6001**: \u2B1C \u672A\u5408\u5E76 / \u{1F7E1} \u5408\u5E76\u4E2D / \u{1F7E2} \u5DF2\u5408\u5E76 / \u{1F534} \u51B2\u7A81
+- **MR/PR \u72B6\u6001**: <!-- \u5F00\u542F/\u5DF2\u5408\u5E76/\u5DF2\u5173\u95ED -->
+- **\u5408\u5E76\u51B2\u7A81**: <!-- \u6709\u5219\u8BB0\u5F55\u51B2\u7A81\u8BE6\u60C5 -->
+- **\u56DE\u6EDA\u65B9\u6848**: <!-- \u8BB0\u5F55\u56DE\u6EDA\u65B9\u6848 -->
+
+## \u{1F517} \u5173\u8054\u4FE1\u606F
+
+### \u6240\u5C5E\u9879\u76EE
+\`\`\`dataviewjs
+const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.id === "{{projectId}}");
+if (projects.length > 0) {
+  dv.paragraph("> \u{1F4C1} \u6240\u5C5E\u9879\u76EE: [[" + projects[0].file.path + "|" + projects[0].name + "]]");
+} else {
+  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u9879\u76EE");
+}
+\`\`\`
+
+### \u6240\u5C5E\u7248\u672C
+\`\`\`dataviewjs
+const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "{{versionId}}");
+if (versions.length > 0) {
+  dv.paragraph("> \u{1F4E6} \u6240\u5C5E\u7248\u672C: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
+} else {
+  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u7248\u672C");
+}
+\`\`\`
+
+## \u{1F3F7}\uFE0F \u6807\u7B7E
+
+{{#if tags}}{{#each tags}}#{{this}} {{/each}}{{else}}<!-- \u6DFB\u52A0\u6807\u7B7E -->{{/if}}
+
+---
+*\u521B\u5EFA\u4E8E: {{createTime}}*
+`;
+    DEFAULT_TEMPLATES = {
+      overview: DEFAULT_OVERVIEW_TEMPLATE,
+      version: DEFAULT_VERSION_TEMPLATE,
+      project: DEFAULT_PROJECT_TEMPLATE,
+      feature: DEFAULT_FEATURE_TEMPLATE
+    };
+    PRIORITY_EMOJI = {
+      critical: "\u{1F534}",
+      high: "\u{1F7E0}",
+      medium: "\u{1F535}",
+      low: "\u{1F7E2}"
+    };
+    STATUS_EMOJI = {
+      backlog: "\u{1F4CB}",
+      todo: "\u{1F4DD}",
+      "in-progress": "\u{1F504}",
+      testing: "\u{1F9EA}",
+      completed: "\u2705",
+      archived: "\u{1F4E6}"
+    };
+  }
+});
+
+// src/services/TemplateService.ts
+var import_obsidian2, DEFAULT_TEMPLATE_FOLDER, TemplateService;
+var init_TemplateService = __esm({
+  "src/services/TemplateService.ts"() {
+    import_obsidian2 = require("obsidian");
+    init_defaults();
+    DEFAULT_TEMPLATE_FOLDER = "ProjectManager/.templates";
+    TemplateService = class {
+      constructor(app, settings) {
+        this.templateCache = /* @__PURE__ */ new Map();
+        this.app = app;
+        this.settings = settings != null ? settings : {
+          enableCustomTemplates: false,
+          customTemplates: {}
+        };
+      }
+      /**
+       * 更新设置
+       */
+      updateSettings(settings) {
+        this.settings = settings;
+        this.templateCache.clear();
+      }
+      /**
+       * 获取当前设置
+       */
+      getSettings() {
+        return { ...this.settings };
+      }
+      /**
+       * 获取模板内容
+       * 优先顺序：1. 缓存 2. 自定义模板文件 3. 内置自定义模板 4. 默认模板
+       */
+      async getTemplate(type) {
+        if (this.templateCache.has(type)) {
+          return this.templateCache.get(type);
+        }
+        let template = null;
+        if (this.settings.templateFolder) {
+          template = await this.loadTemplateFromFile(type);
+        }
+        if (!template && this.settings.enableCustomTemplates && this.settings.customTemplates[type]) {
+          template = this.settings.customTemplates[type];
+        }
+        if (!template) {
+          template = DEFAULT_TEMPLATES[type];
+        }
+        this.templateCache.set(type, template);
+        return template;
+      }
+      /**
+       * 从文件加载模板
+       */
+      async loadTemplateFromFile(type) {
+        const folder = this.settings.templateFolder || DEFAULT_TEMPLATE_FOLDER;
+        const fileName = `${type}.md`;
+        const filePath = `${folder}/${fileName}`;
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file instanceof import_obsidian2.TFile) {
+          try {
+            const content = await this.app.vault.read(file);
+            return content;
+          } catch (error) {
+            console.warn(`[TemplateService] \u8BFB\u53D6\u6A21\u677F\u6587\u4EF6\u5931\u8D25: ${filePath}`, error);
+          }
+        }
+        return null;
+      }
+      /**
+       * 获取默认模板
+       */
+      getDefaultTemplate(type) {
+        return DEFAULT_TEMPLATES[type];
+      }
+      /**
+       * 导出模板到文件
+       */
+      async exportTemplateToFile(type, folder) {
+        const targetFolder = folder || this.settings.templateFolder || DEFAULT_TEMPLATE_FOLDER;
+        const fileName = `${type}.md`;
+        const filePath = `${targetFolder}/${fileName}`;
+        const folderExists = this.app.vault.getAbstractFileByPath(targetFolder);
+        if (!folderExists) {
+          await this.app.vault.createFolder(targetFolder);
+        }
+        const template = await this.getTemplate(type);
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file instanceof import_obsidian2.TFile) {
+          await this.app.vault.modify(file, template);
+        } else {
+          await this.app.vault.create(filePath, template);
+        }
+        return filePath;
+      }
+      /**
+       * 清除缓存
+       */
+      clearCache() {
+        this.templateCache.clear();
+      }
+      /**
+       * 渲染模板
+       * 使用简单的模板语法：{{variable}}, {{#if condition}}...{{/if}}, {{#each array}}...{{/each}}
+       */
+      renderTemplate(template, context) {
+        let result = template;
+        const enrichedContext = this.enrichContext(context);
+        result = this.processIfBlocks(result, enrichedContext);
+        result = this.processEachBlocks(result, enrichedContext);
+        result = this.processVariables(result, enrichedContext);
+        return result;
+      }
+      /**
+       * 丰富上下文，添加辅助变量
+       */
+      enrichContext(context) {
+        const enriched = { ...context };
+        if ("priority" in context) {
+          enriched.priorityEmoji = PRIORITY_EMOJI[context.priority] || "\u26AA";
+        }
+        if ("status" in context) {
+          enriched.statusEmoji = STATUS_EMOJI[context.status] || "\u26AA";
+        }
+        enriched.createTime = (/* @__PURE__ */ new Date()).toLocaleString("zh-CN", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        return enriched;
+      }
+      /**
+       * 处理 {{#if}} 块
+       */
+      processIfBlocks(template, context) {
+        const ifRegex = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
+        return template.replace(ifRegex, (match, variable, content) => {
+          const value = context[variable];
+          const hasValue = value !== void 0 && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
+          return hasValue ? content : "";
+        });
+      }
+      /**
+       * 处理 {{#each}} 循环
+       */
+      processEachBlocks(template, context) {
+        const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+        return template.replace(eachRegex, (match, variable, content) => {
+          const array = context[variable];
+          if (!Array.isArray(array))
+            return "";
+          return array.map((item, index) => {
+            let itemContent = content;
+            itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
+            itemContent = itemContent.replace(/\{\{@first\}\}/g, index === 0 ? "true" : "false");
+            itemContent = itemContent.replace(/\{\{@last\}\}/g, index === array.length - 1 ? "true" : "false");
+            itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
+            itemContent = itemContent.replace(/\{\{#unless\s+@first\}\}/g, index === 0 ? "" : "");
+            itemContent = itemContent.replace(/\{\{\/unless\}\}/g, "");
+            return itemContent;
+          }).join("");
+        });
+      }
+      /**
+       * 处理简单变量
+       */
+      processVariables(template, context) {
+        return template.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+          const value = context[variable];
+          return value !== void 0 && value !== null ? String(value) : "";
+        });
+      }
+      /**
+       * 渲染版本模板
+       */
+      async renderVersionTemplate(context) {
+        const template = await this.getTemplate("version");
+        return this.renderTemplate(template, context);
+      }
+      /**
+       * 渲染项目模板
+       */
+      async renderProjectTemplate(context) {
+        const template = await this.getTemplate("project");
+        return this.renderTemplate(template, context);
+      }
+      /**
+       * 渲染特性模板
+       */
+      async renderFeatureTemplate(context) {
+        const template = await this.getTemplate("feature");
+        return this.renderTemplate(template, context);
+      }
+      /**
+       * 渲染总览模板
+       */
+      async renderOverviewTemplate(context) {
+        const template = await this.getTemplate("overview");
+        return this.renderTemplate(template, context);
+      }
+    };
+  }
+});
+
+// src/constants/statuses.ts
+function getStatusLabel(status, type = "feature") {
+  var _a;
+  let statuses;
+  switch (type) {
+    case "version":
+      statuses = VERSION_STATUSES;
+      break;
+    case "project":
+      statuses = PROJECT_STATUSES;
+      break;
+    case "feature":
+    default:
+      statuses = FEATURE_STATUSES;
+      break;
+  }
+  const found = statuses.find((s) => s.value === status);
+  return (_a = found == null ? void 0 : found.label) != null ? _a : status;
+}
+var VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES;
+var init_statuses = __esm({
+  "src/constants/statuses.ts"() {
+    VERSION_STATUSES = [
+      { value: "planning", label: "\u89C4\u5212\u4E2D", color: "var(--text-muted)" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
+      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
+    ];
+    PROJECT_STATUSES = [
+      { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
+      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
+    ];
+    FEATURE_STATUSES = [
+      { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
+      { value: "todo", label: "\u5F85\u529E", color: "var(--text-muted)" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
+      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "var(--text-warning)" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
+      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
+    ];
+  }
+});
+
+// src/constants/priorities.ts
+var PRIORITIES;
+var init_priorities = __esm({
+  "src/constants/priorities.ts"() {
+    PRIORITIES = [
+      { value: "critical", label: "\u7D27\u6025", color: "#ef4444" },
+      { value: "high", label: "\u9AD8", color: "#f97316" },
+      { value: "medium", label: "\u4E2D", color: "#3b82f6" },
+      { value: "low", label: "\u4F4E", color: "#22c55e" }
+    ];
+  }
+});
+
+// src/constants/index.ts
+var init_constants = __esm({
+  "src/constants/index.ts"() {
+    init_statuses();
+    init_priorities();
+  }
+});
+
+// src/modals/QuickCreateModal.ts
+var QuickCreateModal_exports = {};
+__export(QuickCreateModal_exports, {
+  QuickCreateModal: () => QuickCreateModal
+});
+var import_obsidian8, QuickCreateModal;
+var init_QuickCreateModal = __esm({
+  "src/modals/QuickCreateModal.ts"() {
+    import_obsidian8 = require("obsidian");
+    init_constants();
+    QuickCreateModal = class extends import_obsidian8.Modal {
+      constructor(app, entityManager, defaultDate, onSubmit) {
+        super(app);
+        this.entityManager = entityManager;
+        this.defaultDate = defaultDate;
+        this.onSubmit = onSubmit;
+        this.result = {
+          name: "",
+          versionId: "",
+          projectId: "",
+          status: "backlog",
+          priority: "medium",
+          progress: 0,
+          tags: []
+        };
+        this.versions = [];
+        this.projects = [];
+        this.filteredProjects = [];
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        this.versions = await this.entityManager.listVersions();
+        this.projects = await this.entityManager.listProjects();
+        if (this.versions.length === 0 || this.projects.length === 0) {
+          contentEl.createEl("h2", { text: "\u5FEB\u901F\u521B\u5EFA\u7279\u6027" });
+          contentEl.createEl("p", {
+            text: "\u9700\u8981\u5148\u521B\u5EFA\u7248\u672C\u548C\u9879\u76EE",
+            cls: "pm-modal__warning"
+          });
+          const btn = contentEl.createEl("button", { text: "\u786E\u5B9A" });
+          btn.addEventListener("click", () => this.close());
+          return;
+        }
+        this.result.versionId = this.versions[0].id;
+        this.result.projectId = this.projects[0].id;
+        this.result.dueDate = this.defaultDate;
+        this.updateFilteredProjects();
+        contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
+        new import_obsidian8.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
+          text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
+          text.onChange((value) => {
+            this.result.name = value;
+          });
+          setTimeout(() => text.inputEl.focus(), 0);
+        });
+        new import_obsidian8.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
+          this.versions.forEach((v) => {
+            dropdown.addOption(v.id, v.name);
+          });
+          dropdown.setValue(this.result.versionId);
+          dropdown.onChange((value) => {
+            this.result.versionId = value;
+            this.updateFilteredProjects();
+            this.renderProjectDropdown();
+          });
+        });
+        const projectSetting = new import_obsidian8.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
+        this.projectDropdown = projectSetting.addDropdown((dropdown) => {
+          this.filteredProjects.forEach((p) => {
+            dropdown.addOption(p.id, p.name);
+          });
+          dropdown.setValue(this.result.projectId);
+          dropdown.onChange((value) => {
+            this.result.projectId = value;
+          });
+        });
+        new import_obsidian8.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          FEATURE_STATUSES.forEach((s) => {
+            dropdown.addOption(s.value, s.label);
+          });
+          dropdown.setValue(this.result.status || "backlog");
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        new import_obsidian8.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((p) => {
+            dropdown.addOption(p.value, p.label);
+          });
+          dropdown.setValue(this.result.priority || "medium");
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const createButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        createButton.addEventListener("click", async () => {
+          if (!this.result.name.trim()) {
+            new import_obsidian8.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      updateFilteredProjects() {
+        this.filteredProjects = this.projects.filter((p) => p.versionId === this.result.versionId);
+        if (this.filteredProjects.length > 0 && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
+          this.result.projectId = this.filteredProjects[0].id;
+        }
+      }
+      renderProjectDropdown() {
+        if (!this.projectDropdown)
+          return;
+        const dropdown = this.projectDropdown;
+        dropdown.selectEl.empty();
+        this.filteredProjects.forEach((p) => {
+          dropdown.addOption(p.id, p.name);
+        });
+        dropdown.setValue(this.result.projectId);
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/services/InitService.ts
+var InitService_exports = {};
+__export(InitService_exports, {
+  InitService: () => InitService
+});
+var import_obsidian18, InitService;
+var init_InitService = __esm({
+  "src/services/InitService.ts"() {
+    import_obsidian18 = require("obsidian");
+    init_TemplateService();
+    InitService = class {
+      constructor(app, settings) {
+        this.BASE_FOLDER = "ProjectManager";
+        this.SUB_FOLDERS = ["Versions", "Projects", "Features"];
+        this.DASHBOARD_FILE = "\u603B\u89C8.md";
+        this.app = app;
+        this.templateService = new TemplateService(app, settings);
+      }
+      async isInitialized() {
+        const folder = this.app.vault.getAbstractFileByPath(this.BASE_FOLDER);
+        if (!folder)
+          return false;
+        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
+        const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
+        return dashboardFile instanceof import_obsidian18.TFile;
+      }
+      async initialize() {
+        await this.ensureFolder(this.BASE_FOLDER);
+        for (const subFolder of this.SUB_FOLDERS) {
+          await this.ensureFolder(`${this.BASE_FOLDER}/${subFolder}`);
+        }
+        await this.createDashboard();
+      }
+      async openDashboard() {
+        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
+        const file = this.app.vault.getAbstractFileByPath(dashboardPath);
+        if (file instanceof import_obsidian18.TFile) {
+          await this.app.workspace.getLeaf().openFile(file);
+        } else {
+          await this.initialize();
+          await this.openDashboard();
+        }
+      }
+      getDashboardPath() {
+        return `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
+      }
+      async ensureFolder(path) {
+        const folder = this.app.vault.getAbstractFileByPath(path);
+        if (!folder) {
+          await this.app.vault.createFolder(path);
+        }
+      }
+      async createDashboard() {
+        const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
+        const date = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+        const content = await this.templateService.renderOverviewTemplate({ date });
+        const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
+        if (existingFile instanceof import_obsidian18.TFile) {
+          await this.app.vault.modify(existingFile, content);
+        } else {
+          await this.app.vault.create(dashboardPath, content);
+        }
       }
     };
   }
@@ -639,7 +879,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian16 = require("obsidian");
+var import_obsidian19 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -811,11 +1051,13 @@ var BaseStore = class {
 };
 
 // src/core/stores/VersionStore.ts
+init_TemplateService();
 var VersionStore = class extends BaseStore {
-  constructor(fs, app, cache) {
+  constructor(fs, app, cache, settings) {
     super(fs, app);
     this.FOLDER = "ProjectManager/Versions";
     this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
   }
   async writeTemplate(path, template) {
     const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
@@ -848,7 +1090,16 @@ var VersionStore = class extends BaseStore {
       tags: data.tags || []
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(version));
+    const content = await this.templateService.renderVersionTemplate({
+      id: version.id,
+      name: version.name,
+      status: version.status,
+      owner: version.owner,
+      startDate: version.startDate,
+      endDate: version.endDate,
+      tags: version.tags
+    });
+    await this.writeTemplate(path, content);
     return version;
   }
   async update(id, data) {
@@ -861,7 +1112,16 @@ var VersionStore = class extends BaseStore {
       ...data
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(updated));
+    const content = await this.templateService.renderVersionTemplate({
+      id: updated.id,
+      name: updated.name,
+      status: updated.status,
+      owner: updated.owner,
+      startDate: updated.startDate,
+      endDate: updated.endDate,
+      tags: updated.tags
+    });
+    await this.writeTemplate(path, content);
     return updated;
   }
   async delete(id) {
@@ -913,207 +1173,16 @@ var VersionStore = class extends BaseStore {
     }
     return false;
   }
-  generateTemplate(version) {
-    return `---
-${this.yamlFrontmatter(version)}
----
-
-# \u{1F4E6} ${version.name}
-
-<!-- \u7248\u672C\u5143\u6570\u636E\u5DF2\u5728\u4E0A\u65B9 YAML \u4E2D\u5B9A\u4E49 -->
-
-## \u{1F3AF} \u7248\u672C\u76EE\u6807
-
-<!-- \u63CF\u8FF0\u672C\u7248\u672C\u7684\u6838\u5FC3\u76EE\u6807\u548C\u9884\u671F\u6210\u679C -->
-
-## \u{1F5D3}\uFE0F IPD \u91CC\u7A0B\u7891
-
-### 1. \u6982\u5FF5\u9636\u6BB5 (Concept)
-- [ ] \u5E02\u573A\u9700\u6C42\u5206\u6790\u5B8C\u6210
-- [ ] \u7ADE\u54C1\u5206\u6790\u62A5\u544A
-- [ ] \u53EF\u884C\u6027\u8BC4\u4F30
-- **\u98CE\u9669**: <!-- \u8BB0\u5F55\u672C\u9636\u6BB5\u8BC6\u522B\u7684\u98CE\u9669 -->
-
-### 2. \u8BA1\u5212\u9636\u6BB5 (Plan)
-- [ ] \u9700\u6C42\u8BC4\u5BA1\u4F1A\u8BAE
-- [ ] \u6280\u672F\u65B9\u6848\u8BC4\u5BA1
-- [ ] \u8D44\u6E90\u4E0E\u6392\u671F\u8BC4\u4F30
-- **\u98CE\u9669**: 
-
-### 3. \u5F00\u53D1\u9636\u6BB5 (Develop)
-- [ ] \u8BBE\u8BA1\u7A3F\u786E\u8BA4
-- [ ] \u6838\u5FC3\u529F\u80FD\u5F00\u53D1\u5B8C\u6210
-- [ ] \u5355\u5143\u6D4B\u8BD5\u901A\u8FC7
-- **\u98CE\u9669**: 
-
-### 4. \u9A8C\u8BC1\u9636\u6BB5 (Qualify)
-- [ ] \u96C6\u6210\u6D4B\u8BD5\u901A\u8FC7
-- [ ] \u7CFB\u7EDF\u6D4B\u8BD5\u901A\u8FC7
-- [ ] \u9A8C\u6536\u6D4B\u8BD5\u901A\u8FC7
-- **\u98CE\u9669**: 
-
-### 5. \u53D1\u5E03\u9636\u6BB5 (Launch)
-- [ ] \u53D1\u5E03\u8BC4\u5BA1\u4F1A\u8BAE
-- [ ] \u751F\u4EA7\u73AF\u5883\u90E8\u7F72
-- [ ] \u7528\u6237\u57F9\u8BAD\u4E0E\u6587\u6863
-- **\u98CE\u9669**: 
-
-## \u{1F4CA} \u8FDB\u5EA6\u4E0E\u98CE\u9669\u6C47\u603B
-
-### \u9879\u76EE\u6982\u89C8
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "${version.id}");
-const totalProjects = projects.length;
-const completedProjects = projects.filter(p => p.status === 'completed').length;
-const inProgressProjects = projects.filter(p => p.status === 'in-progress').length;
-
-if (totalProjects === 0) {
-  dv.paragraph("> \u26A0\uFE0F \u6682\u65E0\u5173\u8054\u9879\u76EE");
-} else {
-  const progress = Math.round((completedProjects / totalProjects) * 100);
-  dv.paragraph(
-    "> \u{1F4C8} \u9879\u76EE\u8FDB\u5EA6: **" + completedProjects + "/" + totalProjects + "** \u5B8C\u6210 (" + progress + "%)\\n\\n" +
-    "> - \u2705 \u5DF2\u5B8C\u6210: " + completedProjects + "\\n" +
-    "> - \u{1F504} \u8FDB\u884C\u4E2D: " + inProgressProjects + "\\n" +
-    "> - \u23F3 \u5F85\u5F00\u59CB: " + (totalProjects - completedProjects - inProgressProjects)
-  );
-}
-\`\`\`
-
-### \u7279\u6027\u6982\u89C8
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");
-const totalFeatures = features.length;
-const completedFeatures = features.filter(f => f.status === 'completed').length;
-const inProgressFeatures = features.filter(f => f.status === 'in-progress').length;
-const testingFeatures = features.filter(f => f.status === 'testing').length;
-
-if (totalFeatures === 0) {
-  dv.paragraph("> \u26A0\uFE0F \u6682\u65E0\u5173\u8054\u7279\u6027");
-} else {
-  const progress = Math.round((completedFeatures / totalFeatures) * 100);
-  dv.paragraph(
-    "> \u{1F4CA} \u7279\u6027\u8FDB\u5EA6: **" + completedFeatures + "/" + totalFeatures + "** \u5B8C\u6210 (" + progress + "%)\\n\\n" +
-    "> - \u2705 \u5DF2\u5B8C\u6210: " + completedFeatures + "\\n" +
-    "> - \u{1F504} \u5F00\u53D1\u4E2D: " + inProgressFeatures + "\\n" +
-    "> - \u{1F9EA} \u6D4B\u8BD5\u4E2D: " + testingFeatures + "\\n" +
-    "> - \u{1F4CB} \u5F85\u5904\u7406: " + (totalFeatures - completedFeatures - inProgressFeatures - testingFeatures)
-  );
-}
-\`\`\`
-
-### \u5EF6\u671F\u98CE\u9669
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.versionId === "${version.id}");
-const now = new Date();
-const atRisk = features.filter(f => {
-  if (!f.dueDate || f.status === 'completed') return false;
-  const due = new Date(f.dueDate);
-  const diffDays = Math.floor((due - now) / (1000 * 60 * 60 * 24));
-  return diffDays < 0 || (diffDays <= 3 && f.progress < 80);
-});
-
-if (atRisk.length === 0) {
-  dv.paragraph("> \u2705 \u6682\u65E0\u5EF6\u671F\u98CE\u9669");
-} else {
-  dv.paragraph("> \u26A0\uFE0F **\u53D1\u73B0 " + atRisk.length + " \u4E2A\u5B58\u5728\u5EF6\u671F\u98CE\u9669\u7684\u7279\u6027:**\\n");
-  atRisk.forEach(f => {
-    const due = f.dueDate ? new Date(f.dueDate) : null;
-    const diffDays = due ? Math.floor((due - now) / (1000 * 60 * 60 * 24)) : null;
-    const status = diffDays < 0 ? "\u{1F534} \u5DF2\u5EF6\u671F" : (diffDays <= 3 ? "\u{1F7E1} \u5373\u5C06\u5230\u671F" : "");
-    dv.paragraph("> - [[" + f.file.path + "|" + f.name + "]] - " + status);
-  });
-}
-\`\`\`
-
-## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A
-
-| \u98CE\u9669\u9879 | \u7B49\u7EA7 | \u5E94\u5BF9\u63AA\u65BD | \u8D1F\u8D23\u4EBA | \u72B6\u6001 |
-|--------|------|----------|--------|------|
-| <!-- \u98CE\u9669\u63CF\u8FF0 --> | \u9AD8/\u4E2D/\u4F4E | <!-- \u5E94\u5BF9\u63AA\u65BD --> | <!-- \u8D1F\u8D23\u4EBA --> | \u5F00\u653E/\u5DF2\u89E3\u51B3 |
-
-## \u{1F4C1} \u5173\u8054\u9879\u76EE
-
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.versionId === "${version.id}");
-if (projects.length > 0) {
-  dv.table(
-    ["\u9879\u76EE", "\u72B6\u6001", "\u4F18\u5148\u7EA7", "\u8D1F\u8D23\u4EBA"],
-    projects.map(p => [
-      "[[" + p.file.path + "|" + p.name + "]]",
-      p.status,
-      p.priority,
-      p.owner || "-"
-    ])
-  );
-} else {
-  dv.paragraph("> \u{1F4CB} \u6682\u65E0\u9879\u76EE");
-}
-\`\`\`
-
-## \u{1F527} \u5FEB\u6377\u64CD\u4F5C
-
-<span class="pm-btn pm-btn--primary" data-action="create-project" data-version-id="${version.id}">\u{1F4C1} \u65B0\u5EFA\u9879\u76EE</span>
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="${version.id}">\u2728 \u65B0\u5EFA\u7279\u6027</span>
-
----
-
-## \u{1F4CE} \u5173\u8054\u5C55\u793A
-
-### \u4F7F\u7528 pm-card \u5C55\u793A\u672C\u7248\u672C\u7EA7\u8054\u72B6\u6001
-
-\u5728\u5F53\u524D\u9875\u9762\u63D2\u5165\u4EE5\u4E0B\u4EE3\u7801\u5757\uFF0C\u5373\u53EF\u5C55\u793A\u672C\u7248\u672C\u7684\u5B8C\u6574\u9879\u76EE\u6811\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${version.id}
-expanded: true
-\`\`\`
-
-### \u5C55\u793A\u7279\u5B9A\u9879\u76EE\u7EA7\u8054
-
-\u5982\u9700\u5C55\u793A\u672C\u7248\u672C\u4E0B\u67D0\u4E2A\u7279\u5B9A\u9879\u76EE\u7684\u7EA7\u8054\u72B6\u6001\uFF0C\u4F7F\u7528\u9879\u76EEID\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: proj001
-expanded: true
-\`\`\`
-
-> \u{1F4A1} \u63D0\u793A\uFF1A\u5C06 \\"proj001\\" \u66FF\u6362\u4E3A\u5B9E\u9645\u7684\u9879\u76EEID
-
----
-*\u521B\u5EFA\u4E8E: ${(/* @__PURE__ */ new Date()).toLocaleString("zh-CN")}*
-`;
-  }
-  yamlFrontmatter(version) {
-    const lines = [
-      `id: ${version.id}`,
-      `name: ${version.name}`,
-      `status: ${version.status}`
-    ];
-    if (version.owner) {
-      lines.push(`owner: ${version.owner}`);
-    }
-    if (version.startDate) {
-      lines.push(`startDate: ${version.startDate}`);
-    }
-    if (version.endDate) {
-      lines.push(`endDate: ${version.endDate}`);
-    }
-    if (version.tags && version.tags.length > 0) {
-      lines.push(`tags: [${version.tags.join(", ")}]`);
-    }
-    return lines.join("\n");
-  }
 };
 
 // src/core/stores/ProjectStore.ts
+init_TemplateService();
 var ProjectStore = class extends BaseStore {
-  constructor(fs, app, cache) {
+  constructor(fs, app, cache, settings) {
     super(fs, app);
     this.FOLDER = "ProjectManager/Projects";
     this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
   }
   async writeTemplate(path, template) {
     const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
@@ -1146,7 +1215,16 @@ var ProjectStore = class extends BaseStore {
       tags: data.tags || []
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(project));
+    const content = await this.templateService.renderProjectTemplate({
+      id: project.id,
+      name: project.name,
+      versionId: project.versionId,
+      status: project.status,
+      owner: project.owner,
+      priority: project.priority,
+      tags: project.tags
+    });
+    await this.writeTemplate(path, content);
     return project;
   }
   async update(id, data) {
@@ -1159,7 +1237,16 @@ var ProjectStore = class extends BaseStore {
       ...data
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(updated));
+    const content = await this.templateService.renderProjectTemplate({
+      id: updated.id,
+      name: updated.name,
+      versionId: updated.versionId,
+      status: updated.status,
+      owner: updated.owner,
+      priority: updated.priority,
+      tags: updated.tags
+    });
+    await this.writeTemplate(path, content);
     return updated;
   }
   async delete(id) {
@@ -1238,186 +1325,16 @@ var ProjectStore = class extends BaseStore {
       }
     }
   }
-  getPriorityEmoji(priority) {
-    const emojiMap = {
-      critical: "\u{1F534}",
-      high: "\u{1F7E0}",
-      medium: "\u{1F535}",
-      low: "\u{1F7E2}"
-    };
-    return emojiMap[priority] || "\u26AA";
-  }
-  generateTemplate(project) {
-    const priorityEmoji = this.getPriorityEmoji(project.priority);
-    return `---
-${this.yamlFrontmatter(project)}
----
-
-# ${priorityEmoji} ${project.name}
-
-<!-- \u9879\u76EE\u5143\u6570\u636E\u5DF2\u5728\u4E0A\u65B9 YAML \u4E2D\u5B9A\u4E49 -->
-
-## \u{1F4CB} \u9879\u76EE\u6982\u89C8
-
-<!-- \u7B80\u8981\u63CF\u8FF0\u9879\u76EE\u80CC\u666F\u3001\u76EE\u6807\u548C\u8303\u56F4 -->
-
-## \u{1F6A6} \u9636\u6BB5\u72B6\u6001
-
-### \u9636\u6BB5 1: \u5F00\u5DE5\u51C6\u5907
-- [ ] \u9700\u6C42\u5BF9\u9F50\u5B8C\u6210
-- [ ] \u6280\u672F\u65B9\u6848\u786E\u5B9A
-- [ ] \u8D44\u6E90\u5230\u4F4D\u786E\u8BA4
-- **\u5F00\u5DE5\u65E5\u671F**: <!-- \u8BB0\u5F55\u5B9E\u9645\u5F00\u5DE5\u65E5\u671F -->
-
-### \u9636\u6BB5 2: \u5F00\u53D1\u8FDB\u884C
-- [ ] \u8BBE\u8BA1\u7A3F\u786E\u8BA4
-- [ ] \u6838\u5FC3\u529F\u80FD\u5F00\u53D1
-- [ ] \u4EE3\u7801\u8BC4\u5BA1\u901A\u8FC7
-- **\u5F53\u524D\u8FDB\u5EA6**: 0%
-
-### \u9636\u6BB5 3: \u8054\u8C03\u6D4B\u8BD5
-- [ ] \u524D\u540E\u7AEF\u8054\u8C03
-- [ ] \u6D4B\u8BD5\u7528\u4F8B\u8BC4\u5BA1
-- [ ] Bug \u4FEE\u590D\u5B8C\u6210
-- **\u963B\u585E\u95EE\u9898**: <!-- \u8BB0\u5F55\u8054\u8C03\u963B\u585E\u95EE\u9898 -->
-
-### \u9636\u6BB5 4: \u9A8C\u6536\u4EA4\u4ED8
-- [ ] \u4EA7\u54C1\u9A8C\u6536
-- [ ] \u6587\u6863\u9F50\u5168\u786E\u8BA4
-- [ ] \u4E0A\u7EBF\u68C0\u67E5\u5B8C\u6210
-- **\u9A8C\u6536\u65E5\u671F**: <!-- \u8BB0\u5F55\u5B9E\u9645\u9A8C\u6536\u65E5\u671F -->
-
-## \u{1F4CA} \u7279\u6027\u8FDB\u5EA6\u6C47\u603B
-
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
-const total = features.length;
-
-if (total === 0) {
-  dv.paragraph("> \u{1F4CB} \u6682\u65E0\u5173\u8054\u7279\u6027");
-} else {
-  const completed = features.filter(f => f.status === 'completed').length;
-  const inProgress = features.filter(f => f.status === 'in-progress').length;
-  const testing = features.filter(f => f.status === 'testing').length;
-  const todo = features.filter(f => f.status === 'todo' || f.status === 'backlog').length;
-  const progress = Math.round((completed / total) * 100);
-  
-  dv.paragraph(
-    "> \u{1F4C8} **\u603B\u8FDB\u5EA6: " + progress + "%** (" + completed + "/" + total + ")\\n\\n" +
-    "> | \u72B6\u6001 | \u6570\u91CF |\\n" +
-    "> |------|------|\\n" +
-    "> | \u2705 \u5DF2\u5B8C\u6210 | " + completed + " |\\n" +
-    "> | \u{1F504} \u5F00\u53D1\u4E2D | " + inProgress + " |\\n" +
-    "> | \u{1F9EA} \u6D4B\u8BD5\u4E2D | " + testing + " |\\n" +
-    "> | \u{1F4CB} \u5F85\u5904\u7406 | " + todo + " |"
-  );
-}
-\`\`\`
-
-### \u7279\u6027\u5217\u8868
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
-if (features.length > 0) {
-  dv.table(
-    ["\u7279\u6027", "\u72B6\u6001", "\u4F18\u5148\u7EA7", "\u8FDB\u5EA6", "\u8D1F\u8D23\u4EBA", "\u622A\u6B62\u65E5\u671F"],
-    features.map(f => [
-      "[[" + f.file.path + "|" + f.name + "]]",
-      f.status,
-      f.priority,
-      f.progress + "%",
-      f.owner || "-",
-      f.dueDate || "-"
-    ])
-  );
-} else {
-  dv.paragraph("> \u{1F4CB} \u6682\u65E0\u7279\u6027");
-}
-\`\`\`
-
-## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A
-
-| \u98CE\u9669\u9879 | \u7B49\u7EA7 | \u5E94\u5BF9\u63AA\u65BD | \u8D1F\u8D23\u4EBA | \u72B6\u6001 |
-|--------|------|----------|--------|------|
-| <!-- \u63CF\u8FF0\u98CE\u9669 --> | \u9AD8/\u4E2D/\u4F4E | <!-- \u5E94\u5BF9\u63AA\u65BD --> | <!-- \u8D1F\u8D23\u4EBA --> | \u5F00\u653E/\u5DF2\u89E3\u51B3 |
-
-## \u{1F517} \u5173\u8054\u7248\u672C
-
-\`\`\`dataviewjs
-const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "${project.versionId}");
-if (versions.length > 0) {
-  dv.paragraph("> \u{1F4E6} \u6240\u5C5E\u7248\u672C: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
-} else {
-  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u7248\u672C");
-}
-\`\`\`
-
-## \u{1F527} \u5FEB\u6377\u64CD\u4F5C
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="${project.id}" data-version-id="${project.versionId}">\u2728 \u65B0\u5EFA\u7279\u6027</span>
-
----
-
-## \u{1F4CE} \u5173\u8054\u5C55\u793A
-
-### \u4F7F\u7528 pm-card \u5C55\u793A\u672C\u9879\u76EE\u7EA7\u8054\u72B6\u6001
-
-\u5728\u5F53\u524D\u9875\u9762\u63D2\u5165\u4EE5\u4E0B\u4EE3\u7801\u5757\uFF0C\u5373\u53EF\u5C55\u793A\u672C\u9879\u76EE\u7684\u5B8C\u6574\u7279\u6027\u5217\u8868\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${project.id}
-expanded: true
-\`\`\`
-
-### \u5C55\u793A\u6240\u5C5E\u7248\u672C\u7EA7\u8054
-
-\u5982\u9700\u5C55\u793A\u672C\u9879\u76EE\u6240\u5C5E\u7248\u672C\u7684\u5B8C\u6574\u7EA7\u8054\u72B6\u6001\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${project.versionId}
-expanded: true
-\`\`\`
-
-### \u5C55\u793A\u7279\u5B9A\u7279\u6027
-
-\u5982\u9700\u5C55\u793A\u672C\u9879\u76EE\u4E0B\u67D0\u4E2A\u7279\u5B9A\u7279\u6027\u7684\u5361\u7247\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: feat001
-\`\`\`
-
-> \u{1F4A1} \u63D0\u793A\uFF1A\u5C06 \\"feat001\\" \u66FF\u6362\u4E3A\u5B9E\u9645\u7684\u7279\u6027ID
-
----
-*\u521B\u5EFA\u4E8E: ${(/* @__PURE__ */ new Date()).toLocaleString("zh-CN")}*
-`;
-  }
-  yamlFrontmatter(project) {
-    const lines = [
-      `id: ${project.id}`,
-      `name: ${project.name}`,
-      `versionId: ${project.versionId}`,
-      `status: ${project.status}`,
-      `priority: ${project.priority}`
-    ];
-    if (project.owner) {
-      lines.push(`owner: ${project.owner}`);
-    }
-    if (project.tags && project.tags.length > 0) {
-      lines.push(`tags: [${project.tags.join(", ")}]`);
-    }
-    return lines.join("\n");
-  }
 };
 
 // src/core/stores/FeatureStore.ts
+init_TemplateService();
 var FeatureStore = class extends BaseStore {
-  constructor(fs, app, cache) {
+  constructor(fs, app, cache, settings) {
     super(fs, app);
     this.FOLDER = "ProjectManager/Features";
     this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
   }
   async writeTemplate(path, template) {
     const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
@@ -1453,7 +1370,19 @@ var FeatureStore = class extends BaseStore {
       dueDate: data.dueDate
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(feature));
+    const content = await this.templateService.renderFeatureTemplate({
+      id: feature.id,
+      name: feature.name,
+      versionId: feature.versionId,
+      projectId: feature.projectId,
+      status: feature.status,
+      owner: feature.owner,
+      priority: feature.priority,
+      progress: feature.progress,
+      dueDate: feature.dueDate,
+      tags: feature.tags
+    });
+    await this.writeTemplate(path, content);
     return feature;
   }
   async update(id, data) {
@@ -1466,7 +1395,19 @@ var FeatureStore = class extends BaseStore {
       ...data
     };
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(updated));
+    const content = await this.templateService.renderFeatureTemplate({
+      id: updated.id,
+      name: updated.name,
+      versionId: updated.versionId,
+      projectId: updated.projectId,
+      status: updated.status,
+      owner: updated.owner,
+      priority: updated.priority,
+      progress: updated.progress,
+      dueDate: updated.dueDate,
+      tags: updated.tags
+    });
+    await this.writeTemplate(path, content);
     return updated;
   }
   async delete(id) {
@@ -1525,229 +1466,10 @@ var FeatureStore = class extends BaseStore {
     const all = await this.list();
     return all.filter((f) => f.versionId === versionId);
   }
-  getPriorityEmoji(priority) {
-    const emojiMap = {
-      critical: "\u{1F534}",
-      high: "\u{1F7E0}",
-      medium: "\u{1F535}",
-      low: "\u{1F7E2}"
-    };
-    return emojiMap[priority] || "\u26AA";
-  }
-  getStatusEmoji(status) {
-    const emojiMap = {
-      backlog: "\u{1F4CB}",
-      todo: "\u{1F4DD}",
-      "in-progress": "\u{1F504}",
-      testing: "\u{1F9EA}",
-      completed: "\u2705",
-      archived: "\u{1F4E6}"
-    };
-    return emojiMap[status] || "\u26AA";
-  }
-  generateTemplate(feature) {
-    const priorityEmoji = this.getPriorityEmoji(feature.priority);
-    const statusEmoji = this.getStatusEmoji(feature.status);
-    return `---
-${this.yamlFrontmatter(feature)}
----
-
-# ${priorityEmoji} ${statusEmoji} ${feature.name}
-
-<!-- \u7279\u6027\u5143\u6570\u636E\u5DF2\u5728\u4E0A\u65B9 YAML \u4E2D\u5B9A\u4E49 -->
-
-## \u{1F4CB} \u9700\u6C42 AR \u5217\u8868
-
-| AR \u7F16\u53F7 | \u63CF\u8FF0 | \u72B6\u6001 |
-|---------|------|------|
-| AR001 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u2705 \u5DF2\u5B8C\u6210 |
-| AR002 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u{1F504} \u8FDB\u884C\u4E2D |
-| AR003 | <!-- \u9700\u6C42\u63CF\u8FF0 --> | \u23F3 \u672A\u5F00\u59CB |
-
-**AR \u72B6\u6001\u8BF4\u660E**: \u2705 \u5DF2\u5B8C\u6210 | \u{1F504} \u8FDB\u884C\u4E2D | \u23F3 \u672A\u5F00\u59CB | \u274C \u5DF2\u53D6\u6D88
-
-## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988
-
-### \u5386\u53F2\u8BB0\u5F55
-<!-- \u8FDB\u5C55\u5C06\u81EA\u52A8\u8BB0\u5F55\u5728\u8FD9\u91CC -->
-- [${(/* @__PURE__ */ new Date()).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}] \u7279\u6027\u521B\u5EFA
-
-### \u6DFB\u52A0\u65B0\u8FDB\u5C55
-<input class="pm-progress-input" data-feature-id="${feature.id}" placeholder="\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\uFF0C\u6309 Enter \u4FDD\u5B58...">
-
-## \u{1F4C5} \u5BF9\u9F50\u8BA1\u5212
-
-### \u91CC\u7A0B\u7891\u8282\u70B9
-
-| \u8282\u70B9 | \u8BA1\u5212\u65E5\u671F | \u5B9E\u9645\u65E5\u671F | \u72B6\u6001 |
-|------|----------|----------|------|
-| \u9700\u6C42\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u8BBE\u8BA1\u8BC4\u5BA1 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u5F00\u53D1\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u8054\u8C03\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u6D4B\u8BD5\u5B8C\u6210 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-| \u4E0A\u7EBF\u53D1\u5E03 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | \u2B1C |
-
-## \u{1F465} \u5468\u8FB9\u56E2\u961F\u4E0E\u8D1F\u8D23\u4EBA
-
-### \u6838\u5FC3\u56E2\u961F
-
-| \u89D2\u8272 | \u8D1F\u8D23\u4EBA | \u56E2\u961F/\u90E8\u95E8 |
-|------|--------|-----------|
-| \u4EA7\u54C1\u7ECF\u7406 | <!-- @\u59D3\u540D --> | \u4EA7\u54C1\u90E8 |
-| \u524D\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u524D\u7AEF\u7EC4 |
-| \u540E\u7AEF\u5F00\u53D1 | <!-- @\u59D3\u540D --> | \u540E\u7AEF\u7EC4 |
-| \u6D4B\u8BD5\u5DE5\u7A0B\u5E08 | <!-- @\u59D3\u540D --> | QA\u7EC4 |
-| UI/UX\u8BBE\u8BA1 | <!-- @\u59D3\u540D --> | \u8BBE\u8BA1\u7EC4 |
-
-### \u4F9D\u8D56\u534F\u4F5C
-
-- [ ] \u8FD0\u7EF4\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u5B89\u5168\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u6570\u636E\u56E2\u961F - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-- [ ] \u6CD5\u52A1\u5408\u89C4 - <!-- \u534F\u4F5C\u4E8B\u9879 -->
-
-## \u{1F4BB} \u5F00\u53D1\u72B6\u6001
-
-### \u4EE3\u7801\u4FE1\u606F
-
-- **Change ID**: <!-- \u4EE3\u7801\u53D8\u66F4ID -->
-- **\u5F00\u53D1\u5206\u652F**: \`feature/${feature.id}\`
-- **\u76EE\u6807\u5206\u652F**: \`main\`
-- **MR/PR \u94FE\u63A5**: <!-- \u586B\u5165 Merge Request \u6216 Pull Request \u94FE\u63A5 -->
-
-### \u5404\u9636\u6BB5\u72B6\u6001
-
-#### \u{1F528} \u5F00\u53D1\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u8D1F\u8D23\u4EBA**: <!-- @\u5F00\u53D1\u4EBA\u5458 -->
-- **\u5B8C\u6210\u5EA6**: ${feature.progress}%
-- **\u5907\u6CE8**: <!-- \u5F00\u53D1\u5907\u6CE8 -->
-
-#### \u{1F517} \u8054\u8C03\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u8D1F\u8D23\u4EBA**: <!-- @\u8054\u8C03\u8D1F\u8D23\u4EBA -->
-- **\u963B\u585E\u95EE\u9898**: <!-- \u8BB0\u5F55\u8054\u8C03\u963B\u585E\u95EE\u9898 -->
-- **\u4F9D\u8D56\u670D\u52A1**: <!-- \u5217\u51FA\u4F9D\u8D56\u7684\u5176\u4ED6\u670D\u52A1/\u63A5\u53E3 -->
-
-#### \u{1F9EA} \u8F6C\u6D4B\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210 / \u{1F534} \u6709\u963B\u585E
-- **\u6D4B\u8BD5\u8D1F\u8D23\u4EBA**: <!-- @\u6D4B\u8BD5\u4EBA\u5458 -->
-- **Bug \u7EDF\u8BA1**:
-  - \u{1F534} P0 \u963B\u585E: 0
-  - \u{1F7E0} P1 \u4E25\u91CD: 0
-  - \u{1F7E1} P2 \u4E00\u822C: 0
-  - \u{1F7E2} P3 \u8F7B\u5FAE: 0
-- **\u6D4B\u8BD5\u62A5\u544A**: <!-- \u94FE\u63A5\u5230\u6D4B\u8BD5\u62A5\u544A -->
-
-#### \u{1F4D6} \u6587\u6863\u9636\u6BB5
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u5B8C\u6210
-- **\u6587\u6863\u6E05\u5355**:
-  - [ ] API \u63A5\u53E3\u6587\u6863
-  - [ ] \u4F7F\u7528\u624B\u518C
-  - [ ] \u90E8\u7F72\u6587\u6863
-  - [ ] \u53D8\u66F4\u65E5\u5FD7
-
-#### \u{1F440} \u4EE3\u7801\u68C0\u89C6
-- **\u72B6\u6001**: \u2B1C \u672A\u5F00\u59CB / \u{1F7E1} \u8FDB\u884C\u4E2D / \u{1F7E2} \u5DF2\u901A\u8FC7 / \u{1F534} \u9700\u4FEE\u6539
-- **\u68C0\u89C6\u4EBA**: <!-- @\u68C0\u89C6\u4EBA -->
-- **\u68C0\u89C6\u610F\u89C1**: <!-- \u8BB0\u5F55\u68C0\u89C6\u610F\u89C1 -->
-- **\u68C0\u89C6\u94FE\u63A5**: <!-- \u4EE3\u7801\u68C0\u89C6\u5DE5\u5177\u94FE\u63A5 -->
-
-#### \u{1F500} \u5408\u5165\u5206\u652F
-- **\u72B6\u6001**: \u2B1C \u672A\u5408\u5E76 / \u{1F7E1} \u5408\u5E76\u4E2D / \u{1F7E2} \u5DF2\u5408\u5E76 / \u{1F534} \u51B2\u7A81
-- **MR/PR \u72B6\u6001**: <!-- \u5F00\u542F/\u5DF2\u5408\u5E76/\u5DF2\u5173\u95ED -->
-- **\u5408\u5E76\u51B2\u7A81**: <!-- \u6709\u5219\u8BB0\u5F55\u51B2\u7A81\u8BE6\u60C5 -->
-- **\u56DE\u6EDA\u65B9\u6848**: <!-- \u8BB0\u5F55\u56DE\u6EDA\u65B9\u6848 -->
-
-## \u{1F517} \u5173\u8054\u4FE1\u606F
-
-### \u6240\u5C5E\u9879\u76EE
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.id === "${feature.projectId}");
-if (projects.length > 0) {
-  dv.paragraph("> \u{1F4C1} \u6240\u5C5E\u9879\u76EE: [[" + projects[0].file.path + "|" + projects[0].name + "]]");
-} else {
-  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u9879\u76EE");
-}
-\`\`\`
-
-### \u6240\u5C5E\u7248\u672C
-\`\`\`dataviewjs
-const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "${feature.versionId}");
-if (versions.length > 0) {
-  dv.paragraph("> \u{1F4E6} \u6240\u5C5E\u7248\u672C: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
-} else {
-  dv.paragraph("> \u26A0\uFE0F \u672A\u5173\u8054\u7248\u672C");
-}
-\`\`\`
-
-## \u{1F3F7}\uFE0F \u6807\u7B7E
-
-${feature.tags.length > 0 ? feature.tags.map((tag) => `#${tag}`).join(" ") : "<!-- \u6DFB\u52A0\u6807\u7B7E -->"}
-
----
-
-## \u{1F4CE} \u5173\u8054\u5C55\u793A
-
-### \u4F7F\u7528 pm-card \u5C55\u793A\u672C\u7279\u6027\u5361\u7247
-
-\u5728\u5F53\u524D\u9875\u9762\u63D2\u5165\u4EE5\u4E0B\u4EE3\u7801\u5757\uFF0C\u5373\u53EF\u5C55\u793A\u672C\u7279\u6027\u7684\u5361\u7247\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.id}
-\`\`\`
-
-### \u5C55\u793A\u6240\u5C5E\u9879\u76EE\u7EA7\u8054
-
-\u5982\u9700\u5C55\u793A\u672C\u7279\u6027\u6240\u5C5E\u9879\u76EE\u7684\u5B8C\u6574\u7EA7\u8054\u72B6\u6001\uFF08\u5305\u542B\u6240\u6709\u7279\u6027\uFF09\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.projectId}
-expanded: true
-\`\`\`
-
-### \u5C55\u793A\u6240\u5C5E\u7248\u672C\u7EA7\u8054
-
-\u5982\u9700\u5C55\u793A\u672C\u7279\u6027\u6240\u5C5E\u7248\u672C\u7684\u5B8C\u6574\u7EA7\u8054\u72B6\u6001\uFF08\u5305\u542B\u6240\u6709\u9879\u76EE\u548C\u7279\u6027\uFF09\uFF1A
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.versionId}
-expanded: true
-\`\`\`
-
----
-*\u521B\u5EFA\u4E8E: ${(/* @__PURE__ */ new Date()).toLocaleString("zh-CN")}*
-`;
-  }
-  yamlFrontmatter(feature) {
-    const lines = [
-      `id: ${feature.id}`,
-      `name: ${feature.name}`,
-      `versionId: ${feature.versionId}`,
-      `projectId: ${feature.projectId}`,
-      `status: ${feature.status}`,
-      `priority: ${feature.priority}`,
-      `progress: ${feature.progress}`
-    ];
-    if (feature.owner) {
-      lines.push(`owner: ${feature.owner}`);
-    }
-    if (feature.dueDate) {
-      lines.push(`dueDate: ${feature.dueDate}`);
-    }
-    if (feature.tags && feature.tags.length > 0) {
-      lines.push(`tags: [${feature.tags.join(", ")}]`);
-    }
-    return lines.join("\n");
-  }
 };
 
 // src/core/cache/EntityCache.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 var EntityCache = class {
   constructor(app) {
     this.app = app;
@@ -1955,22 +1677,22 @@ var EntityCache = class {
    */
   setupFileWatcher() {
     this.app.vault.on("create", (file) => {
-      if (file instanceof import_obsidian2.TFile && file.extension === "md") {
+      if (file instanceof import_obsidian3.TFile && file.extension === "md") {
         this.handleFileChange(file);
       }
     });
     this.app.metadataCache.on("changed", (file) => {
-      if (file instanceof import_obsidian2.TFile && file.extension === "md") {
+      if (file instanceof import_obsidian3.TFile && file.extension === "md") {
         this.handleFileChange(file);
       }
     });
     this.app.vault.on("delete", (file) => {
-      if (file instanceof import_obsidian2.TFile && file.extension === "md") {
+      if (file instanceof import_obsidian3.TFile && file.extension === "md") {
         this.handleFileDelete(file);
       }
     });
     this.app.vault.on("rename", (file, oldPath) => {
-      if (file instanceof import_obsidian2.TFile && file.extension === "md") {
+      if (file instanceof import_obsidian3.TFile && file.extension === "md") {
         this.handleFileRename(file, oldPath);
       }
     });
@@ -2013,12 +1735,12 @@ var EntityCache = class {
 
 // src/core/EntityManager.ts
 var EntityManager = class {
-  constructor(app) {
+  constructor(app, settings) {
     const fs = new FileSystem(app);
     this.cache = new EntityCache(app);
-    this.version = new VersionStore(fs, app, this.cache);
-    this.project = new ProjectStore(fs, app, this.cache);
-    this.feature = new FeatureStore(fs, app, this.cache);
+    this.version = new VersionStore(fs, app, this.cache, settings);
+    this.project = new ProjectStore(fs, app, this.cache, settings);
+    this.feature = new FeatureStore(fs, app, this.cache, settings);
   }
   /**
    * 初始化缓存（插件加载时调用）
@@ -2156,74 +1878,8 @@ var EntityManager = class {
   }
 };
 
-// src/ui/cards/CardRegistry.ts
-var CardRegistry = class _CardRegistry {
-  constructor() {
-    this.cards = /* @__PURE__ */ new Map();
-  }
-  /**
-   * 注册卡片组件
-   */
-  register(card) {
-    this.cards.set(card.id, card);
-  }
-  /**
-   * 注销卡片组件
-   */
-  unregister(id) {
-    this.cards.delete(id);
-  }
-  /**
-   * 查找能渲染该实体的卡片组件
-   */
-  findRenderer(entity) {
-    for (const card of this.cards.values()) {
-      if (card.matches(entity)) {
-        return card;
-      }
-    }
-    return null;
-  }
-  /**
-   * 获取指定 ID 的卡片组件
-   */
-  get(id) {
-    return this.cards.get(id);
-  }
-  /**
-   * 获取所有已注册的卡片类型
-   */
-  getAllTypes() {
-    return Array.from(this.cards.keys());
-  }
-  /**
-   * 清空所有注册
-   */
-  clear() {
-    this.cards.clear();
-  }
-  /**
-   * 创建默认的卡片注册表（包含内置卡片）
-   */
-  static createDefault(app) {
-    const registry = new _CardRegistry();
-    const { FeatureCard: FeatureCard2 } = (init_FeatureCard(), __toCommonJS(FeatureCard_exports));
-    const { ProjectCard: ProjectCard2 } = (init_ProjectCard(), __toCommonJS(ProjectCard_exports));
-    const { VersionCard: VersionCard2 } = (init_VersionCard(), __toCommonJS(VersionCard_exports));
-    registry.register(new FeatureCard2(app));
-    registry.register(new ProjectCard2());
-    registry.register(new VersionCard2());
-    return registry;
-  }
-};
-
-// src/ui/cards/index.ts
-init_FeatureCard();
-init_ProjectCard();
-init_VersionCard();
-
 // src/ui/components/Breadcrumb.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var Breadcrumb = class {
   constructor(app, entityManager) {
     this.app = app;
@@ -2238,8 +1894,10 @@ var Breadcrumb = class {
     const items = await this.buildBreadcrumb(file);
     if (items.length === 0)
       return;
-    const breadcrumb = containerEl.createDiv({ cls: "pm-breadcrumb" });
-    containerEl.prepend(breadcrumb);
+    const breadcrumb = containerEl.createEl("div", { cls: "pm-breadcrumb" });
+    if (containerEl.firstChild) {
+      containerEl.insertBefore(breadcrumb, containerEl.firstChild);
+    }
     items.forEach((item, index) => {
       if (index > 0) {
         breadcrumb.createEl("span", {
@@ -2365,17 +2023,17 @@ var Breadcrumb = class {
   }
   async openFile(path) {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof import_obsidian3.TFile) {
+    if (file instanceof import_obsidian4.TFile) {
       await this.app.workspace.getLeaf().openFile(file);
     }
   }
 };
 
 // src/ui/components/Button.ts
-var import_obsidian13 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 
 // src/modals/CreateVersionModal.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 init_constants();
 
 // src/ui/components/DatePicker.ts
@@ -2404,7 +2062,7 @@ function formatDateDisplay(dateStr) {
 }
 
 // src/modals/CreateVersionModal.ts
-var CreateVersionModal = class extends import_obsidian4.Modal {
+var CreateVersionModal = class extends import_obsidian5.Modal {
   constructor(app, onSubmit) {
     super(app);
     this.result = {
@@ -2422,10 +2080,10 @@ var CreateVersionModal = class extends import_obsidian4.Modal {
     contentEl.empty();
     contentEl.addClass("pm-modal");
     contentEl.createEl("h2", { text: "\u521B\u5EFA\u7248\u672C" });
-    new import_obsidian4.Setting(contentEl).setName("\u7248\u672C\u540D\u79F0").setDesc("\u8F93\u5165\u7248\u672C\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Av1.0 \u7B2C\u4E00\u5B63\u5EA6").setValue(this.result.name).onChange((value) => {
+    new import_obsidian5.Setting(contentEl).setName("\u7248\u672C\u540D\u79F0").setDesc("\u8F93\u5165\u7248\u672C\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Av1.0 \u7B2C\u4E00\u5B63\u5EA6").setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    new import_obsidian4.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian5.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       VERSION_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -2434,7 +2092,7 @@ var CreateVersionModal = class extends import_obsidian4.Modal {
         this.result.status = value;
       });
     });
-    const startDateSetting = new import_obsidian4.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+    const startDateSetting = new import_obsidian5.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
     startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.startDateInput = div.createEl("input", {
         type: "date",
@@ -2454,7 +2112,7 @@ var CreateVersionModal = class extends import_obsidian4.Modal {
         startDateSetting.setDesc(formatDateDisplay(date));
       });
     });
-    const endDateSetting = new import_obsidian4.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+    const endDateSetting = new import_obsidian5.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
     endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.endDateInput = div.createEl("input", {
         type: "date",
@@ -2474,10 +2132,10 @@ var CreateVersionModal = class extends import_obsidian4.Modal {
         endDateSetting.setDesc(formatDateDisplay(date));
       });
     });
-    new import_obsidian4.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian5.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian4.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+    new import_obsidian5.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
       var _a;
       return text.setPlaceholder("\u4F8B\u5982\uFF1AQ1, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -2557,9 +2215,9 @@ var CreateVersionModal = class extends import_obsidian4.Modal {
 };
 
 // src/modals/CreateProjectModal.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 init_constants();
-var CreateProjectModal = class extends import_obsidian5.Modal {
+var CreateProjectModal = class extends import_obsidian6.Modal {
   constructor(app, entityManager, defaultVersionId, onSubmit) {
     super(app);
     this.result = {
@@ -2593,10 +2251,10 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
       return;
     }
     contentEl.createEl("h2", { text: "\u521B\u5EFA\u9879\u76EE" });
-    new import_obsidian5.Setting(contentEl).setName("\u9879\u76EE\u540D\u79F0").setDesc("\u8F93\u5165\u9879\u76EE\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5B98\u7F51\u91CD\u6784").setValue(this.result.name).onChange((value) => {
+    new import_obsidian6.Setting(contentEl).setName("\u9879\u76EE\u540D\u79F0").setDesc("\u8F93\u5165\u9879\u76EE\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5B98\u7F51\u91CD\u6784").setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    new import_obsidian5.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u9879\u76EE\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+    new import_obsidian6.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u9879\u76EE\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
       dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
       this.versions.forEach((version) => {
         dropdown.addOption(version.id, version.name);
@@ -2606,7 +2264,7 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
         this.result.versionId = value;
       });
     });
-    new import_obsidian5.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian6.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       PROJECT_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -2615,7 +2273,7 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
         this.result.status = value;
       });
     });
-    new import_obsidian5.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+    new import_obsidian6.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
       PRIORITIES.forEach((priority) => {
         dropdown.addOption(priority.value, priority.label);
       });
@@ -2624,10 +2282,10 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
         this.result.priority = value;
       });
     });
-    new import_obsidian5.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian6.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian5.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+    new import_obsidian6.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
       var _a;
       return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -2648,11 +2306,11 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
     });
     submitButton.addEventListener("click", () => {
       if (!this.result.name.trim()) {
-        new import_obsidian5.Notice("\u9879\u76EE\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
+        new import_obsidian6.Notice("\u9879\u76EE\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
         return;
       }
       if (!this.result.versionId) {
-        new import_obsidian5.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
+        new import_obsidian6.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
         return;
       }
       this.onSubmit(this.result);
@@ -2680,9 +2338,9 @@ var CreateProjectModal = class extends import_obsidian5.Modal {
 };
 
 // src/modals/CreateFeatureModal.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 init_constants();
-var CreateFeatureModal = class extends import_obsidian6.Modal {
+var CreateFeatureModal = class extends import_obsidian7.Modal {
   constructor(app, entityManager, defaultVersionId, defaultProjectId, onSubmit) {
     super(app);
     this.result = {
@@ -2738,10 +2396,10 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
       return;
     }
     contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
-    new import_obsidian6.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").setDesc("\u8F93\u5165\u7279\u6027\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u767B\u5F55\u9875\u9762\u5F00\u53D1").setValue(this.result.name).onChange((value) => {
+    new import_obsidian7.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").setDesc("\u8F93\u5165\u7279\u6027\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u767B\u5F55\u9875\u9762\u5F00\u53D1").setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    const versionSetting = new import_obsidian6.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+    const versionSetting = new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
       dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
       this.versions.forEach((version) => {
         dropdown.addOption(version.id, version.name);
@@ -2752,11 +2410,11 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
         this.updateProjectDropdown();
       });
     });
-    const projectSetting = new import_obsidian6.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u9879\u76EE\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+    const projectSetting = new import_obsidian7.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u9879\u76EE\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
       this.projectDropdown = dropdown;
       this.updateProjectDropdown();
     });
-    new import_obsidian6.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian7.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       FEATURE_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -2765,7 +2423,7 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
         this.result.status = value;
       });
     });
-    new import_obsidian6.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+    new import_obsidian7.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
       PRIORITIES.forEach((priority) => {
         dropdown.addOption(priority.value, priority.label);
       });
@@ -2774,10 +2432,10 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
         this.result.priority = value;
       });
     });
-    new import_obsidian6.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+    new import_obsidian7.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
-    this.dueDateSetting = new import_obsidian6.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
+    this.dueDateSetting = new import_obsidian7.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
         type: "date",
@@ -2799,10 +2457,10 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
       });
     });
-    new import_obsidian6.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian7.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian6.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+    new import_obsidian7.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
       var _a;
       return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, API").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -2823,15 +2481,15 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
     });
     submitButton.addEventListener("click", () => {
       if (!this.result.name.trim()) {
-        new import_obsidian6.Notice("\u7279\u6027\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
+        new import_obsidian7.Notice("\u7279\u6027\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
         return;
       }
       if (!this.result.versionId) {
-        new import_obsidian6.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
+        new import_obsidian7.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
         return;
       }
       if (!this.result.projectId) {
-        new import_obsidian6.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u9879\u76EE");
+        new import_obsidian7.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u9879\u76EE");
         return;
       }
       this.onSubmit(this.result);
@@ -2916,15 +2574,15 @@ var CreateFeatureModal = class extends import_obsidian6.Modal {
 init_QuickCreateModal();
 
 // src/modals/DeleteConfirmModal.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 
 // src/modals/EditFeatureModal.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 init_constants();
 
 // src/modals/ConfirmModal.ts
-var import_obsidian9 = require("obsidian");
-var ConfirmModal = class extends import_obsidian9.Modal {
+var import_obsidian10 = require("obsidian");
+var ConfirmModal = class extends import_obsidian10.Modal {
   constructor(app, title, message, onConfirm, onCancel) {
     super(app);
     this.title = title;
@@ -2963,7 +2621,7 @@ var ConfirmModal = class extends import_obsidian9.Modal {
 };
 
 // src/utils/fileManager.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 
 // src/utils/validator.ts
 init_constants();
@@ -3052,11 +2710,8 @@ function downloadICS(content, filename) {
   URL.revokeObjectURL(url);
 }
 
-// src/utils/index.ts
-init_avatar();
-
 // src/modals/EditFeatureModal.ts
-var EditFeatureModal = class extends import_obsidian11.Modal {
+var EditFeatureModal = class extends import_obsidian12.Modal {
   constructor(app, entityManager, feature, onSubmit, onDelete) {
     super(app);
     // 用于存储输入元素引用
@@ -3081,10 +2736,10 @@ var EditFeatureModal = class extends import_obsidian11.Modal {
     contentEl.empty();
     contentEl.addClass("pm-modal");
     contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
-    new import_obsidian11.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
+    new import_obsidian12.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
       this.result.name = value;
     }));
-    new import_obsidian11.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+    new import_obsidian12.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
       FEATURE_STATUSES.forEach((status) => {
         dropdown.addOption(status.value, status.label);
       });
@@ -3108,7 +2763,7 @@ var EditFeatureModal = class extends import_obsidian11.Modal {
         }
       });
     });
-    new import_obsidian11.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+    new import_obsidian12.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
       PRIORITIES.forEach((priority) => {
         dropdown.addOption(priority.value, priority.label);
       });
@@ -3117,10 +2772,10 @@ var EditFeatureModal = class extends import_obsidian11.Modal {
         this.result.priority = value;
       });
     });
-    new import_obsidian11.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+    new import_obsidian12.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
-    this.dueDateSetting = new import_obsidian11.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
+    this.dueDateSetting = new import_obsidian12.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
         type: "date",
@@ -3142,10 +2797,10 @@ var EditFeatureModal = class extends import_obsidian11.Modal {
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
       });
     });
-    new import_obsidian11.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
+    new import_obsidian12.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
-    new import_obsidian11.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
+    new import_obsidian12.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
       var _a;
       return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
         this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
@@ -3221,8 +2876,8 @@ var EditFeatureModal = class extends import_obsidian11.Modal {
 };
 
 // src/modals/ExportICSModal.ts
-var import_obsidian12 = require("obsidian");
-var ExportICSModal = class extends import_obsidian12.Modal {
+var import_obsidian13 = require("obsidian");
+var ExportICSModal = class extends import_obsidian13.Modal {
   constructor(app, entityManager) {
     super(app);
     this.entityManager = entityManager;
@@ -3241,7 +2896,7 @@ var ExportICSModal = class extends import_obsidian12.Modal {
     this.versions = await this.entityManager.listVersions();
     this.projects = await this.entityManager.listProjects();
     contentEl.createEl("h2", { text: "\u5BFC\u51FAICS\u90AE\u4EF6" });
-    new import_obsidian12.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
+    new import_obsidian13.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
       dropdown.addOption("all", "\u5168\u90E8\u7279\u6027");
       dropdown.addOption("version", "\u6309\u7248\u672C\u7B5B\u9009");
       dropdown.addOption("project", "\u6309\u9879\u76EE\u7B5B\u9009");
@@ -3259,7 +2914,7 @@ var ExportICSModal = class extends import_obsidian12.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u7248\u672C\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian12.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
+        new import_obsidian13.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
           var _a;
           this.versions.forEach((v) => {
             dropdown.addOption(v.id, v.name);
@@ -3275,7 +2930,7 @@ var ExportICSModal = class extends import_obsidian12.Modal {
           filterContainer.createEl("p", { text: "\u6682\u65E0\u9879\u76EE\u53EF\u9009", cls: "pm-modal__warning" });
           return;
         }
-        new import_obsidian12.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
+        new import_obsidian13.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
           var _a;
           this.projects.forEach((p) => {
             dropdown.addOption(p.id, p.name);
@@ -3303,21 +2958,21 @@ var ExportICSModal = class extends import_obsidian12.Modal {
     if (this.exportScope === "version") {
       const versionId = this.selectedVersionId;
       if (!versionId) {
-        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
+        new import_obsidian13.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
         return;
       }
       features = features.filter((f) => f.versionId === versionId);
     } else if (this.exportScope === "project") {
       const projectId = this.selectedProjectId;
       if (!projectId) {
-        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
+        new import_obsidian13.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
         return;
       }
       features = features.filter((f) => f.projectId === projectId);
     }
     const featuresWithDueDate = features.filter((f) => f.dueDate);
     if (featuresWithDueDate.length === 0) {
-      new import_obsidian12.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
+      new import_obsidian13.Notice("\u6CA1\u6709\u8BBE\u7F6E\u622A\u6B62\u65E5\u671F\u7684\u7279\u6027", 3e3);
       return;
     }
     let filename = "\u9879\u76EE\u7BA1\u7406_\u622A\u6B62\u65E5\u671F";
@@ -3332,7 +2987,7 @@ var ExportICSModal = class extends import_obsidian12.Modal {
     }
     const icsContent = generateICS(featuresWithDueDate);
     downloadICS(icsContent, filename);
-    new import_obsidian12.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
+    new import_obsidian13.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithDueDate.length} \u4E2A\u7279\u6027`, 3e3);
     this.close();
   }
   onClose() {
@@ -3474,10 +3129,10 @@ var Button = class {
    * 显示通知
    */
   showNotice(message, timeout = 4e3) {
-    new import_obsidian13.Notice(message, timeout);
+    new import_obsidian14.Notice(message, timeout);
   }
 };
-var ButtonContainer = class extends import_obsidian13.MarkdownRenderChild {
+var ButtonContainer = class extends import_obsidian14.MarkdownRenderChild {
   constructor(containerEl, button) {
     super(containerEl);
     this.button = button;
@@ -3502,7 +3157,7 @@ var ButtonContainer = class extends import_obsidian13.MarkdownRenderChild {
 };
 
 // src/ui/components/ProgressInput.ts
-var import_obsidian14 = require("obsidian");
+var import_obsidian15 = require("obsidian");
 var ProgressInput = class {
   constructor(app) {
     this.app = app;
@@ -3603,7 +3258,7 @@ var ProgressInput = class {
     }, 5e3);
   }
 };
-var ProgressInputContainer = class extends import_obsidian14.MarkdownRenderChild {
+var ProgressInputContainer = class extends import_obsidian15.MarkdownRenderChild {
   constructor(containerEl, progressInput) {
     super(containerEl);
     this.progressInput = progressInput;
@@ -3637,73 +3292,46 @@ var DataService = class {
     this.entityManager = entityManager;
   }
   /**
-   * 加载实体数据
+   * 加载实体数据 - 根据配置自动决定加载类型
    */
   async loadEntities(config) {
-    var _a, _b, _c, _d;
-    const type = config.type || "feature";
-    if (config.id) {
-      switch (type) {
-        case "version": {
-          const version = await this.entityManager.getVersion(config.id);
-          return version ? [version] : [];
-        }
-        case "project": {
-          const project = await this.entityManager.getProject(config.id);
-          return project ? [project] : [];
-        }
-        case "feature":
-        default: {
-          const feature = await this.entityManager.getFeature(config.id);
-          return feature ? [feature] : [];
-        }
-      }
+    if (config.feature) {
+      const feature = await this.entityManager.getFeature(config.feature);
+      return feature ? [feature] : [];
     }
-    let entities;
-    switch (type) {
-      case "version":
-        entities = await this.entityManager.listVersions();
-        break;
-      case "project":
-        entities = await this.entityManager.listProjects({
-          versionId: (_a = config.filter) == null ? void 0 : _a.versionId
-        });
-        break;
-      case "feature":
-      default:
-        entities = await this.entityManager.listFeatures({
-          versionId: (_b = config.filter) == null ? void 0 : _b.versionId,
-          projectId: (_c = config.filter) == null ? void 0 : _c.projectId,
-          status: (_d = config.filter) == null ? void 0 : _d.status
-        });
-        break;
+    if (config.project) {
+      const project = await this.entityManager.getProject(config.project);
+      return project ? [project] : [];
     }
-    return entities;
+    if (config.version) {
+      const version = await this.entityManager.getVersion(config.version);
+      return version ? [version] : [];
+    }
+    const features = await this.entityManager.listFeatures({});
+    return features;
   }
   /**
-   * 应用过滤器
+   * 应用过滤器 - 使用扁平化的筛选字段
    */
-  applyFilters(entities, filter) {
-    if (!filter)
-      return entities;
+  applyFilters(entities, config) {
     return entities.filter((entity) => {
       var _a;
-      if (filter.status && "status" in entity && entity.status !== filter.status) {
+      if (config.status && "status" in entity && entity.status !== config.status) {
         return false;
       }
-      if (filter.priority && "priority" in entity && entity.priority !== filter.priority) {
+      if (config.priority && "priority" in entity && entity.priority !== config.priority) {
         return false;
       }
-      if (filter.owner && entity.owner !== filter.owner) {
+      if (config.owner && entity.owner !== config.owner) {
         return false;
       }
-      if (filter.tag && "tags" in entity && !((_a = entity.tags) == null ? void 0 : _a.includes(filter.tag))) {
+      if (config.tag && "tags" in entity && !((_a = entity.tags) == null ? void 0 : _a.includes(config.tag))) {
         return false;
       }
-      if (filter.versionId && "versionId" in entity && entity.versionId !== filter.versionId) {
+      if (config.version && "versionId" in entity && entity.versionId !== config.version) {
         return false;
       }
-      if (filter.projectId && "projectId" in entity && entity.projectId !== filter.projectId) {
+      if (config.project && "projectId" in entity && entity.projectId !== config.project) {
         return false;
       }
       return true;
@@ -3716,7 +3344,7 @@ var DataService = class {
     if (!sortBy)
       return entities;
     const sorted = [...entities].sort((a, b) => {
-      var _a, _b;
+      var _a, _b, _c, _d;
       let comparison = 0;
       switch (sortBy) {
         case "name":
@@ -3740,6 +3368,14 @@ var DataService = class {
         case "progress":
           if ("progress" in a && "progress" in b) {
             comparison = (a.progress || 0) - (b.progress || 0);
+          }
+          break;
+        case "status":
+          const statusOrder = { backlog: 0, todo: 1, "in-progress": 2, testing: 3, completed: 4, archived: 5 };
+          if ("status" in a && "status" in b) {
+            const orderA = (_c = statusOrder[a.status]) != null ? _c : 99;
+            const orderB = (_d = statusOrder[b.status]) != null ? _d : 99;
+            comparison = orderA - orderB;
           }
           break;
         case "created":
@@ -3898,6 +3534,47 @@ var ActionService = class {
     }
   }
   /**
+   * 添加进展反馈笔记到文件
+   */
+  async addProgressNote(type, id, note) {
+    try {
+      if (type !== "feature")
+        return false;
+      const path = await this.entityManager.getFeaturePath(id);
+      if (!path)
+        return false;
+      const obsidian = require("obsidian");
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (!(file instanceof obsidian.TFile))
+        return false;
+      const content = await this.app.vault.read(file);
+      const now = /* @__PURE__ */ new Date();
+      const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const noteEntry = `- [${timeStr}] ${note}
+`;
+      const historySection = "### \u5386\u53F2\u8BB0\u5F55\n";
+      const historyIndex = content.indexOf(historySection);
+      if (historyIndex !== -1) {
+        const insertIndex = historyIndex + historySection.length;
+        const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
+        await this.app.vault.modify(file, newContent);
+      } else {
+        const oldSection = "## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988\n\n### \u5386\u53F2\u8BB0\u5F55\n";
+        const oldIndex = content.indexOf(oldSection);
+        if (oldIndex !== -1) {
+          const insertIndex = oldIndex + oldSection.length;
+          const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
+          await this.app.vault.modify(file, newContent);
+        }
+      }
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
    * 更新负责人
    */
   async updateOwner(type, id, owner) {
@@ -3968,12 +3645,26 @@ var ActionService = class {
     }
   }
   /**
+   * 更新指定字段
+   */
+  async updateField(type, id, field, value) {
+    try {
+      const data = { [field]: value };
+      await this.updateEntity(type, id, data);
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error(`\u66F4\u65B0\u5B57\u6BB5 ${field} \u5931\u8D25:`, error);
+      return false;
+    }
+  }
+  /**
    * 显示确认对话框
    */
   async showConfirmDialog(title, message) {
     return new Promise((resolve) => {
-      const { Modal: Modal9, ButtonComponent: ButtonComponent2 } = require("obsidian");
-      class ConfirmModal2 extends Modal9 {
+      const { Modal: Modal10, ButtonComponent: ButtonComponent2 } = require("obsidian");
+      class ConfirmModal2 extends Modal10 {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl("h2", { text: title });
@@ -4003,6 +3694,39 @@ var ActionService = class {
 };
 
 // src/view-engine/types.ts
+var VIEW_MODE_LABELS = {
+  "kanban": "\u{1F4CA} \u770B\u677F\u89C6\u56FE",
+  "list": "\u{1F4CB} \u5217\u8868\u89C6\u56FE",
+  "grid": "\u25A6 \u7F51\u683C\u89C6\u56FE",
+  "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
+  "timeline": "\u23F1\uFE0F \u65F6\u95F4\u7EBF\u89C6\u56FE",
+  "calendar": "\u{1F5D3}\uFE0F \u65E5\u5386\u89C6\u56FE"
+};
+var ENTITY_CARD_FIELD_DEFINITIONS = [
+  { key: "name", label: "\u540D\u79F0", required: true },
+  { key: "priority", label: "\u4F18\u5148\u7EA7", required: true },
+  { key: "status", label: "\u72B6\u6001\u5FBD\u7AE0", required: false },
+  { key: "owner", label: "\u8D1F\u8D23\u4EBA", required: false },
+  { key: "dueDate", label: "\u622A\u6B62\u65E5\u671F", required: false },
+  { key: "progress", label: "\u8FDB\u5EA6\u6761", required: false },
+  { key: "tags", label: "\u6807\u7B7E", required: false },
+  { key: "description", label: "\u63CF\u8FF0", required: false },
+  { key: "parent", label: "\u7236\u7EA7\u4FE1\u606F", required: false },
+  { key: "typeIcon", label: "\u7C7B\u578B\u56FE\u6807", required: false },
+  { key: "stats", label: "\u7EDF\u8BA1\u4FE1\u606F", required: false },
+  { key: "actions", label: "\u64CD\u4F5C\u6309\u94AE", required: false }
+];
+var LIST_COLUMN_DEFINITIONS = [
+  { key: "name", label: "\u540D\u79F0", required: true },
+  { key: "status", label: "\u72B6\u6001", required: false },
+  { key: "priority", label: "\u4F18\u5148\u7EA7", required: false },
+  { key: "owner", label: "\u8D1F\u8D23\u4EBA", required: false },
+  { key: "dueDate", label: "\u622A\u6B62\u65E5\u671F", required: false },
+  { key: "progress", label: "\u8FDB\u5EA6", required: false },
+  { key: "tags", label: "\u6807\u7B7E", required: false },
+  { key: "versionId", label: "\u7248\u672C", required: false },
+  { key: "projectId", label: "\u9879\u76EE", required: false }
+];
 function getEntityType(entity) {
   if ("versionId" in entity && entity.versionId !== void 0) {
     return "project";
@@ -4013,12 +3737,983 @@ function getEntityType(entity) {
   return "version";
 }
 
-// src/view-engine/renderers/BaseRenderer.ts
-var BaseRenderer = class {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
+// src/view-engine/design-tokens.ts
+var PRIORITY_COLORS = {
+  critical: { bg: "#ef4444", text: "#ffffff", label: "\u7D27\u6025" },
+  high: { bg: "#f97316", text: "#ffffff", label: "\u9AD8" },
+  medium: { bg: "#f59e0b", text: "#ffffff", label: "\u4E2D" },
+  low: { bg: "#22c55e", text: "#ffffff", label: "\u4F4E" }
+};
+var STATUS_COLORS = {
+  backlog: { bg: "#9ca3af", text: "#ffffff", label: "\u5F85\u5904\u7406" },
+  todo: { bg: "#3b82f6", text: "#ffffff", label: "\u5F85\u5F00\u59CB" },
+  "in-progress": { bg: "#f59e0b", text: "#ffffff", label: "\u8FDB\u884C\u4E2D" },
+  testing: { bg: "#8b5cf6", text: "#ffffff", label: "\u6D4B\u8BD5\u4E2D" },
+  completed: { bg: "#22c55e", text: "#ffffff", label: "\u5DF2\u5B8C\u6210" },
+  archived: { bg: "#6b7280", text: "#ffffff", label: "\u5DF2\u5F52\u6863" },
+  // 版本/项目特有状态
+  planning: { bg: "#64748b", text: "#ffffff", label: "\u89C4\u5212\u4E2D" },
+  active: { bg: "#f59e0b", text: "#ffffff", label: "\u8FDB\u884C\u4E2D" },
+  suspended: { bg: "#94a3b8", text: "#ffffff", label: "\u5DF2\u6682\u505C" }
+};
+function getPriorityColor2(priority) {
+  return PRIORITY_COLORS[priority] || { bg: "#9ca3af", text: "#ffffff", label: priority };
+}
+var ENTITY_ICONS = {
+  version: "\u{1F4E6}",
+  project: "\u{1F4C1}",
+  feature: "\u{1F4DD}"
+};
+function getEntityIcon(type) {
+  return ENTITY_ICONS[type] || "\u{1F4C4}";
+}
+function parseDate(date) {
+  if (date instanceof Date)
+    return date;
+  return new Date(date);
+}
+var DateFormat = {
+  short(date) {
+    const d = parseDate(date);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  },
+  medium(date) {
+    const d = parseDate(date);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  },
+  long(date) {
+    const d = parseDate(date);
+    return `${d.getFullYear()}\u5E74${d.getMonth() + 1}\u6708${d.getDate()}\u65E5`;
+  },
+  iso(date) {
+    const d = parseDate(date);
+    return d.toISOString().split("T")[0];
+  },
+  relative(date) {
+    const d = parseDate(date);
+    const now = /* @__PURE__ */ new Date();
+    now.setHours(0, 0, 0, 0);
+    const target = new Date(d);
+    target.setHours(0, 0, 0, 0);
+    const diffTime = target.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1e3 * 60 * 60 * 24));
+    if (diffDays === 0)
+      return "\u4ECA\u5929";
+    if (diffDays === 1)
+      return "\u660E\u5929";
+    if (diffDays === -1)
+      return "\u6628\u5929";
+    if (diffDays > 0)
+      return `${diffDays}\u5929\u540E`;
+    return `${Math.abs(diffDays)}\u5929\u524D`;
+  }
+};
+function isOverdue(date, status) {
+  if (status === "completed")
+    return false;
+  const d = parseDate(date);
+  const now = /* @__PURE__ */ new Date();
+  now.setHours(0, 0, 0, 0);
+  return d < now;
+}
+var KANBAN_COLUMNS = [
+  { id: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
+  { id: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
+  { id: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
+  { id: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
+  { id: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" }
+];
+var PRIORITY_OPTIONS = [
+  { id: "critical", label: "\u7D27\u6025", color: "#ef4444" },
+  { id: "high", label: "\u9AD8", color: "#f97316" },
+  { id: "medium", label: "\u4E2D", color: "#f59e0b" },
+  { id: "low", label: "\u4F4E", color: "#22c55e" }
+];
+var FEATURE_STATUS_OPTIONS = [
+  { id: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
+  { id: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
+  { id: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
+  { id: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
+  { id: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" },
+  { id: "archived", label: "\u5DF2\u5F52\u6863", color: "#6b7280" }
+];
+function translateStatus(status) {
+  var _a;
+  return ((_a = STATUS_COLORS[status]) == null ? void 0 : _a.label) || status;
+}
+function translatePriority(priority) {
+  var _a;
+  return ((_a = PRIORITY_COLORS[priority]) == null ? void 0 : _a.label) || priority;
+}
+function getNextStatus(currentStatus) {
+  const flow = {
+    backlog: "todo",
+    todo: "in-progress",
+    "in-progress": "testing",
+    testing: "completed"
+  };
+  const nextId = flow[currentStatus];
+  if (!nextId)
+    return null;
+  const option = FEATURE_STATUS_OPTIONS.find((o) => o.id === nextId);
+  return option ? { id: nextId, label: option.label } : null;
+}
+
+// src/view-engine/components/FilterBar.ts
+var import_obsidian16 = require("obsidian");
+var FilterBar = class {
+  constructor(app, entityManager, onChange, sourcePath, codeBlockStart) {
     this.app = app;
     this.entityManager = entityManager;
-    this.cardRegistry = cardRegistry;
+    this.onChange = onChange;
+    this.sourcePath = sourcePath;
+    this.codeBlockStart = codeBlockStart;
+    this.filters = { mode: "kanban" };
+    this.versions = [];
+    this.projects = [];
+    this.features = [];
+    this.owners = [];
+    // 状态选项
+    this.statusOptions = [
+      { value: "", label: "\u5168\u90E8\u72B6\u6001" },
+      { value: "backlog", label: "\u5F85\u5904\u7406" },
+      { value: "todo", label: "\u5F85\u5F00\u59CB" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D" },
+      { value: "testing", label: "\u6D4B\u8BD5\u4E2D" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210" }
+    ];
+    // 优先级选项
+    this.priorityOptions = [
+      { value: "", label: "\u5168\u90E8\u4F18\u5148\u7EA7" },
+      { value: "critical", label: "\u7D27\u6025" },
+      { value: "high", label: "\u9AD8" },
+      { value: "medium", label: "\u4E2D" },
+      { value: "low", label: "\u4F4E" }
+    ];
+  }
+  /**
+   * 加载选项数据
+   */
+  async loadOptions() {
+    const versions = await this.entityManager.listVersions();
+    this.versions = [{ value: "", label: "\u5168\u90E8\u7248\u672C" }, ...versions.map((v) => ({ value: v.id, label: v.name }))];
+    const projects = await this.entityManager.listProjects();
+    this.projects = [{ value: "", label: "\u5168\u90E8\u9879\u76EE" }, ...projects.map((p) => ({ value: p.id, label: p.name }))];
+    const features = await this.entityManager.listFeatures();
+    this.features = [{ value: "", label: "\u5168\u90E8\u7279\u6027" }, ...features.map((f) => ({ value: f.id, label: f.name }))];
+    const ownersSet = /* @__PURE__ */ new Set();
+    features.forEach((f) => {
+      if (f.owner)
+        ownersSet.add(f.owner);
+    });
+    this.owners = ["\u5168\u90E8\u8D1F\u8D23\u4EBA", ...Array.from(ownersSet).sort()];
+  }
+  /**
+   * 渲染筛选器 - 长条卡片式，筛选在上，视图在下
+   */
+  render(parent, initialFilters) {
+    this.container = parent.createDiv("pm-filter-container");
+    if (initialFilters) {
+      this.filters = { ...this.filters, ...initialFilters };
+    }
+    const filterCard = this.container.createDiv("pm-filter-card");
+    const filtersRow = filterCard.createDiv("pm-filter-row");
+    this.createSelect(filtersRow, "\u7248\u672C", this.versions, this.filters.version || "", (value) => {
+      this.filters.version = value || void 0;
+      this.filters.project = void 0;
+      this.filters.feature = void 0;
+      this.onFilterChange();
+      this.updateProjectOptions();
+    });
+    filtersRow.createDiv("pm-filter-divider");
+    this.createSelect(filtersRow, "\u9879\u76EE", this.projects, this.filters.project || "", (value) => {
+      this.filters.project = value || void 0;
+      this.filters.feature = void 0;
+      this.onFilterChange();
+      this.updateFeatureOptions();
+    });
+    filtersRow.createDiv("pm-filter-divider");
+    this.createSelect(filtersRow, "\u7279\u6027", this.features, this.filters.feature || "", (value) => {
+      this.filters.feature = value || void 0;
+      this.onFilterChange();
+    });
+    filtersRow.createDiv("pm-filter-divider");
+    this.createSelect(filtersRow, "\u72B6\u6001", this.statusOptions, this.filters.status || "", (value) => {
+      this.filters.status = value || void 0;
+      this.onFilterChange();
+    });
+    filtersRow.createDiv("pm-filter-divider");
+    this.createSelect(filtersRow, "\u4F18\u5148\u7EA7", this.priorityOptions, this.filters.priority || "", (value) => {
+      this.filters.priority = value || void 0;
+      this.onFilterChange();
+    });
+    filtersRow.createDiv("pm-filter-divider");
+    this.createSelect(
+      filtersRow,
+      "\u8D1F\u8D23\u4EBA",
+      this.owners.map((o) => ({ value: o === "\u5168\u90E8\u8D1F\u8D23\u4EBA" ? "" : o, label: o })),
+      this.filters.owner || "",
+      (value) => {
+        this.filters.owner = value || void 0;
+        this.onFilterChange();
+      }
+    );
+    const resetBtn = filterCard.createEl("button", {
+      cls: "pm-filter-action",
+      text: "\u91CD\u7F6E"
+    });
+    resetBtn.addEventListener("click", () => {
+      this.resetFilters();
+    });
+    return this.container;
+  }
+  /**
+   * 筛选条件变化时的处理
+   */
+  onFilterChange() {
+    this.onChange({ ...this.filters });
+    this.saveFiltersToCodeBlock();
+  }
+  /**
+   * 保存筛选条件到代码块
+   */
+  async saveFiltersToCodeBlock() {
+    if (!this.sourcePath || this.codeBlockStart === void 0)
+      return;
+    const file = this.app.vault.getAbstractFileByPath(this.sourcePath);
+    if (!(file instanceof import_obsidian16.TFile))
+      return;
+    try {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      let blockStart = -1;
+      let blockEnd = -1;
+      let codeBlockIndex = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === "```pm-view") {
+          if (codeBlockIndex === this.codeBlockStart) {
+            blockStart = i;
+          }
+          codeBlockIndex++;
+        }
+        if (blockStart !== -1 && line === "```") {
+          blockEnd = i;
+          break;
+        }
+      }
+      if (blockStart === -1 || blockEnd === -1)
+        return;
+      const originalLines = lines.slice(blockStart + 1, blockEnd);
+      const originalConfig = this.parseOriginalConfig(originalLines);
+      const newConfig = {
+        ...originalConfig,
+        mode: this.filters.mode,
+        ...this.filters.version && { version: this.filters.version },
+        ...this.filters.project && { project: this.filters.project },
+        ...this.filters.feature && { feature: this.filters.feature },
+        ...this.filters.status && { status: this.filters.status },
+        ...this.filters.priority && { priority: this.filters.priority },
+        ...this.filters.owner && { owner: this.filters.owner },
+        ...this.filters.tag && { tag: this.filters.tag }
+      };
+      const yamlLines = this.configToYaml(newConfig);
+      const newBlockLines = ["```pm-view", ...yamlLines, "```"];
+      const newLines = [
+        ...lines.slice(0, blockStart),
+        ...newBlockLines,
+        ...lines.slice(blockEnd + 1)
+      ];
+      const newContent = newLines.join("\n");
+      if (newContent !== content) {
+        await this.app.vault.modify(file, newContent);
+      }
+    } catch (error) {
+      console.error("\u4FDD\u5B58\u7B5B\u9009\u6761\u4EF6\u5931\u8D25:", error);
+    }
+  }
+  /**
+   * 解析原有配置
+   */
+  parseOriginalConfig(lines) {
+    const config = {};
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#"))
+        continue;
+      const colonIndex = trimmed.indexOf(":");
+      if (colonIndex === -1)
+        continue;
+      const key = trimmed.slice(0, colonIndex).trim();
+      const value = trimmed.slice(colonIndex + 1).trim();
+      if (["mode", "title", "groupBy", "sortBy", "sortOrder", "limit", "cols", "expanded", "tag"].includes(key)) {
+        config[key] = value;
+      }
+    }
+    return config;
+  }
+  /**
+   * 将配置转换为 YAML 格式
+   */
+  configToYaml(config) {
+    const lines = [];
+    const order = ["mode", "title", "version", "project", "feature", "status", "priority", "owner", "tag", "groupBy", "sortBy", "sortOrder", "limit", "cols", "expanded"];
+    for (const key of order) {
+      const value = config[key];
+      if (value !== void 0 && value !== "") {
+        lines.push(`${key}: ${value}`);
+      }
+    }
+    return lines;
+  }
+  /**
+   * 创建下拉选择器
+   */
+  createSelect(container, label, options, value, onChange) {
+    const wrapper = container.createDiv("pm-filter-field");
+    const select = wrapper.createEl("select", { cls: "pm-filter-select" });
+    options.forEach((opt) => {
+      const option = select.createEl("option", {
+        text: opt.label,
+        value: opt.value
+      });
+      if (opt.value === value) {
+        option.selected = true;
+      }
+    });
+    select.addEventListener("change", () => {
+      onChange(select.value);
+    });
+    return wrapper;
+  }
+  /**
+   * 更新项目选项（根据选中的版本）
+   */
+  async updateProjectOptions() {
+    if (!this.container)
+      return;
+    let projects;
+    if (this.filters.version) {
+      projects = await this.entityManager.listProjects({ versionId: this.filters.version });
+    } else {
+      projects = await this.entityManager.listProjects();
+    }
+    this.projects = [{ value: "", label: "\u5168\u90E8\u9879\u76EE" }, ...projects.map((p) => ({ value: p.id, label: p.name }))];
+    this.rerenderSelect("\u9879\u76EE", this.projects, this.filters.project || "", (value) => {
+      this.filters.project = value || void 0;
+      this.filters.feature = void 0;
+      this.onFilterChange();
+      this.updateFeatureOptions();
+    });
+  }
+  /**
+   * 更新特性选项（根据选中的项目）
+   */
+  async updateFeatureOptions() {
+    if (!this.container)
+      return;
+    let features;
+    if (this.filters.project) {
+      features = await this.entityManager.listFeatures({ projectId: this.filters.project });
+    } else if (this.filters.version) {
+      features = await this.entityManager.listFeatures({ versionId: this.filters.version });
+    } else {
+      features = await this.entityManager.listFeatures();
+    }
+    this.features = [{ value: "", label: "\u5168\u90E8\u7279\u6027" }, ...features.map((f) => ({ value: f.id, label: f.name }))];
+    this.rerenderSelect("\u7279\u6027", this.features, this.filters.feature || "", (value) => {
+      this.filters.feature = value || void 0;
+      this.onFilterChange();
+    });
+  }
+  /**
+   * 重新渲染下拉框（用于级联更新）
+   */
+  rerenderSelect(labelText, options, value, onChange) {
+    if (!this.container)
+      return;
+    const selects = this.container.querySelectorAll(".pm-filter-select");
+    selects.forEach((selectEl, index) => {
+      const parent = selectEl.parentElement;
+      if (!parent)
+        return;
+      const labelMap = ["\u7248\u672C", "\u9879\u76EE", "\u7279\u6027", "\u72B6\u6001", "\u4F18\u5148\u7EA7", "\u8D1F\u8D23\u4EBA"];
+      if (labelMap[index] === labelText) {
+        parent.empty();
+        const select = parent.createEl("select", { cls: "pm-filter-select" });
+        options.forEach((opt) => {
+          const option = select.createEl("option", {
+            text: opt.label,
+            value: opt.value
+          });
+          if (opt.value === value) {
+            option.selected = true;
+          }
+        });
+        select.addEventListener("change", () => {
+          onChange(select.value);
+        });
+      }
+    });
+  }
+  /**
+   * 重置所有筛选条件
+   */
+  resetFilters() {
+    this.filters = { mode: this.filters.mode };
+    this.loadOptions().then(() => {
+      if (this.container) {
+        const selects = this.container.querySelectorAll(".pm-filter-select");
+        selects.forEach((selectEl, index) => {
+          const select = selectEl;
+          select.value = "";
+        });
+        this.onFilterChange();
+      }
+    });
+  }
+  /**
+   * 获取当前筛选条件
+   */
+  getFilters() {
+    return { ...this.filters };
+  }
+};
+
+// src/view-engine/components/StatusPicker.ts
+var StatusPicker = class {
+  constructor() {
+    /**
+     * 处理点击外部事件
+     */
+    this.handleOutsideClick = (e) => {
+      if (this.menu && !this.menu.contains(e.target)) {
+        this.hide();
+      }
+    };
+  }
+  /**
+   * 显示状态选择器
+   * @param triggerEl - 触发元素（用于定位）
+   * @param currentStatus - 当前状态
+   * @param onSelect - 选择回调
+   * @param options - 可选：自定义状态选项（默认使用 FEATURE_STATUS_OPTIONS）
+   */
+  show(triggerEl, currentStatus, onSelect, options) {
+    this.hide();
+    const statuses = (options == null ? void 0 : options.statusOptions) || FEATURE_STATUS_OPTIONS;
+    this.menu = document.createElement("div");
+    this.menu.className = "pm-status-picker";
+    this.menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 4px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 140px;
+    `;
+    statuses.forEach((status) => {
+      const item = this.menu.createEl("div", { cls: "pm-status-picker-item" });
+      item.style.cssText = `
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      `;
+      if (status.id === currentStatus) {
+        item.style.background = "var(--background-modifier-hover)";
+        item.style.fontWeight = "500";
+      }
+      const colorDot = item.createSpan();
+      colorDot.style.cssText = `
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: ${status.color};
+        flex-shrink: 0;
+      `;
+      item.createSpan({ text: status.label });
+      item.onclick = (e) => {
+        e.stopPropagation();
+        onSelect(status.id);
+        this.hide();
+      };
+      item.onmouseenter = () => {
+        if (status.id !== currentStatus) {
+          item.style.background = "var(--background-modifier-hover)";
+        }
+      };
+      item.onmouseleave = () => {
+        if (status.id !== currentStatus) {
+          item.style.background = "";
+        }
+      };
+    });
+    document.body.appendChild(this.menu);
+    this.positionMenu(triggerEl);
+    setTimeout(() => {
+      document.addEventListener("click", this.handleOutsideClick);
+    }, 0);
+  }
+  /**
+   * 隐藏选择器
+   */
+  hide() {
+    if (this.menu) {
+      this.menu.remove();
+      this.menu = void 0;
+      document.removeEventListener("click", this.handleOutsideClick);
+    }
+  }
+  /**
+   * 定位菜单
+   */
+  positionMenu(triggerEl) {
+    if (!this.menu)
+      return;
+    const rect = triggerEl.getBoundingClientRect();
+    const menuRect = this.menu.getBoundingClientRect();
+    let top = rect.bottom + 4;
+    let left = rect.left;
+    if (left + menuRect.width > window.innerWidth) {
+      left = rect.right - menuRect.width;
+    }
+    if (top + menuRect.height > window.innerHeight) {
+      top = rect.top - menuRect.height - 4;
+    }
+    this.menu.style.top = `${top}px`;
+    this.menu.style.left = `${left}px`;
+  }
+};
+
+// src/view-engine/components/ProgressPicker.ts
+var ProgressPicker = class {
+  constructor() {
+    /**
+     * 处理点击外部事件
+     */
+    this.handleOutsideClick = (e) => {
+      if (this.menu && !this.menu.contains(e.target)) {
+        this.hide();
+      }
+    };
+  }
+  /**
+   * 显示进度选择器
+   * @param triggerEl - 触发元素（用于定位）
+   * @param currentProgress - 当前进度 (0-100)
+   * @param onSelect - 选择回调
+   */
+  show(triggerEl, currentProgress, onSelect) {
+    this.hide();
+    const progress = currentProgress || 0;
+    this.menu = document.createElement("div");
+    this.menu.className = "pm-progress-picker";
+    this.menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 8px;
+      padding: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 180px;
+    `;
+    this.menu.createEl("div", {
+      text: "\u66F4\u65B0\u8FDB\u5EA6",
+      cls: "pm-picker-title"
+    }).style.cssText = "font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-weight: 500;";
+    const sliderContainer = this.menu.createDiv();
+    sliderContainer.style.cssText = "display: flex; align-items: center; gap: 10px; margin-bottom: 10px;";
+    const slider = sliderContainer.createEl("input");
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = "100";
+    slider.value = String(progress);
+    slider.style.cssText = `
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--background-modifier-border);
+      border-radius: 2px;
+      outline: none;
+    `;
+    const sliderThumbStyle = `
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--interactive-accent);
+      cursor: pointer;
+    `;
+    slider.style.setProperty("--thumb-style", sliderThumbStyle);
+    const valueDisplay = sliderContainer.createEl("span");
+    valueDisplay.textContent = `${progress}%`;
+    valueDisplay.style.cssText = "min-width: 40px; text-align: right; font-size: 13px; font-weight: 500; color: var(--text-normal);";
+    slider.oninput = () => {
+      const value = parseInt(slider.value);
+      valueDisplay.textContent = `${value}%`;
+    };
+    const quickBtnsContainer = this.menu.createDiv();
+    quickBtnsContainer.style.cssText = "display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--background-modifier-border);";
+    const quickValues = [0, 25, 50, 75, 100];
+    quickValues.forEach((value) => {
+      const btn = quickBtnsContainer.createEl("button");
+      btn.textContent = `${value}%`;
+      const isSelected = value === progress;
+      btn.style.cssText = `
+        padding: 4px 10px;
+        font-size: 11px;
+        border: 1px solid ${isSelected ? "var(--interactive-accent)" : "var(--background-modifier-border)"};
+        background: ${isSelected ? "var(--interactive-accent)" : "var(--background-secondary)"};
+        color: ${isSelected ? "var(--text-on-accent)" : "var(--text-normal)"};
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s;
+      `;
+      btn.onmouseenter = () => {
+        if (!isSelected) {
+          btn.style.background = "var(--background-modifier-hover)";
+        }
+      };
+      btn.onmouseleave = () => {
+        if (!isSelected) {
+          btn.style.background = "var(--background-secondary)";
+        }
+      };
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        slider.value = String(value);
+        valueDisplay.textContent = `${value}%`;
+      };
+    });
+    const btnContainer = this.menu.createDiv();
+    btnContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px;";
+    const cancelBtn = btnContainer.createEl("button");
+    cancelBtn.textContent = "\u53D6\u6D88";
+    cancelBtn.style.cssText = `
+      padding: 6px 14px;
+      font-size: 12px;
+      border: 1px solid var(--background-modifier-border);
+      background: var(--background-secondary);
+      color: var(--text-normal);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    cancelBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.hide();
+    };
+    const confirmBtn = btnContainer.createEl("button");
+    confirmBtn.textContent = "\u66F4\u65B0";
+    confirmBtn.style.cssText = `
+      padding: 6px 14px;
+      font-size: 12px;
+      border: none;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+    confirmBtn.onclick = (e) => {
+      e.stopPropagation();
+      const value = parseInt(slider.value);
+      onSelect(value);
+      this.hide();
+    };
+    document.body.appendChild(this.menu);
+    this.positionMenu(triggerEl);
+    setTimeout(() => {
+      document.addEventListener("click", this.handleOutsideClick);
+    }, 0);
+  }
+  /**
+   * 隐藏选择器
+   */
+  hide() {
+    if (this.menu) {
+      this.menu.remove();
+      this.menu = void 0;
+      document.removeEventListener("click", this.handleOutsideClick);
+    }
+  }
+  /**
+   * 定位菜单
+   */
+  positionMenu(triggerEl) {
+    if (!this.menu)
+      return;
+    const rect = triggerEl.getBoundingClientRect();
+    const menuRect = this.menu.getBoundingClientRect();
+    let top = rect.bottom + 4;
+    let left = rect.left;
+    if (left + menuRect.width > window.innerWidth) {
+      left = rect.right - menuRect.width;
+    }
+    if (top + menuRect.height > window.innerHeight) {
+      top = rect.top - menuRect.height - 4;
+    }
+    this.menu.style.top = `${top}px`;
+    this.menu.style.left = `${left}px`;
+  }
+};
+
+// src/view-engine/components/EntityCard.ts
+var EntityCard = class {
+  constructor(app) {
+    this.app = app;
+  }
+  /**
+   * 渲染实体卡片
+   */
+  render(container, entity, options, callbacks) {
+    const entityType = getEntityType(entity);
+    const card = container.createDiv("pm-entity-card");
+    card.addClass(`pm-entity-card--${entityType}`);
+    if (options.selected) {
+      card.addClass("pm-entity-card--selected");
+    }
+    if (options.draggable && entityType === "feature") {
+      card.setAttribute("draggable", "true");
+      card.addClass("pm-entity-card--draggable");
+      this.setupDragEvents(card, entity, callbacks);
+    }
+    this.renderHeader(card, entity, options);
+    this.renderBody(card, entity, options);
+    this.renderFooter(card, entity, options);
+    if (options.showActions) {
+      this.renderActions(card, entity, options, callbacks);
+    }
+    card.addEventListener("click", () => {
+      var _a;
+      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
+    });
+    return card;
+  }
+  /**
+   * 渲染卡片头部
+   */
+  renderHeader(card, entity, options) {
+    const header = card.createDiv("pm-entity-card__header");
+    const entityType = getEntityType(entity);
+    if (options.showPriority && "priority" in entity && entity.priority) {
+      const priorityEl = header.createSpan("pm-entity-card__priority");
+      priorityEl.addClass(`pm-entity-card__priority--${entity.priority}`);
+    }
+    if (options.showTypeIcon) {
+      const iconEl = header.createSpan("pm-entity-card__type-icon");
+      iconEl.textContent = getEntityIcon(entityType);
+    }
+    const titleEl = header.createEl(options.smallTitle ? "span" : "h3", {
+      cls: "pm-entity-card__title"
+    });
+    titleEl.textContent = entity.name;
+    if (options.showStatus && "status" in entity && entity.status) {
+      const statusEl = header.createSpan("pm-entity-card__status");
+      statusEl.addClass(`pm-status-badge--${entity.status}`);
+      statusEl.textContent = translateStatus(entity.status);
+    }
+  }
+  /**
+   * 渲染卡片主体
+   */
+  renderBody(card, entity, options) {
+    if (!options.showParent && !options.showDescription && !options.showTags)
+      return;
+    const body = card.createDiv("pm-entity-card__body");
+    const entityType = getEntityType(entity);
+    if (options.showParent && entityType === "feature") {
+      const feature = entity;
+      if (feature.projectId || feature.versionId) {
+        const parentEl = body.createDiv("pm-entity-card__parent");
+        if (feature.projectId) {
+          parentEl.textContent = feature.projectId;
+        } else if (feature.versionId) {
+          parentEl.textContent = feature.versionId;
+        }
+      }
+    }
+    if (options.showDescription && "description" in entity && entity.description) {
+      const descEl = body.createDiv("pm-entity-card__description");
+      const descText = String(entity.description);
+      descEl.textContent = descText.length > 100 ? descText.substring(0, 100) + "..." : descText;
+    }
+    if (options.showTags && "tags" in entity && entity.tags && entity.tags.length > 0) {
+      const tagsEl = body.createDiv("pm-entity-card__tags");
+      const limit = 3;
+      entity.tags.slice(0, limit).forEach((tag) => {
+        tagsEl.createSpan({ cls: "pm-entity-card__tag", text: tag });
+      });
+      if (entity.tags.length > limit) {
+        tagsEl.createSpan({
+          cls: "pm-entity-card__tag-more",
+          text: `+${entity.tags.length - limit}`
+        });
+      }
+    }
+  }
+  /**
+   * 渲染卡片底部
+   */
+  renderFooter(card, entity, options) {
+    const footer = card.createDiv("pm-entity-card__footer");
+    const entityType = getEntityType(entity);
+    const metaLeft = footer.createDiv("pm-entity-card__meta-left");
+    if (options.showOwner && entity.owner) {
+      const ownerEl = metaLeft.createDiv("pm-entity-card__owner");
+      ownerEl.textContent = entity.owner;
+    }
+    if (options.showDueDate && "dueDate" in entity && entity.dueDate) {
+      const overdue = isOverdue(entity.dueDate, "status" in entity ? entity.status : void 0);
+      const dueEl = metaLeft.createDiv("pm-entity-card__due");
+      dueEl.textContent = DateFormat.medium(entity.dueDate);
+      if (overdue) {
+        dueEl.addClass("pm-entity-card__due--overdue");
+      }
+    }
+    const metaRight = footer.createDiv("pm-entity-card__meta-right");
+    if (options.showProgress && entityType === "feature" && "progress" in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = metaRight.createDiv("pm-entity-card__progress");
+      const trackEl = progressEl.createDiv("pm-entity-card__progress-track");
+      const fillEl = trackEl.createDiv("pm-entity-card__progress-fill");
+      fillEl.style.width = `${progress}%`;
+      progressEl.createSpan({
+        cls: "pm-entity-card__progress-text",
+        text: `${progress}%`
+      });
+    }
+    if (options.showStats && (entityType === "version" || entityType === "project")) {
+      if ("stats" in entity && entity.stats) {
+        const stats = entity.stats;
+        if (stats.total > 0) {
+          const statsEl = metaRight.createDiv("pm-entity-card__stats");
+          statsEl.textContent = `${stats.completed || 0}/${stats.total}`;
+        }
+      }
+    }
+    if (!metaRight.hasChildNodes()) {
+      metaRight.remove();
+    }
+    if (!metaLeft.hasChildNodes()) {
+      metaLeft.remove();
+    }
+  }
+  /**
+   * 渲染操作按钮
+   */
+  renderActions(card, entity, options, callbacks) {
+    const actions = card.createDiv("pm-entity-card__actions");
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", {
+        cls: "pm-entity-card__action-btn",
+        attr: { title: "\u53D8\u66F4\u72B6\u6001" }
+      });
+      statusBtn.textContent = "\u26A1";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity, statusBtn, callbacks);
+      };
+    }
+    if (getEntityType(entity) === "feature" && options.showProgress) {
+      const progressBtn = actions.createEl("button", {
+        cls: "pm-entity-card__action-btn",
+        attr: { title: "\u66F4\u65B0\u8FDB\u5EA6" }
+      });
+      progressBtn.textContent = "\u{1F4CA}";
+      progressBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showProgressPicker(entity, progressBtn, callbacks);
+      };
+    }
+    if (getEntityType(entity) === "feature") {
+      const noteBtn = actions.createEl("button", {
+        cls: "pm-entity-card__action-btn",
+        attr: { title: "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988" }
+      });
+      noteBtn.textContent = "\u{1F4DD}";
+      noteBtn.onclick = (e) => {
+        var _a;
+        e.stopPropagation();
+        (_a = callbacks == null ? void 0 : callbacks.onAddNote) == null ? void 0 : _a.call(callbacks, entity);
+      };
+    }
+    const openBtn = actions.createEl("button", {
+      cls: "pm-entity-card__action-btn",
+      attr: { title: "\u6253\u5F00\u6587\u4EF6" }
+    });
+    openBtn.textContent = "\u2197";
+    openBtn.onclick = (e) => {
+      var _a;
+      e.stopPropagation();
+      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
+    };
+  }
+  /**
+   * 设置拖拽事件
+   */
+  setupDragEvents(card, entity, callbacks) {
+    card.addEventListener("dragstart", (e) => {
+      var _a, _b, _c;
+      (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
+      (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", getEntityType(entity));
+      card.addClass("pm-entity-card--dragging");
+      (_c = callbacks == null ? void 0 : callbacks.onDragStart) == null ? void 0 : _c.call(callbacks, entity, e);
+    });
+    card.addEventListener("dragend", (e) => {
+      var _a;
+      card.removeClass("pm-entity-card--dragging");
+      (_a = callbacks == null ? void 0 : callbacks.onDragEnd) == null ? void 0 : _a.call(callbacks, entity, e);
+    });
+  }
+  /**
+   * 显示状态选择器
+   */
+  showStatusPicker(entity, triggerEl, callbacks) {
+    if (!this.statusPicker) {
+      this.statusPicker = new StatusPicker();
+    }
+    this.statusPicker.show(
+      triggerEl,
+      "status" in entity ? entity.status : void 0,
+      (status) => {
+        var _a;
+        (_a = callbacks == null ? void 0 : callbacks.onStatusChange) == null ? void 0 : _a.call(callbacks, entity, status);
+      }
+    );
+  }
+  /**
+   * 显示进度选择器
+   */
+  showProgressPicker(entity, triggerEl, callbacks) {
+    if (!this.progressPicker) {
+      this.progressPicker = new ProgressPicker();
+    }
+    const currentProgress = entity.progress || 0;
+    this.progressPicker.show(
+      triggerEl,
+      currentProgress,
+      (progress) => {
+        var _a;
+        (_a = callbacks == null ? void 0 : callbacks.onProgressChange) == null ? void 0 : _a.call(callbacks, entity, progress);
+      }
+    );
+  }
+};
+
+// src/view-engine/renderers/BaseRenderer.ts
+var BaseRenderer = class {
+  constructor(app, entityManager, dataService, actionService) {
+    this.app = app;
+    this.entityManager = entityManager;
     this.dataService = dataService;
     this.actionService = actionService;
   }
@@ -4119,11 +4814,11 @@ var BaseRenderer = class {
       };
     }
     if (getEntityType(entity) === "feature") {
-      const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
-      progressBtn.textContent = "\u8FDB\u5EA6";
-      progressBtn.onclick = (e) => {
+      const noteBtn = actions.createEl("button", { cls: "pm-action-btn" });
+      noteBtn.textContent = "\u8FDB\u5C55";
+      noteBtn.onclick = (e) => {
         e.stopPropagation();
-        this.showProgressPicker(entity);
+        this.showProgressNoteInput(entity);
       };
     }
     cardEl.addEventListener("mouseenter", () => {
@@ -4135,111 +4830,120 @@ var BaseRenderer = class {
   }
   /**
    * 显示状态选择器
+   * 使用 StatusPicker 组件
    */
   showStatusPicker(entity, triggerEl) {
     var _a;
-    const statuses = [
-      { value: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
-      { value: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
-      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
-      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
-      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" },
-      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "#6b7280" }
-    ];
-    const menu = document.createElement("div");
-    menu.className = "pm-status-picker";
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 4px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    statuses.forEach((status) => {
-      const item = menu.createEl("div", { cls: "pm-status-item" });
-      item.style.cssText = `
-        padding: 6px 12px;
-        cursor: pointer;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      `;
-      item.innerHTML = `
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${status.color};"></span>
-        <span>${status.label}</span>
-      `;
-      item.onclick = () => {
-        this.actionService.changeStatus(getEntityType(entity), entity.id, status.value);
-        menu.remove();
-      };
-      item.onmouseenter = () => {
-        item.style.background = "var(--background-modifier-hover)";
-      };
-      item.onmouseleave = () => {
-        item.style.background = "";
-      };
-    });
-    document.body.appendChild(menu);
-    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
+    if (!this.statusPicker) {
+      this.statusPicker = new StatusPicker();
     }
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", closeMenu);
+    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
+    if (!targetEl)
+      return;
+    this.statusPicker.show(
+      targetEl,
+      entity.status,
+      (status) => {
+        this.actionService.changeStatus(getEntityType(entity), entity.id, status);
       }
-    };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+    );
   }
   /**
    * 显示进度选择器
+   * 使用 ProgressPicker 组件
    */
   showProgressPicker(entity, triggerEl) {
     var _a;
+    if (!this.progressPicker) {
+      this.progressPicker = new ProgressPicker();
+    }
+    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
+    if (!targetEl)
+      return;
+    const currentProgress = entity.progress || 0;
+    this.progressPicker.show(
+      targetEl,
+      currentProgress,
+      (progress) => {
+        this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
+      }
+    );
+  }
+  /**
+   * 显示进展反馈输入框
+   */
+  showProgressNoteInput(entity, triggerEl) {
+    var _a;
     const menu = document.createElement("div");
-    menu.className = "pm-progress-picker";
+    menu.className = "pm-progress-note-input";
     menu.style.cssText = `
       position: fixed;
       background: var(--background-primary);
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
-      padding: 8px;
+      padding: 12px;
       z-index: 1000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 150px;
+      min-width: 280px;
     `;
-    const currentProgress = entity.progress || 0;
     menu.createEl("div", {
-      text: "\u66F4\u65B0\u8FDB\u5EA6",
+      text: "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988",
       cls: "pm-picker-title"
-    }).style.cssText = "font-size: 12px; color: var(--text-muted); margin-bottom: 8px;";
-    const sliderContainer = menu.createDiv();
-    sliderContainer.style.cssText = "display: flex; align-items: center; gap: 8px;";
-    const slider = sliderContainer.createEl("input");
-    slider.type = "range";
-    slider.min = "0";
-    slider.max = "100";
-    slider.value = String(currentProgress);
-    slider.style.cssText = "flex: 1;";
-    const valueDisplay = sliderContainer.createEl("span");
-    valueDisplay.textContent = `${currentProgress}%`;
-    valueDisplay.style.cssText = "min-width: 35px; text-align: right; font-size: 12px;";
-    slider.oninput = () => {
-      valueDisplay.textContent = `${slider.value}%`;
-    };
+    }).style.cssText = "font-size: 13px; font-weight: 500; margin-bottom: 8px;";
+    const textarea = menu.createEl("textarea");
+    textarea.placeholder = "\u8F93\u5165\u5F53\u524D\u8FDB\u5C55...";
+    textarea.style.cssText = `
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      background: var(--background-primary);
+      color: var(--text-normal);
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+    `;
     const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = "display: flex; justify-content: flex-end; margin-top: 8px;";
+    btnContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;";
+    const cancelBtn = btnContainer.createEl("button");
+    cancelBtn.textContent = "\u53D6\u6D88";
+    cancelBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: 1px solid var(--background-modifier-border);
+      background: var(--background-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    cancelBtn.onclick = () => menu.remove();
     const confirmBtn = btnContainer.createEl("button");
-    confirmBtn.textContent = "\u66F4\u65B0";
+    confirmBtn.textContent = "\u4FDD\u5B58";
+    confirmBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: none;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
     confirmBtn.onclick = () => {
-      this.actionService.updateProgress(getEntityType(entity), entity.id, parseInt(slider.value));
+      const content = textarea.value.trim();
+      if (content) {
+        this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
+      }
       menu.remove();
+    };
+    textarea.onkeydown = (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const content = textarea.value.trim();
+        if (content) {
+          this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
+        }
+        menu.remove();
+      }
     };
     document.body.appendChild(menu);
     const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
@@ -4248,6 +4952,7 @@ var BaseRenderer = class {
       menu.style.left = `${rect.left}px`;
       menu.style.top = `${rect.bottom + 4}px`;
     }
+    textarea.focus();
     const closeMenu = (e) => {
       if (!menu.contains(e.target)) {
         menu.remove();
@@ -4260,49 +4965,27 @@ var BaseRenderer = class {
    * 获取实体类型图标
    */
   getEntityTypeIcon(entityOrType) {
-    const icons = {
-      version: "\u{1F4E6}",
-      project: "\u{1F4C1}",
-      feature: "\u{1F4DD}"
-    };
     const type = typeof entityOrType === "string" ? entityOrType : getEntityType(entityOrType);
-    return icons[type] || "\u{1F4C4}";
+    return getEntityIcon(type);
   }
   /**
-   * 翻译状态
+   * 翻译状态（使用设计令牌）
    */
   translateStatus(status) {
-    const translations = {
-      backlog: "\u5F85\u5904\u7406",
-      todo: "\u5F85\u5F00\u59CB",
-      "in-progress": "\u8FDB\u884C\u4E2D",
-      testing: "\u6D4B\u8BD5\u4E2D",
-      completed: "\u5DF2\u5B8C\u6210",
-      archived: "\u5DF2\u5F52\u6863",
-      active: "\u8FDB\u884C\u4E2D",
-      suspended: "\u5DF2\u6682\u505C"
-    };
-    return translations[status] || status;
+    return translateStatus(status);
   }
   /**
-   * 翻译优先级
+   * 翻译优先级（使用设计令牌）
    */
   translatePriority(priority) {
-    const translations = {
-      critical: "\u7D27\u6025",
-      high: "\u9AD8",
-      medium: "\u4E2D",
-      low: "\u4F4E"
-    };
-    return translations[priority] || priority;
+    return translatePriority(priority);
   }
 };
 
 // src/view-engine/renderers/KanbanRenderer.ts
-init_avatar();
-var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+var KanbanRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
     this.entities = [];
   }
   /**
@@ -4312,27 +4995,17 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     container.empty();
     container.addClass("pm-kanban-view");
     this.entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(this.entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(this.entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
       this.config.sortBy,
       this.config.sortOrder
     );
-    if (!this.config._hideToolbar) {
-      this.createToolbar(container, this.config.title || "\u770B\u677F\u89C6\u56FE", {
-        total: this.entities.length,
-        filtered: sorted.length
-      });
-    }
     const boardContainer = container.createDiv("pm-kanban-container");
-    if (this.config.groupBy === "status" || !this.config.groupBy) {
-      this.renderStatusBoard(boardContainer, sorted);
-    } else if (this.config.groupBy === "version") {
-      this.renderGroupedBoard(boardContainer, sorted, "versionId", "\u7248\u672C");
-    } else if (this.config.groupBy === "project") {
-      this.renderGroupedBoard(boardContainer, sorted, "projectId", "\u9879\u76EE");
-    } else if (this.config.groupBy === "priority") {
+    if (this.config.groupBy === "priority") {
       this.renderPriorityBoard(boardContainer, sorted);
+    } else {
+      this.renderStatusBoard(boardContainer, sorted);
     }
   }
   /**
@@ -4340,7 +5013,7 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
    */
   renderStatusBoard(container, entities) {
     const board = container.createDiv("pm-kanban-board");
-    _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
+    KANBAN_COLUMNS.forEach((column) => {
       const columnEl = this.createColumn(board, column.label, column.color, false, column.id);
       const columnEntities = entities.filter(
         (e) => "status" in e && e.status === column.id
@@ -4361,12 +5034,11 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
    * 按优先级渲染看板
    */
   renderPriorityBoard(container, entities) {
-    const priorities = [
-      { id: "critical", label: "\u7D27\u6025", color: "#ef4444" },
-      { id: "high", label: "\u9AD8", color: "#f97316" },
-      { id: "medium", label: "\u4E2D", color: "#f59e0b" },
-      { id: "low", label: "\u4F4E", color: "#22c55e" }
-    ];
+    const priorities = PRIORITY_OPTIONS.map((opt) => ({
+      id: opt.id,
+      label: opt.label,
+      color: opt.color
+    }));
     const board = container.createDiv("pm-kanban-board");
     priorities.forEach((priority) => {
       const columnEl = this.createColumn(board, priority.label, priority.color);
@@ -4386,35 +5058,6 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     });
   }
   /**
-   * 按字段分组渲染看板（版本/项目等）
-   */
-  renderGroupedBoard(container, entities, groupField, groupLabel) {
-    const groups = this.dataService.groupByField(entities, groupField);
-    groups.forEach((groupEntities, groupKey) => {
-      const section = container.createDiv("pm-kanban-section");
-      const header = section.createDiv("pm-kanban-section-header");
-      header.createSpan({ text: `${groupLabel}: ${groupKey}` });
-      header.createSpan({ cls: "pm-kanban-section-count", text: `(${groupEntities.length})` });
-      const board = section.createDiv("pm-kanban-board pm-kanban-board-nested");
-      _KanbanRenderer.STATUS_COLUMNS.forEach((column) => {
-        const columnEl = this.createColumn(board, column.label, column.color, true, column.id);
-        const columnEntities = groupEntities.filter(
-          (e) => "status" in e && e.status === column.id
-        );
-        const countEl = columnEl.querySelector(".pm-kanban-column-count");
-        if (countEl) {
-          countEl.textContent = String(columnEntities.length);
-        }
-        const cardsContainer = columnEl.querySelector(".pm-kanban-cards");
-        if (cardsContainer) {
-          columnEntities.forEach((entity) => {
-            this.renderKanbanCard(cardsContainer, entity, { compact: true });
-          });
-        }
-      });
-    });
-  }
-  /**
    * 创建看板列
    */
   createColumn(board, title, color, compact = false, statusId) {
@@ -4423,7 +5066,6 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
       column.addClass("pm-kanban-column-compact");
     }
     const header = column.createDiv("pm-kanban-column-header");
-    header.style.borderLeftColor = color;
     const titleEl = header.createDiv("pm-kanban-column-title");
     titleEl.createSpan({ cls: "pm-kanban-column-dot", attr: { style: `background: ${color}` } });
     titleEl.createSpan({ text: title });
@@ -4486,149 +5128,292 @@ var _KanbanRenderer = class _KanbanRenderer extends BaseRenderer {
     ).open();
   }
   /**
-   * 渲染看板卡片
+   * 渲染看板卡片 - 卡片式风格
    */
-  renderKanbanCard(container, entity, options) {
-    const card = container.createDiv("pm-kanban-card");
-    if (options == null ? void 0 : options.compact) {
-      card.addClass("pm-kanban-card-compact");
-    }
+  renderKanbanCard(container, entity) {
     const entityType = getEntityType(entity);
-    if (entityType === "feature" && "status" in entity) {
-      card.setAttribute("draggable", "true");
-      card.addClass("pm-kanban-card-draggable");
-      card.addEventListener("dragstart", (e) => {
-        var _a, _b;
-        (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
-        (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", entityType);
-        card.addClass("pm-kanban-card-dragging");
-      });
-      card.addEventListener("dragend", () => {
-        card.removeClass("pm-kanban-card-dragging");
-      });
+    const card = container.createDiv("pm-kanban-card");
+    card.draggable = entityType === "feature" && "status" in entity;
+    card.addEventListener("dragstart", (e) => {
+      var _a, _b;
+      (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
+      (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", entityType);
+      card.addClass("pm-kanban-card-dragging");
+    });
+    card.addEventListener("dragend", () => {
+      card.removeClass("pm-kanban-card-dragging");
+    });
+    if ("priority" in entity && entity.priority) {
+      const priorityColor = getPriorityColor2(entity.priority);
+      const priorityBar = card.createDiv("pm-kanban-card-priority-bar");
+      priorityBar.style.background = priorityColor.bg;
     }
     const header = card.createDiv("pm-kanban-card-header");
-    if ("priority" in entity && entity.priority) {
-      const priorityColors = {
-        critical: "#ef4444",
-        high: "#f97316",
-        medium: "#f59e0b",
-        low: "#22c55e"
-      };
-      header.createSpan({
-        cls: "pm-kanban-card-priority",
-        attr: { style: `background: ${priorityColors[entity.priority] || "#9ca3af"}` }
-      });
-    }
-    header.createEl("span", { cls: "pm-kanban-card-title", text: entity.name });
-    const content = card.createDiv("pm-kanban-card-content");
-    if ("tags" in entity && entity.tags && entity.tags.length > 0 && !(options == null ? void 0 : options.compact)) {
-      const tags = content.createDiv("pm-kanban-card-tags");
-      entity.tags.slice(0, 3).forEach((tag) => {
-        tags.createSpan({ cls: "pm-kanban-card-tag", text: tag });
-      });
-      if (entity.tags.length > 3) {
-        tags.createSpan({ cls: "pm-kanban-card-tag-more", text: `+${entity.tags.length - 3}` });
-      }
-    }
-    const footer = card.createDiv("pm-kanban-card-footer");
-    if (entity.owner) {
-      const ownerEl = footer.createDiv({ cls: "pm-kanban-card-owner" });
-      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
-      if (avatar) {
-        ownerEl.appendChild(avatar);
-      }
-      ownerEl.createEl("span", {
-        cls: "pm-kanban-card-owner-name",
-        text: entity.owner
-      });
-    }
-    if ("dueDate" in entity && entity.dueDate && !(options == null ? void 0 : options.compact)) {
-      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
-      footer.createSpan({
-        cls: `pm-kanban-card-due${isOverdue ? " pm-overdue" : ""}`,
-        text: this.formatDate(entity.dueDate)
-      });
-    }
-    if (getEntityType(entity) === "feature" && "progress" in entity && !(options == null ? void 0 : options.compact)) {
-      const progress = entity.progress || 0;
-      const progressBar = footer.createDiv("pm-kanban-card-progress");
-      progressBar.createDiv({
-        cls: "pm-kanban-card-progress-bar",
-        attr: { style: `width: ${progress}%` }
-      });
-      progressBar.createSpan({ cls: "pm-kanban-card-progress-text", text: `${progress}%` });
-    }
-    const actions = card.createDiv("pm-kanban-card-actions");
-    actions.style.display = "none";
+    const titleEl = header.createDiv("pm-kanban-card-title");
+    titleEl.textContent = entity.name;
+    const actions = header.createDiv("pm-kanban-card-actions");
     if ("status" in entity) {
       const nextStatus = this.getNextStatus(entity.status);
       if (nextStatus) {
-        const btn = actions.createEl("button", { cls: "pm-action-btn-small" });
+        const btn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
         btn.textContent = "\u2192";
         btn.title = `\u79FB\u52A8\u5230: ${nextStatus.label}`;
         btn.onclick = (e) => {
           e.stopPropagation();
-          this.actionService.changeStatus(getEntityType(entity), entity.id, nextStatus.id);
+          this.actionService.changeStatus(entityType, entity.id, nextStatus.id);
         };
       }
     }
-    const openBtn = actions.createEl("button", { cls: "pm-action-btn-small" });
+    if (entityType === "feature") {
+      const noteBtn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
+      noteBtn.textContent = "\u{1F4DD}";
+      noteBtn.title = "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988";
+      noteBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showProgressNoteInput(entity, card);
+      };
+    }
+    const openBtn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
     openBtn.textContent = "\u2197";
     openBtn.title = "\u6253\u5F00\u6587\u4EF6";
     openBtn.onclick = (e) => {
       e.stopPropagation();
-      this.actionService.openEntity(getEntityType(entity), entity.id);
+      this.actionService.openEntity(entityType, entity.id);
     };
-    card.addEventListener("mouseenter", () => {
-      actions.style.display = "flex";
-    });
-    card.addEventListener("mouseleave", () => {
-      actions.style.display = "none";
-    });
+    const content = card.createDiv("pm-kanban-card-content");
+    if (entity.tags && entity.tags.length > 0) {
+      const tagsContainer = content.createDiv("pm-kanban-card-tags");
+      entity.tags.slice(0, 3).forEach((tag) => {
+        tagsContainer.createSpan({ cls: "pm-kanban-card-tag", text: tag });
+      });
+      if (entity.tags.length > 3) {
+        tagsContainer.createSpan({
+          cls: "pm-kanban-card-tag-more",
+          text: `+${entity.tags.length - 3}`
+        });
+      }
+    }
+    const footer = card.createDiv("pm-kanban-card-footer");
+    if (entity.owner) {
+      footer.createSpan({ cls: "pm-kanban-card-owner", text: `@${entity.owner}` });
+    }
+    if ("progress" in entity && entity.progress !== void 0) {
+      const progressEl = footer.createDiv("pm-kanban-card-progress");
+      const progressBar = progressEl.createDiv("pm-kanban-card-progress-bar");
+      progressBar.createDiv({
+        cls: "pm-kanban-card-progress-fill",
+        attr: { style: `width: ${entity.progress}%` }
+      });
+      progressEl.createSpan({
+        cls: "pm-kanban-card-progress-text",
+        text: `${entity.progress}%`
+      });
+    }
+    if ("dueDate" in entity && entity.dueDate) {
+      const isOverdue3 = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
+      footer.createSpan({
+        cls: `pm-kanban-card-due${isOverdue3 ? " pm-overdue" : ""}`,
+        text: DateFormat.short(entity.dueDate)
+      });
+    }
     card.addEventListener("click", () => {
-      this.actionService.openEntity(getEntityType(entity), entity.id);
+      this.actionService.openEntity(entityType, entity.id);
     });
   }
   /**
    * 获取下一个状态（用于快速切换）
    */
   getNextStatus(currentStatus) {
-    const flow = {
-      backlog: "todo",
-      todo: "in-progress",
-      "in-progress": "testing",
-      testing: "completed"
-    };
-    const nextId = flow[currentStatus];
-    if (!nextId)
-      return null;
-    const column = _KanbanRenderer.STATUS_COLUMNS.find((c) => c.id === nextId);
-    return column ? { id: nextId, label: column.label } : null;
-  }
-  /**
-   * 格式化日期
-   */
-  formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    return getNextStatus(currentStatus);
   }
 };
-// 状态列定义
-_KanbanRenderer.STATUS_COLUMNS = [
-  { id: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
-  { id: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
-  { id: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
-  { id: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
-  { id: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" }
-];
-var KanbanRenderer = _KanbanRenderer;
+
+// src/view-engine/renderers/ListRenderer.ts
+var ListRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
+    this.entities = [];
+    this.sortField = "name";
+    this.sortOrder = "asc";
+  }
+  /**
+   * 渲染列表视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-list-view");
+    this.entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(this.entities, this.config);
+    const sorted = this.applyListSort(filtered);
+    const listContainer = container.createDiv("pm-list-container");
+    if (sorted.length === 0) {
+      this.createEmptyState(listContainer, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
+      return;
+    }
+    this.renderListHeader(listContainer);
+    const cardsContainer = listContainer.createDiv("pm-list-cards");
+    for (const entity of sorted) {
+      await this.renderListCard(cardsContainer, entity);
+    }
+  }
+  /**
+   * 渲染列表头部
+   */
+  renderListHeader(container) {
+    const header = container.createDiv("pm-list-header");
+    const info = header.createDiv("pm-list-info");
+    info.createSpan({
+      cls: "pm-list-count",
+      text: `\u5171 ${this.entities.length} \u4E2A\u5B9E\u4F53`
+    });
+    const sortControl = header.createDiv("pm-list-sort");
+    const sortSelect = sortControl.createEl("select", { cls: "pm-list-sort-select" });
+    const sortOptions = [
+      { value: "name", label: "\u540D\u79F0" },
+      { value: "status", label: "\u72B6\u6001" },
+      { value: "priority", label: "\u4F18\u5148\u7EA7" },
+      { value: "dueDate", label: "\u622A\u6B62\u65E5\u671F" },
+      { value: "progress", label: "\u8FDB\u5EA6" }
+    ];
+    sortOptions.forEach((opt) => {
+      const option = sortSelect.createEl("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (opt.value === this.sortField)
+        option.selected = true;
+    });
+    sortSelect.addEventListener("change", () => {
+      this.sortField = sortSelect.value;
+      this.render(container.closest(".pm-list-view"));
+    });
+    const orderBtn = sortControl.createEl("button", {
+      cls: "pm-list-sort-order",
+      attr: { title: this.sortOrder === "asc" ? "\u5347\u5E8F" : "\u964D\u5E8F" }
+    });
+    orderBtn.textContent = this.sortOrder === "asc" ? "\u2191" : "\u2193";
+    orderBtn.addEventListener("click", () => {
+      this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
+      this.render(container.closest(".pm-list-view"));
+    });
+  }
+  /**
+   * 渲染列表卡片
+   */
+  async renderListCard(container, entity) {
+    const entityType = getEntityType(entity);
+    const card = container.createDiv("pm-list-card");
+    card.dataset.entityId = entity.id;
+    card.dataset.entityType = entityType;
+    if ("priority" in entity && entity.priority) {
+      const priorityColor = getPriorityColor2(entity.priority);
+      const priorityBar = card.createDiv("pm-list-card-priority-bar");
+      priorityBar.style.background = priorityColor.bg;
+    }
+    const content = card.createDiv("pm-list-card-content");
+    const main = content.createDiv("pm-list-card-main");
+    const typeIcon = main.createDiv("pm-list-card-type-icon");
+    typeIcon.textContent = this.getEntityTypeIcon(entityType);
+    const titleSection = main.createDiv("pm-list-card-title-section");
+    titleSection.createDiv({ cls: "pm-list-card-title", text: entity.name });
+    if ("projectId" in entity && entity.projectId) {
+      const projectName = await this.getEntityName("projectId", entity.projectId);
+      titleSection.createDiv({
+        cls: "pm-list-card-subtitle",
+        text: `\u96B6\u5C5E\u4E8E: ${projectName || entity.projectId}`
+      });
+    } else if ("versionId" in entity && entity.versionId) {
+      const versionName = await this.getEntityName("versionId", entity.versionId);
+      titleSection.createDiv({
+        cls: "pm-list-card-subtitle",
+        text: `\u7248\u672C: ${versionName || entity.versionId}`
+      });
+    }
+    const meta = content.createDiv("pm-list-card-meta");
+    if ("status" in entity && entity.status) {
+      meta.createSpan({
+        cls: `pm-list-card-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status)
+      });
+    }
+    if ("progress" in entity && entity.progress !== void 0) {
+      const progressEl = meta.createDiv("pm-list-card-progress");
+      const progressBar = progressEl.createDiv("pm-list-card-progress-bar");
+      progressBar.createDiv({
+        cls: "pm-list-card-progress-fill",
+        attr: { style: `width: ${entity.progress}%` }
+      });
+      progressEl.createSpan({ text: `${entity.progress}%` });
+    }
+    if (entity.owner) {
+      meta.createSpan({ cls: "pm-list-card-owner", text: `@${entity.owner}` });
+    }
+    if ("dueDate" in entity && entity.dueDate) {
+      const isOverdueDate = isOverdue(entity.dueDate, entity.status);
+      meta.createSpan({
+        cls: `pm-list-card-due${isOverdueDate ? " pm-overdue" : ""}`,
+        text: DateFormat.short(entity.dueDate)
+      });
+    }
+    if (entity.tags && entity.tags.length > 0) {
+      const tagsEl = meta.createDiv("pm-list-card-tags");
+      entity.tags.slice(0, 2).forEach((tag) => {
+        tagsEl.createSpan({ cls: "pm-list-card-tag", text: tag });
+      });
+    }
+    const actions = content.createDiv("pm-list-card-actions");
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", {
+        cls: "pm-list-action-btn",
+        attr: { title: "\u53D8\u66F4\u72B6\u6001" }
+      });
+      statusBtn.textContent = "\u26A1";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity, statusBtn);
+      };
+    }
+    const openBtn = actions.createEl("button", {
+      cls: "pm-list-action-btn",
+      attr: { title: "\u6253\u5F00\u6587\u4EF6" }
+    });
+    openBtn.textContent = "\u2197";
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(entityType, entity.id);
+    };
+    card.addEventListener("click", () => {
+      this.actionService.openEntity(entityType, entity.id);
+    });
+  }
+  /**
+   * 获取实体名称
+   */
+  async getEntityName(fieldName, entityId) {
+    try {
+      if (fieldName === "versionId") {
+        const version = await this.entityManager.getVersion(entityId);
+        return (version == null ? void 0 : version.name) || null;
+      } else if (fieldName === "projectId") {
+        const project = await this.entityManager.getProject(entityId);
+        return (project == null ? void 0 : project.name) || null;
+      }
+    } catch (error) {
+      console.error("\u83B7\u53D6\u5B9E\u4F53\u540D\u79F0\u5931\u8D25:", error);
+    }
+    return null;
+  }
+  /**
+   * 应用列表排序
+   */
+  applyListSort(entities) {
+    return this.dataService.applySort(entities, this.sortField, this.sortOrder);
+  }
+};
 
 // src/view-engine/renderers/GridRenderer.ts
-init_avatar();
 var GridRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
     this.entities = [];
   }
   /**
@@ -4638,24 +5423,16 @@ var GridRenderer = class extends BaseRenderer {
     container.empty();
     container.addClass("pm-grid-view");
     this.entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(this.entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(this.entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
       this.config.sortBy,
       this.config.sortOrder
     );
     const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
-    if (!this.config._hideToolbar) {
-      this.createToolbar(container, this.config.title || "\u7F51\u683C\u89C6\u56FE", {
-        total: this.entities.length,
-        filtered: limited.length
-      });
-    }
     const gridContainer = container.createDiv("pm-grid-container");
     const cols = this.config.cols || 3;
-    gridContainer.style.display = "grid";
-    gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    gridContainer.style.gap = "16px";
+    gridContainer.style.setProperty("--grid-cols", String(cols));
     if (limited.length === 0) {
       this.createEmptyState(gridContainer, "\u6CA1\u6709\u5339\u914D\u7684\u5B9E\u4F53");
     } else {
@@ -4665,133 +5442,88 @@ var GridRenderer = class extends BaseRenderer {
     }
   }
   /**
-   * 渲染网格卡片
+   * 渲染网格卡片 - 统一卡片式风格
    */
   async renderGridCard(container, entity) {
-    const card = container.createDiv("pm-grid-card");
-    const header = card.createDiv("pm-grid-card-header");
     const entityType = getEntityType(entity);
-    const typeLabel = header.createSpan("pm-grid-card-type");
-    typeLabel.textContent = this.getEntityTypeLabel(entityType);
+    const card = container.createDiv("pm-grid-card");
     if ("priority" in entity && entity.priority) {
-      const priorityColors = {
-        critical: "#ef4444",
-        high: "#f97316",
-        medium: "#f59e0b",
-        low: "#22c55e"
+      const priorityColor = getPriorityColor2(entity.priority);
+      const priorityBar = card.createDiv("pm-grid-card-priority-bar");
+      priorityBar.style.background = priorityColor.bg;
+    }
+    const header = card.createDiv("pm-grid-card-header");
+    const typeLabel = header.createDiv("pm-grid-card-type");
+    typeLabel.textContent = this.getEntityTypeLabel(entityType);
+    const actions = header.createDiv("pm-grid-card-header-actions");
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", { cls: "pm-grid-action-btn" });
+      statusBtn.textContent = "\u26A1";
+      statusBtn.title = "\u53D8\u66F4\u72B6\u6001";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity, statusBtn);
       };
-      header.createSpan({
-        cls: "pm-grid-card-priority",
-        attr: { style: `background: ${priorityColors[entity.priority] || "#9ca3af"}` }
-      });
     }
+    const openBtn = actions.createEl("button", { cls: "pm-grid-action-btn" });
+    openBtn.textContent = "\u2197";
+    openBtn.title = "\u6253\u5F00\u6587\u4EF6";
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(entityType, entity.id);
+    };
     const body = card.createDiv("pm-grid-card-body");
-    body.createEl("h3", { cls: "pm-grid-card-title", text: entity.name });
-    if (entityType === "feature") {
-      const feature = entity;
-      const parentInfo = body.createDiv("pm-grid-card-parent");
-      parentInfo.style.fontSize = "11px";
-      parentInfo.style.color = "var(--text-muted)";
-      if (feature.projectId) {
-        parentInfo.textContent = `\u{1F4C1} ${feature.projectId}`;
-      } else if (feature.versionId) {
-        parentInfo.textContent = `\u{1F4E6} ${feature.versionId}`;
-      }
-    }
-    if ("description" in entity && entity.description) {
-      const desc = body.createDiv("pm-grid-card-desc");
-      const descText = String(entity.description);
-      desc.textContent = descText.substring(0, 100);
-      if (descText.length > 100) {
-        desc.textContent += "...";
-      }
+    body.createDiv({ cls: "pm-grid-card-title", text: entity.name });
+    if ("description" in entity && entity.description && typeof entity.description === "string") {
+      body.createDiv({
+        cls: "pm-grid-card-desc",
+        text: entity.description
+      });
     }
     if ("status" in entity && entity.status) {
-      const statusColors = {
-        backlog: "#9ca3af",
-        todo: "#3b82f6",
-        "in-progress": "#f59e0b",
-        testing: "#8b5cf6",
-        completed: "#22c55e",
-        archived: "#6b7280"
-      };
-      const statusEl = body.createDiv("pm-grid-card-status");
-      statusEl.createSpan({
-        cls: "pm-status-dot",
-        attr: { style: `background: ${statusColors[entity.status] || "#9ca3af"}` }
+      body.createSpan({
+        cls: `pm-grid-card-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status)
       });
-      statusEl.createSpan({ text: this.translateStatus(entity.status) });
     }
-    if ("tags" in entity && entity.tags && entity.tags.length > 0) {
-      const tagsEl = body.createDiv("pm-grid-card-tags");
+    if (entity.tags && entity.tags.length > 0) {
+      const tagsContainer = body.createDiv("pm-grid-card-tags");
       entity.tags.slice(0, 4).forEach((tag) => {
-        tagsEl.createSpan({ cls: "pm-grid-card-tag", text: tag });
+        tagsContainer.createSpan({ cls: "pm-grid-card-tag", text: tag });
       });
+      if (entity.tags.length > 4) {
+        tagsContainer.createSpan({
+          cls: "pm-grid-card-tag-more",
+          text: `+${entity.tags.length - 4}`
+        });
+      }
     }
     const footer = card.createDiv("pm-grid-card-footer");
+    const footerLeft = footer.createDiv("pm-grid-card-footer-left");
     if (entity.owner) {
-      const ownerEl = footer.createDiv({ cls: "pm-grid-card-owner" });
-      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
-      if (avatar) {
-        ownerEl.appendChild(avatar);
-      }
-      ownerEl.createEl("span", {
-        cls: "pm-grid-card-owner-name",
-        text: entity.owner
+      footerLeft.createSpan({
+        cls: "pm-grid-card-owner",
+        text: `@${entity.owner}`
       });
     }
     if ("dueDate" in entity && entity.dueDate) {
-      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
-      footer.createDiv({
-        cls: `pm-grid-card-due${isOverdue ? " pm-overdue" : ""}`,
-        text: `\u{1F4C5} ${this.formatDate(entity.dueDate)}`
+      const isOverdueDate = isOverdue(entity.dueDate, entity.status);
+      footerLeft.createSpan({
+        cls: `pm-grid-card-due${isOverdueDate ? " pm-overdue" : ""}`,
+        text: DateFormat.short(entity.dueDate)
       });
     }
-    if (entityType === "feature" && "progress" in entity) {
-      const progress = entity.progress || 0;
+    if ("progress" in entity && entity.progress !== void 0) {
       const progressEl = footer.createDiv("pm-grid-card-progress");
-      progressEl.createDiv({
-        cls: "pm-progress-bar",
-        attr: { style: `width: ${progress}%` }
+      const progressBar = progressEl.createDiv("pm-grid-card-progress-bar");
+      progressBar.createDiv({
+        cls: "pm-grid-card-progress-fill",
+        attr: { style: `width: ${entity.progress}%` }
       });
-      progressEl.createSpan({ cls: "pm-progress-text", text: `${progress}%` });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
-    if (entityType === "version" || entityType === "project") {
-      const statsEl = footer.createDiv("pm-grid-card-stats");
-      if ("stats" in entity && entity.stats) {
-        const stats = entity.stats;
-        statsEl.createSpan({ text: `\u{1F4CA} ${stats.total} \u7279\u6027` });
-        if (stats.completed > 0) {
-          statsEl.createSpan({ text: `\u2705 ${stats.completed} \u5B8C\u6210` });
-        }
-      }
-    }
-    const actions = card.createDiv("pm-grid-card-actions");
-    actions.style.display = "none";
-    if ("status" in entity) {
-      const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
-      statusBtn.textContent = "\u72B6\u6001";
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity);
-      };
-    }
-    if (getEntityType(entity) === "feature") {
-      const progressBtn = actions.createEl("button", { cls: "pm-action-btn" });
-      progressBtn.textContent = "\u8FDB\u5EA6";
-      progressBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressPicker(entity);
-      };
-    }
-    card.addEventListener("mouseenter", () => {
-      actions.style.display = "flex";
-    });
-    card.addEventListener("mouseleave", () => {
-      actions.style.display = "none";
-    });
     card.addEventListener("click", () => {
-      this.actionService.openEntity(getEntityType(entity), entity.id);
+      this.actionService.openEntity(entityType, entity.id);
     });
   }
   /**
@@ -4805,48 +5537,35 @@ var GridRenderer = class extends BaseRenderer {
     };
     return labels[type] || type;
   }
-  /**
-   * 格式化日期
-   */
-  formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
-  }
 };
 
 // src/view-engine/renderers/CascadeRenderer.ts
 var CascadeRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
   }
   /**
    * 渲染级联视图
    */
   async render(container) {
     container.empty();
-    container.addClass("pm-cascade-tree-view");
-    const treeContainer = container.createDiv("pm-cascade-tree");
+    container.addClass("pm-cascade-container");
     if (this.config.id) {
-      await this.renderEntityTree(treeContainer, this.config.id);
+      await this.renderEntityTree(container, this.config.id);
     } else {
-      await this.renderAllVersions(treeContainer);
+      await this.renderAllVersions(container);
     }
   }
   /**
    * 渲染单个实体的级联树
    */
   async renderEntityTree(container, entityId) {
-    const type = this.config.type || "version";
-    switch (type) {
-      case "version":
-        await this.renderVersionTree(container, entityId, 0);
-        break;
-      case "project":
-        await this.renderProjectTree(container, entityId, 0);
-        break;
-      case "feature":
-        await this.renderFeatureTree(container, entityId, 0);
-        break;
+    if (this.config.feature) {
+      await this.renderFeatureTree(container, entityId, 0);
+    } else if (this.config.project) {
+      await this.renderProjectTree(container, entityId, 0);
+    } else {
+      await this.renderVersionTree(container, entityId, 0);
     }
   }
   /**
@@ -4856,14 +5575,16 @@ var CascadeRenderer = class extends BaseRenderer {
     const version = await this.entityManager.getVersion(versionId);
     if (!version)
       return;
-    const versionNode = this.createTreeNode(container, version, level);
+    const versionSection = container.createDiv("pm-cascade-section");
+    await this.renderVersionHeader(versionSection, version);
     const projects = await this.entityManager.listProjects({ versionId });
     if (projects.length === 0) {
-      this.createEmptyNode(versionNode, "\u6682\u65E0\u9879\u76EE", level + 1);
+      versionSection.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u9879\u76EE" });
       return;
     }
+    const projectsContainer = versionSection.createDiv("pm-cascade__projects");
     for (const project of projects) {
-      await this.renderProjectTree(versionNode, project.id, level + 1);
+      await this.renderProjectCard(projectsContainer, project);
     }
   }
   /**
@@ -4873,15 +5594,8 @@ var CascadeRenderer = class extends BaseRenderer {
     const project = await this.entityManager.getProject(projectId);
     if (!project)
       return;
-    const projectNode = this.createTreeNode(container, project, level);
-    const features = await this.entityManager.listFeatures({ projectId });
-    if (features.length === 0) {
-      this.createEmptyNode(projectNode, "\u6682\u65E0\u7279\u6027", level + 1);
-      return;
-    }
-    for (const feature of features) {
-      this.createFeatureNode(projectNode, feature, level + 1);
-    }
+    const section = container.createDiv("pm-cascade-section");
+    await this.renderProjectCard(section, project, true);
   }
   /**
    * 渲染特性树
@@ -4892,22 +5606,14 @@ var CascadeRenderer = class extends BaseRenderer {
       return;
     const project = feature.projectId ? await this.entityManager.getProject(feature.projectId) : null;
     const version = (project == null ? void 0 : project.versionId) ? await this.entityManager.getVersion(project.versionId) : null;
+    const section = container.createDiv("pm-cascade-section");
     if (version) {
-      const versionNode = this.createTreeNode(container, version, level);
-      versionNode.classList.add("pm-tree-node-placeholder");
-      if (project) {
-        const projectNode = this.createTreeNode(versionNode, project, level + 1);
-        projectNode.classList.add("pm-tree-node-placeholder");
-        this.createFeatureNode(projectNode, feature, level + 2);
-      } else {
-        this.createFeatureNode(versionNode, feature, level + 1);
-      }
-    } else if (project) {
-      const projectNode = this.createTreeNode(container, project, level);
-      projectNode.classList.add("pm-tree-node-placeholder");
-      this.createFeatureNode(projectNode, feature, level + 1);
+      await this.renderVersionHeader(section, version, true);
+    }
+    if (project) {
+      await this.renderProjectCard(section, project, true, feature);
     } else {
-      this.createFeatureNode(container, feature, level);
+      this.renderFeatureRow(section.createDiv("pm-cascade__features"), feature);
     }
   }
   /**
@@ -4916,7 +5622,7 @@ var CascadeRenderer = class extends BaseRenderer {
   async renderAllVersions(container) {
     const versions = await this.entityManager.listVersions();
     if (versions.length === 0) {
-      this.createEmptyNode(container, "\u6682\u65E0\u7248\u672C", 0);
+      container.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u7248\u672C" });
       return;
     }
     for (const version of versions) {
@@ -4924,133 +5630,173 @@ var CascadeRenderer = class extends BaseRenderer {
     }
   }
   /**
-   * 创建树节点（通用）
+   * 渲染版本头部
    */
-  createTreeNode(container, entity, level) {
-    const node = container.createDiv("pm-tree-node");
-    node.classList.add(`pm-tree-level-${level}`);
-    node.dataset.entityType = getEntityType(entity);
-    node.dataset.entityId = entity.id;
-    if (level > 0) {
-      node.style.paddingLeft = `${level * 20}px`;
+  async renderVersionHeader(container, version, isPlaceholder = false) {
+    const header = container.createDiv("pm-cascade__header");
+    if (!isPlaceholder) {
+      header.addClass("pm-cascade__header--clickable");
+      header.addEventListener("click", () => {
+        this.actionService.openEntity("version", version.id);
+      });
+    } else {
+      header.addClass("pm-cascade__header--placeholder");
     }
-    const content = node.createDiv("pm-tree-node-content");
-    const toggle = content.createSpan("pm-tree-toggle");
-    toggle.textContent = "\u25BC";
-    const icon = content.createSpan("pm-tree-icon");
-    icon.textContent = this.getEntityTypeIcon(getEntityType(entity));
-    content.createSpan({ cls: "pm-tree-name", text: entity.name });
-    const meta = content.createDiv("pm-tree-meta");
-    if (entity.owner) {
-      meta.createSpan({ cls: "pm-tree-owner", text: entity.owner });
-    }
-    if ("status" in entity && entity.status) {
-      meta.createSpan({
-        cls: `pm-tree-status pm-status-${entity.status}`,
-        text: this.translateStatus(entity.status)
+    const titleRow = header.createDiv("pm-cascade__title-row");
+    const title = titleRow.createDiv("pm-cascade__title");
+    title.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("version") });
+    title.createSpan({ text: version.name });
+    if (version.status) {
+      titleRow.createSpan({
+        cls: `pm-cascade__status pm-cascade__status--${version.status}`,
+        text: this.translateStatus(version.status)
       });
     }
-    if ("dueDate" in entity && entity.dueDate) {
-      const isOverdue = new Date(entity.dueDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
-      meta.createSpan({
-        cls: `pm-tree-due${isOverdue ? " pm-overdue" : ""}`,
-        text: this.formatDate(entity.dueDate)
+    const projects = await this.entityManager.listProjects({ versionId: version.id });
+    const allFeatures = [];
+    let totalProgress = 0;
+    let completedCount = 0;
+    for (const project of projects) {
+      const features = await this.entityManager.listFeatures({ projectId: project.id });
+      allFeatures.push(...features);
+      for (const f of features) {
+        totalProgress += f.progress || 0;
+        if (f.status === "completed")
+          completedCount++;
+      }
+    }
+    const avgProgress = allFeatures.length > 0 ? Math.round(totalProgress / allFeatures.length) : 0;
+    const summary = header.createDiv("pm-cascade__summary");
+    summary.createSpan({
+      cls: "pm-cascade__summary-text",
+      text: `${projects.length} \u9879\u76EE \xB7 ${allFeatures.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
+    });
+    if (allFeatures.length > 0) {
+      const progressBar = summary.createDiv("pm-cascade__main-progress");
+      progressBar.createDiv({
+        cls: "pm-cascade__main-progress-fill",
+        attr: { style: `width: ${avgProgress}%` }
+      });
+      summary.createSpan({
+        cls: "pm-cascade__main-progress-text",
+        text: `${avgProgress}%`
       });
     }
-    if (getEntityType(entity) === "feature" && "progress" in entity) {
-      const progress = entity.progress || 0;
-      const progressEl = meta.createDiv("pm-tree-progress");
-      progressEl.createDiv({
-        cls: "pm-tree-progress-bar",
-        attr: { style: `width: ${progress}%` }
+    if (version.endDate) {
+      summary.createSpan({
+        cls: "pm-cascade__summary-date",
+        text: DateFormat.medium(version.endDate)
       });
-      progressEl.createSpan({ text: `${progress}%` });
     }
-    if ("stats" in entity && entity.stats) {
-      const stats = entity.stats;
-      if (stats.total > 0) {
-        meta.createSpan({
-          cls: "pm-tree-stats",
-          text: `${stats.completed || 0}/${stats.total}`
+  }
+  /**
+   * 渲染项目卡片
+   */
+  async renderProjectCard(container, project, isSingleView = false, highlightFeature) {
+    const card = container.createDiv("pm-cascade__project");
+    const header = card.createDiv("pm-cascade__project-header");
+    header.addEventListener("click", () => {
+      this.actionService.openEntity("project", project.id);
+    });
+    header.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("project") });
+    header.createSpan({ cls: "pm-cascade__project-name", text: project.name });
+    const features = await this.entityManager.listFeatures({ projectId: project.id });
+    const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
+    const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
+    const completedCount = features.filter((f) => f.status === "completed").length;
+    if (features.length > 0) {
+      const progressContainer = header.createDiv("pm-cascade__project-progress");
+      const progressBar = progressContainer.createDiv("pm-cascade__mini-progress");
+      progressBar.createDiv({
+        cls: "pm-cascade__mini-progress-fill",
+        attr: { style: `width: ${avgProgress}%` }
+      });
+      progressContainer.createSpan({
+        cls: "pm-cascade__progress-text",
+        text: `${avgProgress}%`
+      });
+    }
+    if (features.length > 0) {
+      card.createDiv({
+        cls: "pm-cascade__project-stats",
+        text: `${features.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
+      });
+    }
+    if (features.length > 0) {
+      const featuresContainer = card.createDiv("pm-cascade__features");
+      const maxFeatures = isSingleView ? 50 : 5;
+      const displayFeatures = features.slice(0, maxFeatures);
+      for (const feature of displayFeatures) {
+        const isHighlighted = highlightFeature && feature.id === highlightFeature.id;
+        this.renderFeatureRow(featuresContainer, feature, isHighlighted);
+      }
+      if (features.length > maxFeatures) {
+        featuresContainer.createDiv({
+          cls: "pm-cascade__more-features",
+          text: `\u8FD8\u6709 ${features.length - maxFeatures} \u4E2A\u7279\u6027...`
         });
       }
     }
-    const childrenContainer = node.createDiv("pm-tree-children");
-    content.addEventListener("click", (e) => {
-      if (e.target.closest(".pm-tree-actions"))
-        return;
-      if (childrenContainer.hasChildNodes()) {
-        const isHidden = childrenContainer.style.display === "none";
-        childrenContainer.style.display = isHidden ? "block" : "none";
-        toggle.textContent = isHidden ? "\u25BC" : "\u25B6";
-        node.classList.toggle("pm-tree-collapsed", !isHidden);
-      } else {
-        this.actionService.openEntity(getEntityType(entity), entity.id);
-      }
-    });
-    return childrenContainer;
   }
   /**
-   * 创建特性节点（简化版）
+   * 渲染特性行
    */
-  createFeatureNode(container, feature, level) {
-    const node = container.createDiv("pm-tree-node pm-tree-node-feature");
-    node.classList.add(`pm-tree-level-${level}`);
-    node.style.paddingLeft = `${level * 20}px`;
-    const content = node.createDiv("pm-tree-node-content");
-    content.createSpan("pm-tree-toggle pm-tree-toggle-empty");
-    const priorityColors = {
-      critical: "#ef4444",
-      high: "#f97316",
-      medium: "#f59e0b",
-      low: "#22c55e"
-    };
-    if (feature.priority) {
-      content.createSpan({
-        cls: "pm-tree-priority",
-        attr: { style: `background: ${priorityColors[feature.priority] || "#9ca3af"}` }
-      });
+  renderFeatureRow(container, feature, isHighlighted = false) {
+    const row = container.createDiv("pm-cascade__feature");
+    if (isHighlighted) {
+      row.addClass("pm-cascade__feature--highlighted");
     }
-    content.createSpan({ cls: "pm-tree-name", text: feature.name });
-    const meta = content.createDiv("pm-tree-meta");
-    if (feature.status) {
-      meta.createSpan({
-        cls: `pm-tree-status pm-status-${feature.status}`,
-        text: this.translateStatus(feature.status)
-      });
-    }
-    const progress = feature.progress || 0;
-    const progressEl = meta.createDiv("pm-tree-progress");
-    progressEl.createDiv({
-      cls: "pm-tree-progress-bar",
-      attr: { style: `width: ${progress}%` }
-    });
-    content.addEventListener("click", () => {
+    row.addEventListener("click", () => {
       this.actionService.openEntity("feature", feature.id);
     });
-    return node;
-  }
-  /**
-   * 创建空节点
-   */
-  createEmptyNode(container, message, level) {
-    const node = container.createDiv("pm-tree-node pm-tree-node-empty");
-    node.style.paddingLeft = `${level * 20}px`;
-    node.textContent = message;
-  }
-  /**
-   * 格式化日期
-   */
-  formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    if (feature.priority) {
+      const priorityColors = {
+        critical: "#ef4444",
+        high: "#f97316",
+        medium: "#f59e0b",
+        low: "#22c55e"
+      };
+      row.createSpan({
+        cls: "pm-cascade__feature-priority",
+        attr: { style: `color: ${priorityColors[feature.priority] || "#9ca3af"}` },
+        text: "\u25CF"
+      });
+    }
+    row.createSpan({ cls: "pm-cascade__feature-icon", text: "\u2630" });
+    const nameContainer = row.createDiv("pm-cascade__feature-name-container");
+    nameContainer.createSpan({ cls: "pm-cascade__feature-name", text: feature.name });
+    if (feature.progress !== void 0) {
+      row.createSpan({
+        cls: "pm-cascade__feature-progress",
+        text: `${feature.progress}%`
+      });
+    }
+    if (feature.dueDate) {
+      const isOverdueDate = isOverdue(feature.dueDate, feature.status);
+      const isUpcoming = !isOverdueDate && new Date(feature.dueDate).getTime() - (/* @__PURE__ */ new Date()).getTime() < 7 * 24 * 60 * 60 * 1e3;
+      let dueClass = "pm-cascade__feature-due";
+      if (feature.status === "completed")
+        dueClass += " pm-cascade__feature-due--completed";
+      else if (isOverdueDate)
+        dueClass += " pm-cascade__feature-due--overdue";
+      else if (isUpcoming)
+        dueClass += " pm-cascade__feature-due--upcoming";
+      row.createSpan({
+        cls: dueClass,
+        text: DateFormat.short(feature.dueDate)
+      });
+    }
+    if (feature.owner) {
+      row.createSpan({ cls: "pm-cascade__feature-owner", text: `@${feature.owner}` });
+    }
+    return row;
   }
 };
 
 // src/view-engine/renderers/TimelineRenderer.ts
 var TimelineRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
   }
   /**
    * 渲染时间线视图
@@ -5059,16 +5805,12 @@ var TimelineRenderer = class extends BaseRenderer {
     container.empty();
     container.addClass("pm-timeline-view");
     const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
       this.config.sortBy || "dueDate",
       this.config.sortOrder || "asc"
     );
-    this.createToolbar(container, this.config.title || "\u65F6\u95F4\u7EBF\u89C6\u56FE", {
-      total: entities.length,
-      filtered: sorted.length
-    });
     const direction = this.config.direction || "horizontal";
     if (direction === "vertical") {
       await this.renderVerticalTimeline(container, sorted);
@@ -5107,22 +5849,23 @@ var TimelineRenderer = class extends BaseRenderer {
       point.dataset.entityId = entity.id;
       const marker = point.createDiv("pm-timeline-marker");
       marker.classList.add(`pm-entity-${getEntityType(entity)}`);
+      if ("priority" in entity && entity.priority) {
+        marker.style.background = getPriorityColor2(entity.priority).bg;
+      }
       if ("status" in entity && entity.status) {
         marker.classList.add(`pm-status-${entity.status}`);
       }
-      const card = point.createDiv("pm-timeline-card");
-      this.renderTimelineCard(card, entity);
+      const card = point.createDiv("pm-timeline-hover-card");
+      this.renderTimelineHoverCard(card, entity);
       point.addEventListener("click", () => {
         this.actionService.openEntity(getEntityType(entity), entity.id);
       });
     });
     const labels = timelineContainer.createDiv("pm-timeline-labels");
     const startLabel = labels.createDiv("pm-timeline-label");
-    startLabel.textContent = this.formatDateShort(new Date(minDate));
-    startLabel.style.left = "0%";
+    startLabel.textContent = DateFormat.short(new Date(minDate));
     const endLabel = labels.createDiv("pm-timeline-label");
-    endLabel.textContent = this.formatDateShort(new Date(maxDate));
-    endLabel.style.left = "100%";
+    endLabel.textContent = DateFormat.short(new Date(maxDate));
   }
   /**
    * 渲染垂直时间线
@@ -5138,60 +5881,109 @@ var TimelineRenderer = class extends BaseRenderer {
     sortedDates.forEach((dateKey) => {
       const group = timelineContainer.createDiv("pm-timeline-group");
       const dateLabel = group.createDiv("pm-timeline-date");
-      dateLabel.textContent = this.formatDateLong(dateKey);
+      if (dateKey === "\u672A\u5B89\u6392") {
+        dateLabel.textContent = dateKey;
+        dateLabel.addClass("pm-timeline-date--unscheduled");
+      } else {
+        const date = new Date(dateKey);
+        dateLabel.textContent = `${date.getMonth() + 1}\u6708${date.getDate()}\u65E5`;
+        dateLabel.createEl("span", {
+          cls: "pm-timeline-date-weekday",
+          text: ["\u5468\u65E5", "\u5468\u4E00", "\u5468\u4E8C", "\u5468\u4E09", "\u5468\u56DB", "\u5468\u4E94", "\u5468\u516D"][date.getDay()]
+        });
+      }
       const items = group.createDiv("pm-timeline-items");
       const groupEntities = grouped.get(dateKey) || [];
       groupEntities.forEach((entity) => {
-        const item = items.createDiv("pm-timeline-item");
-        item.dataset.entityId = entity.id;
-        const typeMark = item.createDiv("pm-timeline-type-mark");
-        typeMark.classList.add(`pm-entity-${getEntityType(entity)}`);
-        const content = item.createDiv("pm-timeline-item-content");
-        this.renderTimelineCard(content, entity, true);
-        item.addEventListener("click", () => {
+        const card = items.createDiv("pm-timeline-card");
+        card.dataset.entityId = entity.id;
+        this.renderTimelineVerticalCard(card, entity);
+        card.addEventListener("click", () => {
           this.actionService.openEntity(getEntityType(entity), entity.id);
         });
       });
     });
   }
   /**
-   * 渲染时间线卡片
+   * 渲染时间线悬停卡片（水平时间线用）
    */
-  renderTimelineCard(container, entity, compact = false) {
-    const header = container.createDiv("pm-timeline-card-header");
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    header.createSpan({ cls: "pm-timeline-card-icon", text: icon });
-    header.createEl("span", { cls: "pm-timeline-card-title", text: entity.name });
+  renderTimelineHoverCard(container, entity) {
+    const entityType = getEntityType(entity);
+    if ("priority" in entity && entity.priority) {
+      const priorityBar = container.createDiv("pm-timeline-hover-priority");
+      priorityBar.style.background = getPriorityColor2(entity.priority).bg;
+    }
+    const content = container.createDiv("pm-timeline-hover-content");
+    const header = content.createDiv("pm-timeline-hover-header");
+    header.createSpan({
+      cls: "pm-timeline-hover-type",
+      text: this.getEntityTypeIcon(entityType)
+    });
+    header.createSpan({
+      cls: "pm-timeline-hover-title",
+      text: entity.name
+    });
     if ("status" in entity && entity.status) {
-      header.createSpan({
-        cls: `pm-status-badge pm-status-${entity.status}`,
+      content.createSpan({
+        cls: `pm-timeline-hover-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status)
       });
     }
-    if (compact)
-      return;
-    const body = container.createDiv("pm-timeline-card-body");
-    if (entity.owner) {
-      body.createDiv({
-        cls: "pm-timeline-card-owner",
-        text: `\u{1F464} ${entity.owner}`
+    if ("progress" in entity && entity.progress !== void 0) {
+      const progressEl = content.createDiv("pm-timeline-hover-progress");
+      const progressBar = progressEl.createDiv("pm-timeline-hover-progress-bar");
+      progressBar.createDiv({
+        cls: "pm-timeline-hover-progress-fill",
+        attr: { style: `width: ${entity.progress}%` }
       });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
+  }
+  /**
+   * 渲染垂直时间线卡片
+   */
+  renderTimelineVerticalCard(card, entity) {
+    const entityType = getEntityType(entity);
     if ("priority" in entity && entity.priority) {
-      body.createDiv({
-        cls: "pm-timeline-card-priority",
-        text: `\u4F18\u5148\u7EA7: ${this.translatePriority(entity.priority)}`
+      const priorityBar = card.createDiv("pm-timeline-card-priority-bar");
+      priorityBar.style.background = getPriorityColor2(entity.priority).bg;
+    }
+    const content = card.createDiv("pm-timeline-card-content");
+    const header = content.createDiv("pm-timeline-card-header");
+    const typeIcon = header.createDiv("pm-timeline-card-type-icon");
+    typeIcon.textContent = this.getEntityTypeIcon(entityType);
+    const titleSection = header.createDiv("pm-timeline-card-title-section");
+    titleSection.createDiv({
+      cls: "pm-timeline-card-title",
+      text: entity.name
+    });
+    const meta = content.createDiv("pm-timeline-card-meta");
+    if ("status" in entity && entity.status) {
+      meta.createSpan({
+        cls: `pm-timeline-card-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status)
       });
     }
-    if (getEntityType(entity) === "feature" && "progress" in entity) {
-      const progress = entity.progress || 0;
-      const progressEl = body.createDiv("pm-timeline-card-progress");
-      progressEl.createDiv({
-        cls: "pm-progress-bar",
-        attr: { style: `width: ${progress}%` }
+    if ("progress" in entity && entity.progress !== void 0) {
+      const progressEl = meta.createDiv("pm-timeline-card-progress");
+      const progressBar = progressEl.createDiv("pm-timeline-card-progress-bar");
+      progressBar.createDiv({
+        cls: "pm-timeline-card-progress-fill",
+        attr: { style: `width: ${entity.progress}%` }
       });
-      progressEl.createSpan({ text: `${progress}%` });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
+    if (entity.owner) {
+      meta.createSpan({ cls: "pm-timeline-card-owner", text: `@${entity.owner}` });
+    }
+    const actions = content.createDiv("pm-timeline-card-actions");
+    const openBtn = actions.createEl("button", { cls: "pm-timeline-action-btn" });
+    openBtn.textContent = "\u2197";
+    openBtn.title = "\u6253\u5F00\u6587\u4EF6";
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(entityType, entity.id);
+    };
   }
   /**
    * 按日期分组
@@ -5210,28 +6002,13 @@ var TimelineRenderer = class extends BaseRenderer {
     });
     return groups;
   }
-  /**
-   * 格式化短日期
-   */
-  formatDateShort(date) {
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  }
-  /**
-   * 格式化长日期
-   */
-  formatDateLong(dateStr) {
-    if (dateStr === "\u672A\u5B89\u6392")
-      return dateStr;
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}\u5E74${date.getMonth() + 1}\u6708${date.getDate()}\u65E5`;
-  }
 };
 
 // src/view-engine/renderers/CalendarRenderer.ts
 init_QuickCreateModal();
 var CalendarRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
     this.currentDate = /* @__PURE__ */ new Date();
   }
   /**
@@ -5241,7 +6018,7 @@ var CalendarRenderer = class extends BaseRenderer {
     container.empty();
     container.addClass("pm-calendar-view");
     const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(entities, this.config);
     const datedEntities = filtered.filter(
       (e) => "dueDate" in e && e.dueDate
     );
@@ -5335,682 +6112,1075 @@ var CalendarRenderer = class extends BaseRenderer {
   }
   /**
    * 渲染日历项
+   * 使用 EntityCard compact 变体
    */
   renderCalendarItem(container, entity) {
-    const item = container.createDiv("pm-calendar-item");
-    item.classList.add(`pm-entity-${getEntityType(entity)}`);
-    item.dataset.entityId = entity.id;
-    if ("priority" in entity && entity.priority) {
-      const priorityColors = {
-        critical: "#ef4444",
-        high: "#f97316",
-        medium: "#f59e0b",
-        low: "#22c55e"
-      };
-      item.style.borderLeftColor = priorityColors[entity.priority] || "#9ca3af";
-    }
-    if ("status" in entity && entity.status) {
-      item.classList.add(`pm-status-${entity.status}`);
-    }
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    item.createSpan({ cls: "pm-calendar-item-icon", text: icon });
-    item.createSpan({ cls: "pm-calendar-item-name", text: entity.name });
-    item.title = `${entity.name} (${entity.owner || "\u672A\u5206\u914D"})`;
-    item.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(getEntityType(entity), entity.id);
-    });
+    const entityType = getEntityType(entity);
+    const wrapper = container.createDiv("pm-calendar-card-wrapper");
+    const cardFields = this.config.cardFields || { required: ["name", "priority"], optional: ["status"] };
+    const required = cardFields.required || ["name", "priority"];
+    const optional = cardFields.optional || [];
+    const allFields = [...required, ...optional];
+    const entityCard = new EntityCard(this.app);
+    entityCard.render(
+      wrapper,
+      entity,
+      {
+        showPriority: allFields.includes("priority"),
+        showStatus: allFields.includes("status"),
+        showProgress: false,
+        // 日历空间不足，强制不显示
+        showOwner: false,
+        showDueDate: false,
+        showTags: false,
+        showParent: false,
+        showDescription: false,
+        showTypeIcon: false,
+        showStats: false,
+        showActions: false,
+        smallTitle: true
+      },
+      {
+        onOpen: () => {
+          this.actionService.openEntity(entityType, entity.id);
+        }
+      }
+    );
   }
 };
 
 // src/view-engine/ViewEngine.ts
 var ViewEngine = class {
-  constructor(app, entityManager, cardRegistry) {
+  constructor(app, entityManager) {
     this.app = app;
     this.entityManager = entityManager;
-    this.cardRegistry = cardRegistry;
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
   }
   /**
-   * 创建新的渲染器实例（避免状态污染）
+   * 渲染视图 - 工具栏在上，筛选在中，视图在下
+   */
+  async render(container, config, context, codeBlockIndex) {
+    container.empty();
+    container.addClass("pm-view");
+    const wrapper = container.createDiv("pm-view-wrapper");
+    const toolbarEl = this.renderToolbar(wrapper, config, context, codeBlockIndex);
+    const filterBar = new FilterBar(
+      this.app,
+      this.entityManager,
+      async (filters) => {
+        const finalConfig = { ...config, ...filters };
+        await this.renderContent(contentArea, finalConfig, context);
+      },
+      context.sourcePath,
+      codeBlockIndex
+    );
+    await filterBar.loadOptions();
+    filterBar.render(wrapper, config);
+    const contentArea = wrapper.createDiv("pm-view-content");
+    await this.renderContent(contentArea, config, context);
+  }
+  /**
+   * 渲染工具栏
+   */
+  renderToolbar(wrapper, config, context, codeBlockIndex) {
+    const toolbar = wrapper.createDiv("pm-view-toolbar");
+    const viewModeGroup = toolbar.createDiv("pm-toolbar-group");
+    const viewModeSelect = viewModeGroup.createEl("select", { cls: "pm-toolbar-select" });
+    Object.entries(VIEW_MODE_LABELS).forEach(([mode, label]) => {
+      const option = viewModeSelect.createEl("option", {
+        text: label,
+        value: mode
+      });
+      if (mode === config.mode) {
+        option.selected = true;
+      }
+    });
+    viewModeSelect.addEventListener("change", async () => {
+      const newMode = viewModeSelect.value;
+      const newConfig = { ...config, mode: newMode };
+      await this.saveViewModeChange(context.sourcePath, codeBlockIndex, newMode);
+      const contentArea = wrapper.querySelector(".pm-view-content");
+      if (contentArea) {
+        await this.renderContent(contentArea, newConfig, context);
+      }
+    });
+    const buttonGroup = toolbar.createDiv("pm-toolbar-group pm-toolbar-right");
+    const filterBtn = buttonGroup.createEl("button", {
+      cls: "pm-toolbar-btn",
+      text: "\u7B5B\u9009 \u25BC"
+    });
+    filterBtn.addEventListener("click", () => {
+      const filterBar = wrapper.querySelector(".pm-filter-container");
+      if (filterBar) {
+        const isHidden = filterBar.style.display === "none";
+        filterBar.style.display = isHidden ? "block" : "none";
+        filterBtn.textContent = isHidden ? "\u7B5B\u9009 \u25B2" : "\u7B5B\u9009 \u25BC";
+      }
+    });
+    const sortBtn = buttonGroup.createEl("button", {
+      cls: "pm-toolbar-btn",
+      text: "\u6392\u5E8F \u25BC"
+    });
+    sortBtn.addEventListener("click", () => {
+      this.showSortMenu(sortBtn, wrapper, config, context);
+    });
+    const propBtn = buttonGroup.createEl("button", {
+      cls: "pm-toolbar-btn",
+      text: "\u5C5E\u6027 \u25BC"
+    });
+    propBtn.addEventListener("click", () => {
+      this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
+    });
+    const settingsBtn = buttonGroup.createEl("button", {
+      cls: "pm-toolbar-btn pm-toolbar-icon",
+      text: "\u2699\uFE0F"
+    });
+    settingsBtn.title = "\u89C6\u56FE\u8BBE\u7F6E";
+    settingsBtn.addEventListener("click", () => {
+      console.log("\u89C6\u56FE\u8BBE\u7F6E\u529F\u80FD\u5F85\u5B9E\u73B0");
+    });
+    return toolbar;
+  }
+  /**
+   * 保存视图模式变更到代码块
+   */
+  async saveViewModeChange(sourcePath, codeBlockIndex, newMode) {
+    await this.saveViewConfig(sourcePath, codeBlockIndex, { mode: newMode });
+  }
+  /**
+   * 保存视图配置到代码块（通用方法）
+   */
+  async saveViewConfig(sourcePath, codeBlockIndex, updates) {
+    if (!sourcePath || codeBlockIndex === void 0)
+      return;
+    const { TFile: TFile10 } = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(sourcePath);
+    if (!(file instanceof TFile10))
+      return;
+    try {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      let blockStart = -1;
+      let blockEnd = -1;
+      let currentIndex = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === "```pm-view") {
+          if (currentIndex === codeBlockIndex) {
+            blockStart = i;
+          }
+          currentIndex++;
+        }
+        if (blockStart !== -1 && line === "```") {
+          blockEnd = i;
+          break;
+        }
+      }
+      if (blockStart === -1 || blockEnd === -1)
+        return;
+      const configLines = lines.slice(blockStart + 1, blockEnd);
+      const configText = configLines.join("\n");
+      const { parseYaml: parseYaml2, stringifyYaml } = require("obsidian");
+      const currentConfig = parseYaml2(configText) || {};
+      const newConfig = { ...currentConfig, ...updates };
+      Object.keys(newConfig).forEach((key) => {
+        if (newConfig[key] === void 0) {
+          delete newConfig[key];
+        }
+      });
+      const yamlContent = stringifyYaml(newConfig).trim();
+      const newBlock = ["```pm-view", yamlContent, "```"];
+      const newLines = [
+        ...lines.slice(0, blockStart),
+        ...newBlock,
+        ...lines.slice(blockEnd + 1)
+      ];
+      const newContent = newLines.join("\n");
+      if (newContent !== content) {
+        await this.app.vault.modify(file, newContent);
+      }
+    } catch (error) {
+      console.error("\u4FDD\u5B58\u89C6\u56FE\u914D\u7F6E\u5931\u8D25:", error);
+    }
+  }
+  /**
+   * 渲染内容区域
+   */
+  async renderContent(container, config, context) {
+    container.empty();
+    const mode = config.mode || "kanban";
+    const renderer = this.createRenderer(mode);
+    if (!renderer) {
+      this.renderError(container, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
+      return;
+    }
+    renderer.init(config, context);
+    this.actionService.setRefreshCallback(() => {
+      this.renderContent(container, config, context);
+    });
+    try {
+      await renderer.render(container);
+    } catch (error) {
+      this.renderError(container, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+    }
+  }
+  /**
+   * 创建新的渲染器实例
    */
   createRenderer(mode) {
     switch (mode) {
       case "kanban":
-        return new KanbanRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+        return new KanbanRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case "list":
+        return new ListRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "grid":
-        return new GridRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+        return new GridRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "cascade":
-        return new CascadeRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+        return new CascadeRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "timeline":
-        return new TimelineRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+        return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "calendar":
-        return new CalendarRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
-      case "selector":
-        return new SelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
-      case "cascade-selector":
-        return new CascadeSelectorRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
-      case "card":
-        return new CardRenderer(this.app, this.entityManager, this.cardRegistry, this.dataService, this.actionService);
+        return new CalendarRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
   }
   /**
-   * 渲染视图
-   */
-  async render(container, config, context) {
-    container.empty();
-    const wrapper = container.createDiv("pm-view");
-    const mode = config.mode || "grid";
-    wrapper.dataset.viewMode = mode;
-    const renderer = this.createRenderer(mode);
-    if (!renderer) {
-      console.error("[ViewEngine] \u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F:", mode);
-      this.renderError(wrapper, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
-      return;
-    }
-    renderer.init(config, context);
-    this.actionService.setRefreshCallback(() => {
-      this.render(container, config, context);
-    });
-    try {
-      await renderer.render(wrapper);
-    } catch (error) {
-      console.error("[ViewEngine] \u6E32\u67D3\u5931\u8D25:", error);
-      this.renderError(wrapper, `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
-    }
-  }
-  /**
-   * 解析配置
+   * 解析配置 - 支持新版和旧版格式
    */
   parseConfig(source) {
     const { parseYaml: parseYaml2 } = require("obsidian");
     try {
       const parsed = parseYaml2(source) || {};
-      return {
-        mode: parsed.mode || "grid",
-        type: parsed.type || "feature",
-        id: parsed.id,
+      const config = {
+        mode: parsed.mode || "kanban",
         title: parsed.title,
-        groupBy: parsed.groupBy,
-        filter: parsed.filter,
+        // 实体类型筛选
+        entityType: parsed.entityType || "feature",
+        // 单实体筛选（旧版兼容）
+        version: parsed.version,
+        project: parsed.project,
+        feature: parsed.feature,
+        // 新版组合筛选
+        filters: parsed.filters,
+        // 旧版筛选（向后兼容）
+        status: parsed.status,
+        priority: parsed.priority,
+        owner: parsed.owner,
+        tag: parsed.tag,
+        // 新版排序
+        sorts: parsed.sorts,
+        // 旧版排序（向后兼容）
         sortBy: parsed.sortBy,
-        sortOrder: parsed.sortOrder || "asc",
+        sortOrder: parsed.sortOrder,
+        // 列配置
+        columns: parsed.columns,
+        // ⭐ 新增：列表视图列配置
+        listColumns: parsed.listColumns,
+        // ⭐ 新增：EntityCard 字段配置
+        cardFields: parsed.cardFields,
+        // 限制
         limit: parsed.limit,
+        // 分组
+        groupBy: parsed.groupBy,
+        // 视图选项
+        options: parsed.options,
+        // 旧版配置（向后兼容）
         cols: parsed.cols,
-        ...parsed
-        // 允许额外的配置参数
+        expanded: parsed.expanded,
+        maxProjects: parsed.maxProjects,
+        maxFeaturesPerProject: parsed.maxFeaturesPerProject
       };
+      return config;
     } catch (error) {
       console.error("\u914D\u7F6E\u89E3\u6790\u5931\u8D25:", error);
-      return { mode: "grid", type: "feature" };
+      return { mode: "kanban" };
     }
   }
   /**
-   * 渲染错误信息
+   * 显示排序菜单
    */
-  renderError(container, message) {
-    const error = container.createDiv("pm-view-error");
-    error.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
-    error.createEl("div", { cls: "pm-error-text", text: "\u89C6\u56FE\u52A0\u8F7D\u5931\u8D25" });
-    error.createEl("div", { cls: "pm-error-detail", text: message });
-  }
-  /**
-   * 获取支持的视图模式
-   */
-  getSupportedModes() {
-    return [
-      { id: "kanban", name: "\u770B\u677F", description: "Trello \u98CE\u683C\u7684\u770B\u677F\u89C6\u56FE\uFF0C\u6309\u72B6\u6001\u5206\u7EC4" },
-      { id: "grid", name: "\u7F51\u683C", description: "\u5361\u7247\u7F51\u683C\u89C6\u56FE\uFF0C\u652F\u6301\u591A\u5217\u5E03\u5C40" },
-      { id: "cascade", name: "\u7EA7\u8054", description: "\u5C42\u7EA7\u7EA7\u8054\u89C6\u56FE\uFF0C\u7248\u672C\u2192\u9879\u76EE\u2192\u7279\u6027" },
-      { id: "timeline", name: "\u65F6\u95F4\u7EBF", description: "\u65F6\u95F4\u7EBF\u89C6\u56FE\uFF0C\u6309\u622A\u6B62\u65E5\u671F\u6392\u5217" },
-      { id: "calendar", name: "\u65E5\u5386", description: "\u6708\u5386\u89C6\u56FE\uFF0C\u663E\u793A\u622A\u6B62\u65E5\u671F" },
-      { id: "selector", name: "\u9009\u62E9\u5668", description: "\u4E0B\u62C9\u9009\u62E9\u6846 + \u52A8\u6001\u89C6\u56FE\u6E32\u67D3" },
-      { id: "cascade-selector", name: "\u7EA7\u8054\u9009\u62E9\u5668", description: "\u4E09\u7EA7\u8054\u52A8\u9009\u62E9\u5668\uFF1A\u89C6\u56FE\u2192\u7C7B\u578B\u2192\u5B9E\u4F53" }
+  showSortMenu(triggerBtn, wrapper, config, context) {
+    const existingMenu = document.querySelector(".pm-sort-menu");
+    if (existingMenu)
+      existingMenu.remove();
+    const menu = document.createElement("div");
+    menu.className = "pm-sort-menu pm-dropdown-menu";
+    menu.style.cssText = `
+      position: absolute;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 180px;
+    `;
+    const sortFields = [
+      { value: "name", label: "\u540D\u79F0" },
+      { value: "dueDate", label: "\u622A\u6B62\u65E5\u671F" },
+      { value: "priority", label: "\u4F18\u5148\u7EA7" },
+      { value: "progress", label: "\u8FDB\u5EA6" },
+      { value: "created", label: "\u521B\u5EFA\u65F6\u95F4" }
     ];
-  }
-};
-
-// src/view-engine/renderers/SelectorRenderer.ts
-var SelectorRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
-  }
-  /**
-   * 获取或创建 ViewEngine
-   */
-  getViewEngine() {
-    if (!this.viewEngine) {
-      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-    }
-    return this.viewEngine;
-  }
-  /**
-   * 渲染选择器视图
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-selector-view");
-    const config = this.config;
-    const selectorConfig = config.selector;
-    const viewConfig = config.view;
-    if (!selectorConfig || !viewConfig) {
-      const errorEl = container.createDiv("pm-selector-error");
-      errorEl.textContent = "\u914D\u7F6E\u9519\u8BEF\uFF1A\u9700\u8981 selector \u548C view \u914D\u7F6E";
-      return;
-    }
-    const sceneConfig = this.buildSceneConfig(selectorConfig);
-    const selectorContainer = container.createDiv("pm-selector-container");
-    const selectEl = await this.renderSelector(selectorContainer, selectorConfig);
-    this.currentViewContainer = container.createDiv("pm-selector-view-container");
-    let initialValue = selectorConfig.defaultValue;
-    if (!initialValue && !selectorConfig.allowEmpty) {
-      const firstOption = selectEl.querySelector('option[value]:not([value=""])');
-      if (firstOption) {
-        initialValue = firstOption.value;
+    const currentSortBy = config.sortBy || "name";
+    const currentSortOrder = config.sortOrder || "asc";
+    menu.createEl("div", { text: "\u6392\u5E8F\u5B57\u6BB5", cls: "pm-menu-section-title" });
+    const fieldList = menu.createDiv("pm-sort-field-list");
+    sortFields.forEach((field) => {
+      const item = fieldList.createEl("div", { cls: "pm-sort-field-item" });
+      item.style.cssText = `
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      `;
+      item.textContent = field.label;
+      if (currentSortBy === field.value) {
+        item.classList.add("pm-sort-active");
+        item.style.background = "var(--background-modifier-hover)";
+        const orderIcon = item.createSpan();
+        orderIcon.textContent = currentSortOrder === "asc" ? " \u25B2" : " \u25BC";
       }
-    }
-    if (initialValue) {
-      selectEl.value = initialValue;
-      setTimeout(() => {
-        this.renderView(viewConfig, selectorConfig.type, initialValue, sceneConfig);
-      }, 0);
-    }
-    selectEl.addEventListener("change", async () => {
-      const selectedValue = selectEl.value;
-      if (selectedValue) {
-        await this.renderView(viewConfig, selectorConfig.type, selectedValue, sceneConfig);
-      } else {
-        if (this.currentViewContainer) {
-          this.currentViewContainer.empty();
-        }
-      }
-    });
-  }
-  /**
-   * 构建场景配置
-   */
-  buildSceneConfig(selectorConfig) {
-    const scene = selectorConfig.scene;
-    if (!scene)
-      return {};
-    switch (scene.type) {
-      case "version":
-        return { filter: { versionId: scene.id || "" } };
-      case "project":
-        return { filter: { projectId: scene.id || "" } };
-      case "all":
-      default:
-        return {};
-    }
-  }
-  /**
-   * 渲染下拉选择框
-   */
-  async renderSelector(container, config) {
-    const wrapper = container.createDiv("pm-selector-dropdown-wrapper");
-    if (config.label) {
-      wrapper.createEl("label", {
-        text: config.label,
-        cls: "pm-selector-label"
-      });
-    }
-    const selectEl = wrapper.createEl("select", {
-      cls: "pm-selector-dropdown"
-    });
-    if (config.allowEmpty !== false) {
-      selectEl.createEl("option", {
-        text: config.emptyLabel || `\u8BF7\u9009\u62E9...`,
-        value: ""
-      });
-    }
-    const options = await this.loadOptions(config.type);
-    for (const option of options) {
-      selectEl.createEl("option", {
-        text: option.label,
-        value: option.value
-      });
-    }
-    return selectEl;
-  }
-  /**
-   * 加载选项数据
-   */
-  async loadOptions(type) {
-    switch (type) {
-      case "version": {
-        const versions = await this.entityManager.listVersions();
-        return versions.map((v) => ({ label: v.name, value: v.id }));
-      }
-      case "project": {
-        const projects = await this.entityManager.listProjects();
-        return projects.map((p) => ({ label: p.name, value: p.id }));
-      }
-      case "status": {
-        return [
-          { label: "\u5F85\u5904\u7406", value: "backlog" },
-          { label: "\u5F85\u5F00\u59CB", value: "todo" },
-          { label: "\u8FDB\u884C\u4E2D", value: "in-progress" },
-          { label: "\u6D4B\u8BD5\u4E2D", value: "testing" },
-          { label: "\u5DF2\u5B8C\u6210", value: "completed" },
-          { label: "\u5DF2\u5F52\u6863", value: "archived" }
-        ];
-      }
-      case "priority": {
-        return [
-          { label: "\u7D27\u6025", value: "critical" },
-          { label: "\u9AD8", value: "high" },
-          { label: "\u4E2D", value: "medium" },
-          { label: "\u4F4E", value: "low" }
-        ];
-      }
-      case "owner": {
-        const features = await this.entityManager.listFeatures();
-        const owners = /* @__PURE__ */ new Set();
-        for (const f of features) {
-          if (f.owner)
-            owners.add(f.owner);
-        }
-        return Array.from(owners).map((o) => ({ label: o, value: o }));
-      }
-      case "tag": {
-        const features = await this.entityManager.listFeatures();
-        const tags = /* @__PURE__ */ new Set();
-        for (const f of features) {
-          for (const tag of f.tags || []) {
-            tags.add(tag);
-          }
-        }
-        return Array.from(tags).map((t) => ({ label: t, value: t }));
-      }
-      case "view": {
-        return [
-          { label: "\u770B\u677F", value: "kanban" },
-          { label: "\u7F51\u683C", value: "grid" },
-          { label: "\u7EA7\u8054", value: "cascade" },
-          { label: "\u65F6\u95F4\u7EBF", value: "timeline" },
-          { label: "\u65E5\u5386", value: "calendar" }
-        ];
-      }
-      case "overview": {
-        return [
-          { label: "\u5168\u90E8\u7279\u6027", value: "all-features" },
-          { label: "\u6309\u7248\u672C\u5206\u7EC4", value: "by-version" },
-          { label: "\u6309\u9879\u76EE\u5206\u7EC4", value: "by-project" },
-          { label: "\u6309\u8D1F\u8D23\u4EBA\u5206\u7EC4", value: "by-owner" }
-        ];
-      }
-      default:
-        return [];
-    }
-  }
-  /**
-   * 渲染视图
-   */
-  async renderView(viewConfig, selectorType, selectedValue, sceneConfig = {}) {
-    if (!this.currentViewContainer)
-      return;
-    this.currentViewContainer.empty();
-    const loadingEl = this.currentViewContainer.createDiv("pm-selector-loading");
-    loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
-    try {
-      let mergedConfig;
-      const baseConfig = {
-        ...viewConfig,
-        filter: {
-          ...viewConfig.filter,
-          ...sceneConfig.filter
-        }
-      };
-      if (selectorType === "view") {
-        mergedConfig = {
-          ...baseConfig,
-          mode: selectedValue
+      item.addEventListener("click", async () => {
+        const newConfig = {
+          ...config,
+          sortBy: field.value,
+          sortOrder: currentSortBy === field.value && currentSortOrder === "asc" ? "desc" : "asc"
         };
-      } else if (selectorType === "overview") {
-        mergedConfig = baseConfig;
-      } else {
-        const filterKey = this.getFilterKey(selectorType);
-        mergedConfig = {
-          ...baseConfig,
-          filter: {
-            ...baseConfig.filter,
-            [filterKey]: selectedValue
-          }
-        };
-      }
-      await this.getViewEngine().render(this.currentViewContainer, mergedConfig, {
-        sourcePath: this.context.sourcePath,
-        el: this.currentViewContainer
+        await this.saveSortConfig(context.sourcePath, config, newConfig);
+        const contentArea = wrapper.querySelector(".pm-view-content");
+        if (contentArea) {
+          await this.renderContent(contentArea, newConfig, context);
+        }
+        menu.remove();
       });
-    } catch (error) {
-      this.currentViewContainer.empty();
-      const errorEl = this.currentViewContainer.createDiv("pm-selector-error");
-      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
-    }
-  }
-  /**
-   * 获取过滤键名
-   */
-  getFilterKey(selectorType) {
-    const keyMap = {
-      version: "versionId",
-      project: "projectId",
-      status: "status",
-      priority: "priority",
-      owner: "owner",
-      tag: "tag",
-      view: "mode",
-      // 视图选择器不用于过滤
-      overview: "groupBy"
-      // 总览选择器用于分组
+      item.addEventListener("mouseenter", () => {
+        if (currentSortBy !== field.value) {
+          item.style.background = "var(--background-modifier-hover)";
+        }
+      });
+      item.addEventListener("mouseleave", () => {
+        if (currentSortBy !== field.value) {
+          item.style.background = "";
+        }
+      });
+    });
+    const rect = triggerBtn.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.top = `${rect.bottom + 4}px`;
+    document.body.appendChild(menu);
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) && e.target !== triggerBtn) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+      }
     };
-    return keyMap[selectorType] || selectorType;
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
   }
-};
-
-// src/view-engine/renderers/CascadeSelectorRenderer.ts
-var CascadeSelectorRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
-    // 当前选中的值（顺序：实体类型 → 具体实体 → 视图模式）
-    this.currentState = {
-      entityType: "feature",
-      entityId: "",
-      viewMode: "kanban"
+  /**
+   * 显示属性面板（重构版）
+   * 支持列表视图表头勾选配置和 EntityCard 字段多选配置
+   */
+  showPropertyPanel(triggerBtn, wrapper, config, context, codeBlockIndex) {
+    const existingPanel = document.querySelector(".pm-property-panel");
+    if (existingPanel)
+      existingPanel.remove();
+    const panel = document.createElement("div");
+    panel.className = "pm-property-panel pm-dropdown-menu";
+    panel.style.cssText = `
+      position: absolute;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 260px;
+      max-height: 500px;
+      overflow-y: auto;
+    `;
+    panel.createEl("div", {
+      text: "\u89C6\u56FE\u5C5E\u6027",
+      cls: "pm-panel-title"
+    }).style.cssText = "font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--background-modifier-border);";
+    this.renderEntityTypeSelector(panel, config, wrapper, context, codeBlockIndex);
+    if (config.mode === "list") {
+      this.renderListColumnSelector(panel, config, wrapper, context, codeBlockIndex);
+    }
+    if (config.mode !== "list") {
+      this.renderCardFieldSelector(panel, config, wrapper, context, codeBlockIndex);
+    }
+    if (config.mode === "kanban" || config.mode === "cascade") {
+      this.renderGroupBySelector(panel, config, wrapper, context, codeBlockIndex);
+    }
+    if (config.mode === "grid") {
+      this.renderColsSelector(panel, config, wrapper, context, codeBlockIndex);
+    }
+    this.renderLimitInput(panel, config, wrapper, context, codeBlockIndex);
+    const rect = triggerBtn.getBoundingClientRect();
+    panel.style.left = `${rect.left}px`;
+    panel.style.top = `${rect.bottom + 4}px`;
+    setTimeout(() => {
+      const panelRect = panel.getBoundingClientRect();
+      if (panelRect.right > window.innerWidth) {
+        panel.style.left = `${window.innerWidth - panelRect.width - 10}px`;
+      }
+    }, 0);
+    document.body.appendChild(panel);
+    const closePanel = (e) => {
+      if (!panel.contains(e.target) && e.target !== triggerBtn) {
+        panel.remove();
+        document.removeEventListener("click", closePanel);
+      }
     };
-  }
-  /**
-   * 渲染级联选择器视图
-   */
-  async render(container) {
-    var _a, _b, _c;
-    this.viewEngine = void 0;
-    this.currentViewContainer = void 0;
-    container.empty();
-    container.addClass("pm-cascade-selector-view");
-    const config = this.config;
-    const selectorConfig = config.cascadeSelector || {};
-    this.currentState.entityType = ((_a = selectorConfig.entityType) == null ? void 0 : _a.defaultValue) || "feature";
-    this.currentState.entityId = ((_b = selectorConfig.entity) == null ? void 0 : _b.defaultValue) || "";
-    this.currentState.viewMode = ((_c = selectorConfig.viewMode) == null ? void 0 : _c.defaultValue) || "kanban";
-    this.selectorContainer = container.createDiv("pm-cascade-selector-container");
-    this.entityTypeSelect = await this.renderEntityTypeSelector(this.selectorContainer, selectorConfig.entityType);
-    this.entitySelect = await this.renderEntitySelector(this.selectorContainer, selectorConfig.entity);
-    this.viewModeSelect = await this.renderViewModeSelector(this.selectorContainer, selectorConfig.viewMode);
-    this.currentViewContainer = container.createDiv("pm-cascade-selector-view-container");
-    await this.refreshEntityOptions(this.entitySelect, this.currentState.entityType);
-    if (this.currentState.entityId) {
-      const exists = Array.from(this.entitySelect.options).some((o) => o.value === this.currentState.entityId);
-      if (exists) {
-        this.entitySelect.value = this.currentState.entityId;
-      } else {
-        this.currentState.entityId = "";
-        this.entitySelect.value = "";
-      }
-    }
-    await this.renderCurrentView();
-    this.entityTypeSelect.addEventListener("change", () => {
-      this.currentState.entityType = this.entityTypeSelect.value;
-      this.currentState.entityId = "";
-      this.entitySelect.value = "";
-      this.refreshEntityOptions(this.entitySelect, this.currentState.entityType).then(() => {
-        this.renderCurrentView();
-      });
-    });
-    this.entitySelect.addEventListener("change", () => {
-      this.currentState.entityId = this.entitySelect.value;
-      this.renderCurrentView();
-    });
-    this.viewModeSelect.addEventListener("change", () => {
-      this.currentState.viewMode = this.viewModeSelect.value;
-      this.renderCurrentView();
-    });
-  }
-  /**
-   * 渲染视图模式选择器
-   */
-  async renderViewModeSelector(container, config) {
-    const wrapper = container.createDiv("pm-cascade-selector-item");
-    wrapper.createEl("label", {
-      text: (config == null ? void 0 : config.label) || "\u89C6\u56FE\u6A21\u5F0F",
-      cls: "pm-cascade-selector-label"
-    });
-    const selectEl = wrapper.createEl("select", {
-      cls: "pm-cascade-selector-dropdown"
-    });
-    const options = [
-      { label: "\u770B\u677F", value: "kanban" },
-      { label: "\u7F51\u683C", value: "grid" },
-      { label: "\u7EA7\u8054", value: "cascade" },
-      { label: "\u65F6\u95F4\u7EBF", value: "timeline" },
-      { label: "\u65E5\u5386", value: "calendar" }
-    ];
-    for (const option of options) {
-      const optEl = selectEl.createEl("option", {
-        text: option.label,
-        value: option.value
-      });
-      if (option.value === this.currentState.viewMode) {
-        optEl.selected = true;
-      }
-    }
-    return selectEl;
+    setTimeout(() => document.addEventListener("click", closePanel), 0);
   }
   /**
    * 渲染实体类型选择器
    */
-  async renderEntityTypeSelector(container, config) {
-    const wrapper = container.createDiv("pm-cascade-selector-item");
-    wrapper.createEl("label", {
-      text: (config == null ? void 0 : config.label) || "\u5B9E\u4F53\u7C7B\u578B",
-      cls: "pm-cascade-selector-label"
-    });
-    const selectEl = wrapper.createEl("select", {
-      cls: "pm-cascade-selector-dropdown"
-    });
-    const options = [
-      { label: "\u7248\u672C", value: "version" },
-      { label: "\u9879\u76EE", value: "project" },
-      { label: "\u7279\u6027", value: "feature" }
+  renderEntityTypeSelector(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u5B9E\u4F53\u7C7B\u578B",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const select = section.createEl("select", { cls: "pm-property-select" });
+    select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
+    const entityTypes = [
+      { value: "feature", label: "\u7279\u6027" },
+      { value: "project", label: "\u9879\u76EE" },
+      { value: "version", label: "\u7248\u672C" }
     ];
-    for (const option of options) {
-      const optEl = selectEl.createEl("option", {
-        text: option.label,
-        value: option.value
-      });
-      if (option.value === this.currentState.entityType) {
-        optEl.selected = true;
-      }
-    }
-    return selectEl;
-  }
-  /**
-   * 渲染实体选择器
-   */
-  async renderEntitySelector(container, config) {
-    const wrapper = container.createDiv("pm-cascade-selector-item");
-    wrapper.createEl("label", {
-      text: (config == null ? void 0 : config.label) || "\u9009\u62E9\u5B9E\u4F53",
-      cls: "pm-cascade-selector-label"
+    entityTypes.forEach((type) => {
+      const option = select.createEl("option");
+      option.value = type.value;
+      option.textContent = type.label;
+      if (config.entityType === type.value)
+        option.selected = true;
     });
-    const selectEl = wrapper.createEl("select", {
-      cls: "pm-cascade-selector-dropdown"
+    select.addEventListener("change", async () => {
+      const newConfig = { ...config, entityType: select.value };
+      await this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, select.value);
+      const contentArea = wrapper.querySelector(".pm-view-content");
+      if (contentArea) {
+        await this.renderContent(contentArea, newConfig, context);
+      }
     });
-    if ((config == null ? void 0 : config.allowEmpty) !== false) {
-      selectEl.createEl("option", {
-        text: "\u8BF7\u9009\u62E9...",
-        value: ""
-      });
-    }
-    return selectEl;
   }
   /**
-   * 刷新实体选项
+   * 渲染列表视图表头字段选择器（勾选形式）
    */
-  async refreshEntityOptions(selectEl, entityType) {
-    const currentValue = selectEl.value;
-    selectEl.empty();
-    selectEl.createEl("option", {
-      text: "\u8BF7\u9009\u62E9...",
-      value: ""
+  renderListColumnSelector(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u663E\u793A\u5217",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const checkboxContainer = section.createDiv("pm-checkbox-group");
+    checkboxContainer.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
+    const currentColumns = config.listColumns || ["name", "status", "priority", "owner"];
+    LIST_COLUMN_DEFINITIONS.forEach((field) => {
+      const label = checkboxContainer.createEl("label");
+      label.style.cssText = "display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;";
+      const checkbox = label.createEl("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = currentColumns.includes(field.key);
+      checkbox.disabled = field.required;
+      const text = label.createSpan();
+      text.textContent = field.label + (field.required ? " (\u5FC5\u9009)" : "");
+      text.style.cssText = field.required ? "color: var(--text-muted);" : "";
+      checkbox.addEventListener("change", async () => {
+        let newColumns = [...currentColumns];
+        if (checkbox.checked) {
+          if (!newColumns.includes(field.key)) {
+            newColumns.push(field.key);
+          }
+        } else {
+          newColumns = newColumns.filter((k) => k !== field.key);
+        }
+        const newConfig = { ...config, listColumns: newColumns };
+        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { listColumns: newColumns });
+        const contentArea = wrapper.querySelector(".pm-view-content");
+        if (contentArea) {
+          await this.renderContent(contentArea, newConfig, context);
+        }
+      });
     });
-    let options = [];
-    switch (entityType) {
-      case "version": {
-        const versions = await this.entityManager.listVersions();
-        options = versions.map((v) => ({ label: v.name, value: v.id }));
-        break;
-      }
-      case "project": {
-        const projects = await this.entityManager.listProjects();
-        options = projects.map((p) => ({ label: p.name, value: p.id }));
-        break;
-      }
-      case "feature": {
-        const features = await this.entityManager.listFeatures();
-        options = features.map((f) => ({ label: f.name, value: f.id }));
-        break;
-      }
-    }
-    for (const option of options) {
-      selectEl.createEl("option", {
-        text: option.label,
-        value: option.value
-      });
-    }
-    if (currentValue) {
-      const exists = Array.from(selectEl.options).some((o) => o.value === currentValue);
-      if (exists) {
-        selectEl.value = currentValue;
-      }
-    }
-  }
-  // viewEngine 已在类顶部声明
-  /**
-   * 获取或创建 ViewEngine
-   */
-  getViewEngine() {
-    if (!this.viewEngine) {
-      this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
-    }
-    return this.viewEngine;
   }
   /**
-   * 渲染当前视图
+   * 渲染 EntityCard 字段选择器（多选下拉形式）
    */
-  async renderCurrentView() {
-    if (!this.currentViewContainer) {
-      return;
-    }
-    this.currentViewContainer.empty();
-    const loadingEl = this.currentViewContainer.createDiv("pm-cascade-selector-loading");
-    loadingEl.textContent = "\u52A0\u8F7D\u4E2D...";
-    try {
-      const viewConfig = this.buildViewConfig();
-      this.currentViewContainer.empty();
-      const viewEngine = this.getViewEngine();
-      const context = {
-        sourcePath: this.context.sourcePath,
-        el: this.currentViewContainer
-      };
-      await viewEngine.render(this.currentViewContainer, viewConfig, context);
-    } catch (error) {
-      console.error("[CascadeSelectorRenderer] \u6E32\u67D3\u9519\u8BEF:", error);
-      this.currentViewContainer.empty();
-      const errorEl = this.currentViewContainer.createDiv("pm-cascade-selector-error");
-      errorEl.textContent = `\u6E32\u67D3\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`;
-    }
-  }
-  /**
-   * 构建视图配置
-   * 
-   * 逻辑：
-   * - 选择了具体实体 -> 显示该实体本身（单卡片）
-   * - 未选择实体（全部）-> 显示该类型下的所有实体列表
-   */
-  buildViewConfig() {
-    const { entityType, entityId, viewMode } = this.currentState;
-    if (viewMode === "cascade") {
-      return {
-        mode: "cascade",
-        type: entityId ? entityType : "version",
-        id: entityId,
-        expanded: true,
-        _hideToolbar: true
-      };
-    }
-    if (entityId) {
-      const config2 = {
-        mode: viewMode,
-        type: entityType,
-        id: entityId,
-        _hideToolbar: true
-      };
-      if (viewMode === "grid")
-        config2.cols = 1;
-      return config2;
-    }
-    const config = {
-      mode: viewMode,
-      type: entityType,
-      _hideToolbar: true
+  renderCardFieldSelector(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u5361\u7247\u663E\u793A\u5B57\u6BB5",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const currentCardFields = config.cardFields || {
+      required: ["name", "priority"],
+      optional: ["status", "owner", "progress"]
     };
-    if (viewMode === "kanban")
-      config.groupBy = "status";
-    if (viewMode === "grid")
-      config.cols = 3;
-    return config;
+    const currentOptional = currentCardFields.optional || [];
+    const multiSelectContainer = section.createDiv("pm-multi-select");
+    multiSelectContainer.style.cssText = `
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      padding: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+    `;
+    const requiredSection = multiSelectContainer.createDiv("pm-required-fields");
+    requiredSection.style.cssText = "margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--background-modifier-border);";
+    requiredSection.createEl("div", { text: "\u5FC5\u9009\u5B57\u6BB5", cls: "pm-section-subtitle" }).style.cssText = "font-size: 11px; color: var(--text-muted); margin-bottom: 4px;";
+    ENTITY_CARD_FIELD_DEFINITIONS.filter((f) => f.required).forEach((field) => {
+      const label = requiredSection.createEl("label");
+      label.style.cssText = "display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted);";
+      const checkbox = label.createEl("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.disabled = true;
+      label.createSpan({ text: field.label });
+    });
+    const optionalSection = multiSelectContainer.createDiv("pm-optional-fields");
+    optionalSection.createEl("div", { text: "\u53EF\u9009\u5B57\u6BB5", cls: "pm-section-subtitle" }).style.cssText = "font-size: 11px; color: var(--text-muted); margin-bottom: 4px;";
+    ENTITY_CARD_FIELD_DEFINITIONS.filter((f) => !f.required).forEach((field) => {
+      const label = optionalSection.createEl("label");
+      label.style.cssText = "display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; padding: 2px 0;";
+      const checkbox = label.createEl("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = currentOptional.includes(field.key);
+      label.createSpan({ text: field.label });
+      checkbox.addEventListener("change", async () => {
+        let newOptional = [...currentOptional];
+        if (checkbox.checked) {
+          if (!newOptional.includes(field.key)) {
+            newOptional.push(field.key);
+          }
+        } else {
+          newOptional = newOptional.filter((k) => k !== field.key);
+        }
+        const newCardFields = { ...currentCardFields, optional: newOptional };
+        const newConfig = { ...config, cardFields: newCardFields };
+        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cardFields: newCardFields });
+        const contentArea = wrapper.querySelector(".pm-view-content");
+        if (contentArea) {
+          await this.renderContent(contentArea, newConfig, context);
+        }
+      });
+    });
+  }
+  /**
+   * 渲染分组方式选择器
+   */
+  renderGroupBySelector(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u5206\u7EC4\u65B9\u5F0F",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const select = section.createEl("select", { cls: "pm-property-select" });
+    select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
+    const options = [
+      { value: "status", label: "\u72B6\u6001" },
+      { value: "priority", label: "\u4F18\u5148\u7EA7" }
+    ];
+    options.forEach((opt) => {
+      const option = select.createEl("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (config.groupBy === opt.value)
+        option.selected = true;
+    });
+    select.addEventListener("change", async () => {
+      const newConfig = { ...config, groupBy: select.value };
+      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { groupBy: select.value });
+      const contentArea = wrapper.querySelector(".pm-view-content");
+      if (contentArea) {
+        await this.renderContent(contentArea, newConfig, context);
+      }
+    });
+  }
+  /**
+   * 渲染网格列数选择器
+   */
+  renderColsSelector(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u5217\u6570",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const select = section.createEl("select", { cls: "pm-property-select" });
+    select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
+    [2, 3, 4, 5].forEach((num) => {
+      const option = select.createEl("option");
+      option.value = String(num);
+      option.textContent = `${num} \u5217`;
+      if ((config.cols || 3) === num)
+        option.selected = true;
+    });
+    select.addEventListener("change", async () => {
+      const newCols = parseInt(select.value);
+      const newConfig = { ...config, cols: newCols };
+      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cols: newCols });
+      const contentArea = wrapper.querySelector(".pm-view-content");
+      if (contentArea) {
+        await this.renderContent(contentArea, newConfig, context);
+      }
+    });
+  }
+  /**
+   * 渲染显示数量限制输入框
+   */
+  renderLimitInput(panel, config, wrapper, context, codeBlockIndex) {
+    const section = panel.createDiv("pm-property-section");
+    section.style.marginBottom = "12px";
+    section.createEl("label", {
+      text: "\u663E\u793A\u6570\u91CF\u9650\u5236",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const input = section.createEl("input");
+    input.type = "number";
+    input.placeholder = "\u65E0\u9650\u5236";
+    input.value = config.limit ? String(config.limit) : "";
+    input.style.cssText = "width: 100%; padding: 4px 8px;";
+    input.addEventListener("change", async () => {
+      const limit = input.value ? parseInt(input.value) : void 0;
+      const newConfig = { ...config, limit };
+      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { limit });
+      const contentArea = wrapper.querySelector(".pm-view-content");
+      if (contentArea) {
+        await this.renderContent(contentArea, newConfig, context);
+      }
+    });
+  }
+  /**
+   * 保存排序配置
+   */
+  async saveSortConfig(sourcePath, oldConfig, newConfig) {
+    if (!sourcePath)
+      return;
+    const { TFile: TFile10 } = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(sourcePath);
+    if (!(file instanceof TFile10))
+      return;
+    try {
+      const content = await this.app.vault.read(file);
+      let newContent = content;
+      if (content.includes("sortBy:")) {
+        newContent = content.replace(/sortBy:\s*\w+/, `sortBy: ${newConfig.sortBy}`);
+      } else {
+        newContent = content.replace(
+          /(```pm-view\n)/,
+          `$1sortBy: ${newConfig.sortBy}
+`
+        );
+      }
+      if (content.includes("sortOrder:")) {
+        newContent = newContent.replace(/sortOrder:\s*\w+/, `sortOrder: ${newConfig.sortOrder}`);
+      } else {
+        newContent = newContent.replace(
+          /(sortBy:.*\n)/,
+          `$1sortOrder: ${newConfig.sortOrder}
+`
+        );
+      }
+      if (newContent !== content) {
+        await this.app.vault.modify(file, newContent);
+      }
+    } catch (error) {
+      console.error("\u4FDD\u5B58\u6392\u5E8F\u914D\u7F6E\u5931\u8D25:", error);
+    }
+  }
+  /**
+   * 保存实体类型配置
+   */
+  async saveEntityTypeConfig(sourcePath, codeBlockIndex, entityType) {
+    if (!sourcePath)
+      return;
+    const { TFile: TFile10 } = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(sourcePath);
+    if (!(file instanceof TFile10))
+      return;
+    try {
+      const content = await this.app.vault.read(file);
+      if (content.includes("entityType:")) {
+        const newContent = content.replace(/entityType:\s*\w+/, `entityType: ${entityType}`);
+        await this.app.vault.modify(file, newContent);
+      } else {
+        const newContent = content.replace(
+          /(```pm-view\n)/,
+          `$1entityType: ${entityType}
+`
+        );
+        await this.app.vault.modify(file, newContent);
+      }
+    } catch (error) {
+      console.error("\u4FDD\u5B58\u5B9E\u4F53\u7C7B\u578B\u914D\u7F6E\u5931\u8D25:", error);
+    }
+  }
+  /**
+   * 渲染错误状态
+   */
+  renderError(container, error) {
+    container.empty();
+    const errorEl = container.createDiv("pm-view-error");
+    errorEl.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
+    errorEl.createEl("div", { cls: "pm-error-text", text: error });
   }
 };
 
-// src/view-engine/renderers/CardRenderer.ts
-var CardRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, cardRegistry, dataService, actionService) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+// src/settings/TemplateSettingTab.ts
+var import_obsidian17 = require("obsidian");
+init_TemplateService();
+var TEMPLATE_LABELS = {
+  overview: "\u603B\u89C8\u9875\u9762",
+  version: "\u7248\u672C\u9875\u9762",
+  project: "\u9879\u76EE\u9875\u9762",
+  feature: "\u7279\u6027\u9875\u9762"
+};
+var TEMPLATE_DESCRIPTIONS = {
+  overview: "\u9879\u76EE\u7BA1\u7406\u603B\u89C8\u9875\u9762\u7684\u6A21\u677F",
+  version: "\u521B\u5EFA\u65B0\u7248\u672C\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
+  project: "\u521B\u5EFA\u65B0\u9879\u76EE\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
+  feature: "\u521B\u5EFA\u65B0\u7279\u6027\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F"
+};
+var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+    this.templateService = new TemplateService(app, plugin.settings);
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Project Manager \u6A21\u677F\u8BBE\u7F6E" });
+    new import_obsidian17.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
+      toggle.setValue(this.plugin.settings.enableCustomTemplates);
+      toggle.onChange(async (value) => {
+        this.plugin.settings.enableCustomTemplates = value;
+        await this.plugin.saveSettings();
+        this.templateService.updateSettings(this.plugin.settings);
+      });
+    });
+    new import_obsidian17.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
+      text.setPlaceholder("ProjectManager/.templates");
+      text.setValue(this.plugin.settings.templateFolder || "");
+      text.onChange(async (value) => {
+        this.plugin.settings.templateFolder = value.trim() || void 0;
+        await this.plugin.saveSettings();
+        this.templateService.updateSettings(this.plugin.settings);
+      });
+    });
+    containerEl.createEl("hr");
+    const templateTypes = ["overview", "version", "project", "feature"];
+    for (const type of templateTypes) {
+      this.createTemplateSection(containerEl, type);
+    }
+    containerEl.createEl("hr");
+    containerEl.createEl("h3", { text: "\u6279\u91CF\u64CD\u4F5C" });
+    new import_obsidian17.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
+      button.setButtonText("\u5BFC\u51FA\u6A21\u677F");
+      button.onClick(async () => {
+        try {
+          const types = ["overview", "version", "project", "feature"];
+          for (const type of types) {
+            await this.templateService.exportTemplateToFile(type);
+          }
+          new import_obsidian17.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
+        } catch (error) {
+          new import_obsidian17.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
+        }
+      });
+    });
+    new import_obsidian17.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
+      button.setButtonText("\u91CD\u7F6E");
+      button.setWarning();
+      button.onClick(async () => {
+        if (confirm("\u786E\u5B9A\u8981\u91CD\u7F6E\u6240\u6709\u6A21\u677F\u4E3A\u9ED8\u8BA4\u503C\u5417\uFF1F\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u5185\u5BB9\u5C06\u4E22\u5931\u3002")) {
+          this.plugin.settings.customTemplates = {};
+          await this.plugin.saveSettings();
+          this.templateService.updateSettings(this.plugin.settings);
+          new import_obsidian17.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
+          this.display();
+        }
+      });
+    });
   }
   /**
-   * 渲染单卡片视图
+   * 创建单个模板编辑区域
    */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-card-view");
-    const entities = await this.dataService.loadEntities(this.config);
-    if (entities.length === 0) {
-      this.createEmptyState(container, "\u672A\u627E\u5230\u5B9E\u4F53");
-      return;
+  createTemplateSection(containerEl, type) {
+    const section = containerEl.createDiv({ cls: "pm-template-section" });
+    section.style.marginBottom = "2em";
+    section.style.padding = "1em";
+    section.style.border = "1px solid var(--background-modifier-border)";
+    section.style.borderRadius = "6px";
+    const header = section.createDiv({ cls: "pm-template-header" });
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "0.5em";
+    const title = header.createEl("h3", {
+      text: TEMPLATE_LABELS[type],
+      cls: "pm-template-title"
+    });
+    title.style.margin = "0";
+    section.createEl("p", {
+      text: TEMPLATE_DESCRIPTIONS[type],
+      cls: "pm-template-desc"
+    });
+    const descEl = section.querySelector(".pm-template-desc");
+    if (descEl) {
+      descEl.style.color = "var(--text-muted)";
+      descEl.style.fontSize = "0.9em";
+      descEl.style.marginBottom = "1em";
     }
-    const entity = entities[0];
-    const cardWrapper = container.createDiv("pm-card-single-wrapper");
-    cardWrapper.style.cssText = `
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    `;
-    await this.renderEntityCard(cardWrapper, entity, { showActions: true });
+    const buttonGroup = header.createDiv({ cls: "pm-template-buttons" });
+    buttonGroup.style.display = "flex";
+    buttonGroup.style.gap = "0.5em";
+    const editBtn = buttonGroup.createEl("button", { text: "\u7F16\u8F91\u6A21\u677F" });
+    editBtn.addEventListener("click", () => {
+      this.openTemplateEditor(type);
+    });
+    const previewBtn = buttonGroup.createEl("button", { text: "\u9884\u89C8" });
+    previewBtn.addEventListener("click", () => {
+      this.openTemplatePreview(type);
+    });
+    const resetBtn = buttonGroup.createEl("button", { text: "\u91CD\u7F6E" });
+    resetBtn.style.color = "var(--text-error)";
+    resetBtn.addEventListener("click", async () => {
+      if (confirm(`\u786E\u5B9A\u8981\u91CD\u7F6E ${TEMPLATE_LABELS[type]} \u4E3A\u9ED8\u8BA4\u503C\u5417\uFF1F`)) {
+        delete this.plugin.settings.customTemplates[type];
+        await this.plugin.saveSettings();
+        this.templateService.updateSettings(this.plugin.settings);
+        new import_obsidian17.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
+      }
+    });
+  }
+  /**
+   * 打开模板编辑器
+   */
+  openTemplateEditor(type) {
+    new TemplateEditorModal(
+      this.app,
+      this.templateService,
+      type,
+      async (content) => {
+        this.plugin.settings.customTemplates[type] = content;
+        await this.plugin.saveSettings();
+        this.templateService.updateSettings(this.plugin.settings);
+      }
+    ).open();
+  }
+  /**
+   * 打开模板预览
+   */
+  async openTemplatePreview(type) {
+    const template = await this.templateService.getTemplate(type);
+    new TemplatePreviewModal(this.app, type, template).open();
+  }
+};
+var TemplateEditorModal = class extends import_obsidian17.Modal {
+  constructor(app, templateService, type, onSave) {
+    super(app);
+    this.textArea = null;
+    this.templateService = templateService;
+    this.type = type;
+    this.onSave = onSave;
+    this.titleEl.setText(`\u7F16\u8F91 ${TEMPLATE_LABELS[type]} \u6A21\u677F`);
+  }
+  async onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    const defaultTemplate = this.templateService.getDefaultTemplate(this.type);
+    const settings = this.templateService.getSettings();
+    const currentTemplate = settings.customTemplates[this.type] || defaultTemplate;
+    const setting = new import_obsidian17.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
+    setting.controlEl.style.width = "100%";
+    this.textArea = new import_obsidian17.TextAreaComponent(setting.controlEl);
+    this.textArea.setValue(currentTemplate);
+    this.textArea.inputEl.style.width = "100%";
+    this.textArea.inputEl.style.minHeight = "400px";
+    this.textArea.inputEl.style.fontFamily = "monospace";
+    this.textArea.inputEl.style.fontSize = "13px";
+    const varSection = contentEl.createDiv();
+    varSection.style.marginTop = "1em";
+    varSection.createEl("h4", { text: "\u53EF\u7528\u53D8\u91CF" });
+    const varList = varSection.createEl("ul");
+    const variables = this.getAvailableVariables(this.type);
+    for (const [name, desc] of Object.entries(variables)) {
+      const item = varList.createEl("li");
+      item.createEl("code", { text: `{{${name}}}` });
+      item.appendText(` - ${desc}`);
+    }
+    const buttonDiv = contentEl.createDiv();
+    buttonDiv.style.marginTop = "1em";
+    buttonDiv.style.display = "flex";
+    buttonDiv.style.gap = "1em";
+    buttonDiv.style.justifyContent = "flex-end";
+    const cancelBtn = buttonDiv.createEl("button", { text: "\u53D6\u6D88" });
+    cancelBtn.addEventListener("click", () => this.close());
+    const saveBtn = buttonDiv.createEl("button", { text: "\u4FDD\u5B58", cls: "mod-cta" });
+    saveBtn.addEventListener("click", async () => {
+      var _a;
+      const content = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
+      await this.onSave(content);
+      new import_obsidian17.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
+      this.close();
+    });
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+  /**
+   * 获取可用变量列表
+   */
+  getAvailableVariables(type) {
+    const commonVars = {
+      id: "\u5B9E\u4F53\u552F\u4E00\u6807\u8BC6",
+      name: "\u5B9E\u4F53\u540D\u79F0",
+      status: "\u72B6\u6001",
+      priorityEmoji: "\u4F18\u5148\u7EA7\u8868\u60C5\u7B26\u53F7\uFF08\u81EA\u52A8\u8BA1\u7B97\uFF09",
+      statusEmoji: "\u72B6\u6001\u8868\u60C5\u7B26\u53F7\uFF08\u81EA\u52A8\u8BA1\u7B97\uFF09",
+      createTime: "\u521B\u5EFA\u65F6\u95F4\uFF08\u81EA\u52A8\u8BA1\u7B97\uFF09"
+    };
+    switch (type) {
+      case "overview":
+        return {
+          date: "\u5F53\u524D\u65E5\u671F"
+        };
+      case "version":
+        return {
+          ...commonVars,
+          owner: "\u8D1F\u8D23\u4EBA\uFF08\u53EF\u9009\uFF09",
+          startDate: "\u5F00\u59CB\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
+          endDate: "\u7ED3\u675F\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
+          tags: "\u6807\u7B7E\u6570\u7EC4"
+        };
+      case "project":
+        return {
+          ...commonVars,
+          versionId: "\u5173\u8054\u7248\u672CID",
+          owner: "\u8D1F\u8D23\u4EBA\uFF08\u53EF\u9009\uFF09",
+          priority: "\u4F18\u5148\u7EA7",
+          tags: "\u6807\u7B7E\u6570\u7EC4"
+        };
+      case "feature":
+        return {
+          ...commonVars,
+          versionId: "\u5173\u8054\u7248\u672CID",
+          projectId: "\u5173\u8054\u9879\u76EEID",
+          owner: "\u8D1F\u8D23\u4EBA\uFF08\u53EF\u9009\uFF09",
+          priority: "\u4F18\u5148\u7EA7",
+          progress: "\u8FDB\u5EA6\uFF080-100\uFF09",
+          dueDate: "\u622A\u6B62\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
+          tags: "\u6807\u7B7E\u6570\u7EC4"
+        };
+      default:
+        return commonVars;
+    }
+  }
+};
+var TemplatePreviewModal = class extends import_obsidian17.Modal {
+  constructor(app, type, template) {
+    super(app);
+    this.type = type;
+    this.template = template;
+    this.titleEl.setText(`${TEMPLATE_LABELS[type]} \u6A21\u677F\u9884\u89C8`);
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    const previewDiv = contentEl.createDiv({ cls: "pm-template-preview" });
+    previewDiv.style.background = "var(--background-primary)";
+    previewDiv.style.padding = "1em";
+    previewDiv.style.border = "1px solid var(--background-modifier-border)";
+    previewDiv.style.borderRadius = "4px";
+    previewDiv.style.maxHeight = "500px";
+    previewDiv.style.overflow = "auto";
+    const pre = previewDiv.createEl("pre");
+    pre.style.margin = "0";
+    pre.style.whiteSpace = "pre-wrap";
+    pre.style.wordBreak = "break-word";
+    pre.textContent = this.template;
+    const buttonDiv = contentEl.createDiv();
+    buttonDiv.style.marginTop = "1em";
+    buttonDiv.style.display = "flex";
+    buttonDiv.style.justifyContent = "flex-end";
+    const closeBtn = buttonDiv.createEl("button", { text: "\u5173\u95ED", cls: "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+};
+
+// src/types/template.ts
+var DEFAULT_SETTINGS = {
+  enableCustomTemplates: false,
+  customTemplates: {}
+};
+var PREVIEW_EXAMPLES = {
+  version: {
+    id: "ver-2026-q2",
+    name: "2026 Q2 \u7248\u672C",
+    status: "planning",
+    owner: "\u5F20\u4E09",
+    startDate: "2026-04-01",
+    endDate: "2026-06-30",
+    tags: ["\u91CD\u8981", "\u79FB\u52A8\u7AEF"]
+  },
+  project: {
+    id: "proj-homepage",
+    name: "\u9996\u9875\u6539\u7248\u9879\u76EE",
+    versionId: "ver-2026-q2",
+    status: "in-progress",
+    owner: "\u674E\u56DB",
+    priority: "high",
+    tags: ["\u524D\u7AEF", "UI"]
+  },
+  feature: {
+    id: "feat-login",
+    name: "\u767B\u5F55\u529F\u80FD\u4F18\u5316",
+    versionId: "ver-2026-q2",
+    projectId: "proj-homepage",
+    status: "in-progress",
+    owner: "\u738B\u4E94",
+    priority: "critical",
+    progress: 65,
+    dueDate: "2026-04-15",
+    tags: ["\u540E\u7AEF", "\u5B89\u5168"]
+  },
+  overview: {
+    date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
   }
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
   async onload() {
-    this.entityManager = new EntityManager(this.app);
-    this.cardRegistry = CardRegistry.createDefault(this.app);
+    await this.loadSettings();
+    this.entityManager = new EntityManager(this.app, this.settings);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
-    this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    this.viewEngine = new ViewEngine(this.app, this.entityManager);
     this.entityManager.initialize().then(() => {
       const stats = this.entityManager.cache.getStats();
       console.log("\u3010ProjectManager\u3011\u7F13\u5B58\u521D\u59CB\u5316\u5B8C\u6210:", stats);
     });
     this.registerMarkdownCodeBlockProcessor("pm-view", this.processViewBlock.bind(this));
-    this.registerMarkdownCodeBlockProcessor("pm-kanban", this.processKanbanBlock.bind(this));
-    this.registerMarkdownCodeBlockProcessor("pm-card", this.processCardBlock.bind(this));
-    this.registerMarkdownCodeBlockProcessor("pm-selector", this.processSelectorBlock.bind(this));
-    this.registerMarkdownCodeBlockProcessor("pm-grid", this.processGridBlock.bind(this));
     this.registerMarkdownPostProcessor((el, ctx) => {
       this.processButtons(el, ctx);
     }, 100);
@@ -6050,7 +7220,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian16.TFile) {
+        if (file instanceof import_obsidian19.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -6058,7 +7228,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian16.TFile) {
+        if (file instanceof import_obsidian19.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -6078,15 +7248,28 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
         }, 100);
       })
     );
+    this.addSettingTab(new TemplateSettingTab(this.app, this));
   }
   onunload() {
+  }
+  /**
+   * 加载设置
+   */
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  /**
+   * 保存设置
+   */
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
   /**
    * 打开总览页面
    */
   async openDashboard() {
     const { InitService: InitService2 } = await Promise.resolve().then(() => (init_InitService(), InitService_exports));
-    const initService = new InitService2(this.app);
+    const initService = new InitService2(this.app, this.settings);
     const initialized = await initService.isInitialized();
     if (!initialized) {
       await initService.initialize();
@@ -6094,142 +7277,7 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     await initService.openDashboard();
   }
   /**
-   * 处理 pm-kanban 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  async processKanbanBlock(source, el, ctx) {
-    try {
-      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
-      const filter = {};
-      if (oldConfig.version)
-        filter.versionId = oldConfig.version;
-      if (oldConfig.project)
-        filter.projectId = oldConfig.project;
-      if (oldConfig.owner)
-        filter.owner = oldConfig.owner;
-      if (oldConfig.tag)
-        filter.tag = oldConfig.tag;
-      const viewConfig = {
-        mode: "kanban",
-        type: "feature",
-        groupBy: oldConfig.view === "by-version" ? "version" : oldConfig.view === "by-project" ? "project" : "status",
-        filter: Object.keys(filter).length > 0 ? filter : void 0,
-        cardStyle: oldConfig.cardStyle
-      };
-      const viewContext = {
-        sourcePath: ctx.sourcePath,
-        el
-      };
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl("div", {
-        text: `\u770B\u677F\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
-        cls: "pm-error"
-      });
-    }
-  }
-  /**
-   * 处理 pm-card 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  async processCardBlock(source, el, ctx) {
-    try {
-      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
-      const result = await this.entityManager.findById(oldConfig.id);
-      if (!result) {
-        el.createEl("div", {
-          text: `\u672A\u627E\u5230 ID \u4E3A "${oldConfig.id}" \u7684\u5B9E\u4F53`,
-          cls: "pm-error"
-        });
-        return;
-      }
-      const viewConfig = {
-        mode: oldConfig.expanded && result.type !== "feature" ? "cascade" : "card",
-        type: result.type,
-        id: oldConfig.id,
-        expanded: oldConfig.expanded,
-        maxProjects: oldConfig.maxProjects,
-        maxFeaturesPerProject: oldConfig.maxFeaturesPerProject
-      };
-      const viewContext = {
-        sourcePath: ctx.sourcePath,
-        el
-      };
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl("div", {
-        text: `\u5361\u7247\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
-        cls: "pm-error"
-      });
-    }
-  }
-  /**
-   * 处理 pm-grid 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  async processGridBlock(source, el, ctx) {
-    try {
-      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
-      const viewConfig = {
-        mode: "grid",
-        type: oldConfig.type || "feature",
-        cols: oldConfig.cols || 3,
-        filter: oldConfig.filter,
-        sortBy: oldConfig.sortBy,
-        sortOrder: oldConfig.sortOrder,
-        limit: oldConfig.limit
-      };
-      const viewContext = {
-        sourcePath: ctx.sourcePath,
-        el
-      };
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl("div", {
-        text: `\u7F51\u683C\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
-        cls: "pm-error"
-      });
-    }
-  }
-  /**
-   * 处理 pm-selector 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  async processSelectorBlock(source, el, ctx) {
-    try {
-      const oldConfig = (0, import_obsidian16.parseYaml)(source) || {};
-      const viewConfig = {
-        mode: "cascade-selector",
-        cascadeSelector: {
-          entityType: {
-            label: "\u5B9E\u4F53\u7C7B\u578B",
-            defaultValue: oldConfig.type
-          },
-          entity: {
-            label: `\u9009\u62E9${oldConfig.type === "version" ? "\u7248\u672C" : "\u9879\u76EE"}`,
-            defaultValue: oldConfig.defaultId || "",
-            allowEmpty: true
-          },
-          viewMode: {
-            label: "\u89C6\u56FE\u6A21\u5F0F",
-            defaultValue: "cascade"
-          }
-        }
-      };
-      const viewContext = {
-        sourcePath: ctx.sourcePath,
-        el
-      };
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl("div", {
-        text: `\u9009\u62E9\u5668\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
-        cls: "pm-error"
-      });
-    }
-  }
-  /**
-   * 处理 pm-view 代码块（新的统一视图）
+   * 处理 pm-view 代码块（唯一入口）
    */
   async processViewBlock(source, el, ctx) {
     if (el._pmViewRendered) {
@@ -6238,12 +7286,13 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     el._pmViewRendered = true;
     try {
       const config = this.viewEngine.parseConfig(source);
+      const codeBlockIndex = await this.getCodeBlockIndex(ctx.sourcePath, source, el);
       const viewContext = {
         sourcePath: ctx.sourcePath,
         el
       };
       try {
-        await this.viewEngine.render(el, config, viewContext);
+        await this.viewEngine.render(el, config, viewContext, codeBlockIndex);
       } catch (error) {
         console.error("[processViewBlock] \u6E32\u67D3\u9519\u8BEF:", error);
         el.empty();
@@ -6258,6 +7307,38 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
         text: `\u89C6\u56FE\u914D\u7F6E\u9519\u8BEF: ${error.message}`,
         cls: "pm-error"
       });
+    }
+  }
+  /**
+   * 获取代码块在文档中的索引
+   */
+  async getCodeBlockIndex(sourcePath, source, el) {
+    try {
+      const file = this.app.vault.getAbstractFileByPath(sourcePath);
+      if (!(file instanceof import_obsidian19.TFile))
+        return 0;
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      let index = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === "```pm-view") {
+          const blockLines = [];
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim() !== "```") {
+            blockLines.push(lines[j]);
+            j++;
+          }
+          const blockContent = blockLines.join("\n").trim();
+          if (blockContent === source.trim()) {
+            return index;
+          }
+          index++;
+        }
+      }
+      return 0;
+    } catch (error) {
+      console.error("\u83B7\u53D6\u4EE3\u7801\u5757\u7D22\u5F15\u5931\u8D25:", error);
+      return 0;
     }
   }
   /**
@@ -6292,15 +7373,17 @@ var ProjectManagerPlugin = class extends import_obsidian16.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian16.TFile))
+    if (!(file instanceof import_obsidian19.TFile))
       return;
-    const containerEl = ctx.containerEl;
+    const containerEl = el.parentElement;
     if (!containerEl)
       return;
     const firstEl = containerEl.querySelector(":scope > *");
     if (firstEl !== el)
       return;
     setTimeout(() => {
+      if (!containerEl.isConnected)
+        return;
       this.breadcrumb.renderForFile(file, containerEl);
     }, 0);
   }

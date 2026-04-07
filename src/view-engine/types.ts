@@ -2,60 +2,21 @@ import type { MarkdownPostProcessorContext } from 'obsidian';
 import type { Version, Project, Feature } from '../types';
 
 /**
- * 视图引擎类型定义
+ * 视图引擎类型定义 - 简化版
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'grid' | 'cascade' | 'timeline' | 'calendar' | 'selector' | 'cascade-selector' | 'card';
+export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'calendar';
 
-// 选择器配置
-export interface SelectorConfig {
-  type: 'version' | 'project' | 'status' | 'priority' | 'owner' | 'tag' | 'view' | 'overview';
-  label?: string;
-  defaultValue?: string;
-  allowEmpty?: boolean;
-  emptyLabel?: string;
-  // 当 type 为 'view' 时，指定可切换的视图模式
-  viewModes?: Array<{
-    mode: ViewMode;
-    label: string;
-  }>;
-  // 场景配置
-  scene?: {
-    type: 'all' | 'version' | 'project';
-    id?: string;  // 当 type 为 version/project 时使用
-  };
-}
-
-// 级联选择器配置
-export interface CascadeSelectorConfig {
-  viewMode?: {
-    label?: string;
-    defaultValue?: string;
-  };
-  entityType?: {
-    label?: string;
-    defaultValue?: EntityType;
-  };
-  entity?: {
-    label?: string;
-    defaultValue?: string;
-    allowEmpty?: boolean;
-  };
-}
-
-// 选择器视图配置（特殊配置）
-export interface SelectorViewConfig extends ViewConfig {
-  mode: 'selector';
-  selector: SelectorConfig;
-  view: ViewConfig;  // 选择后渲染的视图配置
-}
-
-// 级联选择器视图配置
-export interface CascadeSelectorViewConfig extends ViewConfig {
-  mode: 'cascade-selector';
-  cascadeSelector: CascadeSelectorConfig;
-}
+// 视图模式显示名称
+export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+  'kanban': '📊 看板视图',
+  'list': '📋 列表视图',
+  'grid': '▦ 网格视图',
+  'cascade': '🌲 级联视图',
+  'timeline': '⏱️ 时间线视图',
+  'calendar': '🗓️ 日历视图'
+};
 
 // 实体类型
 export type EntityType = 'version' | 'project' | 'feature';
@@ -67,54 +28,134 @@ export interface ViewContext {
   ctx?: MarkdownPostProcessorContext;
 }
 
-// 通用视图配置
+// 列配置（列表/网格视图用）
+export interface ColumnConfig {
+  field: string;           // 字段名
+  width?: number;          // 列宽（像素）
+  visible: boolean;        // 是否显示
+  align?: 'left' | 'center' | 'right';  // 对齐方式
+}
+
+// 筛选条件
+export interface FilterCondition {
+  field: string;
+  operator: 'equals' | 'not' | 'contains' | 'gt' | 'lt' | 'in' | 'isEmpty' | 'isNotEmpty';
+  value?: any;
+}
+
+// 筛选条件组
+export interface FilterGroup {
+  operator: 'and' | 'or';
+  conditions: FilterCondition[];
+}
+
+// 排序配置
+export interface SortConfig {
+  field: string;
+  order: 'asc' | 'desc';
+}
+
+// 视图选项
+export interface ViewOptions {
+  cols?: 1 | 2 | 3 | 4;           // 网格列数
+  expanded?: boolean;              // 级联视图展开
+  maxProjects?: number;            // 级联视图最大项目数
+  maxFeaturesPerProject?: number;  // 级联视图每个项目最大特性数
+}
+
+// EntityCard 显示字段配置
+export interface CardFieldsConfig {
+  required: string[];    // 必选字段，始终显示（如 name, priority）
+  optional: string[];    // 可选字段，用户可选择显示
+}
+
+// 列表视图列配置
+export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'dueDate' | 'progress' | 'tags' | 'versionId' | 'projectId';
+
+// EntityCard 可配置字段定义
+export const ENTITY_CARD_FIELD_DEFINITIONS = [
+  { key: 'name', label: '名称', required: true },
+  { key: 'priority', label: '优先级', required: true },
+  { key: 'status', label: '状态徽章', required: false },
+  { key: 'owner', label: '负责人', required: false },
+  { key: 'dueDate', label: '截止日期', required: false },
+  { key: 'progress', label: '进度条', required: false },
+  { key: 'tags', label: '标签', required: false },
+  { key: 'description', label: '描述', required: false },
+  { key: 'parent', label: '父级信息', required: false },
+  { key: 'typeIcon', label: '类型图标', required: false },
+  { key: 'stats', label: '统计信息', required: false },
+  { key: 'actions', label: '操作按钮', required: false },
+] as const;
+
+// 列表视图字段定义
+export const LIST_COLUMN_DEFINITIONS = [
+  { key: 'name', label: '名称', required: true },
+  { key: 'status', label: '状态', required: false },
+  { key: 'priority', label: '优先级', required: false },
+  { key: 'owner', label: '负责人', required: false },
+  { key: 'dueDate', label: '截止日期', required: false },
+  { key: 'progress', label: '进度', required: false },
+  { key: 'tags', label: '标签', required: false },
+  { key: 'versionId', label: '版本', required: false },
+  { key: 'projectId', label: '项目', required: false },
+] as const;
+
+// 通用视图配置 - 新版
 export interface ViewConfig {
   // 视图模式
   mode: ViewMode;
-  
+
   // 标题
   title?: string;
-  
-  // 数据源
-  type?: EntityType;
-  id?: string;
-  filter?: {
-    status?: string;
-    priority?: string;
-    owner?: string;
-    tag?: string;
-    versionId?: string;
-    projectId?: string;
-  };
-  
-  // 排序
+
+  // 实体类型筛选
+  entityType?: EntityType;
+
+  // 单个实体筛选（兼容旧配置）
+  version?: string;      // 版本ID筛选
+  project?: string;      // 项目ID筛选
+  feature?: string;      // 特性ID筛选（单卡片模式）
+
+  // 筛选条件（新版组合筛选）
+  filters?: FilterGroup[];
+
+  // 旧版筛选（向后兼容）
+  status?: string;       // 状态筛选
+  priority?: string;     // 优先级筛选
+  owner?: string;        // 负责人筛选
+  tag?: string;          // 标签筛选
+
+  // 排序（新版支持多字段）
+  sorts?: SortConfig[];
+
+  // 旧版排序（向后兼容）
   sortBy?: 'name' | 'dueDate' | 'priority' | 'progress' | 'created';
   sortOrder?: 'asc' | 'desc';
-  
+
+  // 显示列配置（列表/网格视图用）
+  columns?: ColumnConfig[];
+
   // 限制
   limit?: number;
-  
-  // 分组
-  groupBy?: 'status' | 'priority' | 'version' | 'project';
-  showStats?: boolean;
-  inlineEdit?: boolean;
-  
-  // 网格特有
+
+  // 分组（看板/级联/日历用）
+  groupBy?: 'status' | 'priority' | 'version' | 'project' | 'dueDate';
+
+  // 视图选项
+  options?: ViewOptions;
+
+  // 列表视图列配置
+  listColumns?: ListColumnField[];
+
+  // EntityCard 显示字段配置
+  cardFields?: CardFieldsConfig;
+
+  // 旧版网格/级联配置（向后兼容）
   cols?: 1 | 2 | 3 | 4;
-  
-  // 级联特有
   expanded?: boolean;
   maxProjects?: number;
   maxFeaturesPerProject?: number;
-  
-  // 看板特有
-  cardStyle?: 'default' | 'compact';
-  
-  // 时间线特有
-  direction?: 'horizontal' | 'vertical';
-  
-  // 允许额外属性
-  [key: string]: any;
 }
 
 // 渲染器接口
@@ -123,7 +164,7 @@ export interface ViewRenderer {
   render(container: HTMLElement, entities: Entity[], config: ViewConfig): Promise<void>;
 }
 
-// 实体联合类型 - 使用原始类型
+// 实体联合类型
 export type Entity = Version | Project | Feature;
 
 // 统计数据
@@ -137,34 +178,6 @@ export interface StatsData {
   overdue: number;
 }
 
-// 级联数据结构
-export interface CascadeVersionData {
-  type: 'version';
-  entity: Version;
-  projects: CascadeProjectData[];
-  stats: {
-    totalProjects: number;
-    totalFeatures: number;
-    completedProjects: number;
-    completedFeatures: number;
-  };
-}
-
-export interface CascadeProjectData {
-  entity: Project;
-  features: Feature[];
-  stats: {
-    total: number;
-    completed: number;
-    inProgress: number;
-    testing: number;
-    todo: number;
-    averageProgress: number;
-    overdue: number;
-    upcoming: number;
-  };
-}
-
 // 帮助函数：获取实体类型
 export function getEntityType(entity: Entity): EntityType {
   if ('versionId' in entity && entity.versionId !== undefined) {
@@ -174,6 +187,64 @@ export function getEntityType(entity: Entity): EntityType {
     return 'feature';
   }
   return 'version';
+}
+
+// 实体字段定义（用于列配置和内联编辑）
+export interface EntityField {
+  name: string;           // 字段名
+  label: string;          // 显示标签
+  type: 'text' | 'select' | 'date' | 'number' | 'multi-select' | 'progress' | 'entity';
+  options?: string[];     // 可选项（select/multi-select 用）
+  editable: boolean;      // 是否可编辑
+  sortable: boolean;      // 是否可排序
+  filterable: boolean;    // 是否可筛选
+}
+
+// 特性字段定义
+export const FEATURE_FIELDS: EntityField[] = [
+  { name: 'name', label: '名称', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'status', label: '状态', type: 'select', options: ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
+  { name: 'priority', label: '优先级', type: 'select', options: ['critical', 'high', 'medium', 'low'], editable: true, sortable: true, filterable: true },
+  { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'dueDate', label: '截止日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'progress', label: '进度', type: 'progress', editable: true, sortable: true, filterable: false },
+  { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
+  { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
+  { name: 'projectId', label: '项目', type: 'entity', editable: true, sortable: true, filterable: true },
+];
+
+// 项目字段定义
+export const PROJECT_FIELDS: EntityField[] = [
+  { name: 'name', label: '名称', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'status', label: '状态', type: 'select', options: ['backlog', 'in-progress', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
+  { name: 'priority', label: '优先级', type: 'select', options: ['critical', 'high', 'medium', 'low'], editable: true, sortable: true, filterable: true },
+  { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
+  { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
+];
+
+// 版本字段定义
+export const VERSION_FIELDS: EntityField[] = [
+  { name: 'name', label: '名称', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'status', label: '状态', type: 'select', options: ['planning', 'in-progress', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
+  { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
+];
+
+// 获取实体字段定义
+export function getEntityFields(entityType: EntityType): EntityField[] {
+  switch (entityType) {
+    case 'feature':
+      return FEATURE_FIELDS;
+    case 'project':
+      return PROJECT_FIELDS;
+    case 'version':
+      return VERSION_FIELDS;
+    default:
+      return [];
+  }
 }
 
 // 重新导出原始类型

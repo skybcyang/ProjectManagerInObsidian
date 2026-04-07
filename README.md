@@ -8,10 +8,11 @@
 - 📁 **项目管理** - 组织和管理项目，必须关联版本
 - ✨ **特性管理** - 跟踪特性开发进度，支持优先级、截止日期
 - 📊 **统一视图** - 通过 `pm-view` 代码块统一展示所有视图类型
-- 🔄 **兼容代码块** - `pm-grid`, `pm-card`, `pm-kanban`, `pm-selector` 仍可使用
+
 - 🔗 **级联展示** - 展示版本→项目→特性的完整层级结构和实时状态
 - 🧭 **面包屑导航** - 层级导航，支持点击穿透
 - 📅 **ICS导出** - 导出特性截止日期到 .ics 文件
+- 📝 **自定义模板** - 支持自定义总览/版本/项目/特性的页面模板
 
 ## 📦 安装
 
@@ -60,7 +61,6 @@ groupBy: status
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
 | `grid` | 网格视图 | `mode: grid`<br>`type: feature`<br>`cols: 3` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
-| `card` | 单卡片视图 | `mode: card`<br>`type: feature`<br>`id: feat-001` |
 | `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
 | `calendar` | 日历视图 | `mode: calendar`<br>`type: feature` |
 | `selector` | 选择器视图 | `mode: selector`<br>`type: version` |
@@ -71,7 +71,7 @@ groupBy: status
 ```yaml
 mode: kanban          # 视图模式（必填）
 type: feature         # 实体类型：version/project/feature
-id: feat-001          # 具体实体ID（单卡片模式用）
+id: feat-001          # 具体实体ID
 groupBy: status       # 分组方式：status/priority/version/project
 cols: 3               # 网格列数：1/2/3/4
 filter:               # 过滤条件
@@ -82,82 +82,6 @@ filter:               # 过滤条件
 sortBy: dueDate       # 排序字段
 sortOrder: desc       # 排序方向：asc/desc
 limit: 20             # 限制数量
-```
-
----
-
-## 🔄 兼容代码块（旧版）
-
-以下代码块仍可使用，内部自动映射到 `pm-view`：
-
-### 看板视图 (pm-kanban)
-
-```markdown
-```pm-kanban
-view: all
-```
-```
-
-支持的视图类型：
-- `all` - 显示所有特性按状态分组
-- `by-version` - 按版本分组
-- `by-project` - 按项目分组
-- `grid` - 网格卡片布局
-
-筛选参数：
-```yaml
-view: all
-version: ver-001      # 按版本筛选
-project: proj-001     # 按项目筛选
-owner: 张三           # 按负责人筛选
-tag: 前端             # 按标签筛选
-```
-
-### 网格视图 (pm-grid)
-
-```markdown
-```pm-grid
-type: feature
-cols: 3
-filter:
-  status: in-progress
-```
-```
-
-### 单卡片 (pm-card)
-
-嵌入单个实体卡片：
-
-```markdown
-```pm-card
-id: feat-001
-```
-```
-
-级联展示（显示层级结构）：
-
-```markdown
-```pm-card
-id: ver-001
-expanded: true
-maxProjects: 5
-maxFeaturesPerProject: 3
-```
-```
-
-### 实体选择器 (pm-selector)
-
-```markdown
-```pm-selector
-type: version
-defaultId: ver-001
-```
-```
-
-```markdown
-```pm-selector
-type: project
-```
 ```
 
 ---
@@ -243,6 +167,97 @@ tags:
 - **变更状态** - 快速修改状态
 - **快速编辑**（仅特性）- 编辑特性信息
 
+---
+
+## 📝 自定义模板
+
+插件支持自定义以下四种模板：
+
+| 模板类型 | 说明 | 使用场景 |
+|---------|------|----------|
+| **总览** | 项目管理总览页面 | 初始化时创建 |
+| **版本** | 版本详情页面 | 创建新版本时 |
+| **项目** | 项目详情页面 | 创建新项目时 |
+| **特性** | 特性详情页面 | 创建新特性时 |
+
+### 配置方法
+
+1. 打开 Obsidian 设置 → 社区插件 → Project Manager → 模板设置
+2. 开启「启用自定义模板」开关
+3. 点击对应模板类型的「编辑模板」按钮
+4. 使用模板语法编辑后保存
+
+### 模板语法
+
+支持以下模板变量和语法：
+
+```markdown
+---
+id: {{id}}
+name: {{name}}
+status: {{status}}
+{{#if owner}}owner: {{owner}}
+{{/if}}---
+
+# {{priorityEmoji}} {{name}}
+
+> 创建时间: {{createTime}}
+
+## 标签
+{{#each tags}}#{{this}} {{/each}}
+```
+
+#### 通用变量（所有模板）
+
+| 变量 | 说明 |
+|------|------|
+| `{{id}}` | 实体唯一标识 |
+| `{{name}}` | 实体名称 |
+| `{{status}}` | 状态 |
+| `{{priorityEmoji}}` | 优先级表情（🔴🟠🔵🟢） |
+| `{{statusEmoji}}` | 状态表情（📋📝🔄🧪✅） |
+| `{{createTime}}` | 创建时间 |
+
+#### 各类型特有变量
+
+**版本模板：**
+- `{{owner}}`, `{{startDate}}`, `{{endDate}}`, `{{tags}}`
+
+**项目模板：**
+- `{{versionId}}`, `{{owner}}`, `{{priority}}`, `{{tags}}`
+
+**特性模板：**
+- `{{versionId}}`, `{{projectId}}`, `{{owner}}`, `{{priority}}`, `{{progress}}`, `{{dueDate}}`, `{{tags}}`
+
+**总览模板：**
+- `{{date}}`
+
+#### 条件语法
+
+```markdown
+{{#if owner}}负责人: {{owner}}{{/if}}
+```
+
+#### 循环语法
+
+```markdown
+{{#each tags}}- {{this}}
+{{/each}}
+```
+
+### 模板文件存储
+
+设置中的模板存储在浏览器的 localStorage 中。你也可以：
+
+1. **导出模板到文件** - 在设置中点击「导出所有模板到文件」，模板将保存到 `ProjectManager/.templates/` 目录
+2. **使用文件模板** - 在设置中指定「模板文件夹路径」，插件会优先从该文件夹加载 `.md` 模板文件
+
+### 恢复默认
+
+点击「重置」按钮可将单个或所有模板恢复为默认值。
+
+---
+
 ## 📎 依赖
 
 - [Dataview](https://github.com/blacksmithgu/obsidian-dataview) - 用于总览页面的统计和列表展示
@@ -254,18 +269,24 @@ tags:
 
 ## 📜 版本历史
 
+### v0.4.0 (2026-04-07)
+
+- 新增自定义模板功能，支持自定义总览/版本/项目/特性页面模板
+- 在插件设置中添加「模板设置」页面
+- 支持模板变量（`{{variable}}`）、条件（`{{#if}}`）和循环（`{{#each}}`）语法
+- 支持导出模板到文件和从文件加载模板
+
 ### v0.3.0 (2026-04-05)
 
-- 新增统一视图引擎 `pm-view`，支持 8 种视图模式
-- 新增 `card` 单卡片视图模式
+- 新增统一视图引擎 `pm-view`，支持 7 种视图模式
 - 新增 `cascade-selector` 级联选择器模式
-- 旧代码块（pm-grid, pm-card, pm-kanban, pm-selector）内部统一映射到 ViewEngine
+
 - 删除冗余 UI 类，简化架构
 - 代码块文字"导出日历"改为"导出ICS"
 
 ### v0.2.0 (2026-04-03)
 
-- 新增级联卡片功能（`pm-card` + `expanded: true`）
+
 - 新增实体选择器（`pm-selector` 代码块）
 - 级联卡片支持最新进展自动提取
 - 级联卡片头部支持点击跳转
@@ -277,7 +298,7 @@ tags:
 - 初始版本
 - 支持版本、项目、特性三层管理
 - 看板视图（支持点击跳转）
-- 独立卡片代码块 `pm-card`
+
 - 面包屑导航
 - ICS 日历导出
 - 双层架构重构（Core + UI）

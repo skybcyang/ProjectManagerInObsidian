@@ -1,15 +1,14 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import type { ViewConfig, Entity, EntityType } from '../types';
 import { getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
-import { getUserAvatarElement } from '../../utils/avatar';
+import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 
 /**
- * 网格渲染器
- * 卡片网格视图
+ * 网格渲染器 - 卡片式网格视图
+ * 统一卡片设计，支持响应式布局
  */
 export class GridRenderer extends BaseRenderer {
   private entities: Entity[] = [];
@@ -17,11 +16,10 @@ export class GridRenderer extends BaseRenderer {
   constructor(
     app: App,
     entityManager: EntityManager,
-    cardRegistry: CardRegistry,
     dataService: DataService,
     actionService: ActionService
   ) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+    super(app, entityManager, dataService, actionService);
   }
 
   /**
@@ -35,7 +33,7 @@ export class GridRenderer extends BaseRenderer {
     this.entities = await this.dataService.loadEntities(this.config);
 
     // 应用过滤和排序
-    const filtered = this.dataService.applyFilters(this.entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(this.entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
       this.config.sortBy,
@@ -45,22 +43,12 @@ export class GridRenderer extends BaseRenderer {
     // 限制数量
     const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
 
-    // 创建工具栏（如果不是在 cascade-selector 中）
-    if (!(this.config as any)._hideToolbar) {
-      this.createToolbar(container, (this.config as any).title || '网格视图', {
-        total: this.entities.length,
-        filtered: limited.length,
-      });
-    }
-
     // 创建网格容器
     const gridContainer = container.createDiv('pm-grid-container');
     
     // 设置列数
     const cols = this.config.cols || 3;
-    gridContainer.style.display = 'grid';
-    gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    gridContainer.style.gap = '16px';
+    gridContainer.style.setProperty('--grid-cols', String(cols));
 
     // 渲染卡片
     if (limited.length === 0) {
@@ -73,176 +61,121 @@ export class GridRenderer extends BaseRenderer {
   }
 
   /**
-   * 渲染网格卡片
+   * 渲染网格卡片 - 统一卡片式风格
    */
   private async renderGridCard(container: HTMLElement, entity: Entity): Promise<void> {
+    const entityType = getEntityType(entity);
+
+    // 创建卡片
     const card = container.createDiv('pm-grid-card');
+
+    // 优先级标记条（顶部）
+    if ('priority' in entity && entity.priority) {
+      const priorityColor = getPriorityColor(entity.priority);
+      const priorityBar = card.createDiv('pm-grid-card-priority-bar');
+      priorityBar.style.background = priorityColor.bg;
+    }
 
     // 卡片头部
     const header = card.createDiv('pm-grid-card-header');
-
-    const entityType = getEntityType(entity);
     
     // 类型标签
-    const typeLabel = header.createSpan('pm-grid-card-type');
+    const typeLabel = header.createDiv('pm-grid-card-type');
     typeLabel.textContent = this.getEntityTypeLabel(entityType);
 
-    // 优先级标记
-    if ('priority' in entity && entity.priority) {
-      const priorityColors: Record<string, string> = {
-        critical: '#ef4444',
-        high: '#f97316',
-        medium: '#f59e0b',
-        low: '#22c55e',
+    // 操作按钮（悬停显示）
+    const actions = header.createDiv('pm-grid-card-header-actions');
+    
+    if ('status' in entity) {
+      const statusBtn = actions.createEl('button', { cls: 'pm-grid-action-btn' });
+      statusBtn.textContent = '⚡';
+      statusBtn.title = '变更状态';
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity as Entity & { status: string }, statusBtn);
       };
-      header.createSpan({
-        cls: 'pm-grid-card-priority',
-        attr: { style: `background: ${priorityColors[entity.priority] || '#9ca3af'}` },
-      });
     }
+
+    const openBtn = actions.createEl('button', { cls: 'pm-grid-action-btn' });
+    openBtn.textContent = '↗';
+    openBtn.title = '打开文件';
+    openBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.actionService.openEntity(entityType, entity.id);
+    };
 
     // 卡片主体
     const body = card.createDiv('pm-grid-card-body');
 
-    // 名称
-    body.createEl('h3', { cls: 'pm-grid-card-title', text: entity.name });
+    // 标题
+    body.createDiv({ cls: 'pm-grid-card-title', text: entity.name });
 
-    // 所属项目/版本（特性卡片显示）
-    if (entityType === 'feature') {
-      const feature = entity as any;
-      const parentInfo = body.createDiv('pm-grid-card-parent');
-      parentInfo.style.fontSize = '11px';
-      parentInfo.style.color = 'var(--text-muted)';
-      
-      if (feature.projectId) {
-        parentInfo.textContent = `📁 ${feature.projectId}`;
-      } else if (feature.versionId) {
-        parentInfo.textContent = `📦 ${feature.versionId}`;
-      }
-    }
-
-    // 描述（版本/项目有描述）
-    if ('description' in entity && entity.description) {
-      const desc = body.createDiv('pm-grid-card-desc');
-      const descText = String(entity.description);
-      desc.textContent = descText.substring(0, 100);
-      if (descText.length > 100) {
-        desc.textContent += '...';
-      }
+    // 描述（如果有）
+    if ('description' in entity && entity.description && typeof entity.description === 'string') {
+      body.createDiv({ 
+        cls: 'pm-grid-card-desc', 
+        text: entity.description 
+      });
     }
 
     // 状态标签
     if ('status' in entity && entity.status) {
-      const statusColors: Record<string, string> = {
-        backlog: '#9ca3af',
-        todo: '#3b82f6',
-        'in-progress': '#f59e0b',
-        testing: '#8b5cf6',
-        completed: '#22c55e',
-        archived: '#6b7280',
-      };
-      const statusEl = body.createDiv('pm-grid-card-status');
-      statusEl.createSpan({
-        cls: 'pm-status-dot',
-        attr: { style: `background: ${statusColors[entity.status] || '#9ca3af'}` },
+      body.createSpan({
+        cls: `pm-grid-card-status pm-status-${entity.status}`,
+        text: this.translateStatus(entity.status),
       });
-      statusEl.createSpan({ text: this.translateStatus(entity.status) });
     }
 
     // 标签
-    if ('tags' in entity && entity.tags && entity.tags.length > 0) {
-      const tagsEl = body.createDiv('pm-grid-card-tags');
-      entity.tags.slice(0, 4).forEach((tag) => {
-        tagsEl.createSpan({ cls: 'pm-grid-card-tag', text: tag });
+    if (entity.tags && entity.tags.length > 0) {
+      const tagsContainer = body.createDiv('pm-grid-card-tags');
+      entity.tags.slice(0, 4).forEach(tag => {
+        tagsContainer.createSpan({ cls: 'pm-grid-card-tag', text: tag });
       });
+      if (entity.tags.length > 4) {
+        tagsContainer.createSpan({
+          cls: 'pm-grid-card-tag-more',
+          text: `+${entity.tags.length - 4}`
+        });
+      }
     }
 
     // 卡片底部
     const footer = card.createDiv('pm-grid-card-footer');
 
-    // 负责人
+    // 左侧信息
+    const footerLeft = footer.createDiv('pm-grid-card-footer-left');
+
     if (entity.owner) {
-      const ownerEl = footer.createDiv({ cls: 'pm-grid-card-owner' });
-      const avatar = getUserAvatarElement(this.app, entity.owner, 16);
-      if (avatar) {
-        ownerEl.appendChild(avatar);
-      }
-      ownerEl.createEl('span', {
-        cls: 'pm-grid-card-owner-name',
-        text: entity.owner,
+      footerLeft.createSpan({ 
+        cls: 'pm-grid-card-owner', 
+        text: `@${entity.owner}` 
       });
     }
 
     // 截止日期
     if ('dueDate' in entity && entity.dueDate) {
-      const isOverdue = new Date(entity.dueDate) < new Date() && 
-                        'status' in entity && 
-                        entity.status !== 'completed';
-      footer.createDiv({
-        cls: `pm-grid-card-due${isOverdue ? ' pm-overdue' : ''}`,
-        text: `📅 ${this.formatDate(entity.dueDate)}`,
+      const isOverdueDate = isOverdue(entity.dueDate, entity.status as any);
+      footerLeft.createSpan({
+        cls: `pm-grid-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
+        text: DateFormat.short(entity.dueDate),
       });
     }
 
-    // 进度条（仅特性）
-    if (entityType === 'feature' && 'progress' in entity) {
-      const progress = entity.progress || 0;
+    // 右侧：进度
+    if ('progress' in entity && entity.progress !== undefined) {
       const progressEl = footer.createDiv('pm-grid-card-progress');
-      progressEl.createDiv({
-        cls: 'pm-progress-bar',
-        attr: { style: `width: ${progress}%` },
+      const progressBar = progressEl.createDiv('pm-grid-card-progress-bar');
+      progressBar.createDiv({
+        cls: 'pm-grid-card-progress-fill',
+        attr: { style: `width: ${entity.progress}%` }
       });
-      progressEl.createSpan({ cls: 'pm-progress-text', text: `${progress}%` });
+      progressEl.createSpan({ text: `${entity.progress}%` });
     }
 
-    // 统计信息（版本/项目）
-    if (entityType === 'version' || entityType === 'project') {
-      const statsEl = footer.createDiv('pm-grid-card-stats');
-      
-      if ('stats' in entity && entity.stats) {
-        const stats = entity.stats as { total: number; completed: number };
-        statsEl.createSpan({ text: `📊 ${stats.total} 特性` });
-        if (stats.completed > 0) {
-          statsEl.createSpan({ text: `✅ ${stats.completed} 完成` });
-        }
-      }
-    }
-
-    // 快速操作
-    const actions = card.createDiv('pm-grid-card-actions');
-    actions.style.display = 'none';
-
-    // 状态选择
-    if ('status' in entity) {
-      const statusBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-      statusBtn.textContent = '状态';
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity);
-      };
-    }
-
-    // 进度（仅特性）
-    if (getEntityType(entity) === 'feature') {
-      const progressBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-      progressBtn.textContent = '进度';
-      progressBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressPicker(entity);
-      };
-    }
-
-    // 悬停显示操作
-    card.addEventListener('mouseenter', () => {
-      actions.style.display = 'flex';
-    });
-    card.addEventListener('mouseleave', () => {
-      actions.style.display = 'none';
-    });
-
-    // 点击打开文件
+    // 点击卡片打开
     card.addEventListener('click', () => {
-      this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
+      this.actionService.openEntity(entityType, entity.id);
     });
   }
 
@@ -256,13 +189,5 @@ export class GridRenderer extends BaseRenderer {
       feature: '特性',
     };
     return labels[type] || type;
-  }
-
-  /**
-   * 格式化日期
-   */
-  private formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
   }
 }

@@ -1,11 +1,18 @@
 import { App, TFile } from 'obsidian';
+import { TemplateService } from './TemplateService';
+import type { ProjectManagerSettings } from '../types';
 
 export class InitService {
   private readonly BASE_FOLDER = 'ProjectManager';
   private readonly SUB_FOLDERS = ['Versions', 'Projects', 'Features'];
   private readonly DASHBOARD_FILE = '总览.md';
+  private app: App;
+  private templateService: TemplateService;
 
-  constructor(private app: App) {}
+  constructor(app: App, settings?: ProjectManagerSettings) {
+    this.app = app;
+    this.templateService = new TemplateService(app, settings);
+  }
 
   async isInitialized(): Promise<boolean> {
     const folder = this.app.vault.getAbstractFileByPath(this.BASE_FOLDER);
@@ -51,7 +58,10 @@ export class InitService {
 
   private async createDashboard(): Promise<void> {
     const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
-    const content = this.generateDashboardContent();
+    
+    // 使用模板服务渲染总览页面
+    const date = new Date().toISOString().split('T')[0];
+    const content = await this.templateService.renderOverviewTemplate({ date });
 
     const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
     if (existingFile instanceof TFile) {
@@ -59,65 +69,5 @@ export class InitService {
     } else {
       await this.app.vault.create(dashboardPath, content);
     }
-  }
-
-  private generateDashboardContent(): string {
-    const date = new Date().toISOString().split('T')[0];
-
-    return `---
-pm-dashboard: true
----
-
-# 📊 项目管理总览
-
-> 最后更新: ${date} · 系统状态: 正常运行
-
----
-
-## 🚀 快速操作
-
---- start-multi-column: ID_quick_actions
-\`\`\`column-settings
-Number of Columns: 4
-Largest Column: standard
-Border: off
-\`\`\`
-
-<span class="pm-btn pm-btn--primary" data-action="create-version">📦 创建版本</span>
-
---- column-break ---
-
-<span class="pm-btn pm-btn--primary" data-action="create-project">📁 创建项目</span>
-
---- column-break ---
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature">✨ 创建特性</span>
-
---- column-break ---
-
-<span class="pm-btn" data-action="export-ics">📅 导出ICS</span>
-
---- end-multi-column
-
----
-
-## 📦 版本概览
-
-\`\`\`pm-selector
-type: version
-\`\`\`
-
----
-
-## 📁 项目概览
-
-\`\`\`pm-selector
-type: project
-\`\`\`
-
----
-
-*Powered by Project Manager Plugin*
-`;
   }
 }

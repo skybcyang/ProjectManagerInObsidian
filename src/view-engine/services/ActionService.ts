@@ -110,7 +110,7 @@ export class ActionService {
     const content = await this.app.vault.read(file as TFile);
     const now = new Date();
     const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
+
     const progressEntry = `- [${timeStr}] 进度更新至 ${progress}%\n`;
 
     // 在进展反馈历史记录部分添加
@@ -121,6 +121,58 @@ export class ActionService {
         progressSection + progressEntry
       );
       await this.app.vault.modify(file as TFile, newContent);
+    }
+  }
+
+  /**
+   * 添加进展反馈笔记到文件
+   */
+  async addProgressNote(
+    type: EntityType,
+    id: string,
+    note: string
+  ): Promise<boolean> {
+    try {
+      if (type !== 'feature') return false;
+
+      const path = await this.entityManager.getFeaturePath(id);
+      if (!path) return false;
+
+      const obsidian = require('obsidian');
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (!(file instanceof obsidian.TFile)) return false;
+
+      const content = await this.app.vault.read(file as TFile);
+      const now = new Date();
+      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const noteEntry = `- [${timeStr}] ${note}\n`;
+
+      // 查找历史记录部分并添加
+      const historySection = '### 历史记录\n';
+      const historyIndex = content.indexOf(historySection);
+
+      if (historyIndex !== -1) {
+        // 在历史记录部分后插入
+        const insertIndex = historyIndex + historySection.length;
+        const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
+        await this.app.vault.modify(file as TFile, newContent);
+      } else {
+        // 查找旧的进展反馈格式
+        const oldSection = '## 📝 进展反馈\n\n### 历史记录\n';
+        const oldIndex = content.indexOf(oldSection);
+        if (oldIndex !== -1) {
+          const insertIndex = oldIndex + oldSection.length;
+          const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
+          await this.app.vault.modify(file as TFile, newContent);
+        }
+      }
+
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error('添加进展反馈失败:', error);
+      return false;
     }
   }
 
@@ -208,6 +260,26 @@ export class ActionService {
       case 'feature':
         await this.entityManager.updateFeature(id, data);
         break;
+    }
+  }
+
+  /**
+   * 更新指定字段
+   */
+  async updateField(
+    type: EntityType,
+    id: string,
+    field: string,
+    value: any
+  ): Promise<boolean> {
+    try {
+      const data = { [field]: value };
+      await this.updateEntity(type, id, data);
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error(`更新字段 ${field} 失败:`, error);
+      return false;
     }
   }
 

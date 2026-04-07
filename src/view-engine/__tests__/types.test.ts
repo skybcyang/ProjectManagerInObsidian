@@ -35,37 +35,22 @@ describe('ViewConfig types', () => {
   it('should allow valid view modes', () => {
     const config: ViewConfig = {
       mode: 'kanban',
-      type: 'feature',
       groupBy: 'status',
     };
     expect(config.mode).toBe('kanban');
   });
-  
-  it('should allow card mode', () => {
-    const config: ViewConfig = {
-      mode: 'card',
-      type: 'feature',
-      id: 'feat-001',
-    };
-    expect(config.mode).toBe('card');
-  });
-  
+
   it('should allow filter configuration', () => {
     const config: ViewConfig = {
       mode: 'grid',
-      type: 'feature',
-      filter: {
-        status: 'in-progress',
-        priority: 'high',
-        versionId: 'ver-001',
-        projectId: 'proj-001',
-      },
-    };
-    expect(config.filter).toEqual({
+      version: 'ver-001',
+      project: 'proj-001',
       status: 'in-progress',
       priority: 'high',
-      versionId: 'ver-001',
-      projectId: 'proj-001',
-    });
+    };
+    expect(config.version).toBe('ver-001');
+    expect(config.project).toBe('proj-001');
+    expect(config.status).toBe('in-progress');
+    expect(config.priority).toBe('high');
   });
 });

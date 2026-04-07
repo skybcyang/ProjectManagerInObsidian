@@ -1,16 +1,19 @@
 import { BaseStore } from './BaseStore';
 import { FileSystem } from '../filesystem/FileSystem';
-import type { Project, CreateProjectData, UpdateProjectData } from '../../types';
+import type { Project, CreateProjectData, UpdateProjectData, ProjectManagerSettings } from '../../types';
 import type { EntityCache } from '../cache';
 import { App } from 'obsidian';
+import { TemplateService } from '../../services/TemplateService';
 
 export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdateProjectData> {
   private readonly FOLDER = 'ProjectManager/Projects';
   private cache?: EntityCache;
+  private templateService: TemplateService;
 
-  constructor(fs: FileSystem, app: App, cache?: EntityCache) {
+  constructor(fs: FileSystem, app: App, cache?: EntityCache, settings?: ProjectManagerSettings) {
     super(fs, app);
     this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
   }
 
   private async writeTemplate(path: string, template: string): Promise<void> {
@@ -46,7 +49,19 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
     };
 
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(project));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderProjectTemplate({
+      id: project.id,
+      name: project.name,
+      versionId: project.versionId,
+      status: project.status,
+      owner: project.owner,
+      priority: project.priority,
+      tags: project.tags,
+    });
+    
+    await this.writeTemplate(path, content);
     return project;
   }
 
@@ -62,7 +77,19 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
     };
 
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(updated));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderProjectTemplate({
+      id: updated.id,
+      name: updated.name,
+      versionId: updated.versionId,
+      status: updated.status,
+      owner: updated.owner,
+      priority: updated.priority,
+      tags: updated.tags,
+    });
+    
+    await this.writeTemplate(path, content);
     return updated;
   }
 
@@ -155,183 +182,5 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
         await this.app.vault.modify(file, updatedContent);
       }
     }
-  }
-
-  private getPriorityEmoji(priority: string): string {
-    const emojiMap: Record<string, string> = {
-      critical: '🔴',
-      high: '🟠',
-      medium: '🔵',
-      low: '🟢',
-    };
-    return emojiMap[priority] || '⚪';
-  }
-
-  private generateTemplate(project: Project): string {
-    const priorityEmoji = this.getPriorityEmoji(project.priority);
-    
-    return `---
-${this.yamlFrontmatter(project)}
----
-
-# ${priorityEmoji} ${project.name}
-
-<!-- 项目元数据已在上方 YAML 中定义 -->
-
-## 📋 项目概览
-
-<!-- 简要描述项目背景、目标和范围 -->
-
-## 🚦 阶段状态
-
-### 阶段 1: 开工准备
-- [ ] 需求对齐完成
-- [ ] 技术方案确定
-- [ ] 资源到位确认
-- **开工日期**: <!-- 记录实际开工日期 -->
-
-### 阶段 2: 开发进行
-- [ ] 设计稿确认
-- [ ] 核心功能开发
-- [ ] 代码评审通过
-- **当前进度**: 0%
-
-### 阶段 3: 联调测试
-- [ ] 前后端联调
-- [ ] 测试用例评审
-- [ ] Bug 修复完成
-- **阻塞问题**: <!-- 记录联调阻塞问题 -->
-
-### 阶段 4: 验收交付
-- [ ] 产品验收
-- [ ] 文档齐全确认
-- [ ] 上线检查完成
-- **验收日期**: <!-- 记录实际验收日期 -->
-
-## 📊 特性进度汇总
-
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
-const total = features.length;
-
-if (total === 0) {
-  dv.paragraph("> 📋 暂无关联特性");
-} else {
-  const completed = features.filter(f => f.status === 'completed').length;
-  const inProgress = features.filter(f => f.status === 'in-progress').length;
-  const testing = features.filter(f => f.status === 'testing').length;
-  const todo = features.filter(f => f.status === 'todo' || f.status === 'backlog').length;
-  const progress = Math.round((completed / total) * 100);
-  
-  dv.paragraph(
-    "> 📈 **总进度: " + progress + "%** (" + completed + "/" + total + ")\\n\\n" +
-    "> | 状态 | 数量 |\\n" +
-    "> |------|------|\\n" +
-    "> | ✅ 已完成 | " + completed + " |\\n" +
-    "> | 🔄 开发中 | " + inProgress + " |\\n" +
-    "> | 🧪 测试中 | " + testing + " |\\n" +
-    "> | 📋 待处理 | " + todo + " |"
-  );
-}
-\`\`\`
-
-### 特性列表
-\`\`\`dataviewjs
-const features = dv.pages('"ProjectManager/Features"').filter(f => f.projectId === "${project.id}");
-if (features.length > 0) {
-  dv.table(
-    ["特性", "状态", "优先级", "进度", "负责人", "截止日期"],
-    features.map(f => [
-      "[[" + f.file.path + "|" + f.name + "]]",
-      f.status,
-      f.priority,
-      f.progress + "%",
-      f.owner || "-",
-      f.dueDate || "-"
-    ])
-  );
-} else {
-  dv.paragraph("> 📋 暂无特性");
-}
-\`\`\`
-
-## ⚠️ 风险跟踪
-
-| 风险项 | 等级 | 应对措施 | 负责人 | 状态 |
-|--------|------|----------|--------|------|
-| <!-- 描述风险 --> | 高/中/低 | <!-- 应对措施 --> | <!-- 负责人 --> | 开放/已解决 |
-
-## 🔗 关联版本
-
-\`\`\`dataviewjs
-const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "${project.versionId}");
-if (versions.length > 0) {
-  dv.paragraph("> 📦 所属版本: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
-} else {
-  dv.paragraph("> ⚠️ 未关联版本");
-}
-\`\`\`
-
-## 🔧 快捷操作
-
-<span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="${project.id}" data-version-id="${project.versionId}">✨ 新建特性</span>
-
----
-
-## 📎 关联展示
-
-### 使用 pm-card 展示本项目级联状态
-
-在当前页面插入以下代码块，即可展示本项目的完整特性列表：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${project.id}
-expanded: true
-\`\`\`
-
-### 展示所属版本级联
-
-如需展示本项目所属版本的完整级联状态：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${project.versionId}
-expanded: true
-\`\`\`
-
-### 展示特定特性
-
-如需展示本项目下某个特定特性的卡片：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: feat001
-\`\`\`
-
-> 💡 提示：将 \\"feat001\\" 替换为实际的特性ID
-
----
-*创建于: ${new Date().toLocaleString('zh-CN')}*
-`;
-  }
-
-  private yamlFrontmatter(project: Project): string {
-    const lines = [
-      `id: ${project.id}`,
-      `name: ${project.name}`,
-      `versionId: ${project.versionId}`,
-      `status: ${project.status}`,
-      `priority: ${project.priority}`,
-    ];
-
-    if (project.owner) {
-      lines.push(`owner: ${project.owner}`);
-    }
-    if (project.tags && project.tags.length > 0) {
-      lines.push(`tags: [${project.tags.join(', ')}]`);
-    }
-
-    return lines.join('\n');
   }
 }

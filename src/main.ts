@@ -1,31 +1,34 @@
 import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild } from 'obsidian';
 import { EntityManager } from './core';
-import { CardRegistry, Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
-import type { EntitySelectorConfig, GridConfig, KanbanConfig, SingleCardConfig } from './ui';
+import { Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
 import { ValidationError, needsStatusConfirmation } from './utils';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
-import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature } from './types';
+import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature, ProjectManagerSettings } from './types';
 import { ViewEngine } from './view-engine';
+import { TemplateSettingTab } from './settings';
+import { DEFAULT_SETTINGS } from './types/template';
 
 export default class ProjectManagerPlugin extends Plugin {
+  settings: ProjectManagerSettings;
   private entityManager: EntityManager;
-  private cardRegistry: CardRegistry;
   private breadcrumb: Breadcrumb;
   private button: Button;
   private progressInput: ProgressInput;
   private viewEngine: ViewEngine;
 
   async onload(): Promise<void> {
+    // 加载设置
+    await this.loadSettings();
+    
     // 初始化核心层
-    this.entityManager = new EntityManager(this.app);
+    this.entityManager = new EntityManager(this.app, this.settings);
     
     // 初始化 UI 层
-    this.cardRegistry = CardRegistry.createDefault(this.app);
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
-    this.viewEngine = new ViewEngine(this.app, this.entityManager, this.cardRegistry);
+    this.viewEngine = new ViewEngine(this.app, this.entityManager);
 
     // 初始化缓存
     this.entityManager.initialize().then(() => {
@@ -33,20 +36,8 @@ export default class ProjectManagerPlugin extends Plugin {
       console.log('【ProjectManager】缓存初始化完成:', stats);
     });
 
-    // 注册代码块处理器：pm-view（新的统一视图）
+    // 注册代码块处理器：pm-view（唯一入口）
     this.registerMarkdownCodeBlockProcessor('pm-view', this.processViewBlock.bind(this));
-
-    // 注册代码块处理器：pm-kanban
-    this.registerMarkdownCodeBlockProcessor('pm-kanban', this.processKanbanBlock.bind(this));
-
-    // 注册代码块处理器：pm-card
-    this.registerMarkdownCodeBlockProcessor('pm-card', this.processCardBlock.bind(this));
-
-    // 注册代码块处理器：pm-selector
-    this.registerMarkdownCodeBlockProcessor('pm-selector', this.processSelectorBlock.bind(this));
-
-    // 注册代码块处理器：pm-grid
-    this.registerMarkdownCodeBlockProcessor('pm-grid', this.processGridBlock.bind(this));
 
     // 注册 post-processor：处理 pm-btn 按钮
     this.registerMarkdownPostProcessor((el, ctx) => {
@@ -139,6 +130,9 @@ export default class ProjectManagerPlugin extends Plugin {
       })
     );
 
+    // 注册设置页面
+    this.addSettingTab(new TemplateSettingTab(this.app, this));
+
     // 插件已加载
   }
 
@@ -147,11 +141,25 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   /**
+   * 加载设置
+   */
+  async loadSettings(): Promise<void> {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  /**
+   * 保存设置
+   */
+  async saveSettings(): Promise<void> {
+    await this.saveData(this.settings);
+  }
+
+  /**
    * 打开总览页面
    */
   private async openDashboard(): Promise<void> {
     const { InitService } = await import('./services/InitService');
-    const initService = new InitService(this.app);
+    const initService = new InitService(this.app, this.settings);
     
     const initialized = await initService.isInitialized();
     if (!initialized) {
@@ -161,180 +169,7 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   /**
-   * 处理 pm-kanban 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  private async processKanbanBlock(
-    source: string,
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext
-  ): Promise<void> {
-    try {
-      const oldConfig = (parseYaml(source) || {}) as KanbanConfig;
-      
-      // 构建过滤器
-      const filter: Record<string, string> = {};
-      if (oldConfig.version) filter.versionId = oldConfig.version;
-      if (oldConfig.project) filter.projectId = oldConfig.project;
-      if (oldConfig.owner) filter.owner = oldConfig.owner;
-      if (oldConfig.tag) filter.tag = oldConfig.tag;
-      
-      // 转换为 ViewConfig
-      const viewConfig: import('./view-engine').ViewConfig = {
-        mode: 'kanban',
-        type: 'feature',
-        groupBy: oldConfig.view === 'by-version' ? 'version' : 
-                 oldConfig.view === 'by-project' ? 'project' : 'status',
-        filter: Object.keys(filter).length > 0 ? filter : undefined,
-        cardStyle: oldConfig.cardStyle,
-      };
-      
-      const viewContext: import('./view-engine').ViewContext = {
-        sourcePath: ctx.sourcePath,
-        el,
-      };
-      
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl('div', {
-        text: `看板配置错误: ${(error as Error).message}`,
-        cls: 'pm-error',
-      });
-    }
-  }
-
-  /**
-   * 处理 pm-card 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  private async processCardBlock(
-    source: string,
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext
-  ): Promise<void> {
-    try {
-      const oldConfig = (parseYaml(source) || {}) as SingleCardConfig;
-      
-      // 先查找实体以确定类型
-      const result = await this.entityManager.findById(oldConfig.id);
-      if (!result) {
-        el.createEl('div', {
-          text: `未找到 ID 为 "${oldConfig.id}" 的实体`,
-          cls: 'pm-error',
-        });
-        return;
-      }
-      
-      // 转换为 ViewConfig
-      // 如果 expanded=true 且不是 feature，使用 cascade 模式
-      const viewConfig: import('./view-engine').ViewConfig = {
-        mode: (oldConfig.expanded && result.type !== 'feature') ? 'cascade' : 'card',
-        type: result.type,
-        id: oldConfig.id,
-        expanded: oldConfig.expanded,
-        maxProjects: oldConfig.maxProjects,
-        maxFeaturesPerProject: oldConfig.maxFeaturesPerProject,
-      };
-      
-      const viewContext: import('./view-engine').ViewContext = {
-        sourcePath: ctx.sourcePath,
-        el,
-      };
-      
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl('div', {
-        text: `卡片配置错误: ${(error as Error).message}`,
-        cls: 'pm-error',
-      });
-    }
-  }
-
-  /**
-   * 处理 pm-grid 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  private async processGridBlock(
-    source: string,
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext
-  ): Promise<void> {
-    try {
-      const oldConfig = (parseYaml(source) || {}) as GridConfig;
-      // 转换为 ViewConfig
-      const viewConfig: import('./view-engine').ViewConfig = {
-        mode: 'grid',
-        type: oldConfig.type || 'feature',
-        cols: oldConfig.cols || 3,
-        filter: oldConfig.filter,
-        sortBy: oldConfig.sortBy,
-        sortOrder: oldConfig.sortOrder,
-        limit: oldConfig.limit,
-      };
-      
-      const viewContext: import('./view-engine').ViewContext = {
-        sourcePath: ctx.sourcePath,
-        el,
-      };
-      
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl('div', {
-        text: `网格配置错误: ${(error as Error).message}`,
-        cls: 'pm-error',
-      });
-    }
-  }
-
-  /**
-   * 处理 pm-selector 代码块
-   * 统一使用 ViewEngine 渲染
-   */
-  private async processSelectorBlock(
-    source: string,
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext
-  ): Promise<void> {
-    try {
-      const oldConfig = (parseYaml(source) || {}) as EntitySelectorConfig;
-      
-      // 旧版 selector 选择 version/project 后显示级联卡片
-      // 映射到 cascade-selector 模式
-      const viewConfig: import('./view-engine').ViewConfig = {
-        mode: 'cascade-selector',
-        cascadeSelector: {
-          entityType: {
-            label: '实体类型',
-            defaultValue: oldConfig.type,
-          },
-          entity: {
-            label: `选择${oldConfig.type === 'version' ? '版本' : '项目'}`,
-            defaultValue: oldConfig.defaultId || '',
-            allowEmpty: true,
-          },
-          viewMode: {
-            label: '视图模式',
-            defaultValue: 'cascade',
-          },
-        },
-      };
-      
-      const viewContext: import('./view-engine').ViewContext = {
-        sourcePath: ctx.sourcePath,
-        el,
-      };
-      
-      await this.viewEngine.render(el, viewConfig, viewContext);
-    } catch (error) {
-      el.createEl('div', {
-        text: `选择器配置错误: ${(error as Error).message}`,
-        cls: 'pm-error',
-      });
-    }
-  }
-
-  /**
-   * 处理 pm-view 代码块（新的统一视图）
+   * 处理 pm-view 代码块（唯一入口）
    */
   private async processViewBlock(
     source: string,
@@ -350,13 +185,16 @@ export default class ProjectManagerPlugin extends Plugin {
     try {
       const config = this.viewEngine.parseConfig(source);
       
+      // 计算当前代码块索引
+      const codeBlockIndex = await this.getCodeBlockIndex(ctx.sourcePath, source, el);
+      
       const viewContext: import('./view-engine').ViewContext = {
         sourcePath: ctx.sourcePath,
         el,
       };
       
       try {
-        await this.viewEngine.render(el, config, viewContext);
+        await this.viewEngine.render(el, config, viewContext, codeBlockIndex);
       } catch (error) {
         console.error('[processViewBlock] 渲染错误:', error);
         el.empty();
@@ -371,6 +209,48 @@ export default class ProjectManagerPlugin extends Plugin {
         text: `视图配置错误: ${(error as Error).message}`,
         cls: 'pm-error',
       });
+    }
+  }
+
+  /**
+   * 获取代码块在文档中的索引
+   */
+  private async getCodeBlockIndex(
+    sourcePath: string,
+    source: string,
+    el: HTMLElement
+  ): Promise<number> {
+    try {
+      const file = this.app.vault.getAbstractFileByPath(sourcePath);
+      if (!(file instanceof TFile)) return 0;
+
+      const content = await this.app.vault.read(file);
+      const lines = content.split('\n');
+      
+      // 找到所有 pm-view 代码块的位置
+      let index = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === '```pm-view') {
+          // 检查这个代码块的内容是否匹配
+          const blockLines: string[] = [];
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim() !== '```') {
+            blockLines.push(lines[j]);
+            j++;
+          }
+          
+          const blockContent = blockLines.join('\n').trim();
+          if (blockContent === source.trim()) {
+            return index;
+          }
+          index++;
+        }
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('获取代码块索引失败:', error);
+      return 0;
     }
   }
 
@@ -411,13 +291,18 @@ export default class ProjectManagerPlugin extends Plugin {
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
     if (!(file instanceof TFile)) return;
 
-    const containerEl = (ctx as any).containerEl as HTMLElement | undefined;
+    // 获取 el 的父容器作为面包屑容器
+    const containerEl = el.parentElement;
     if (!containerEl) return;
 
+    // 只在第一个元素时渲染面包屑，避免重复
     const firstEl = containerEl.querySelector(':scope > *');
     if (firstEl !== el) return;
 
+    // 延迟渲染，确保 DOM 已稳定
     setTimeout(() => {
+      // 再次检查容器是否还在 DOM 中
+      if (!containerEl.isConnected) return;
       this.breadcrumb.renderForFile(file, containerEl);
     }, 0);
   }

@@ -6,14 +6,14 @@ import { App } from 'obsidian';
  */
 export function getUserAvatarElement(app: App, userId: string, size: number = 16): HTMLElement | null {
   // @ts-ignore
-  const userProfile = app.plugins.getPlugin('user-profile');
-  if (!userProfile?.api) return null;
+  const workspace = app.plugins.getPlugin('team-workspace');
+  if (!workspace?.api) return null;
 
-  const me = userProfile.api.getMe?.();
+  const me = workspace.api.getMe?.();
   if (me?.id === userId) {
-    return userProfile.api.createMyAvatarElement?.(size) || null;
+    return workspace.api.createMyAvatarElement?.(size) || null;
   }
 
   const dummyUser = { id: userId, name: userId, createdAt: '', updatedAt: '' };
-  return userProfile.api.createAvatarElement?.(dummyUser, size) || null;
+  return workspace.api.createAvatarElement?.(dummyUser, size) || null;
 }

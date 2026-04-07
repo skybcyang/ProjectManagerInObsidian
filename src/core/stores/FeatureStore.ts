@@ -1,16 +1,19 @@
 import { BaseStore } from './BaseStore';
 import { FileSystem } from '../filesystem/FileSystem';
-import type { Feature, CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../../types';
+import type { Feature, CreateFeatureData, UpdateFeatureData, FeatureStatus, ProjectManagerSettings } from '../../types';
 import type { EntityCache } from '../cache';
 import { App } from 'obsidian';
+import { TemplateService } from '../../services/TemplateService';
 
 export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFeatureData> {
   private readonly FOLDER = 'ProjectManager/Features';
   private cache?: EntityCache;
+  private templateService: TemplateService;
 
-  constructor(fs: FileSystem, app: App, cache?: EntityCache) {
+  constructor(fs: FileSystem, app: App, cache?: EntityCache, settings?: ProjectManagerSettings) {
     super(fs, app);
     this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
   }
 
   private async writeTemplate(path: string, template: string): Promise<void> {
@@ -49,7 +52,22 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
     };
 
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(feature));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderFeatureTemplate({
+      id: feature.id,
+      name: feature.name,
+      versionId: feature.versionId,
+      projectId: feature.projectId,
+      status: feature.status,
+      owner: feature.owner,
+      priority: feature.priority,
+      progress: feature.progress,
+      dueDate: feature.dueDate,
+      tags: feature.tags,
+    });
+    
+    await this.writeTemplate(path, content);
     return feature;
   }
 
@@ -65,7 +83,22 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
     };
 
     const path = `${this.FOLDER}/${id}.md`;
-    await this.writeTemplate(path, this.generateTemplate(updated));
+    
+    // 使用模板服务渲染内容
+    const content = await this.templateService.renderFeatureTemplate({
+      id: updated.id,
+      name: updated.name,
+      versionId: updated.versionId,
+      projectId: updated.projectId,
+      status: updated.status,
+      owner: updated.owner,
+      priority: updated.priority,
+      progress: updated.progress,
+      dueDate: updated.dueDate,
+      tags: updated.tags,
+    });
+    
+    await this.writeTemplate(path, content);
     return updated;
   }
 
@@ -135,231 +168,5 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
   async listByVersion(versionId: string): Promise<Feature[]> {
     const all = await this.list();
     return all.filter(f => f.versionId === versionId);
-  }
-
-  private getPriorityEmoji(priority: string): string {
-    const emojiMap: Record<string, string> = {
-      critical: '🔴',
-      high: '🟠',
-      medium: '🔵',
-      low: '🟢',
-    };
-    return emojiMap[priority] || '⚪';
-  }
-
-  private getStatusEmoji(status: string): string {
-    const emojiMap: Record<string, string> = {
-      backlog: '📋',
-      todo: '📝',
-      'in-progress': '🔄',
-      testing: '🧪',
-      completed: '✅',
-      archived: '📦',
-    };
-    return emojiMap[status] || '⚪';
-  }
-
-  private generateTemplate(feature: Feature): string {
-    const priorityEmoji = this.getPriorityEmoji(feature.priority);
-    const statusEmoji = this.getStatusEmoji(feature.status);
-    
-    return `---
-${this.yamlFrontmatter(feature)}
----
-
-# ${priorityEmoji} ${statusEmoji} ${feature.name}
-
-<!-- 特性元数据已在上方 YAML 中定义 -->
-
-## 📋 需求 AR 列表
-
-| AR 编号 | 描述 | 状态 |
-|---------|------|------|
-| AR001 | <!-- 需求描述 --> | ✅ 已完成 |
-| AR002 | <!-- 需求描述 --> | 🔄 进行中 |
-| AR003 | <!-- 需求描述 --> | ⏳ 未开始 |
-
-**AR 状态说明**: ✅ 已完成 | 🔄 进行中 | ⏳ 未开始 | ❌ 已取消
-
-## 📝 进展反馈
-
-### 历史记录
-<!-- 进展将自动记录在这里 -->
-- [${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}] 特性创建
-
-### 添加新进展
-<input class="pm-progress-input" data-feature-id="${feature.id}" placeholder="输入当前进展，按 Enter 保存...">
-
-## 📅 对齐计划
-
-### 里程碑节点
-
-| 节点 | 计划日期 | 实际日期 | 状态 |
-|------|----------|----------|------|
-| 需求评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-| 设计评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-| 开发完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-| 联调完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-| 测试完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-| 上线发布 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
-
-## 👥 周边团队与负责人
-
-### 核心团队
-
-| 角色 | 负责人 | 团队/部门 |
-|------|--------|-----------|
-| 产品经理 | <!-- @姓名 --> | 产品部 |
-| 前端开发 | <!-- @姓名 --> | 前端组 |
-| 后端开发 | <!-- @姓名 --> | 后端组 |
-| 测试工程师 | <!-- @姓名 --> | QA组 |
-| UI/UX设计 | <!-- @姓名 --> | 设计组 |
-
-### 依赖协作
-
-- [ ] 运维团队 - <!-- 协作事项 -->
-- [ ] 安全团队 - <!-- 协作事项 -->
-- [ ] 数据团队 - <!-- 协作事项 -->
-- [ ] 法务合规 - <!-- 协作事项 -->
-
-## 💻 开发状态
-
-### 代码信息
-
-- **Change ID**: <!-- 代码变更ID -->
-- **开发分支**: \`feature/${feature.id}\`
-- **目标分支**: \`main\`
-- **MR/PR 链接**: <!-- 填入 Merge Request 或 Pull Request 链接 -->
-
-### 各阶段状态
-
-#### 🔨 开发阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **负责人**: <!-- @开发人员 -->
-- **完成度**: ${feature.progress}%
-- **备注**: <!-- 开发备注 -->
-
-#### 🔗 联调阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **负责人**: <!-- @联调负责人 -->
-- **阻塞问题**: <!-- 记录联调阻塞问题 -->
-- **依赖服务**: <!-- 列出依赖的其他服务/接口 -->
-
-#### 🧪 转测阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成 / 🔴 有阻塞
-- **测试负责人**: <!-- @测试人员 -->
-- **Bug 统计**:
-  - 🔴 P0 阻塞: 0
-  - 🟠 P1 严重: 0
-  - 🟡 P2 一般: 0
-  - 🟢 P3 轻微: 0
-- **测试报告**: <!-- 链接到测试报告 -->
-
-#### 📖 文档阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **文档清单**:
-  - [ ] API 接口文档
-  - [ ] 使用手册
-  - [ ] 部署文档
-  - [ ] 变更日志
-
-#### 👀 代码检视
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已通过 / 🔴 需修改
-- **检视人**: <!-- @检视人 -->
-- **检视意见**: <!-- 记录检视意见 -->
-- **检视链接**: <!-- 代码检视工具链接 -->
-
-#### 🔀 合入分支
-- **状态**: ⬜ 未合并 / 🟡 合并中 / 🟢 已合并 / 🔴 冲突
-- **MR/PR 状态**: <!-- 开启/已合并/已关闭 -->
-- **合并冲突**: <!-- 有则记录冲突详情 -->
-- **回滚方案**: <!-- 记录回滚方案 -->
-
-## 🔗 关联信息
-
-### 所属项目
-\`\`\`dataviewjs
-const projects = dv.pages('"ProjectManager/Projects"').filter(p => p.id === "${feature.projectId}");
-if (projects.length > 0) {
-  dv.paragraph("> 📁 所属项目: [[" + projects[0].file.path + "|" + projects[0].name + "]]");
-} else {
-  dv.paragraph("> ⚠️ 未关联项目");
-}
-\`\`\`
-
-### 所属版本
-\`\`\`dataviewjs
-const versions = dv.pages('"ProjectManager/Versions"').filter(v => v.id === "${feature.versionId}");
-if (versions.length > 0) {
-  dv.paragraph("> 📦 所属版本: [[" + versions[0].file.path + "|" + versions[0].name + "]]");
-} else {
-  dv.paragraph("> ⚠️ 未关联版本");
-}
-\`\`\`
-
-## 🏷️ 标签
-
-${feature.tags.length > 0 ? feature.tags.map(tag => `#${tag}`).join(' ') : '<!-- 添加标签 -->'}
-
----
-
-## 📎 关联展示
-
-### 使用 pm-card 展示本特性卡片
-
-在当前页面插入以下代码块，即可展示本特性的卡片：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.id}
-\`\`\`
-
-### 展示所属项目级联
-
-如需展示本特性所属项目的完整级联状态（包含所有特性）：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.projectId}
-expanded: true
-\`\`\`
-
-### 展示所属版本级联
-
-如需展示本特性所属版本的完整级联状态（包含所有项目和特性）：
-
-\`\`\`markdown
-\`\`\`pm-card
-id: ${feature.versionId}
-expanded: true
-\`\`\`
-
----
-*创建于: ${new Date().toLocaleString('zh-CN')}*
-`;
-  }
-
-  private yamlFrontmatter(feature: Feature): string {
-    const lines = [
-      `id: ${feature.id}`,
-      `name: ${feature.name}`,
-      `versionId: ${feature.versionId}`,
-      `projectId: ${feature.projectId}`,
-      `status: ${feature.status}`,
-      `priority: ${feature.priority}`,
-      `progress: ${feature.progress}`,
-    ];
-
-    if (feature.owner) {
-      lines.push(`owner: ${feature.owner}`);
-    }
-    if (feature.dueDate) {
-      lines.push(`dueDate: ${feature.dueDate}`);
-    }
-    if (feature.tags && feature.tags.length > 0) {
-      lines.push(`tags: [${feature.tags.join(', ')}]`);
-    }
-
-    return lines.join('\n');
   }
 }

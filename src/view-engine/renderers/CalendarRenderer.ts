@@ -1,10 +1,11 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { QuickCreateModal } from '../../modals/QuickCreateModal';
+import { DateFormat } from '../design-tokens';
+import { EntityCard } from '../components';
 
 /**
  * 日历渲染器
@@ -16,11 +17,10 @@ export class CalendarRenderer extends BaseRenderer {
   constructor(
     app: App,
     entityManager: EntityManager,
-    cardRegistry: CardRegistry,
     dataService: DataService,
     actionService: ActionService
   ) {
-    super(app, entityManager, cardRegistry, dataService, actionService);
+    super(app, entityManager, dataService, actionService);
   }
 
   /**
@@ -32,7 +32,7 @@ export class CalendarRenderer extends BaseRenderer {
 
     // 加载数据
     const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config.filter);
+    const filtered = this.dataService.applyFilters(entities, this.config);
 
     // 只保留有截止日期的实体
     const datedEntities = filtered.filter(
@@ -167,42 +167,42 @@ export class CalendarRenderer extends BaseRenderer {
 
   /**
    * 渲染日历项
+   * 使用 EntityCard compact 变体
    */
   private renderCalendarItem(container: HTMLElement, entity: Entity): void {
-    const item = container.createDiv('pm-calendar-item');
-    item.classList.add(`pm-entity-${getEntityType(entity)}`);
-    item.dataset.entityId = entity.id;
+    const entityType = getEntityType(entity);
+    const wrapper = container.createDiv('pm-calendar-card-wrapper');
 
-    // 优先级颜色条
-    if ('priority' in entity && entity.priority) {
-      const priorityColors: Record<string, string> = {
-        critical: '#ef4444',
-        high: '#f97316',
-        medium: '#f59e0b',
-        low: '#22c55e',
-      };
-      item.style.borderLeftColor = priorityColors[entity.priority] || '#9ca3af';
-    }
-
-    // 状态标记
-    if ('status' in entity && entity.status) {
-      item.classList.add(`pm-status-${entity.status}`);
-    }
-
-    // 图标
-    const icon = this.getEntityTypeIcon(getEntityType(entity));
-    item.createSpan({ cls: 'pm-calendar-item-icon', text: icon });
-
-    // 名称
-    item.createSpan({ cls: 'pm-calendar-item-name', text: entity.name });
-
-    // 悬停显示更多信息
-    item.title = `${entity.name} (${entity.owner || '未分配'})`;
-
-    // 点击打开
-    item.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
-    });
+    // 使用 EntityCard 组件
+    // 日历视图：从配置读取，但日期格子空间极小
+    const cardFields = this.config.cardFields || { required: ['name', 'priority'], optional: ['status'] };
+    const required = cardFields.required || ['name', 'priority'];
+    const optional = cardFields.optional || [];
+    const allFields = [...required, ...optional];
+    
+    const entityCard = new EntityCard(this.app);
+    entityCard.render(
+      wrapper,
+      entity,
+      {
+        showPriority: allFields.includes('priority'),
+        showStatus: allFields.includes('status'),
+        showProgress: false, // 日历空间不足，强制不显示
+        showOwner: false,
+        showDueDate: false,
+        showTags: false,
+        showParent: false,
+        showDescription: false,
+        showTypeIcon: false,
+        showStats: false,
+        showActions: false,
+        smallTitle: true,
+      },
+      {
+        onOpen: () => {
+          this.actionService.openEntity(entityType as EntityType, entity.id);
+        },
+      }
+    );
   }
 }

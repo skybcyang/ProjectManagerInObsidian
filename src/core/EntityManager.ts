@@ -2,7 +2,7 @@ import { App } from 'obsidian';
 import { FileSystem } from './filesystem';
 import { VersionStore, ProjectStore, FeatureStore } from './stores';
 import { EntityCache } from './cache';
-import type { Version, Project, Feature } from '../types';
+import type { Version, Project, Feature, ProjectManagerSettings } from '../types';
 import type { CreateVersionData, UpdateVersionData } from '../types';
 import type { CreateProjectData, UpdateProjectData } from '../types';
 import type { CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../types';
@@ -17,12 +17,12 @@ export class EntityManager {
   readonly feature: FeatureStore;
   readonly cache: EntityCache;
 
-  constructor(app: App) {
+  constructor(app: App, settings?: ProjectManagerSettings) {
     const fs = new FileSystem(app);
     this.cache = new EntityCache(app);
-    this.version = new VersionStore(fs, app, this.cache);
-    this.project = new ProjectStore(fs, app, this.cache);
-    this.feature = new FeatureStore(fs, app, this.cache);
+    this.version = new VersionStore(fs, app, this.cache, settings);
+    this.project = new ProjectStore(fs, app, this.cache, settings);
+    this.feature = new FeatureStore(fs, app, this.cache, settings);
   }
 
   /**

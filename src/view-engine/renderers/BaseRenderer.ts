@@ -1,8 +1,16 @@
 import type { App, MarkdownPostProcessorContext } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { CardRegistry } from '../../ui/cards';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, ViewContext, Entity, EntityType, getEntityType } from '../types';
+import {
+  STATUS_COLORS,
+  FEATURE_STATUS_OPTIONS,
+  getStatusColor,
+  getEntityIcon,
+  translateStatus,
+  translatePriority,
+} from '../design-tokens';
+import { StatusPicker, ProgressPicker } from '../components';
 
 /**
  * 渲染器基类
@@ -15,7 +23,6 @@ export abstract class BaseRenderer {
   constructor(
     protected app: App,
     protected entityManager: EntityManager,
-    protected cardRegistry: CardRegistry,
     protected dataService: DataService,
     protected actionService: ActionService
   ) {}
@@ -156,13 +163,13 @@ export abstract class BaseRenderer {
       };
     }
 
-    // 进度按钮（仅特性）
+    // 进展反馈按钮（仅特性）
     if (getEntityType(entity) === 'feature') {
-      const progressBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-      progressBtn.textContent = '进度';
-      progressBtn.onclick = (e) => {
+      const noteBtn = actions.createEl('button', { cls: 'pm-action-btn' });
+      noteBtn.textContent = '进展';
+      noteBtn.onclick = (e) => {
         e.stopPropagation();
-        this.showProgressPicker(entity);
+        this.showProgressNoteInput(entity);
       };
     }
 
@@ -176,129 +183,145 @@ export abstract class BaseRenderer {
   }
 
   /**
+   * 状态选择器实例（延迟创建）
+   */
+  private statusPicker?: StatusPicker;
+
+  /**
+   * 进度选择器实例（延迟创建）
+   */
+  private progressPicker?: ProgressPicker;
+
+  /**
    * 显示状态选择器
+   * 使用 StatusPicker 组件
    */
   protected showStatusPicker(entity: Entity & { status?: string }, triggerEl?: HTMLElement): void {
-    const statuses = [
-      { value: 'backlog', label: '待处理', color: '#9ca3af' },
-      { value: 'todo', label: '待开始', color: '#3b82f6' },
-      { value: 'in-progress', label: '进行中', color: '#f59e0b' },
-      { value: 'testing', label: '测试中', color: '#8b5cf6' },
-      { value: 'completed', label: '已完成', color: '#22c55e' },
-      { value: 'archived', label: '已归档', color: '#6b7280' },
-    ];
-
-    const menu = document.createElement('div');
-    menu.className = 'pm-status-picker';
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 4px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-
-    statuses.forEach(status => {
-      const item = menu.createEl('div', { cls: 'pm-status-item' });
-      item.style.cssText = `
-        padding: 6px 12px;
-        cursor: pointer;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      `;
-      item.innerHTML = `
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${status.color};"></span>
-        <span>${status.label}</span>
-      `;
-      item.onclick = () => {
-        this.actionService.changeStatus(getEntityType(entity), entity.id, status.value);
-        menu.remove();
-      };
-      item.onmouseenter = () => {
-        item.style.background = 'var(--background-modifier-hover)';
-      };
-      item.onmouseleave = () => {
-        item.style.background = '';
-      };
-    });
-
-    document.body.appendChild(menu);
-
-    // 定位菜单
-    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
+    if (!this.statusPicker) {
+      this.statusPicker = new StatusPicker();
     }
 
-    // 点击外部关闭
-    const closeMenu = (e: MouseEvent) => {
-      if (!menu.contains(e.target as Node)) {
-        menu.remove();
-        document.removeEventListener('click', closeMenu);
+    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
+    if (!targetEl) return;
+
+    this.statusPicker.show(
+      targetEl,
+      entity.status,
+      (status) => {
+        this.actionService.changeStatus(getEntityType(entity), entity.id, status);
       }
-    };
-    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    );
   }
 
   /**
    * 显示进度选择器
+   * 使用 ProgressPicker 组件
    */
   protected showProgressPicker(entity: Entity, triggerEl?: HTMLElement): void {
+    if (!this.progressPicker) {
+      this.progressPicker = new ProgressPicker();
+    }
+
+    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
+    if (!targetEl) return;
+
+    const currentProgress = (entity as any).progress || 0;
+
+    this.progressPicker.show(
+      targetEl,
+      currentProgress,
+      (progress) => {
+        this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
+      }
+    );
+  }
+
+  /**
+   * 显示进展反馈输入框
+   */
+  protected showProgressNoteInput(entity: Entity, triggerEl?: HTMLElement): void {
     const menu = document.createElement('div');
-    menu.className = 'pm-progress-picker';
+    menu.className = 'pm-progress-note-input';
     menu.style.cssText = `
       position: fixed;
       background: var(--background-primary);
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
-      padding: 8px;
+      padding: 12px;
       z-index: 1000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 150px;
+      min-width: 280px;
     `;
-
-    const currentProgress = (entity as any).progress || 0;
 
     // 标题
     menu.createEl('div', {
-      text: '更新进度',
+      text: '添加进展反馈',
       cls: 'pm-picker-title',
-    }).style.cssText = 'font-size: 12px; color: var(--text-muted); margin-bottom: 8px;';
+    }).style.cssText = 'font-size: 13px; font-weight: 500; margin-bottom: 8px;';
 
-    // 滑块
-    const sliderContainer = menu.createDiv();
-    sliderContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+    // 输入框
+    const textarea = menu.createEl('textarea');
+    textarea.placeholder = '输入当前进展...';
+    textarea.style.cssText = `
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      background: var(--background-primary);
+      color: var(--text-normal);
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+    `;
 
-    const slider = sliderContainer.createEl('input');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = '100';
-    slider.value = String(currentProgress);
-    slider.style.cssText = 'flex: 1;';
+    // 按钮容器
+    const btnContainer = menu.createDiv();
+    btnContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;';
 
-    const valueDisplay = sliderContainer.createEl('span');
-    valueDisplay.textContent = `${currentProgress}%`;
-    valueDisplay.style.cssText = 'min-width: 35px; text-align: right; font-size: 12px;';
+    // 取消按钮
+    const cancelBtn = btnContainer.createEl('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: 1px solid var(--background-modifier-border);
+      background: var(--background-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    cancelBtn.onclick = () => menu.remove();
 
-    slider.oninput = () => {
-      valueDisplay.textContent = `${slider.value}%`;
+    // 确认按钮
+    const confirmBtn = btnContainer.createEl('button');
+    confirmBtn.textContent = '保存';
+    confirmBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: none;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    confirmBtn.onclick = () => {
+      const content = textarea.value.trim();
+      if (content) {
+        this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
+      }
+      menu.remove();
     };
 
-    // 按钮
-    const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = 'display: flex; justify-content: flex-end; margin-top: 8px;';
-
-    const confirmBtn = btnContainer.createEl('button');
-    confirmBtn.textContent = '更新';
-    confirmBtn.onclick = () => {
-      this.actionService.updateProgress(getEntityType(entity), entity.id, parseInt(slider.value));
-      menu.remove();
+    // 回车保存
+    textarea.onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const content = textarea.value.trim();
+        if (content) {
+          this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
+        }
+        menu.remove();
+      }
     };
 
     document.body.appendChild(menu);
@@ -310,6 +333,9 @@ export abstract class BaseRenderer {
       menu.style.left = `${rect.left}px`;
       menu.style.top = `${rect.bottom + 4}px`;
     }
+
+    // 自动聚焦
+    textarea.focus();
 
     // 点击外部关闭
     const closeMenu = (e: MouseEvent) => {
@@ -325,42 +351,21 @@ export abstract class BaseRenderer {
    * 获取实体类型图标
    */
   protected getEntityTypeIcon(entityOrType: Entity | string): string {
-    const icons: Record<string, string> = {
-      version: '📦',
-      project: '📁',
-      feature: '📝',
-    };
     const type = typeof entityOrType === 'string' ? entityOrType : getEntityType(entityOrType as Entity);
-    return icons[type] || '📄';
+    return getEntityIcon(type);
   }
 
   /**
-   * 翻译状态
+   * 翻译状态（使用设计令牌）
    */
   protected translateStatus(status: string): string {
-    const translations: Record<string, string> = {
-      backlog: '待处理',
-      todo: '待开始',
-      'in-progress': '进行中',
-      testing: '测试中',
-      completed: '已完成',
-      archived: '已归档',
-      active: '进行中',
-      suspended: '已暂停',
-    };
-    return translations[status] || status;
+    return translateStatus(status);
   }
 
   /**
-   * 翻译优先级
+   * 翻译优先级（使用设计令牌）
    */
   protected translatePriority(priority: string): string {
-    const translations: Record<string, string> = {
-      critical: '紧急',
-      high: '高',
-      medium: '中',
-      low: '低',
-    };
-    return translations[priority] || priority;
+    return translatePriority(priority);
   }
 }

@@ -1,9 +1,9 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { Entity, EntityType, ViewConfig } from '../types';
+import type { Entity, ViewConfig } from '../types';
 
 /**
- * 数据服务
+ * 数据服务 - 简化版
  * 统一处理实体数据的查询、过滤和排序
  */
 export class DataService {
@@ -13,87 +13,64 @@ export class DataService {
   ) {}
 
   /**
-   * 加载实体数据
+   * 加载实体数据 - 根据配置自动决定加载类型
    */
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
-    const type = config.type || 'feature';
-
-    // 如果指定了 id，加载特定实体
-    if (config.id) {
-      switch (type) {
-        case 'version': {
-          const version = await this.entityManager.getVersion(config.id);
-          return version ? [version as Entity] : [];
-        }
-        case 'project': {
-          const project = await this.entityManager.getProject(config.id);
-          return project ? [project as Entity] : [];
-        }
-        case 'feature':
-        default: {
-          const feature = await this.entityManager.getFeature(config.id);
-          return feature ? [feature as Entity] : [];
-        }
-      }
+    // 如果指定了特性ID，加载特定特性
+    if (config.feature) {
+      const feature = await this.entityManager.getFeature(config.feature);
+      return feature ? [feature as Entity] : [];
     }
 
-    // 否则加载列表
-    let entities: Entity[];
-    switch (type) {
-      case 'version':
-        entities = await this.entityManager.listVersions() as Entity[];
-        break;
-      case 'project':
-        entities = await this.entityManager.listProjects({
-          versionId: config.filter?.versionId,
-        }) as Entity[];
-        break;
-      case 'feature':
-      default:
-        entities = await this.entityManager.listFeatures({
-          versionId: config.filter?.versionId,
-          projectId: config.filter?.projectId,
-          status: config.filter?.status as any,
-        }) as Entity[];
-        break;
+    // 如果指定了项目ID，加载特定项目
+    if (config.project) {
+      const project = await this.entityManager.getProject(config.project);
+      return project ? [project as Entity] : [];
     }
-    return entities;
+
+    // 如果指定了版本ID，加载特定版本
+    if (config.version) {
+      const version = await this.entityManager.getVersion(config.version);
+      return version ? [version as Entity] : [];
+    }
+
+    // 否则加载特性列表（默认）
+    const features = await this.entityManager.listFeatures({});
+    return features as Entity[];
   }
 
   /**
-   * 应用过滤器
+   * 应用过滤器 - 使用扁平化的筛选字段
    */
-  applyFilters(entities: Entity[], filter?: ViewConfig['filter']): Entity[] {
-    if (!filter) return entities;
-
+  applyFilters(entities: Entity[], config: ViewConfig): Entity[] {
     return entities.filter((entity) => {
       // 状态过滤
-      if (filter.status && 'status' in entity && entity.status !== filter.status) {
+      if (config.status && 'status' in entity && entity.status !== config.status) {
         return false;
       }
 
       // 优先级过滤
-      if (filter.priority && 'priority' in entity && entity.priority !== filter.priority) {
+      if (config.priority && 'priority' in entity && entity.priority !== config.priority) {
         return false;
       }
 
       // 负责人过滤
-      if (filter.owner && entity.owner !== filter.owner) {
+      if (config.owner && entity.owner !== config.owner) {
         return false;
       }
 
       // 标签过滤
-      if (filter.tag && 'tags' in entity && !entity.tags?.includes(filter.tag)) {
+      if (config.tag && 'tags' in entity && !entity.tags?.includes(config.tag)) {
         return false;
       }
 
       // 版本ID过滤（项目/特性）
-      if (filter.versionId && 'versionId' in entity && entity.versionId !== filter.versionId) {
+      if (config.version && 'versionId' in entity && entity.versionId !== config.version) {
         return false;
       }
 
       // 项目ID过滤（特性）
-      if (filter.projectId && 'projectId' in entity && entity.projectId !== filter.projectId) {
+      if (config.project && 'projectId' in entity && entity.projectId !== config.project) {
         return false;
       }
 
@@ -136,6 +113,14 @@ export class DataService {
         case 'progress':
           if ('progress' in a && 'progress' in b) {
             comparison = (a.progress || 0) - (b.progress || 0);
+          }
+          break;
+        case 'status':
+          const statusOrder = { backlog: 0, todo: 1, 'in-progress': 2, testing: 3, completed: 4, archived: 5 };
+          if ('status' in a && 'status' in b) {
+            const orderA = statusOrder[a.status as keyof typeof statusOrder] ?? 99;
+            const orderB = statusOrder[b.status as keyof typeof statusOrder] ?? 99;
+            comparison = orderA - orderB;
           }
           break;
         case 'created':
