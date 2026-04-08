@@ -21,7 +21,7 @@ export {
   GridRenderer,
   CascadeRenderer,
   TimelineRenderer,
-  CalendarRenderer,
+  TimeViewRenderer,
 } from './renderers';
 
 // 核心引擎导出

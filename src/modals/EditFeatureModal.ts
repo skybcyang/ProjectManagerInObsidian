@@ -16,6 +16,8 @@ export class EditFeatureModal extends Modal {
   // 用于存储输入元素引用
   private dueDateInput: HTMLInputElement | null = null;
   private dueDateSetting: Setting | null = null;
+  private startDateInput: HTMLInputElement | null = null;
+  private startDateSetting: Setting | null = null;
 
   constructor(
     app: App,
@@ -34,9 +36,11 @@ export class EditFeatureModal extends Modal {
       status: feature.status,
       priority: feature.priority,
       progress: feature.progress,
+      startDate: feature.startDate,
       dueDate: feature.dueDate,
       owner: feature.owner,
       tags: [...feature.tags],
+      isMilestone: feature.isMilestone,
     };
   }
 
@@ -109,6 +113,33 @@ export class EditFeatureModal extends Modal {
           this.result.progress = value;
         }));
 
+    // 开始日期 - 使用日历选择器
+    this.startDateSetting = new Setting(contentEl)
+      .setName('开始日期')
+      .setDesc(formatDateDisplay(this.result.startDate) || '（可选，用于时间视图规划）');
+    
+    this.startDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.startDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.startDateInput.value = this.result.startDate || '';
+      this.startDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.startDate = value || undefined;
+        this.startDateSetting?.setDesc(formatDateDisplay(this.result.startDate) || '（可选）');
+      });
+      
+      // 快捷按钮
+      this.createQuickDateButtons(div, (date) => {
+        this.result.startDate = date;
+        if (this.startDateInput) {
+          this.startDateInput.value = date;
+        }
+        this.startDateSetting?.setDesc(formatDateDisplay(date));
+      });
+    });
+
     // 截止日期 - 使用日历选择器
     this.dueDateSetting = new Setting(contentEl)
       .setName('截止日期')
@@ -135,6 +166,17 @@ export class EditFeatureModal extends Modal {
         this.dueDateSetting?.setDesc(formatDateDisplay(date));
       });
     });
+
+    // 里程碑标记
+    new Setting(contentEl)
+      .setName('标记为里程碑')
+      .setDesc('里程碑在时间视图中会特殊显示')
+      .addToggle(toggle => {
+        toggle.setValue(this.result.isMilestone || false);
+        toggle.onChange(value => {
+          this.result.isMilestone = value;
+        });
+      });
 
     // 负责人
     new Setting(contentEl)

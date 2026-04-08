@@ -753,6 +753,9 @@ var init_QuickCreateModal = __esm({
         this.result.versionId = this.versions[0].id;
         this.result.projectId = this.projects[0].id;
         this.result.dueDate = this.defaultDate;
+        const due = new Date(this.defaultDate);
+        const start = new Date(due.getTime() - 7 * 24 * 60 * 60 * 1e3);
+        this.result.startDate = start.toISOString().split("T")[0];
         this.updateFilteredProjects();
         contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
         new import_obsidian8.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
@@ -2584,6 +2587,8 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
     // 用于存储输入元素引用
     this.dueDateInput = null;
     this.dueDateSetting = null;
+    this.startDateInput = null;
+    this.startDateSetting = null;
     this.entityManager = entityManager;
     this.onSubmit = onSubmit;
     if (defaultVersionId) {
@@ -2661,6 +2666,28 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
     new import_obsidian7.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
+    this.startDateSetting = new import_obsidian7.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
+    this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+      this.startDateInput = div.createEl("input", {
+        type: "date",
+        cls: "pm-date-picker"
+      });
+      this.startDateInput.value = this.result.startDate || "";
+      this.startDateInput.addEventListener("change", (e) => {
+        var _a;
+        const value = e.target.value;
+        this.result.startDate = value || void 0;
+        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+      });
+      this.createQuickDateButtons(div, (date) => {
+        var _a;
+        this.result.startDate = date;
+        if (this.startDateInput) {
+          this.startDateInput.value = date;
+        }
+        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+      });
+    });
     this.dueDateSetting = new import_obsidian7.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
@@ -2681,6 +2708,12 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
           this.dueDateInput.value = date;
         }
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+      });
+    });
+    new import_obsidian7.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
+      toggle.setValue(this.result.isMilestone || false);
+      toggle.onChange((value) => {
+        this.result.isMilestone = value;
       });
     });
     new import_obsidian7.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
@@ -2736,9 +2769,11 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
       status: "todo",
       priority: "high",
       progress: 0,
+      startDate: today.toISOString().split("T")[0],
       dueDate: nextWeek.toISOString().split("T")[0],
       owner: "\u8BBE\u8BA1\u5E08\u5C0F\u738B",
-      tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"]
+      tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"],
+      isMilestone: false
     };
     this.onOpen();
   }
@@ -2943,6 +2978,8 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
     // 用于存储输入元素引用
     this.dueDateInput = null;
     this.dueDateSetting = null;
+    this.startDateInput = null;
+    this.startDateSetting = null;
     this.entityManager = entityManager;
     this.feature = feature;
     this.onSubmit = onSubmit;
@@ -2952,9 +2989,11 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
       status: feature.status,
       priority: feature.priority,
       progress: feature.progress,
+      startDate: feature.startDate,
       dueDate: feature.dueDate,
       owner: feature.owner,
-      tags: [...feature.tags]
+      tags: [...feature.tags],
+      isMilestone: feature.isMilestone
     };
   }
   onOpen() {
@@ -3001,6 +3040,28 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
     new import_obsidian12.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
       this.result.progress = value;
     }));
+    this.startDateSetting = new import_obsidian12.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
+    this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+      this.startDateInput = div.createEl("input", {
+        type: "date",
+        cls: "pm-date-picker"
+      });
+      this.startDateInput.value = this.result.startDate || "";
+      this.startDateInput.addEventListener("change", (e) => {
+        var _a;
+        const value = e.target.value;
+        this.result.startDate = value || void 0;
+        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+      });
+      this.createQuickDateButtons(div, (date) => {
+        var _a;
+        this.result.startDate = date;
+        if (this.startDateInput) {
+          this.startDateInput.value = date;
+        }
+        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+      });
+    });
     this.dueDateSetting = new import_obsidian12.Setting(contentEl).setName("\u622A\u6B62\u65E5\u671F").setDesc(formatDateDisplay(this.result.dueDate) || "\uFF08\u53EF\u9009\uFF09");
     this.dueDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
       this.dueDateInput = div.createEl("input", {
@@ -3021,6 +3082,12 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
           this.dueDateInput.value = date;
         }
         (_a = this.dueDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+      });
+    });
+    new import_obsidian12.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
+      toggle.setValue(this.result.isMilestone || false);
+      toggle.onChange((value) => {
+        this.result.isMilestone = value;
       });
     });
     new import_obsidian12.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
@@ -3525,22 +3592,44 @@ var DataService = class {
       const feature = await this.entityManager.getFeature(config.feature);
       return feature ? [feature] : [];
     }
-    if (config.project) {
-      const project = await this.entityManager.getProject(config.project);
-      return project ? [project] : [];
+    const entityType = config.entityType || "feature";
+    switch (entityType) {
+      case "project": {
+        const projects = await this.entityManager.listProjects();
+        if (config.project) {
+          return projects.filter((p) => p.id === config.project);
+        }
+        return projects;
+      }
+      case "version": {
+        const versions = await this.entityManager.listVersions();
+        if (config.version) {
+          return versions.filter((v) => v.id === config.version);
+        }
+        return versions;
+      }
+      case "feature":
+      default: {
+        const features = await this.entityManager.listFeatures({
+          projectId: config.project,
+          versionId: config.version
+        });
+        return features;
+      }
     }
-    if (config.version) {
-      const version = await this.entityManager.getVersion(config.version);
-      return version ? [version] : [];
-    }
-    const features = await this.entityManager.listFeatures({});
-    return features;
   }
   /**
    * 应用过滤器 - 使用扁平化的筛选字段
    */
   applyFilters(entities, config) {
-    return entities.filter((entity) => {
+    console.log("[DataService.applyFilters] \u914D\u7F6E:", {
+      project: config.project,
+      version: config.version,
+      status: config.status,
+      priority: config.priority
+    });
+    console.log("[DataService.applyFilters] \u5B9E\u4F53\u6570\u91CF:", entities.length);
+    const filtered = entities.filter((entity) => {
       var _a;
       if (config.status && "status" in entity && entity.status !== config.status) {
         return false;
@@ -3562,57 +3651,84 @@ var DataService = class {
       }
       return true;
     });
+    console.log("[DataService.applyFilters] \u8FC7\u6EE4\u540E:", filtered.length);
+    return filtered;
   }
   /**
-   * 应用排序
+   * 应用排序 - 支持单字段或多字段排序
    */
   applySort(entities, sortBy, sortOrder = "asc") {
-    if (!sortBy)
+    if (Array.isArray(sortBy) && sortBy.length > 0) {
+      return this.applyMultiFieldSort(entities, sortBy);
+    }
+    if (!sortBy || typeof sortBy !== "string")
       return entities;
     const sorted = [...entities].sort((a, b) => {
-      var _a, _b, _c, _d;
-      let comparison = 0;
-      switch (sortBy) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "dueDate":
-          if ("dueDate" in a && "dueDate" in b) {
-            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-            comparison = dateA - dateB;
-          }
-          break;
-        case "priority":
-          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-          if ("priority" in a && "priority" in b) {
-            const orderA = (_a = priorityOrder[a.priority]) != null ? _a : 99;
-            const orderB = (_b = priorityOrder[b.priority]) != null ? _b : 99;
-            comparison = orderA - orderB;
-          }
-          break;
-        case "progress":
-          if ("progress" in a && "progress" in b) {
-            comparison = (a.progress || 0) - (b.progress || 0);
-          }
-          break;
-        case "status":
-          const statusOrder = { backlog: 0, todo: 1, "in-progress": 2, testing: 3, completed: 4, archived: 5 };
-          if ("status" in a && "status" in b) {
-            const orderA = (_c = statusOrder[a.status]) != null ? _c : 99;
-            const orderB = (_d = statusOrder[b.status]) != null ? _d : 99;
-            comparison = orderA - orderB;
-          }
-          break;
-        case "created":
-          comparison = a.id.localeCompare(b.id);
-          break;
-        default:
-          comparison = 0;
-      }
+      const comparison = this.compareField(a, b, sortBy);
       return sortOrder === "desc" ? -comparison : comparison;
     });
     return sorted;
+  }
+  /**
+   * 多字段排序
+   */
+  applyMultiFieldSort(entities, sorts) {
+    const sorted = [...entities].sort((a, b) => {
+      for (const sort of sorts) {
+        const comparison = this.compareField(a, b, sort.field);
+        if (comparison !== 0) {
+          return sort.order === "desc" ? -comparison : comparison;
+        }
+      }
+      return 0;
+    });
+    return sorted;
+  }
+  /**
+   * 比较两个实体的单个字段
+   */
+  compareField(a, b, field) {
+    var _a, _b, _c, _d;
+    switch (field) {
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "dueDate":
+        if ("dueDate" in a && "dueDate" in b) {
+          const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          return dateA - dateB;
+        }
+        return 0;
+      case "priority":
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        if ("priority" in a && "priority" in b) {
+          const orderA = (_a = priorityOrder[a.priority]) != null ? _a : 99;
+          const orderB = (_b = priorityOrder[b.priority]) != null ? _b : 99;
+          return orderA - orderB;
+        }
+        return 0;
+      case "progress":
+        if ("progress" in a && "progress" in b) {
+          return (a.progress || 0) - (b.progress || 0);
+        }
+        return 0;
+      case "status":
+        const statusOrder = { backlog: 0, todo: 1, "in-progress": 2, testing: 3, completed: 4, archived: 5 };
+        if ("status" in a && "status" in b) {
+          const orderA = (_c = statusOrder[a.status]) != null ? _c : 99;
+          const orderB = (_d = statusOrder[b.status]) != null ? _d : 99;
+          return orderA - orderB;
+        }
+        return 0;
+      case "created":
+        return a.id.localeCompare(b.id);
+      case "owner":
+        const ownerA = a.owner || "";
+        const ownerB = b.owner || "";
+        return ownerA.localeCompare(ownerB);
+      default:
+        return 0;
+    }
   }
   /**
    * 按字段分组
@@ -3926,7 +4042,7 @@ var VIEW_MODE_LABELS = {
   "grid": "\u25A6 \u7F51\u683C\u89C6\u56FE",
   "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
   "timeline": "\u23F1\uFE0F \u65F6\u95F4\u7EBF\u89C6\u56FE",
-  "calendar": "\u{1F5D3}\uFE0F \u65E5\u5386\u89C6\u56FE"
+  "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE"
 };
 var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "name", label: "\u540D\u79F0", required: true },
@@ -4287,39 +4403,12 @@ var FilterBar = class {
     return lines;
   }
   /**
-   * 创建下拉选择器
+   * 创建紧凑下拉选择器（用于横向筛选栏）
    */
-  createSelect(container, label, options, value, onChange) {
-    const wrapper = container.createDiv("pm-filter-field");
-    const select = wrapper.createEl("select", { cls: "pm-filter-select" });
-    options.forEach((opt) => {
-      const option = select.createEl("option", {
-        text: opt.label,
-        value: opt.value
-      });
-      if (opt.value === value) {
-        option.selected = true;
-      }
-    });
-    select.addEventListener("change", () => {
-      onChange(select.value);
-    });
-    return wrapper;
-  }
-  /**
-   * 创建紧凑版下拉选择器（无标签，placeholder形式）
-   */
-  createSelectCompact(container, placeholder, options, value, onChange) {
+  createSelectCompact(container, label, options, value, onChange) {
     const wrapper = container.createDiv("pm-filter-field-compact");
     const select = wrapper.createEl("select", { cls: "pm-filter-select-compact" });
-    const placeholderOption = select.createEl("option", {
-      text: placeholder,
-      value: ""
-    });
-    placeholderOption.disabled = true;
     options.forEach((opt) => {
-      if (opt.value === "")
-        return;
       const option = select.createEl("option", {
         text: opt.label,
         value: opt.value
@@ -4379,7 +4468,7 @@ var FilterBar = class {
   rerenderSelect(labelText, options, value, onChange) {
     if (!this.container)
       return;
-    const selects = this.container.querySelectorAll(".pm-filter-select");
+    const selects = this.container.querySelectorAll(".pm-filter-select-compact");
     selects.forEach((selectEl, index) => {
       const parent = selectEl.parentElement;
       if (!parent)
@@ -4387,7 +4476,7 @@ var FilterBar = class {
       const labelMap = ["\u7248\u672C", "\u9879\u76EE", "\u7279\u6027", "\u72B6\u6001", "\u4F18\u5148\u7EA7", "\u8D1F\u8D23\u4EBA"];
       if (labelMap[index] === labelText) {
         parent.empty();
-        const select = parent.createEl("select", { cls: "pm-filter-select" });
+        const select = parent.createEl("select", { cls: "pm-filter-select-compact" });
         options.forEach((opt) => {
           const option = select.createEl("option", {
             text: opt.label,
@@ -4410,7 +4499,7 @@ var FilterBar = class {
     this.filters = { mode: this.filters.mode };
     this.loadOptions().then(() => {
       if (this.container) {
-        const selects = this.container.querySelectorAll(".pm-filter-select");
+        const selects = this.container.querySelectorAll(".pm-filter-select-compact");
         selects.forEach((selectEl, index) => {
           const select = selectEl;
           select.value = "";
@@ -5237,8 +5326,6 @@ var ListRenderer = class extends BaseRenderer {
   constructor(app, entityManager, dataService, actionService) {
     super(app, entityManager, dataService, actionService);
     this.entities = [];
-    this.sortField = "name";
-    this.sortOrder = "asc";
   }
   /**
    * 渲染列表视图
@@ -5248,7 +5335,11 @@ var ListRenderer = class extends BaseRenderer {
     container.addClass("pm-list-view");
     this.entities = await this.dataService.loadEntities(this.config);
     const filtered = this.dataService.applyFilters(this.entities, this.config);
-    const sorted = this.applyListSort(filtered);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
     const listContainer = container.createDiv("pm-list-container");
     if (sorted.length === 0) {
       this.createEmptyState(listContainer, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
@@ -5283,20 +5374,24 @@ var ListRenderer = class extends BaseRenderer {
       const option = sortSelect.createEl("option");
       option.value = opt.value;
       option.textContent = opt.label;
-      if (opt.value === this.sortField)
+      if (opt.value === (this.config.sortBy || "name"))
         option.selected = true;
     });
-    sortSelect.addEventListener("change", () => {
-      this.sortField = sortSelect.value;
+    sortSelect.addEventListener("change", async () => {
+      const newConfig = { ...this.config, sortBy: sortSelect.value };
+      await this.saveSortConfig(newConfig);
       this.render(container.closest(".pm-list-view"));
     });
+    const currentSortOrder = this.config.sortOrder || "asc";
     const orderBtn = sortControl.createEl("button", {
       cls: "pm-list-sort-order",
-      attr: { title: this.sortOrder === "asc" ? "\u5347\u5E8F" : "\u964D\u5E8F" }
+      attr: { title: currentSortOrder === "asc" ? "\u5347\u5E8F" : "\u964D\u5E8F" }
     });
-    orderBtn.textContent = this.sortOrder === "asc" ? "\u2191" : "\u2193";
-    orderBtn.addEventListener("click", () => {
-      this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
+    orderBtn.textContent = currentSortOrder === "asc" ? "\u2191" : "\u2193";
+    orderBtn.addEventListener("click", async () => {
+      const newOrder = currentSortOrder === "asc" ? "desc" : "asc";
+      const newConfig = { ...this.config, sortOrder: newOrder };
+      await this.saveSortConfig(newConfig);
       this.render(container.closest(".pm-list-view"));
     });
   }
@@ -5407,10 +5502,60 @@ var ListRenderer = class extends BaseRenderer {
     return null;
   }
   /**
-   * 应用列表排序
+   * 保存排序配置到代码块 - 使用 YAML 解析
    */
-  applyListSort(entities) {
-    return this.dataService.applySort(entities, this.sortField, this.sortOrder);
+  async saveSortConfig(newConfig) {
+    if (!this.context.sourcePath)
+      return;
+    const { TFile: TFile10, parseYaml: parseYaml2, stringifyYaml } = require("obsidian");
+    const file = this.app.vault.getAbstractFileByPath(this.context.sourcePath);
+    if (!(file instanceof TFile10))
+      return;
+    try {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      let blockStart = -1;
+      let blockEnd = -1;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === "```pm-view") {
+          blockStart = i;
+        }
+        if (blockStart !== -1 && line === "```") {
+          blockEnd = i;
+          break;
+        }
+      }
+      if (blockStart === -1 || blockEnd === -1)
+        return;
+      const configLines = lines.slice(blockStart + 1, blockEnd);
+      const configText = configLines.join("\n");
+      const currentConfig = parseYaml2(configText) || {};
+      const updatedConfig = {
+        ...currentConfig,
+        sortBy: newConfig.sortBy,
+        sortOrder: newConfig.sortOrder
+      };
+      Object.keys(updatedConfig).forEach((key) => {
+        if (updatedConfig[key] === void 0) {
+          delete updatedConfig[key];
+        }
+      });
+      const yamlContent = stringifyYaml(updatedConfig).trim();
+      const newBlock = ["```pm-view", yamlContent, "```"];
+      const newLines = [
+        ...lines.slice(0, blockStart),
+        ...newBlock,
+        ...lines.slice(blockEnd + 1)
+      ];
+      const newContent = newLines.join("\n");
+      if (newContent !== content) {
+        await this.app.vault.modify(file, newContent);
+      }
+      this.config = newConfig;
+    } catch (error) {
+      console.error("\u4FDD\u5B58\u6392\u5E8F\u914D\u7F6E\u5931\u8D25:", error);
+    }
   }
 };
 
@@ -5586,8 +5731,9 @@ var CascadeRenderer = class extends BaseRenderer {
       versionSection.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u9879\u76EE" });
       return;
     }
+    const sortedProjects = this.sortEntities(projects);
     const projectsContainer = versionSection.createDiv("pm-cascade__projects");
-    for (const project of projects) {
+    for (const project of sortedProjects) {
       await this.renderProjectCard(projectsContainer, project);
     }
   }
@@ -5629,7 +5775,8 @@ var CascadeRenderer = class extends BaseRenderer {
       container.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u7248\u672C" });
       return;
     }
-    for (const version of versions) {
+    const sortedVersions = this.sortEntities(versions);
+    for (const version of sortedVersions) {
       await this.renderVersionTree(container, version.id, 0);
     }
   }
@@ -5705,7 +5852,8 @@ var CascadeRenderer = class extends BaseRenderer {
     header.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("project") });
     header.createSpan({ cls: "pm-cascade__project-name", text: project.name });
     const features = await this.entityManager.listFeatures({ projectId: project.id });
-    const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
+    const sortedFeatures = this.sortEntities(features);
+    const totalProgress = sortedFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter((f) => f.status === "completed").length;
     if (features.length > 0) {
@@ -5726,18 +5874,18 @@ var CascadeRenderer = class extends BaseRenderer {
         text: `${features.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
       });
     }
-    if (features.length > 0) {
+    if (sortedFeatures.length > 0) {
       const featuresContainer = card.createDiv("pm-cascade__features");
       const maxFeatures = isSingleView ? 50 : 5;
-      const displayFeatures = features.slice(0, maxFeatures);
+      const displayFeatures = sortedFeatures.slice(0, maxFeatures);
       for (const feature of displayFeatures) {
         const isHighlighted = highlightFeature && feature.id === highlightFeature.id;
         this.renderFeatureRow(featuresContainer, feature, isHighlighted);
       }
-      if (features.length > maxFeatures) {
+      if (sortedFeatures.length > maxFeatures) {
         featuresContainer.createDiv({
           cls: "pm-cascade__more-features",
-          text: `\u8FD8\u6709 ${features.length - maxFeatures} \u4E2A\u7279\u6027...`
+          text: `\u8FD8\u6709 ${sortedFeatures.length - maxFeatures} \u4E2A\u7279\u6027...`
         });
       }
     }
@@ -5795,6 +5943,16 @@ var CascadeRenderer = class extends BaseRenderer {
     }
     return row;
   }
+  /**
+   * 对实体列表进行排序
+   */
+  sortEntities(entities) {
+    return this.dataService.applySort(
+      entities,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
+  }
 };
 
 // src/view-engine/renderers/TimelineRenderer.ts
@@ -5812,8 +5970,8 @@ var TimelineRenderer = class extends BaseRenderer {
     const filtered = this.dataService.applyFilters(entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
-      this.config.sortBy || "dueDate",
-      this.config.sortOrder || "asc"
+      this.config.sortBy,
+      this.config.sortOrder
     );
     const direction = this.config.direction || "horizontal";
     if (direction === "vertical") {
@@ -6008,159 +6166,598 @@ var TimelineRenderer = class extends BaseRenderer {
   }
 };
 
-// src/view-engine/renderers/CalendarRenderer.ts
-init_QuickCreateModal();
-var CalendarRenderer = class extends BaseRenderer {
+// src/view-engine/renderers/TimeViewRenderer.ts
+var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
   constructor(app, entityManager, dataService, actionService) {
     super(app, entityManager, dataService, actionService);
-    this.currentDate = /* @__PURE__ */ new Date();
+    if (_TimeViewRenderer.sharedState) {
+      this.state = { ..._TimeViewRenderer.sharedState };
+    } else {
+      this.state = {
+        currentDate: /* @__PURE__ */ new Date(),
+        viewMode: "month"
+      };
+      _TimeViewRenderer.sharedState = this.state;
+    }
   }
   /**
-   * 渲染日历视图
+   * 渲染时间视图
    */
   async render(container) {
     container.empty();
-    container.addClass("pm-calendar-view");
+    container.addClass("pm-timeview");
     const entities = await this.dataService.loadEntities(this.config);
     const filtered = this.dataService.applyFilters(entities, this.config);
-    const datedEntities = filtered.filter(
-      (e) => "dueDate" in e && e.dueDate
-    );
-    const debugInfo = container.createDiv("pm-calendar-debug");
-    debugInfo.style.cssText = "padding: 8px; background: var(--background-modifier-form-field); margin-bottom: 8px; font-size: 12px;";
-    debugInfo.textContent = `\u52A0\u8F7D\u5B9E\u4F53: ${entities.length}, \u8FC7\u6EE4\u540E: ${filtered.length}, \u6709\u65E5\u671F: ${datedEntities.length}`;
-    if (datedEntities.length > 0) {
-      const sampleDates = datedEntities.slice(0, 5).map((e) => e.dueDate).join(", ");
-      const sampleEl = container.createDiv("pm-calendar-debug-sample");
-      sampleEl.style.cssText = "padding: 4px 8px; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;";
-      sampleEl.textContent = `\u793A\u4F8B\u65E5\u671F: ${sampleDates}`;
+    console.log("[TimeView] \u914D\u7F6E:", JSON.stringify({
+      entityType: this.config.entityType,
+      project: this.config.project,
+      version: this.config.version,
+      status: this.config.status,
+      priority: this.config.priority
+    }));
+    console.log("[TimeView] \u52A0\u8F7D\u5B9E\u4F53:", entities.length, "\u8FC7\u6EE4\u540E:", filtered.length);
+    if (entities.length > 0) {
+      console.log("[TimeView] \u5B9E\u4F53\u793A\u4F8B:", entities.slice(0, 3).map((e) => ({
+        id: e.id,
+        name: e.name,
+        projectId: e.projectId,
+        versionId: e.versionId,
+        status: e.status
+      })));
     }
-    const calendarContainer = container.createDiv("pm-calendar-container");
-    await this.renderMonthCalendar(calendarContainer, datedEntities, container);
+    const items = this.convertToTimeItems(filtered);
+    this.renderToolbar(container, entities.length, filtered.length, items.length);
+    const contentArea = container.createDiv("pm-timeview-content");
+    if (items.length === 0) {
+      this.renderEmptyState(contentArea, filtered.length === 0 ? "\u6682\u65E0\u6570\u636E" : "\u6CA1\u6709\u5E26\u622A\u6B62\u65E5\u671F\u7684\u5B9E\u4F53");
+      return;
+    }
+    switch (this.state.viewMode) {
+      case "week":
+        this.renderWeekView(contentArea, items);
+        break;
+      case "month":
+        this.renderMonthView(contentArea, items);
+        break;
+      case "quarter":
+        this.renderQuarterView(contentArea, items);
+        break;
+    }
   }
   /**
-   * 渲染月历
+   * 将实体转换为时间视图项
    */
-  async renderMonthCalendar(container, entities, viewContainer) {
-    const year = this.currentDate.getFullYear();
-    const month = this.currentDate.getMonth();
-    const header = container.createDiv("pm-calendar-header");
-    const prevBtn = header.createEl("button", { cls: "pm-calendar-nav-btn" });
+  convertToTimeItems(entities) {
+    return entities.filter((e) => "dueDate" in e && !!e.dueDate).map((e) => {
+      const entity = e;
+      const endDate = new Date(entity.dueDate);
+      const startDate = entity.startDate ? new Date(entity.startDate) : new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1e3);
+      return {
+        entity,
+        startDate,
+        endDate,
+        isMilestone: entity.isMilestone || false,
+        progress: entity.progress || 0,
+        entityType: getEntityType(entity)
+      };
+    }).filter((item) => !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime()));
+  }
+  /**
+   * 渲染空状态
+   */
+  renderEmptyState(container, message) {
+    const empty = container.createDiv("pm-timeview-empty");
+    empty.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: var(--text-muted);
+      gap: 12px;
+    `;
+    empty.createDiv({ text: "\u{1F4C5}", cls: "pm-timeview-empty-icon" }).style.cssText = "font-size: 48px;";
+    empty.createDiv({ text: message, cls: "pm-timeview-empty-text" }).style.cssText = "font-size: 14px;";
+    const hint = empty.createDiv({ cls: "pm-timeview-empty-hint" });
+    hint.style.cssText = "font-size: 12px; opacity: 0.7;";
+    hint.textContent = "\u63D0\u793A\uFF1A\u4E3A\u5B9E\u4F53\u6DFB\u52A0 dueDate \u5B57\u6BB5\u5373\u53EF\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u663E\u793A";
+  }
+  /**
+   * 渲染工具栏
+   */
+  renderToolbar(container, totalCount = 0, filteredCount = 0, timeItemsCount = 0) {
+    const toolbar = container.createDiv("pm-timeview-toolbar");
+    const navGroup = toolbar.createDiv("pm-timeview-nav");
+    const prevBtn = navGroup.createEl("button", { cls: "pm-timeview-nav-btn" });
     prevBtn.textContent = "\u25C0";
     prevBtn.onclick = () => {
-      this.currentDate.setMonth(month - 1);
-      this.render(viewContainer);
+      this.navigateDate(-1);
+      this.refresh(container);
     };
-    const title = header.createDiv("pm-calendar-title");
-    title.textContent = `${year}\u5E74${month + 1}\u6708`;
-    const nextBtn = header.createEl("button", { cls: "pm-calendar-nav-btn" });
-    nextBtn.textContent = "\u25B6";
-    nextBtn.onclick = () => {
-      this.currentDate.setMonth(month + 1);
-      this.render(viewContainer);
-    };
-    const todayBtn = header.createEl("button", { cls: "pm-calendar-today-btn" });
+    const todayBtn = navGroup.createEl("button", { cls: "pm-timeview-today-btn" });
     todayBtn.textContent = "\u4ECA\u5929";
     todayBtn.onclick = () => {
-      this.currentDate = /* @__PURE__ */ new Date();
-      this.render(viewContainer);
+      this.state.currentDate = /* @__PURE__ */ new Date();
+      this.refresh(container);
     };
-    const weekdays = container.createDiv("pm-calendar-weekdays");
+    const nextBtn = navGroup.createEl("button", { cls: "pm-timeview-nav-btn" });
+    nextBtn.textContent = "\u25B6";
+    nextBtn.onclick = () => {
+      this.navigateDate(1);
+      this.refresh(container);
+    };
+    const dateTitle = toolbar.createDiv("pm-timeview-date-title");
+    dateTitle.textContent = this.getDateTitle();
+    const modeGroup = toolbar.createDiv("pm-timeview-mode");
+    const modeSelect = modeGroup.createEl("select", { cls: "pm-timeview-mode-select" });
+    const modes = [
+      { value: "week", label: "\u5468\u89C6\u56FE" },
+      { value: "month", label: "\u6708\u89C6\u56FE" },
+      { value: "quarter", label: "\u5B63\u5EA6\u89C6\u56FE" }
+    ];
+    modes.forEach((mode) => {
+      const option = modeSelect.createEl("option", {
+        text: mode.label,
+        value: mode.value
+      });
+      if (mode.value === this.state.viewMode) {
+        option.selected = true;
+      }
+    });
+    modeSelect.addEventListener("change", () => {
+      this.state.viewMode = modeSelect.value;
+      _TimeViewRenderer.sharedState = { ...this.state };
+      this.refresh(container);
+    });
+    const statsGroup = toolbar.createDiv("pm-timeview-stats");
+    const entityType = this.config.entityType || "feature";
+    statsGroup.textContent = `${entityType === "feature" ? "\u7279\u6027" : entityType === "project" ? "\u9879\u76EE" : "\u7248\u672C"}: ${timeItemsCount}`;
+  }
+  /**
+   * 日期导航 - 只修改日期，不触发渲染（由调用方负责刷新）
+   */
+  navigateDate(direction) {
+    const { viewMode, currentDate } = this.state;
+    switch (viewMode) {
+      case "week":
+        currentDate.setDate(currentDate.getDate() + direction * 7);
+        break;
+      case "month":
+        currentDate.setMonth(currentDate.getMonth() + direction);
+        break;
+      case "quarter":
+        currentDate.setMonth(currentDate.getMonth() + direction * 3);
+        break;
+    }
+    _TimeViewRenderer.sharedState = { ...this.state };
+  }
+  /**
+   * 刷新视图
+   */
+  refresh(container) {
+    this.render(container);
+  }
+  /**
+   * 获取日期标题
+   */
+  getDateTitle() {
+    const { currentDate, viewMode } = this.state;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    switch (viewMode) {
+      case "week": {
+        const weekStart = this.getWeekStart(currentDate);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        const startMonth = weekStart.getMonth() + 1;
+        const startDay = weekStart.getDate();
+        const endMonth = weekEnd.getMonth() + 1;
+        const endDay = weekEnd.getDate();
+        if (startMonth === endMonth) {
+          return `${year}\u5E74${startMonth}\u6708${startDay}\u65E5-${endDay}\u65E5`;
+        } else {
+          return `${year}\u5E74${startMonth}\u6708${startDay}\u65E5-${endMonth}\u6708${endDay}\u65E5`;
+        }
+      }
+      case "month":
+        return `${year}\u5E74${month}\u6708`;
+      case "quarter": {
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        return `${year}\u5E74 Q${quarter}`;
+      }
+      default:
+        return `${year}\u5E74${month}\u6708`;
+    }
+  }
+  /**
+   * 渲染周视图 - 甘特图风格
+   */
+  renderWeekView(container, items) {
+    container.empty();
+    container.addClass("pm-timeview-week");
+    const { currentDate } = this.state;
+    const weekStart = this.getWeekStart(currentDate);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const headerRow = container.createDiv("pm-timeview-week-header");
+    const weekDays = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(weekStart);
+      dayDate.setDate(weekStart.getDate() + i);
+      const isToday = this.isSameDay(dayDate, /* @__PURE__ */ new Date());
+      const headerCell = headerRow.createDiv("pm-timeview-week-header-cell");
+      if (isToday) {
+        headerCell.classList.add("pm-timeview-today");
+      }
+      headerCell.createDiv({
+        cls: "pm-timeview-week-day-name",
+        text: weekDays[i]
+      });
+      headerCell.createDiv({
+        cls: "pm-timeview-week-day-number",
+        text: String(dayDate.getDate())
+      });
+    }
+    const weekItems = items.filter(
+      (item) => this.isDateRangeOverlap(item.startDate, item.endDate, weekStart, weekEnd)
+    );
+    const rows = this.calculateGanttRows(weekItems, weekStart, weekEnd);
+    const ganttContainer = container.createDiv("pm-timeview-week-gantt");
+    ganttContainer.style.display = "grid";
+    ganttContainer.style.gridTemplateColumns = "repeat(7, 1fr)";
+    ganttContainer.style.gap = "4px";
+    ganttContainer.style.padding = "8px";
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(weekStart);
+      dayDate.setDate(weekStart.getDate() + i);
+      const dayBg = ganttContainer.createDiv("pm-timeview-week-day-bg");
+      dayBg.style.gridColumn = String(i + 1);
+      dayBg.style.gridRow = `1 / span ${rows.length}`;
+      dayBg.style.background = this.isSameDay(dayDate, /* @__PURE__ */ new Date()) ? "var(--background-modifier-accent)" : "var(--background-secondary)";
+      dayBg.style.borderRadius = "4px";
+      dayBg.style.opacity = "0.5";
+    }
+    rows.forEach((rowItems, rowIndex) => {
+      rowItems.forEach((item) => {
+        this.renderWeekGanttBar(ganttContainer, item, weekStart, rowIndex + 1);
+      });
+    });
+  }
+  /**
+   * 计算甘特图行分配
+   */
+  calculateGanttRows(items, rangeStart, rangeEnd) {
+    const rows = [];
+    const occupied = [];
+    const sortedItems = [...items].sort(
+      (a, b) => a.startDate.getTime() - b.startDate.getTime()
+    );
+    for (const item of sortedItems) {
+      const actualStart = item.startDate < rangeStart ? rangeStart : item.startDate;
+      const actualEnd = item.endDate > rangeEnd ? rangeEnd : item.endDate;
+      const startCol = actualStart.getDay();
+      const endCol = actualEnd.getDay();
+      let rowIndex = 0;
+      while (occupied.some(
+        (o) => o.row === rowIndex && !(o.endCol < startCol || o.startCol > endCol)
+      )) {
+        rowIndex++;
+      }
+      if (!rows[rowIndex]) {
+        rows[rowIndex] = [];
+      }
+      rows[rowIndex].push(item);
+      occupied.push({ startCol, endCol, row: rowIndex });
+    }
+    return rows.length > 0 ? rows : [[]];
+  }
+  /**
+   * 渲染周视图甘特条
+   */
+  renderWeekGanttBar(container, item, weekStart, row) {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const actualStart = item.startDate < weekStart ? weekStart : item.startDate;
+    const actualEnd = item.endDate > weekEnd ? weekEnd : item.endDate;
+    const startCol = actualStart.getDay() + 1;
+    const endCol = actualEnd.getDay() + 1;
+    const span = endCol - startCol + 1;
+    const bar = container.createDiv("pm-timeview-gantt-bar");
+    bar.style.gridColumn = `${startCol} / span ${span}`;
+    bar.style.gridRow = String(row);
+    bar.style.margin = "2px 4px";
+    const priorityColor = getPriorityColor2(item.entity.priority);
+    if (item.isMilestone) {
+      bar.classList.add("pm-timeview-gantt-bar--milestone");
+      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
+      bar.style.color = "#fff";
+    } else {
+      if (item.progress > 0) {
+        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
+      } else {
+        bar.style.background = priorityColor.bg;
+      }
+      bar.style.color = priorityColor.text;
+    }
+    bar.style.borderRadius = "4px";
+    bar.style.padding = "6px 10px";
+    bar.style.fontSize = "12px";
+    bar.style.fontWeight = item.isMilestone ? "600" : "500";
+    bar.style.whiteSpace = "nowrap";
+    bar.style.overflow = "hidden";
+    bar.style.textOverflow = "ellipsis";
+    bar.style.cursor = "pointer";
+    bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+    bar.style.transition = "all 0.15s ease";
+    bar.style.display = "flex";
+    bar.style.alignItems = "center";
+    bar.style.gap = "6px";
+    if (item.isMilestone) {
+      bar.textContent = "\u{1F537} ";
+    }
+    bar.appendChild(document.createTextNode(item.entity.name));
+    bar.addEventListener("mouseenter", () => {
+      bar.style.transform = "translateY(-2px)";
+      bar.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+      bar.style.zIndex = "10";
+    });
+    bar.addEventListener("mouseleave", () => {
+      bar.style.transform = "translateY(0)";
+      bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+      bar.style.zIndex = "auto";
+    });
+    bar.addEventListener("click", () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
+    });
+  }
+  /**
+   * 检查日期范围是否重叠
+   */
+  isDateRangeOverlap(start1, end1, start2, end2) {
+    return start1 <= end2 && end1 >= start2;
+  }
+  /**
+   * 渲染月视图 - 简化版，每天显示任务列表
+   */
+  renderMonthView(container, items) {
+    container.empty();
+    container.addClass("pm-timeview-month");
+    const { currentDate } = this.state;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const weekdays = container.createDiv("pm-timeview-month-weekdays");
     const weekNames = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
     weekNames.forEach((name) => {
-      weekdays.createDiv({ cls: "pm-calendar-weekday", text: name });
+      weekdays.createDiv({ cls: "pm-timeview-month-weekday", text: name });
     });
-    const grid = container.createDiv("pm-calendar-grid");
+    const grid = container.createDiv("pm-timeview-month-grid");
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startOffset = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startOffset - 1; i >= 0; i--) {
-      const dayCell = grid.createDiv("pm-calendar-day pm-calendar-day-other");
-      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(prevMonthLastDay - i) });
+      const dayCell = grid.createDiv("pm-timeview-month-day pm-timeview-month-day--other");
+      dayCell.createDiv({
+        cls: "pm-timeview-month-day-number",
+        text: String(prevMonthLastDay - i)
+      });
     }
     const today = /* @__PURE__ */ new Date();
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayCell = grid.createDiv("pm-calendar-day");
-      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
-        dayCell.classList.add("pm-calendar-day-today");
+      const dayDate = new Date(year, month, day);
+      const dayCell = grid.createDiv("pm-timeview-month-day");
+      if (this.isSameDay(dayDate, today)) {
+        dayCell.classList.add("pm-timeview-today");
       }
-      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(day) });
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const dayEntities = entities.filter((e) => {
-        const entityDate = e.dueDate;
-        if (!entityDate)
-          return false;
-        const normalizedDate = entityDate.split("T")[0];
-        return normalizedDate === dateStr;
+      dayCell.createDiv({
+        cls: "pm-timeview-month-day-number",
+        text: String(day)
       });
-      if (dayEntities.length > 0) {
-        const list = dayCell.createDiv("pm-calendar-day-list");
-        dayEntities.forEach((entity) => {
-          this.renderCalendarItem(list, entity);
+      const dayItems = items.filter(
+        (item) => this.isDateInRange(dayDate, item.startDate, item.endDate)
+      );
+      if (dayItems.length > 0) {
+        const list = dayCell.createDiv("pm-timeview-month-list");
+        dayItems.forEach((item) => {
+          const isStartDay = this.isSameDay(dayDate, item.startDate);
+          this.renderMonthItem(list, item, isStartDay);
         });
       }
-      dayCell.addEventListener("click", (e) => {
-        if (e.target.closest(".pm-calendar-item"))
-          return;
-        new QuickCreateModal(
-          this.app,
-          this.entityManager,
-          dateStr,
-          async (data) => {
-            try {
-              await this.entityManager.createFeature(data);
-              this.render(viewContainer);
-            } catch (error) {
-              console.error("\u521B\u5EFA\u7279\u6027\u5931\u8D25:", error);
-            }
-          }
-        ).open();
-      });
     }
     const totalCells = startOffset + daysInMonth;
     const remainingCells = (7 - totalCells % 7) % 7;
     for (let day = 1; day <= remainingCells; day++) {
-      const dayCell = grid.createDiv("pm-calendar-day pm-calendar-day-other");
-      dayCell.createDiv({ cls: "pm-calendar-day-number", text: String(day) });
+      const dayCell = grid.createDiv("pm-timeview-month-day pm-timeview-month-day--other");
+      dayCell.createDiv({
+        cls: "pm-timeview-month-day-number",
+        text: String(day)
+      });
     }
   }
   /**
-   * 渲染日历项
-   * 使用 EntityCard compact 变体
+   * 渲染月视图甘特条
    */
-  renderCalendarItem(container, entity) {
-    const entityType = getEntityType(entity);
-    const wrapper = container.createDiv("pm-calendar-card-wrapper");
-    const simpleCard = wrapper.createDiv("pm-calendar-simple-item");
-    simpleCard.style.cssText = `
-      padding: 4px 6px;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 2px;
-    `;
-    simpleCard.textContent = entity.name;
-    simpleCard.title = `${entity.name} (${entity.dueDate})`;
-    simpleCard.addEventListener("click", () => {
-      this.actionService.openEntity(entityType, entity.id);
+  renderMonthGanttBar(container, item, weekStart, weekEnd, weekIndex, rowIndex, month) {
+    const actualStart = item.startDate < weekStart ? weekStart : item.startDate;
+    const actualEnd = item.endDate > weekEnd ? weekEnd : item.endDate;
+    const startCol = actualStart.getDay() + 1;
+    const endCol = actualEnd.getDay() + 1;
+    const span = endCol - startCol + 1;
+    const gridRow = weekIndex * 5 + rowIndex + 2;
+    const bar = container.createDiv("pm-timeview-gantt-bar");
+    bar.style.gridColumn = `${startCol} / span ${span}`;
+    bar.style.gridRow = String(gridRow);
+    bar.style.margin = "1px 2px";
+    bar.style.height = "22px";
+    const priorityColor = getPriorityColor2(item.entity.priority);
+    if (item.isMilestone) {
+      bar.classList.add("pm-timeview-gantt-bar--milestone");
+      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
+      bar.style.color = "#fff";
+    } else {
+      if (item.progress > 0) {
+        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
+      } else {
+        bar.style.background = priorityColor.bg;
+      }
+      bar.style.color = priorityColor.text;
+    }
+    bar.style.borderRadius = "3px";
+    bar.style.padding = "2px 6px";
+    bar.style.fontSize = "10px";
+    bar.style.fontWeight = item.isMilestone ? "600" : "500";
+    bar.style.whiteSpace = "nowrap";
+    bar.style.overflow = "hidden";
+    bar.style.textOverflow = "ellipsis";
+    bar.style.cursor = "pointer";
+    bar.style.display = "flex";
+    bar.style.alignItems = "center";
+    bar.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+    if (item.isMilestone) {
+      bar.textContent = "\u{1F537} ";
+    }
+    bar.appendChild(document.createTextNode(item.entity.name));
+    bar.addEventListener("mouseenter", () => {
+      bar.style.transform = "translateY(-1px)";
+      bar.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      bar.style.zIndex = "10";
+    });
+    bar.addEventListener("mouseleave", () => {
+      bar.style.transform = "translateY(0)";
+      bar.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+      bar.style.zIndex = "auto";
+    });
+    bar.addEventListener("click", () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
     });
   }
+  /**
+   * 渲染跨天任务条
+   */
+  renderMultiDayBar(container, item, startDate) {
+    const bar = container.createDiv("pm-timeview-month-bar");
+    const priorityColor = getPriorityColor2(item.entity.priority);
+    bar.style.background = priorityColor.bg;
+    if (item.isMilestone) {
+      bar.classList.add("pm-timeview-month-bar--milestone");
+    }
+    bar.textContent = item.entity.name;
+    bar.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
+    bar.addEventListener("click", () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
+    });
+  }
+  /**
+   * 渲染月视图中的单个任务
+   */
+  renderMonthItem(container, item, isStartDay = false) {
+    const itemEl = container.createDiv("pm-timeview-month-item");
+    if (item.isMilestone) {
+      itemEl.classList.add("pm-timeview-month-item--milestone");
+    }
+    const priorityColor = getPriorityColor2(item.entity.priority);
+    const isMultiDay = item.startDate.getTime() !== item.endDate.getTime();
+    if (isMultiDay && isStartDay) {
+      itemEl.style.background = `linear-gradient(90deg, ${priorityColor.bg}, transparent)`;
+      itemEl.style.borderLeft = `4px solid ${priorityColor.text}`;
+    } else {
+      itemEl.style.borderLeft = `3px solid ${priorityColor.bg}`;
+    }
+    const title = itemEl.createDiv("pm-timeview-month-item-title");
+    if (isMultiDay && isStartDay) {
+      title.createSpan({
+        cls: "pm-timeview-month-item-range",
+        text: "[\u2192] "
+      }).style.cssText = "color: var(--text-muted); font-size: 10px;";
+    }
+    title.appendChild(document.createTextNode(item.entity.name));
+    if (item.isMilestone) {
+      title.createSpan({
+        cls: "pm-timeview-month-item-milestone-icon",
+        text: " \u{1F537}"
+      });
+    }
+    if (!item.isMilestone && item.progress > 0) {
+      const progress = itemEl.createDiv("pm-timeview-month-item-progress");
+      progress.style.cssText = `
+        height: 2px;
+        background: var(--background-modifier-border);
+        border-radius: 1px;
+        margin-top: 2px;
+        overflow: hidden;
+      `;
+      const fill = progress.createDiv();
+      fill.style.cssText = `
+        height: 100%;
+        width: ${item.progress}%;
+        background: ${priorityColor.text};
+      `;
+    }
+    itemEl.addEventListener("click", () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
+    });
+  }
+  /**
+   * 渲染季度视图
+   */
+  renderQuarterView(container, items) {
+    container.empty();
+    container.createDiv({
+      cls: "pm-timeview-placeholder",
+      text: "\u5B63\u5EA6\u89C6\u56FE\u5F00\u53D1\u4E2D..."
+    });
+  }
+  /**
+   * 获取周开始日期（周日）
+   */
+  getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  }
+  /**
+   * 判断是否为同一天
+   */
+  isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  }
+  /**
+   * 判断日期是否在范围内
+   */
+  isDateInRange(date, start, end) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const s = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    return d >= s && d <= e;
+  }
 };
+// 静态变量保持状态 across 重新渲染
+_TimeViewRenderer.sharedState = null;
+var TimeViewRenderer = _TimeViewRenderer;
 
 // src/view-engine/ViewEngine.ts
 var ViewEngine = class {
   constructor(app, entityManager) {
     this.app = app;
     this.entityManager = entityManager;
+    this.pendingSave = {};
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
+  }
+  /**
+   * 防抖保存配置 - 避免频繁保存
+   */
+  debouncedSave(sourcePath, codeBlockIndex, updates, delay = 300) {
+    const key = `${sourcePath}:${codeBlockIndex}`;
+    if (this.pendingSave[key]) {
+      clearTimeout(this.pendingSave[key]);
+    }
+    this.pendingSave[key] = setTimeout(() => {
+      this.saveViewConfig(sourcePath, codeBlockIndex, updates);
+      delete this.pendingSave[key];
+    }, delay);
   }
   /**
    * 渲染视图 - 工具栏在上，筛选在中，视图在下
@@ -6228,7 +6825,7 @@ var ViewEngine = class {
       text: "\u6392\u5E8F \u25BC"
     });
     sortBtn.addEventListener("click", () => {
-      this.showSortMenu(sortBtn, wrapper, config, context);
+      this.showSortMenu(sortBtn, wrapper, config, context, codeBlockIndex);
     });
     const propBtn = buttonGroup.createEl("button", {
       cls: "pm-toolbar-btn",
@@ -6236,14 +6833,6 @@ var ViewEngine = class {
     });
     propBtn.addEventListener("click", () => {
       this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
-    });
-    const settingsBtn = buttonGroup.createEl("button", {
-      cls: "pm-toolbar-btn pm-toolbar-icon",
-      text: "\u2699\uFE0F"
-    });
-    settingsBtn.title = "\u89C6\u56FE\u8BBE\u7F6E";
-    settingsBtn.addEventListener("click", () => {
-      console.log("\u89C6\u56FE\u8BBE\u7F6E\u529F\u80FD\u5F85\u5B9E\u73B0");
     });
     return toolbar;
   }
@@ -6345,8 +6934,8 @@ var ViewEngine = class {
         return new CascadeRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "timeline":
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
-      case "calendar":
-        return new CalendarRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case "timeview":
+        return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -6407,7 +6996,7 @@ var ViewEngine = class {
   /**
    * 显示排序菜单
    */
-  showSortMenu(triggerBtn, wrapper, config, context) {
+  showSortMenu(triggerBtn, wrapper, config, context, codeBlockIndex) {
     const existingMenu = document.querySelector(".pm-sort-menu");
     if (existingMenu)
       existingMenu.remove();
@@ -6457,7 +7046,7 @@ var ViewEngine = class {
           sortBy: field.value,
           sortOrder: currentSortBy === field.value && currentSortOrder === "asc" ? "desc" : "asc"
         };
-        await this.saveSortConfig(context.sourcePath, config, newConfig);
+        await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
         const contentArea = wrapper.querySelector(".pm-view-content");
         if (contentArea) {
           await this.renderContent(contentArea, newConfig, context);
@@ -6569,12 +7158,12 @@ var ViewEngine = class {
       if (config.entityType === type.value)
         option.selected = true;
     });
-    select.addEventListener("change", async () => {
+    select.addEventListener("change", () => {
       const newConfig = { ...config, entityType: select.value };
-      await this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, select.value);
+      this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, select.value);
       const contentArea = wrapper.querySelector(".pm-view-content");
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -6601,7 +7190,7 @@ var ViewEngine = class {
       const text = label.createSpan();
       text.textContent = field.label + (field.required ? " (\u5FC5\u9009)" : "");
       text.style.cssText = field.required ? "color: var(--text-muted);" : "";
-      checkbox.addEventListener("change", async () => {
+      checkbox.addEventListener("change", () => {
         let newColumns = [...currentColumns];
         if (checkbox.checked) {
           if (!newColumns.includes(field.key)) {
@@ -6611,10 +7200,10 @@ var ViewEngine = class {
           newColumns = newColumns.filter((k) => k !== field.key);
         }
         const newConfig = { ...config, listColumns: newColumns };
-        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { listColumns: newColumns });
+        this.debouncedSave(context.sourcePath, codeBlockIndex, { listColumns: newColumns });
         const contentArea = wrapper.querySelector(".pm-view-content");
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          this.renderContent(contentArea, newConfig, context);
         }
       });
     });
@@ -6663,7 +7252,7 @@ var ViewEngine = class {
       checkbox.type = "checkbox";
       checkbox.checked = currentOptional.includes(field.key);
       label.createSpan({ text: field.label });
-      checkbox.addEventListener("change", async () => {
+      checkbox.addEventListener("change", () => {
         let newOptional = [...currentOptional];
         if (checkbox.checked) {
           if (!newOptional.includes(field.key)) {
@@ -6674,10 +7263,10 @@ var ViewEngine = class {
         }
         const newCardFields = { ...currentCardFields, optional: newOptional };
         const newConfig = { ...config, cardFields: newCardFields };
-        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cardFields: newCardFields });
+        this.debouncedSave(context.sourcePath, codeBlockIndex, { cardFields: newCardFields });
         const contentArea = wrapper.querySelector(".pm-view-content");
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          this.renderContent(contentArea, newConfig, context);
         }
       });
     });
@@ -6705,12 +7294,12 @@ var ViewEngine = class {
       if (config.groupBy === opt.value)
         option.selected = true;
     });
-    select.addEventListener("change", async () => {
+    select.addEventListener("change", () => {
       const newConfig = { ...config, groupBy: select.value };
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { groupBy: select.value });
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { groupBy: select.value });
       const contentArea = wrapper.querySelector(".pm-view-content");
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -6733,13 +7322,13 @@ var ViewEngine = class {
       if ((config.cols || 3) === num)
         option.selected = true;
     });
-    select.addEventListener("change", async () => {
+    select.addEventListener("change", () => {
       const newCols = parseInt(select.value);
       const newConfig = { ...config, cols: newCols };
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cols: newCols });
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { cols: newCols });
       const contentArea = wrapper.querySelector(".pm-view-content");
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -6758,80 +7347,30 @@ var ViewEngine = class {
     input.placeholder = "\u65E0\u9650\u5236";
     input.value = config.limit ? String(config.limit) : "";
     input.style.cssText = "width: 100%; padding: 4px 8px;";
-    input.addEventListener("change", async () => {
+    input.addEventListener("change", () => {
       const limit = input.value ? parseInt(input.value) : void 0;
       const newConfig = { ...config, limit };
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { limit });
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { limit });
       const contentArea = wrapper.querySelector(".pm-view-content");
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
   /**
-   * 保存排序配置
+   * 保存排序配置 - 使用 YAML 解析
    */
-  async saveSortConfig(sourcePath, oldConfig, newConfig) {
-    if (!sourcePath)
-      return;
-    const { TFile: TFile10 } = require("obsidian");
-    const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile10))
-      return;
-    try {
-      const content = await this.app.vault.read(file);
-      let newContent = content;
-      if (content.includes("sortBy:")) {
-        newContent = content.replace(/sortBy:\s*\w+/, `sortBy: ${newConfig.sortBy}`);
-      } else {
-        newContent = content.replace(
-          /(```pm-view\n)/,
-          `$1sortBy: ${newConfig.sortBy}
-`
-        );
-      }
-      if (content.includes("sortOrder:")) {
-        newContent = newContent.replace(/sortOrder:\s*\w+/, `sortOrder: ${newConfig.sortOrder}`);
-      } else {
-        newContent = newContent.replace(
-          /(sortBy:.*\n)/,
-          `$1sortOrder: ${newConfig.sortOrder}
-`
-        );
-      }
-      if (newContent !== content) {
-        await this.app.vault.modify(file, newContent);
-      }
-    } catch (error) {
-      console.error("\u4FDD\u5B58\u6392\u5E8F\u914D\u7F6E\u5931\u8D25:", error);
-    }
+  async saveSortConfig(sourcePath, codeBlockIndex, newConfig) {
+    await this.saveViewConfig(sourcePath, codeBlockIndex, {
+      sortBy: newConfig.sortBy,
+      sortOrder: newConfig.sortOrder
+    });
   }
   /**
-   * 保存实体类型配置
+   * 保存实体类型配置 - 使用统一的 saveViewConfig
    */
   async saveEntityTypeConfig(sourcePath, codeBlockIndex, entityType) {
-    if (!sourcePath)
-      return;
-    const { TFile: TFile10 } = require("obsidian");
-    const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile10))
-      return;
-    try {
-      const content = await this.app.vault.read(file);
-      if (content.includes("entityType:")) {
-        const newContent = content.replace(/entityType:\s*\w+/, `entityType: ${entityType}`);
-        await this.app.vault.modify(file, newContent);
-      } else {
-        const newContent = content.replace(
-          /(```pm-view\n)/,
-          `$1entityType: ${entityType}
-`
-        );
-        await this.app.vault.modify(file, newContent);
-      }
-    } catch (error) {
-      console.error("\u4FDD\u5B58\u5B9E\u4F53\u7C7B\u578B\u914D\u7F6E\u5931\u8D25:", error);
-    }
+    await this.saveViewConfig(sourcePath, codeBlockIndex, { entityType });
   }
   /**
    * 渲染错误状态

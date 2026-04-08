@@ -1,4 +1,4 @@
-import type { App } from 'obsidian';
+import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFields } from '../types';
@@ -11,8 +11,6 @@ import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
  */
 export class ListRenderer extends BaseRenderer {
   private entities: Entity[] = [];
-  private sortField: string = 'name';
-  private sortOrder: 'asc' | 'desc' = 'asc';
 
   constructor(
     app: App,
@@ -32,7 +30,11 @@ export class ListRenderer extends BaseRenderer {
 
     this.entities = await this.dataService.loadEntities(this.config);
     const filtered = this.dataService.applyFilters(this.entities, this.config);
-    const sorted = this.applyListSort(filtered);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
 
     // 创建列表容器
     const listContainer = container.createDiv('pm-list-container');
@@ -80,22 +82,26 @@ export class ListRenderer extends BaseRenderer {
       const option = sortSelect.createEl('option');
       option.value = opt.value;
       option.textContent = opt.label;
-      if (opt.value === this.sortField) option.selected = true;
+      if (opt.value === (this.config.sortBy || 'name')) option.selected = true;
     });
 
-    sortSelect.addEventListener('change', () => {
-      this.sortField = sortSelect.value;
+    sortSelect.addEventListener('change', async () => {
+      const newConfig: ViewConfig = { ...this.config, sortBy: sortSelect.value as any };
+      await this.saveSortConfig(newConfig);
       this.render(container.closest('.pm-list-view') as HTMLElement);
     });
 
     // 排序方向按钮
+    const currentSortOrder = this.config.sortOrder || 'asc';
     const orderBtn = sortControl.createEl('button', { 
       cls: 'pm-list-sort-order',
-      attr: { title: this.sortOrder === 'asc' ? '升序' : '降序' }
+      attr: { title: currentSortOrder === 'asc' ? '升序' : '降序' }
     });
-    orderBtn.textContent = this.sortOrder === 'asc' ? '↑' : '↓';
-    orderBtn.addEventListener('click', () => {
-      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    orderBtn.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+    orderBtn.addEventListener('click', async () => {
+      const newOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      const newConfig: ViewConfig = { ...this.config, sortOrder: newOrder };
+      await this.saveSortConfig(newConfig);
       this.render(container.closest('.pm-list-view') as HTMLElement);
     });
   }
@@ -238,9 +244,75 @@ export class ListRenderer extends BaseRenderer {
   }
 
   /**
-   * 应用列表排序
+   * 保存排序配置到代码块 - 使用 YAML 解析
    */
-  private applyListSort(entities: Entity[]): Entity[] {
-    return this.dataService.applySort(entities, this.sortField, this.sortOrder);
+  private async saveSortConfig(newConfig: ViewConfig): Promise<void> {
+    if (!this.context.sourcePath) return;
+
+    const { TFile, parseYaml, stringifyYaml } = require('obsidian');
+    const file = this.app.vault.getAbstractFileByPath(this.context.sourcePath);
+    if (!(file instanceof TFile)) return;
+
+    try {
+      const content = await this.app.vault.read(file as TFile);
+      const lines = content.split('\n');
+
+      // 找到第一个 pm-view 代码块
+      let blockStart = -1;
+      let blockEnd = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '```pm-view') {
+          blockStart = i;
+        }
+        if (blockStart !== -1 && line === '```') {
+          blockEnd = i;
+          break;
+        }
+      }
+
+      if (blockStart === -1 || blockEnd === -1) return;
+
+      // 提取并解析配置
+      const configLines = lines.slice(blockStart + 1, blockEnd);
+      const configText = configLines.join('\n');
+      const currentConfig = parseYaml(configText) || {};
+
+      // 合并排序配置
+      const updatedConfig = {
+        ...currentConfig,
+        sortBy: newConfig.sortBy,
+        sortOrder: newConfig.sortOrder
+      };
+
+      // 清理 undefined 值
+      Object.keys(updatedConfig).forEach(key => {
+        if (updatedConfig[key] === undefined) {
+          delete updatedConfig[key];
+        }
+      });
+
+      // 序列化为 YAML
+      const yamlContent = stringifyYaml(updatedConfig).trim();
+      const newBlock = ['```pm-view', yamlContent, '```'];
+
+      // 替换原代码块
+      const newLines = [
+        ...lines.slice(0, blockStart),
+        ...newBlock,
+        ...lines.slice(blockEnd + 1)
+      ];
+
+      const newContent = newLines.join('\n');
+      if (newContent !== content) {
+        await this.app.vault.modify(file as TFile, newContent);
+      }
+      
+      // 更新本地配置
+      this.config = newConfig;
+    } catch (error) {
+      console.error('保存排序配置失败:', error);
+    }
   }
 }

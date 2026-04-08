@@ -31,8 +31,8 @@ export class TimelineRenderer extends BaseRenderer {
     const filtered = this.dataService.applyFilters(entities, this.config);
     const sorted = this.dataService.applySort(
       filtered,
-      this.config.sortBy || 'dueDate',
-      this.config.sortOrder || 'asc'
+      this.config.sortBy,
+      this.config.sortOrder
     );
 
     // 根据方向渲染

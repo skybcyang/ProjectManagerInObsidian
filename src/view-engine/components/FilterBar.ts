@@ -266,41 +266,11 @@ export class FilterBar {
   }
 
   /**
-   * 创建下拉选择器
-   */
-  private createSelect(
-    container: HTMLElement,
-    label: string,
-    options: Array<{ value: string; label: string }>,
-    value: string,
-    onChange: (value: string) => void
-  ): HTMLElement {
-    const wrapper = container.createDiv('pm-filter-field');
-    
-    const select = wrapper.createEl('select', { cls: 'pm-filter-select' });
-    options.forEach(opt => {
-      const option = select.createEl('option', {
-        text: opt.label,
-        value: opt.value,
-      });
-      if (opt.value === value) {
-        option.selected = true;
-      }
-    });
-
-    select.addEventListener('change', () => {
-      onChange(select.value);
-    });
-
-    return wrapper;
-  }
-
-  /**
-   * 创建紧凑版下拉选择器（无标签，placeholder形式）
+   * 创建紧凑下拉选择器（用于横向筛选栏）
    */
   private createSelectCompact(
     container: HTMLElement,
-    placeholder: string,
+    label: string,
     options: Array<{ value: string; label: string }>,
     value: string,
     onChange: (value: string) => void
@@ -308,16 +278,7 @@ export class FilterBar {
     const wrapper = container.createDiv('pm-filter-field-compact');
     
     const select = wrapper.createEl('select', { cls: 'pm-filter-select-compact' });
-    
-    // 添加 placeholder 选项
-    const placeholderOption = select.createEl('option', {
-      text: placeholder,
-      value: '',
-    });
-    placeholderOption.disabled = true;
-    
     options.forEach(opt => {
-      if (opt.value === '') return; // 跳过已添加的 placeholder
       const option = select.createEl('option', {
         text: opt.label,
         value: opt.value,
@@ -389,7 +350,7 @@ export class FilterBar {
   ): void {
     if (!this.container) return;
     
-    const selects = this.container.querySelectorAll('.pm-filter-select');
+    const selects = this.container.querySelectorAll('.pm-filter-select-compact');
     selects.forEach((selectEl, index) => {
       const parent = selectEl.parentElement;
       if (!parent) return;
@@ -398,7 +359,7 @@ export class FilterBar {
       const labelMap = ['版本', '项目', '特性', '状态', '优先级', '负责人'];
       if (labelMap[index] === labelText) {
         parent.empty();
-        const select = parent.createEl('select', { cls: 'pm-filter-select' });
+        const select = parent.createEl('select', { cls: 'pm-filter-select-compact' });
         options.forEach(opt => {
           const option = select.createEl('option', {
             text: opt.label,
@@ -424,7 +385,7 @@ export class FilterBar {
     this.loadOptions().then(() => {
       if (this.container) {
         // 重置所有下拉框
-        const selects = this.container.querySelectorAll('.pm-filter-select');
+        const selects = this.container.querySelectorAll('.pm-filter-select-compact');
         selects.forEach((selectEl, index) => {
           const select = selectEl as HTMLSelectElement;
           select.value = '';

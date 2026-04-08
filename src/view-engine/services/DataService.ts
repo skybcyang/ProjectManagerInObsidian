@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { Entity, ViewConfig } from '../types';
+import type { Entity, ViewConfig, SortConfig } from '../types';
 
 /**
  * 数据服务 - 简化版
@@ -22,28 +22,51 @@ export class DataService {
       return feature ? [feature as Entity] : [];
     }
 
-    // 如果指定了项目ID，加载特定项目
-    if (config.project) {
-      const project = await this.entityManager.getProject(config.project);
-      return project ? [project as Entity] : [];
+    // 根据 entityType 加载对应类型的实体
+    const entityType = config.entityType || 'feature';
+    
+    switch (entityType) {
+      case 'project': {
+        const projects = await this.entityManager.listProjects();
+        // 如果指定了项目ID，过滤出特定项目
+        if (config.project) {
+          return projects.filter(p => p.id === config.project) as Entity[];
+        }
+        return projects as Entity[];
+      }
+      case 'version': {
+        const versions = await this.entityManager.listVersions();
+        // 如果指定了版本ID，过滤出特定版本
+        if (config.version) {
+          return versions.filter(v => v.id === config.version) as Entity[];
+        }
+        return versions as Entity[];
+      }
+      case 'feature':
+      default: {
+        // 加载特性，可以根据项目ID或版本ID筛选
+        const features = await this.entityManager.listFeatures({
+          projectId: config.project,
+          versionId: config.version,
+        });
+        return features as Entity[];
+      }
     }
-
-    // 如果指定了版本ID，加载特定版本
-    if (config.version) {
-      const version = await this.entityManager.getVersion(config.version);
-      return version ? [version as Entity] : [];
-    }
-
-    // 否则加载特性列表（默认）
-    const features = await this.entityManager.listFeatures({});
-    return features as Entity[];
   }
 
   /**
    * 应用过滤器 - 使用扁平化的筛选字段
    */
   applyFilters(entities: Entity[], config: ViewConfig): Entity[] {
-    return entities.filter((entity) => {
+    console.log('[DataService.applyFilters] 配置:', {
+      project: config.project,
+      version: config.version,
+      status: config.status,
+      priority: config.priority,
+    });
+    console.log('[DataService.applyFilters] 实体数量:', entities.length);
+    
+    const filtered = entities.filter((entity) => {
       // 状态过滤
       if (config.status && 'status' in entity && entity.status !== config.status) {
         return false;
@@ -76,64 +99,95 @@ export class DataService {
 
       return true;
     });
+    
+    console.log('[DataService.applyFilters] 过滤后:', filtered.length);
+    return filtered;
   }
 
   /**
-   * 应用排序
+   * 应用排序 - 支持单字段或多字段排序
    */
   applySort(
     entities: Entity[],
-    sortBy?: string,
+    sortBy?: string | SortConfig[],
     sortOrder: 'asc' | 'desc' = 'asc'
   ): Entity[] {
-    if (!sortBy) return entities;
+    // 如果是数组，使用多字段排序
+    if (Array.isArray(sortBy) && sortBy.length > 0) {
+      return this.applyMultiFieldSort(entities, sortBy);
+    }
+    
+    // 单字段排序
+    if (!sortBy || typeof sortBy !== 'string') return entities;
 
     const sorted = [...entities].sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'dueDate':
-          if ('dueDate' in a && 'dueDate' in b) {
-            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-            comparison = dateA - dateB;
-          }
-          break;
-        case 'priority':
-          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-          if ('priority' in a && 'priority' in b) {
-            const orderA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 99;
-            const orderB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 99;
-            comparison = orderA - orderB;
-          }
-          break;
-        case 'progress':
-          if ('progress' in a && 'progress' in b) {
-            comparison = (a.progress || 0) - (b.progress || 0);
-          }
-          break;
-        case 'status':
-          const statusOrder = { backlog: 0, todo: 1, 'in-progress': 2, testing: 3, completed: 4, archived: 5 };
-          if ('status' in a && 'status' in b) {
-            const orderA = statusOrder[a.status as keyof typeof statusOrder] ?? 99;
-            const orderB = statusOrder[b.status as keyof typeof statusOrder] ?? 99;
-            comparison = orderA - orderB;
-          }
-          break;
-        case 'created':
-          comparison = a.id.localeCompare(b.id);
-          break;
-        default:
-          comparison = 0;
-      }
-
+      const comparison = this.compareField(a, b, sortBy as string);
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
     return sorted;
+  }
+
+  /**
+   * 多字段排序
+   */
+  private applyMultiFieldSort(entities: Entity[], sorts: SortConfig[]): Entity[] {
+    const sorted = [...entities].sort((a, b) => {
+      for (const sort of sorts) {
+        const comparison = this.compareField(a, b, sort.field);
+        if (comparison !== 0) {
+          return sort.order === 'desc' ? -comparison : comparison;
+        }
+      }
+      return 0;
+    });
+    return sorted;
+  }
+
+  /**
+   * 比较两个实体的单个字段
+   */
+  private compareField(a: Entity, b: Entity, field: string): number {
+    switch (field) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'dueDate':
+        if ('dueDate' in a && 'dueDate' in b) {
+          const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          return dateA - dateB;
+        }
+        return 0;
+      case 'priority':
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        if ('priority' in a && 'priority' in b) {
+          const orderA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 99;
+          const orderB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 99;
+          return orderA - orderB;
+        }
+        return 0;
+      case 'progress':
+        if ('progress' in a && 'progress' in b) {
+          return (a.progress || 0) - (b.progress || 0);
+        }
+        return 0;
+      case 'status':
+        const statusOrder = { backlog: 0, todo: 1, 'in-progress': 2, testing: 3, completed: 4, archived: 5 };
+        if ('status' in a && 'status' in b) {
+          const orderA = statusOrder[a.status as keyof typeof statusOrder] ?? 99;
+          const orderB = statusOrder[b.status as keyof typeof statusOrder] ?? 99;
+          return orderA - orderB;
+        }
+        return 0;
+      case 'created':
+        return a.id.localeCompare(b.id);
+      case 'owner':
+        const ownerA = a.owner || '';
+        const ownerB = b.owner || '';
+        return ownerA.localeCompare(ownerB);
+      default:
+        return 0;
+    }
   }
 
   /**

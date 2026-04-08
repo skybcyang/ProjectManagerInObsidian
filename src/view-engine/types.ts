@@ -6,7 +6,7 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'calendar';
+export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
@@ -15,7 +15,7 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'grid': '▦ 网格视图',
   'cascade': '🌲 级联视图',
   'timeline': '⏱️ 时间线视图',
-  'calendar': '🗓️ 日历视图'
+  'timeview': '🗓️ 时间视图'
 };
 
 // 实体类型

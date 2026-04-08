@@ -72,9 +72,12 @@ export class CascadeRenderer extends BaseRenderer {
       return;
     }
 
+    // 应用排序
+    const sortedProjects = this.sortEntities(projects) as Project[];
+
     // 渲染项目列表
     const projectsContainer = versionSection.createDiv('pm-cascade__projects');
-    for (const project of projects) {
+    for (const project of sortedProjects) {
       await this.renderProjectCard(projectsContainer, project);
     }
   }
@@ -138,7 +141,10 @@ export class CascadeRenderer extends BaseRenderer {
       return;
     }
 
-    for (const version of versions) {
+    // 应用排序
+    const sortedVersions = this.sortEntities(versions) as Version[];
+
+    for (const version of sortedVersions) {
       await this.renderVersionTree(container, version.id, 0);
     }
   }
@@ -246,7 +252,11 @@ export class CascadeRenderer extends BaseRenderer {
 
     // 加载特性统计
     const features = await this.entityManager.listFeatures({ projectId: project.id });
-    const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
+    
+    // 应用排序
+    const sortedFeatures = this.sortEntities(features) as Feature[];
+    
+    const totalProgress = sortedFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter(f => f.status === 'completed').length;
 
@@ -273,12 +283,12 @@ export class CascadeRenderer extends BaseRenderer {
     }
 
     // 特性列表
-    if (features.length > 0) {
+    if (sortedFeatures.length > 0) {
       const featuresContainer = card.createDiv('pm-cascade__features');
       
       // 限制显示数量
       const maxFeatures = isSingleView ? 50 : 5;
-      const displayFeatures = features.slice(0, maxFeatures);
+      const displayFeatures = sortedFeatures.slice(0, maxFeatures);
       
       for (const feature of displayFeatures) {
         const isHighlighted = highlightFeature && feature.id === highlightFeature.id;
@@ -286,10 +296,10 @@ export class CascadeRenderer extends BaseRenderer {
       }
 
       // 更多提示
-      if (features.length > maxFeatures) {
+      if (sortedFeatures.length > maxFeatures) {
         featuresContainer.createDiv({
           cls: 'pm-cascade__more-features',
-          text: `还有 ${features.length - maxFeatures} 个特性...`,
+          text: `还有 ${sortedFeatures.length - maxFeatures} 个特性...`,
         });
       }
     }
@@ -364,5 +374,16 @@ export class CascadeRenderer extends BaseRenderer {
     }
 
     return row;
+  }
+
+  /**
+   * 对实体列表进行排序
+   */
+  private sortEntities(entities: Entity[]): Entity[] {
+    return this.dataService.applySort(
+      entities,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
   }
 }

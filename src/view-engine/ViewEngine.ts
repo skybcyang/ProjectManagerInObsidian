@@ -11,7 +11,7 @@ import {
   GridRenderer,
   CascadeRenderer,
   TimelineRenderer,
-  CalendarRenderer,
+  TimeViewRenderer,
 } from './renderers';
 
 /**
@@ -21,6 +21,7 @@ import {
 export class ViewEngine {
   private dataService: DataService;
   private actionService: ActionService;
+  private pendingSave: { [key: string]: NodeJS.Timeout } = {};
 
   constructor(
     private app: App,
@@ -28,6 +29,29 @@ export class ViewEngine {
   ) {
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
+  }
+
+  /**
+   * 防抖保存配置 - 避免频繁保存
+   */
+  private debouncedSave(
+    sourcePath: string,
+    codeBlockIndex: number | undefined,
+    updates: Partial<ViewConfig>,
+    delay: number = 300
+  ): void {
+    const key = `${sourcePath}:${codeBlockIndex}`;
+    
+    // 清除之前的定时器
+    if (this.pendingSave[key]) {
+      clearTimeout(this.pendingSave[key]);
+    }
+    
+    // 设置新的定时器
+    this.pendingSave[key] = setTimeout(() => {
+      this.saveViewConfig(sourcePath, codeBlockIndex, updates);
+      delete this.pendingSave[key];
+    }, delay);
   }
 
   /**
@@ -135,7 +159,7 @@ export class ViewEngine {
       text: '排序 ▼',
     });
     sortBtn.addEventListener('click', () => {
-      this.showSortMenu(sortBtn, wrapper, config, context);
+      this.showSortMenu(sortBtn, wrapper, config, context, codeBlockIndex);
     });
 
     // 属性按钮
@@ -145,17 +169,6 @@ export class ViewEngine {
     });
     propBtn.addEventListener('click', () => {
       this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
-    });
-
-    // 设置按钮
-    const settingsBtn = buttonGroup.createEl('button', {
-      cls: 'pm-toolbar-btn pm-toolbar-icon',
-      text: '⚙️',
-    });
-    settingsBtn.title = '视图设置';
-    settingsBtn.addEventListener('click', () => {
-      // TODO: 显示视图设置
-      console.log('视图设置功能待实现');
     });
 
     return toolbar;
@@ -301,8 +314,8 @@ export class ViewEngine {
         return new CascadeRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case 'timeline':
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
-      case 'calendar':
-        return new CalendarRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case 'timeview':
+        return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -386,7 +399,8 @@ export class ViewEngine {
     triggerBtn: HTMLElement,
     wrapper: HTMLElement,
     config: ViewConfig,
-    context: ViewContext
+    context: ViewContext,
+    codeBlockIndex?: number
   ): void {
     const existingMenu = document.querySelector('.pm-sort-menu');
     if (existingMenu) existingMenu.remove();
@@ -443,7 +457,7 @@ export class ViewEngine {
           sortBy: field.value as any,
           sortOrder: currentSortBy === field.value && currentSortOrder === 'asc' ? 'desc' : 'asc'
         };
-        await this.saveSortConfig(context.sourcePath, config, newConfig);
+        await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
         const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (contentArea) {
           await this.renderContent(contentArea, newConfig, context);
@@ -592,12 +606,12 @@ export class ViewEngine {
       option.textContent = type.label;
       if (config.entityType === type.value) option.selected = true;
     });
-    select.addEventListener('change', async () => {
+    select.addEventListener('change', () => {
       const newConfig: ViewConfig = { ...config, entityType: select.value as any };
-      await this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, select.value);
+      this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, select.value);
       const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -638,7 +652,7 @@ export class ViewEngine {
       text.textContent = field.label + (field.required ? ' (必选)' : '');
       text.style.cssText = field.required ? 'color: var(--text-muted);' : '';
 
-      checkbox.addEventListener('change', async () => {
+      checkbox.addEventListener('change', () => {
         let newColumns = [...currentColumns];
         if (checkbox.checked) {
           if (!newColumns.includes(field.key as ListColumnField)) {
@@ -648,11 +662,11 @@ export class ViewEngine {
           newColumns = newColumns.filter(k => k !== field.key);
         }
         const newConfig: ViewConfig = { ...config, listColumns: newColumns };
-        // 保存到代码块
-        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { listColumns: newColumns });
+        // 防抖保存到代码块
+        this.debouncedSave(context.sourcePath, codeBlockIndex, { listColumns: newColumns });
         const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          this.renderContent(contentArea, newConfig, context);
         }
       });
     });
@@ -721,7 +735,7 @@ export class ViewEngine {
 
       label.createSpan({ text: field.label });
 
-      checkbox.addEventListener('change', async () => {
+      checkbox.addEventListener('change', () => {
         let newOptional = [...currentOptional];
         if (checkbox.checked) {
           if (!newOptional.includes(field.key)) {
@@ -732,11 +746,11 @@ export class ViewEngine {
         }
         const newCardFields = { ...currentCardFields, optional: newOptional };
         const newConfig: ViewConfig = { ...config, cardFields: newCardFields };
-        // 保存到代码块
-        await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cardFields: newCardFields });
+        // 防抖保存到代码块
+        this.debouncedSave(context.sourcePath, codeBlockIndex, { cardFields: newCardFields });
         const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          this.renderContent(contentArea, newConfig, context);
         }
       });
     });
@@ -771,13 +785,13 @@ export class ViewEngine {
       option.textContent = opt.label;
       if (config.groupBy === opt.value) option.selected = true;
     });
-    select.addEventListener('change', async () => {
+    select.addEventListener('change', () => {
       const newConfig: ViewConfig = { ...config, groupBy: select.value as any };
-      // 保存到代码块
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { groupBy: select.value as any });
+      // 防抖保存到代码块
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { groupBy: select.value as any });
       const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -807,14 +821,14 @@ export class ViewEngine {
       option.textContent = `${num} 列`;
       if ((config.cols || 3) === num) option.selected = true;
     });
-    select.addEventListener('change', async () => {
+    select.addEventListener('change', () => {
       const newCols = parseInt(select.value) as 1 | 2 | 3 | 4;
       const newConfig: ViewConfig = { ...config, cols: newCols };
-      // 保存到代码块
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { cols: newCols });
+      // 防抖保存到代码块
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { cols: newCols });
       const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
@@ -841,92 +855,41 @@ export class ViewEngine {
     input.placeholder = '无限制';
     input.value = config.limit ? String(config.limit) : '';
     input.style.cssText = 'width: 100%; padding: 4px 8px;';
-    input.addEventListener('change', async () => {
+    input.addEventListener('change', () => {
       const limit = input.value ? parseInt(input.value) : undefined;
       const newConfig: ViewConfig = { ...config, limit };
-      // 保存到代码块
-      await this.saveViewConfig(context.sourcePath, codeBlockIndex, { limit });
+      // 防抖保存到代码块
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { limit });
       const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
       if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
+        this.renderContent(contentArea, newConfig, context);
       }
     });
   }
 
   /**
-   * 保存排序配置
+   * 保存排序配置 - 使用 YAML 解析
    */
   private async saveSortConfig(
     sourcePath: string,
-    oldConfig: ViewConfig,
+    codeBlockIndex: number | undefined,
     newConfig: ViewConfig
   ): Promise<void> {
-    if (!sourcePath) return;
-
-    const { TFile } = require('obsidian');
-    const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile)) return;
-
-    try {
-      const content = await this.app.vault.read(file as TFile);
-      let newContent = content;
-
-      if (content.includes('sortBy:')) {
-        newContent = content.replace(/sortBy:\s*\w+/, `sortBy: ${newConfig.sortBy}`);
-      } else {
-        newContent = content.replace(
-          /(```pm-view\n)/,
-          `$1sortBy: ${newConfig.sortBy}\n`
-        );
-      }
-
-      if (content.includes('sortOrder:')) {
-        newContent = newContent.replace(/sortOrder:\s*\w+/, `sortOrder: ${newConfig.sortOrder}`);
-      } else {
-        newContent = newContent.replace(
-          /(sortBy:.*\n)/,
-          `$1sortOrder: ${newConfig.sortOrder}\n`
-        );
-      }
-
-      if (newContent !== content) {
-        await this.app.vault.modify(file as TFile, newContent);
-      }
-    } catch (error) {
-      console.error('保存排序配置失败:', error);
-    }
+    await this.saveViewConfig(sourcePath, codeBlockIndex, {
+      sortBy: newConfig.sortBy,
+      sortOrder: newConfig.sortOrder
+    });
   }
 
   /**
-   * 保存实体类型配置
+   * 保存实体类型配置 - 使用统一的 saveViewConfig
    */
   private async saveEntityTypeConfig(
     sourcePath: string,
     codeBlockIndex: number | undefined,
     entityType: string
   ): Promise<void> {
-    if (!sourcePath) return;
-
-    const { TFile } = require('obsidian');
-    const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile)) return;
-
-    try {
-      const content = await this.app.vault.read(file as TFile);
-
-      if (content.includes('entityType:')) {
-        const newContent = content.replace(/entityType:\s*\w+/, `entityType: ${entityType}`);
-        await this.app.vault.modify(file as TFile, newContent);
-      } else {
-        const newContent = content.replace(
-          /(```pm-view\n)/,
-          `$1entityType: ${entityType}\n`
-        );
-        await this.app.vault.modify(file as TFile, newContent);
-      }
-    } catch (error) {
-      console.error('保存实体类型配置失败:', error);
-    }
+    await this.saveViewConfig(sourcePath, codeBlockIndex, { entityType: entityType as 'version' | 'project' | 'feature' });
   }
 
   /**

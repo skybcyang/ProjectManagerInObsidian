@@ -12,6 +12,8 @@ export interface Feature {
   tags: string[];
   progress: number;
   dueDate?: string;
+  startDate?: string;      // 开始日期，用于时间视图规划
+  isMilestone?: boolean;   // 手动标记为里程碑
 }
 
 export interface CreateFeatureData {
@@ -24,6 +26,8 @@ export interface CreateFeatureData {
   tags?: string[];
   progress?: number;
   dueDate?: string;
+  startDate?: string;      // 开始日期
+  isMilestone?: boolean;   // 标记为里程碑
 }
 
 export interface UpdateFeatureData {
@@ -36,4 +40,6 @@ export interface UpdateFeatureData {
   tags?: string[];
   progress?: number;
   dueDate?: string;
+  startDate?: string;      // 开始日期
+  isMilestone?: boolean;   // 标记为里程碑
 }
