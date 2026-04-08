@@ -6,7 +6,7 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview';
+export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview' | 'tr-milestone';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
@@ -15,7 +15,8 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'grid': '▦ 网格视图',
   'cascade': '🌲 级联视图',
   'timeline': '⏱️ 时间线视图',
-  'timeview': '🗓️ 时间视图'
+  'timeview': '🗓️ 时间视图',
+  'tr-milestone': '🎯 TR里程碑'
 };
 
 // 实体类型
@@ -140,7 +141,7 @@ export interface ViewConfig {
   limit?: number;
 
   // 分组（看板/级联/日历用）
-  groupBy?: 'status' | 'priority' | 'version' | 'project' | 'dueDate';
+  groupBy?: 'status' | 'priority' | 'version' | 'project' | 'dueDate' | 'trPhase';
 
   // 视图选项
   options?: ViewOptions;

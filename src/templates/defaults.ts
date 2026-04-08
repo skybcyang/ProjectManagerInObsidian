@@ -80,7 +80,9 @@ id: {{id}}
 name: {{name}}
 type: version
 status: {{status}}
-{{#if owner}}owner: {{owner}}
+{{#if phase}}phase: {{phase}}
+{{/if}}{{#if targetDate}}targetDate: {{targetDate}}
+{{/if}}{{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}tags:
@@ -89,10 +91,10 @@ status: {{status}}
 
 # 📦 {{name}}
 
-> **状态**: {{status}} | **ID**: {{id}}
+> **状态**: {{status}}{{#if phase}} | **当前阶段**: {{phase}}{{/if}} | **ID**: {{id}}
 {{#if owner}}> **负责人**: @{{owner}}
 {{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
-{{/if}}{{#if endDate}}> **目标日期**: {{endDate}}
+{{/if}}{{#if targetDate}}> **目标发布**: {{targetDate}}
 {{/if}}
 
 ---
@@ -116,15 +118,15 @@ Border: off
 
 ---
 
-## 🎯 版本目标
+## 🎯 TR里程碑
 
-<!-- 描述本版本的核心目标和预期成果 -->
-
-### 关键指标
-
-- [ ] 指标1: 描述
-- [ ] 指标2: 描述
-- [ ] 指标3: 描述
+| 阶段 | 状态 | 计划日期 | 实际日期 | 交付物 | 风险 |
+|------|------|----------|----------|--------|------|
+| TR3 | {{tr3.status}} | {{tr3.plannedDate}} | {{tr3.actualDate}} | {{tr3.deliverables}} | {{tr3.risks}} |
+| TR4 | {{tr4.status}} | {{tr4.plannedDate}} | {{tr4.actualDate}} | {{tr4.deliverables}} | {{tr4.risks}} |
+| TR4A | {{tr4a.status}} | {{tr4a.plannedDate}} | {{tr4a.actualDate}} | {{tr4a.deliverables}} | {{tr4a.risks}} |
+| TR5 | {{tr5.status}} | {{tr5.plannedDate}} | {{tr5.actualDate}} | {{tr5.deliverables}} | {{tr5.risks}} |
+| TR6 | {{tr6.status}} | {{tr6.plannedDate}} | {{tr6.actualDate}} | {{tr6.deliverables}} | {{tr6.risks}} |
 
 ---
 
@@ -249,7 +251,8 @@ projectId: {{projectId}}
 status: {{status}}
 priority: {{priority}}
 progress: {{progress}}
-{{#if owner}}owner: {{owner}}
+{{#if trPhase}}trPhase: {{trPhase}}
+{{/if}}{{#if owner}}owner: {{owner}}
 {{/if}}{{#if dueDate}}dueDate: {{dueDate}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}

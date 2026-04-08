@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from 'obsidian';
-import { VERSION_STATUSES } from '../constants';
+import { VERSION_STATUSES, IPD_PHASES } from '../constants';
 import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { CreateVersionData } from '../types';
 
@@ -7,6 +7,7 @@ export class CreateVersionModal extends Modal {
   private result: CreateVersionData = {
     name: '',
     status: 'planning',
+    phase: 'tr3',
     tags: [],
   };
   private onSubmit: (data: CreateVersionData) => void;
@@ -14,6 +15,7 @@ export class CreateVersionModal extends Modal {
   // 用于存储输入元素引用以便更新值
   private startDateInput: HTMLInputElement | null = null;
   private endDateInput: HTMLInputElement | null = null;
+  private targetDateInput: HTMLInputElement | null = null;
 
   constructor(app: App, onSubmit: (data: CreateVersionData) => void) {
     super(app);
@@ -50,6 +52,47 @@ export class CreateVersionModal extends Modal {
           this.result.status = value as CreateVersionData['status'];
         });
       });
+
+    // 当前 TR 阶段
+    new Setting(contentEl)
+      .setName('当前 TR 阶段')
+      .setDesc('选择版本当前的 IPD 阶段')
+      .addDropdown(dropdown => {
+        IPD_PHASES.forEach(phase => {
+          dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+        });
+        dropdown.setValue(this.result.phase || 'tr3');
+        dropdown.onChange(value => {
+          this.result.phase = value as CreateVersionData['phase'];
+        });
+      });
+
+    // TR6 目标发布日期
+    const targetDateSetting = new Setting(contentEl)
+      .setName('TR6 目标发布日期')
+      .setDesc(formatDateDisplay(this.result.targetDate) || '（可选，TR6阶段的目标发布日期）');
+    
+    targetDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.targetDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.targetDateInput.value = this.result.targetDate || '';
+      this.targetDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.targetDate = value || undefined;
+        targetDateSetting.setDesc(formatDateDisplay(this.result.targetDate) || '（可选）');
+      });
+      
+      // 快捷按钮
+      this.createQuickDateButtons(div, (date) => {
+        this.result.targetDate = date;
+        if (this.targetDateInput) {
+          this.targetDateInput.value = date;
+        }
+        targetDateSetting.setDesc(formatDateDisplay(date));
+      });
+    });
 
     // 开始日期 - 使用日历选择器
     const startDateSetting = new Setting(contentEl)
@@ -167,6 +210,8 @@ export class CreateVersionModal extends Modal {
     this.result = {
       name: 'v1.0.0 春季迭代',
       status: 'planning',
+      phase: 'tr3',
+      targetDate: nextQuarter.toISOString().split('T')[0],
       owner: '张三',
       startDate: today.toISOString().split('T')[0],
       endDate: nextQuarter.toISOString().split('T')[0],

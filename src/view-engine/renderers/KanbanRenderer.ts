@@ -11,6 +11,7 @@ import {
   getNextStatus,
   DateFormat,
 } from '../design-tokens';
+import { IPD_PHASES, getIPDPhaseColor } from '../../constants';
 
 /**
  * 看板渲染器 - 卡片式风格
@@ -52,6 +53,8 @@ export class KanbanRenderer extends BaseRenderer {
     // 根据 groupBy 决定如何分组
     if (this.config.groupBy === 'priority') {
       this.renderPriorityBoard(boardContainer, sorted);
+    } else if (this.config.groupBy === 'trPhase') {
+      this.renderTRPhaseBoard(boardContainer, sorted);
     } else {
       this.renderStatusBoard(boardContainer, sorted);
     }
@@ -342,6 +345,52 @@ export class KanbanRenderer extends BaseRenderer {
     card.addEventListener('click', () => {
       this.actionService.openEntity(entityType, entity.id);
     });
+  }
+
+  /**
+   * 按TR阶段渲染看板
+   */
+  private renderTRPhaseBoard(container: HTMLElement, entities: Entity[]): void {
+    const board = container.createDiv('pm-kanban-board');
+
+    // 只处理有trPhase字段的实体（特性）
+    const featureEntities = entities.filter(e => 'trPhase' in e);
+
+    IPD_PHASES.forEach((phase) => {
+      const columnEl = this.createColumn(board, phase.label, phase.color);
+
+      const columnEntities = featureEntities.filter(
+        (e) => (e as any).trPhase === phase.value
+      );
+
+      const countEl = columnEl.querySelector('.pm-kanban-column-count');
+      if (countEl) {
+        countEl.textContent = String(columnEntities.length);
+      }
+
+      const cardsContainer = columnEl.querySelector('.pm-kanban-cards') as HTMLElement;
+      if (cardsContainer) {
+        columnEntities.forEach((entity) => {
+          this.renderKanbanCard(cardsContainer, entity);
+        });
+      }
+    });
+
+    // 未分组的列
+    const ungroupedColumn = this.createColumn(board, '未分组', '#999');
+    const ungroupedEntities = featureEntities.filter(
+      (e) => !(e as any).trPhase
+    );
+    const ungroupedCountEl = ungroupedColumn.querySelector('.pm-kanban-column-count');
+    if (ungroupedCountEl) {
+      ungroupedCountEl.textContent = String(ungroupedEntities.length);
+    }
+    const ungroupedCardsContainer = ungroupedColumn.querySelector('.pm-kanban-cards') as HTMLElement;
+    if (ungroupedCardsContainer) {
+      ungroupedEntities.forEach((entity) => {
+        this.renderKanbanCard(ungroupedCardsContainer, entity);
+      });
+    }
   }
 
   /**

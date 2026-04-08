@@ -166,6 +166,43 @@ export class TemplateService {
   }
 
   /**
+   * 处理 {{#each}} 循环
+   */
+  private processEachBlocks(template: string, context: Record<string, unknown>): string {
+    const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+    
+    return template.replace(eachRegex, (match, variable, content) => {
+      const array = context[variable];
+      if (!Array.isArray(array)) return '';
+      
+      return array.map((item, index) => {
+        let itemContent = content;
+        
+        // 如果 item 是对象，处理其属性
+        if (typeof item === 'object' && item !== null) {
+          const itemContext = item as Record<string, unknown>;
+          
+          // 处理 {{#if}} 条件
+          itemContent = this.processIfBlocks(itemContent, itemContext);
+          
+          // 处理简单变量
+          itemContent = itemContent.replace(/\{\{(\w+)\}\}/g, (_m: string, varName: string) => {
+            const value = itemContext[varName];
+            return value !== undefined && value !== null ? String(value) : '';
+          });
+        }
+        
+        // 替换 {{this}}
+        itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
+        // 替换 {{@index}}
+        itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
+        
+        return itemContent;
+      }).join('');
+    });
+  }
+
+  /**
    * 丰富上下文，添加辅助变量
    */
   private enrichContext(context: TemplateContext): Record<string, unknown> {
@@ -189,6 +226,28 @@ export class TemplateService {
       minute: '2-digit' 
     });
 
+    // 处理 TR 检查点数据，转换为扁平化格式
+    if ('trCheckpoints' in context && Array.isArray(context.trCheckpoints)) {
+      const checkpoints = context.trCheckpoints as Array<{
+        phase: string;
+        status?: string;
+        plannedDate?: string;
+        actualDate?: string;
+        deliverables?: string[];
+        risks?: string[];
+      }>;
+      
+      for (const cp of checkpoints) {
+        enriched[`${cp.phase}`] = {
+          status: cp.status || 'not-started',
+          plannedDate: cp.plannedDate || '',
+          actualDate: cp.actualDate || '',
+          deliverables: Array.isArray(cp.deliverables) ? cp.deliverables.join('、') : '',
+          risks: Array.isArray(cp.risks) ? cp.risks.join('、') : '',
+        };
+      }
+    }
+
     return enriched;
   }
 
@@ -207,38 +266,19 @@ export class TemplateService {
   }
 
   /**
-   * 处理 {{#each}} 循环
-   */
-  private processEachBlocks(template: string, context: Record<string, unknown>): string {
-    const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
-    
-    return template.replace(eachRegex, (match, variable, content) => {
-      const array = context[variable];
-      if (!Array.isArray(array)) return '';
-      
-      return array.map((item, index) => {
-        let itemContent = content;
-        // 替换 {{this}}
-        itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
-        // 替换 {{@first}} 和 {{@last}}
-        itemContent = itemContent.replace(/\{\{@first\}\}/g, index === 0 ? 'true' : 'false');
-        itemContent = itemContent.replace(/\{\{@last\}\}/g, index === array.length - 1 ? 'true' : 'false');
-        // 替换 {{@index}}
-        itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
-        // 替换 {{#unless @first}}
-        itemContent = itemContent.replace(/\{\{#unless\s+@first\}\}/g, index === 0 ? '' : '');
-        itemContent = itemContent.replace(/\{\{\/unless\}\}/g, '');
-        return itemContent;
-      }).join('');
-    });
-  }
-
-  /**
-   * 处理简单变量
+   * 处理简单变量（支持嵌套属性，如 tr3.status）
    */
   private processVariables(template: string, context: Record<string, unknown>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
-      const value = context[variable];
+    return template.replace(/\{\{([\w.]+)\}\}/g, (match, variable) => {
+      // 支持嵌套属性访问，如 tr3.status
+      const parts = variable.split('.');
+      let value: unknown = context;
+      for (const part of parts) {
+        if (value === null || value === undefined) {
+          return '';
+        }
+        value = (value as Record<string, unknown>)[part];
+      }
       return value !== undefined && value !== null ? String(value) : '';
     });
   }

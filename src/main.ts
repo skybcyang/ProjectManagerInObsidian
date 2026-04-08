@@ -1,4 +1,4 @@
-import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild } from 'obsidian';
+import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild, Notice } from 'obsidian';
 import { EntityManager } from './core';
 import { Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
@@ -133,7 +133,46 @@ export default class ProjectManagerPlugin extends Plugin {
     // 注册设置页面
     this.addSettingTab(new TemplateSettingTab(this.app, this));
 
+    // 注册版本卡片右键菜单事件
+    this.registerVersionCardEvents();
+
     // 插件已加载
+  }
+
+  /**
+   * 注册版本卡片右键菜单事件
+   */
+  private registerVersionCardEvents(): void {
+    // 更新版本阶段
+    document.addEventListener('pm:update-version-phase', async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { versionId, newPhase } = customEvent.detail;
+      
+      const version = await this.entityManager.getVersion(versionId);
+      if (version) {
+        await this.entityManager.updateVersion(versionId, {
+          phase: newPhase,
+          trCheckpoints: version.trCheckpoints?.map(cp => 
+            cp.phase === newPhase ? { ...cp, status: 'in-progress' as const } : cp
+          ),
+        });
+        new Notice(`版本已推进到 ${newPhase.toUpperCase()}`);
+      }
+    });
+
+    // 打开版本文件
+    document.addEventListener('pm:open-version', async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { versionId } = customEvent.detail;
+      
+      const path = await this.entityManager.getVersionPath(versionId);
+      if (path) {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (file instanceof TFile) {
+          this.app.workspace.getLeaf().openFile(file);
+        }
+      }
+    });
   }
 
   onunload(): void {
@@ -299,10 +338,38 @@ export default class ProjectManagerPlugin extends Plugin {
     const firstEl = containerEl.querySelector(':scope > *');
     if (firstEl !== el) return;
 
+    // 检查容器是否是 pm-view 内部，如果是则不渲染面包屑
+    // 面包屑应该只在 markdown 预览根容器渲染，不在代码块内部渲染
+    if (containerEl.closest('.pm-view') || containerEl.closest('.pm-view-wrapper')) {
+      return;
+    }
+
+    // 确保容器是 markdown 预览容器（而不是表格等内部元素）
+    const isMarkdownContainer = containerEl.classList.contains('markdown-preview-view') ||
+                                  containerEl.classList.contains('markdown-reading-view') ||
+                                  containerEl.classList.contains('view-content') ||
+                                  el.classList.contains('mod-header');
+    
+    // 如果不是标准 markdown 容器，检查 el 是否是页面内容的前几个元素之一
+    if (!isMarkdownContainer) {
+      // 检查 el 是否是 markdown 预览区域的直接子元素
+      const markdownPreview = el.closest('.markdown-preview-view, .markdown-reading-view');
+      if (!markdownPreview) return;
+      
+      // 确保是在 markdown 预览区域的顶部
+      const allChildren = Array.from(markdownPreview.children);
+      const elIndex = allChildren.indexOf(el);
+      if (elIndex > 3) return; // 只在页面顶部前几个元素时渲染
+    }
+
     // 延迟渲染，确保 DOM 已稳定
     setTimeout(() => {
       // 再次检查容器是否还在 DOM 中
       if (!containerEl.isConnected) return;
+      
+      // 再次检查是否已经渲染过面包屑
+      if (containerEl.querySelector('.pm-breadcrumb')) return;
+      
       this.breadcrumb.renderForFile(file, containerEl);
     }, 0);
   }

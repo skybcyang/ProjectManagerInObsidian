@@ -67,7 +67,7 @@ export class FilterBar {
   }
 
   /**
-   * 渲染筛选器 - 横向紧凑卡片式，6个筛选+重置按钮排成一排
+   * 渲染筛选器 - 横向紧凑卡片式，6个筛选排成一排
    */
   render(parent: HTMLElement, initialFilters?: Partial<ViewConfig>): HTMLElement {
     this.container = parent.createDiv('pm-filter-container');
@@ -121,15 +121,6 @@ export class FilterBar {
         this.filters.owner = value || undefined;
         this.onFilterChange();
       });
-
-    // 重置按钮
-    const resetBtn = filterBar.createEl('button', {
-      cls: 'pm-filter-reset-compact',
-      text: '↺ 重置',
-    });
-    resetBtn.addEventListener('click', () => {
-      this.resetFilters();
-    });
 
     return this.container;
   }
@@ -372,27 +363,6 @@ export class FilterBar {
         select.addEventListener('change', () => {
           onChange(select.value);
         });
-      }
-    });
-  }
-
-  /**
-   * 重置所有筛选条件
-   */
-  private resetFilters(): void {
-    this.filters = { mode: this.filters.mode };
-    
-    this.loadOptions().then(() => {
-      if (this.container) {
-        // 重置所有下拉框
-        const selects = this.container.querySelectorAll('.pm-filter-select-compact');
-        selects.forEach((selectEl, index) => {
-          const select = selectEl as HTMLSelectElement;
-          select.value = '';
-        });
-        
-        // 触发刷新并保存
-        this.onFilterChange();
       }
     });
   }

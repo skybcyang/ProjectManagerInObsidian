@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from 'obsidian';
-import { FEATURE_STATUSES, PRIORITIES, getStatusLabel } from '../constants';
+import { FEATURE_STATUSES, PRIORITIES, IPD_PHASES, getStatusLabel } from '../constants';
 import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { Feature, UpdateFeatureData } from '../types';
@@ -41,6 +41,7 @@ export class EditFeatureModal extends Modal {
       owner: feature.owner,
       tags: [...feature.tags],
       isMilestone: feature.isMilestone,
+      trPhase: feature.trPhase,
     };
   }
 
@@ -175,6 +176,21 @@ export class EditFeatureModal extends Modal {
         toggle.setValue(this.result.isMilestone || false);
         toggle.onChange(value => {
           this.result.isMilestone = value;
+        });
+      });
+
+    // 交付 TR 阶段
+    new Setting(contentEl)
+      .setName('交付 TR 阶段')
+      .setDesc('选择特性计划在哪个 TR 阶段交付（可选）')
+      .addDropdown(dropdown => {
+        dropdown.addOption('', '（未指定）');
+        IPD_PHASES.forEach(phase => {
+          dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+        });
+        dropdown.setValue(this.result.trPhase || '');
+        dropdown.onChange(value => {
+          this.result.trPhase = value as UpdateFeatureData['trPhase'] || undefined;
         });
       });
 

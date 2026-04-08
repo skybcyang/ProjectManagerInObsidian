@@ -100,7 +100,9 @@ id: {{id}}
 name: {{name}}
 type: version
 status: {{status}}
-{{#if owner}}owner: {{owner}}
+{{#if phase}}phase: {{phase}}
+{{/if}}{{#if targetDate}}targetDate: {{targetDate}}
+{{/if}}{{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}tags:
@@ -109,10 +111,10 @@ status: {{status}}
 
 # \u{1F4E6} {{name}}
 
-> **\u72B6\u6001**: {{status}} | **ID**: {{id}}
+> **\u72B6\u6001**: {{status}}{{#if phase}} | **\u5F53\u524D\u9636\u6BB5**: {{phase}}{{/if}} | **ID**: {{id}}
 {{#if owner}}> **\u8D1F\u8D23\u4EBA**: @{{owner}}
 {{/if}}{{#if startDate}}> **\u5F00\u59CB\u65E5\u671F**: {{startDate}}
-{{/if}}{{#if endDate}}> **\u76EE\u6807\u65E5\u671F**: {{endDate}}
+{{/if}}{{#if targetDate}}> **\u76EE\u6807\u53D1\u5E03**: {{targetDate}}
 {{/if}}
 
 ---
@@ -136,15 +138,15 @@ Border: off
 
 ---
 
-## \u{1F3AF} \u7248\u672C\u76EE\u6807
+## \u{1F3AF} TR\u91CC\u7A0B\u7891
 
-<!-- \u63CF\u8FF0\u672C\u7248\u672C\u7684\u6838\u5FC3\u76EE\u6807\u548C\u9884\u671F\u6210\u679C -->
-
-### \u5173\u952E\u6307\u6807
-
-- [ ] \u6307\u68071: \u63CF\u8FF0
-- [ ] \u6307\u68072: \u63CF\u8FF0
-- [ ] \u6307\u68073: \u63CF\u8FF0
+| \u9636\u6BB5 | \u72B6\u6001 | \u8BA1\u5212\u65E5\u671F | \u5B9E\u9645\u65E5\u671F | \u4EA4\u4ED8\u7269 | \u98CE\u9669 |
+|------|------|----------|----------|--------|------|
+| TR3 | {{tr3.status}} | {{tr3.plannedDate}} | {{tr3.actualDate}} | {{tr3.deliverables}} | {{tr3.risks}} |
+| TR4 | {{tr4.status}} | {{tr4.plannedDate}} | {{tr4.actualDate}} | {{tr4.deliverables}} | {{tr4.risks}} |
+| TR4A | {{tr4a.status}} | {{tr4a.plannedDate}} | {{tr4a.actualDate}} | {{tr4a.deliverables}} | {{tr4a.risks}} |
+| TR5 | {{tr5.status}} | {{tr5.plannedDate}} | {{tr5.actualDate}} | {{tr5.deliverables}} | {{tr5.risks}} |
+| TR6 | {{tr6.status}} | {{tr6.plannedDate}} | {{tr6.actualDate}} | {{tr6.deliverables}} | {{tr6.risks}} |
 
 ---
 
@@ -265,7 +267,8 @@ projectId: {{projectId}}
 status: {{status}}
 priority: {{priority}}
 progress: {{progress}}
-{{#if owner}}owner: {{owner}}
+{{#if trPhase}}trPhase: {{trPhase}}
+{{/if}}{{#if owner}}owner: {{owner}}
 {{/if}}{{#if dueDate}}dueDate: {{dueDate}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
@@ -548,6 +551,31 @@ var init_TemplateService = __esm({
         return result;
       }
       /**
+       * 处理 {{#each}} 循环
+       */
+      processEachBlocks(template, context) {
+        const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+        return template.replace(eachRegex, (match, variable, content) => {
+          const array = context[variable];
+          if (!Array.isArray(array))
+            return "";
+          return array.map((item, index) => {
+            let itemContent = content;
+            if (typeof item === "object" && item !== null) {
+              const itemContext = item;
+              itemContent = this.processIfBlocks(itemContent, itemContext);
+              itemContent = itemContent.replace(/\{\{(\w+)\}\}/g, (_m, varName) => {
+                const value = itemContext[varName];
+                return value !== void 0 && value !== null ? String(value) : "";
+              });
+            }
+            itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
+            itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
+            return itemContent;
+          }).join("");
+        });
+      }
+      /**
        * 丰富上下文，添加辅助变量
        */
       enrichContext(context) {
@@ -564,6 +592,18 @@ var init_TemplateService = __esm({
           hour: "2-digit",
           minute: "2-digit"
         });
+        if ("trCheckpoints" in context && Array.isArray(context.trCheckpoints)) {
+          const checkpoints = context.trCheckpoints;
+          for (const cp of checkpoints) {
+            enriched[`${cp.phase}`] = {
+              status: cp.status || "not-started",
+              plannedDate: cp.plannedDate || "",
+              actualDate: cp.actualDate || "",
+              deliverables: Array.isArray(cp.deliverables) ? cp.deliverables.join("\u3001") : "",
+              risks: Array.isArray(cp.risks) ? cp.risks.join("\u3001") : ""
+            };
+          }
+        }
         return enriched;
       }
       /**
@@ -578,32 +618,18 @@ var init_TemplateService = __esm({
         });
       }
       /**
-       * 处理 {{#each}} 循环
-       */
-      processEachBlocks(template, context) {
-        const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
-        return template.replace(eachRegex, (match, variable, content) => {
-          const array = context[variable];
-          if (!Array.isArray(array))
-            return "";
-          return array.map((item, index) => {
-            let itemContent = content;
-            itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
-            itemContent = itemContent.replace(/\{\{@first\}\}/g, index === 0 ? "true" : "false");
-            itemContent = itemContent.replace(/\{\{@last\}\}/g, index === array.length - 1 ? "true" : "false");
-            itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
-            itemContent = itemContent.replace(/\{\{#unless\s+@first\}\}/g, index === 0 ? "" : "");
-            itemContent = itemContent.replace(/\{\{\/unless\}\}/g, "");
-            return itemContent;
-          }).join("");
-        });
-      }
-      /**
-       * 处理简单变量
+       * 处理简单变量（支持嵌套属性，如 tr3.status）
        */
       processVariables(template, context) {
-        return template.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
-          const value = context[variable];
+        return template.replace(/\{\{([\w.]+)\}\}/g, (match, variable) => {
+          const parts = variable.split(".");
+          let value = context;
+          for (const part of parts) {
+            if (value === null || value === void 0) {
+              return "";
+            }
+            value = value[part];
+          }
           return value !== void 0 && value !== null ? String(value) : "";
         });
       }
@@ -697,11 +723,77 @@ var init_priorities = __esm({
   }
 });
 
+// src/constants/ipd.ts
+function getTRStatusEmoji(status) {
+  var _a;
+  const found = TR_STATUSES.find((s) => s.value === status);
+  return (_a = found == null ? void 0 : found.emoji) != null ? _a : "\u23F3";
+}
+function getDefaultDeliverables(phase) {
+  var _a;
+  return (_a = DEFAULT_TR_DELIVERABLES[phase]) != null ? _a : [];
+}
+function createDefaultTRCheckpoints() {
+  return IPD_PHASES.map((phase) => ({
+    phase: phase.value,
+    status: "not-started",
+    deliverables: getDefaultDeliverables(phase.value),
+    risks: []
+  }));
+}
+var IPD_PHASES, TR_STATUSES, DEFAULT_TR_DELIVERABLES, TR_WARNING_DAYS;
+var init_ipd = __esm({
+  "src/constants/ipd.ts"() {
+    IPD_PHASES = [
+      { value: "tr3", label: "TR3", description: "\u9700\u6C42\u9501\u5B9A", color: "#3498db" },
+      { value: "tr4", label: "TR4", description: "\u5F00\u53D1\u5B8C\u6210", color: "#9b59b6" },
+      { value: "tr4a", label: "TR4A", description: "\u8F6C\u6D4B\u5B8C\u6210", color: "#f39c12" },
+      { value: "tr5", label: "TR5", description: "\u8D28\u91CF\u5DE5\u7A0B", color: "#e67e22" },
+      { value: "tr6", label: "TR6", description: "\u53D1\u5E03\u51C6\u5907", color: "#27ae60" }
+    ];
+    TR_STATUSES = [
+      { value: "not-started", label: "\u672A\u5F00\u59CB", emoji: "\u23F3", color: "var(--text-muted)" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", emoji: "\u{1F504}", color: "var(--text-accent)" },
+      { value: "passed", label: "\u5DF2\u901A\u8FC7", emoji: "\u2705", color: "var(--text-success)" },
+      { value: "blocked", label: "\u963B\u585E", emoji: "\u26A0\uFE0F", color: "var(--text-error)" }
+    ];
+    DEFAULT_TR_DELIVERABLES = {
+      "tr3": [
+        "\u9700\u6C42\u89C4\u683C\u8BF4\u660E\u4E66",
+        "\u6280\u672F\u65B9\u6848\u8BC4\u5BA1",
+        "\u63A5\u53E3\u5B9A\u4E49\u6587\u6863"
+      ],
+      "tr4": [
+        "\u4EE3\u7801\u5F00\u53D1\u5B8C\u6210",
+        "UT\u6D4B\u8BD5\u62A5\u544A",
+        "\u4EE3\u7801\u8BC4\u5BA1\u8BB0\u5F55"
+      ],
+      "tr4a": [
+        "ST\u6D4B\u8BD5\u901A\u8FC7",
+        "Bug\u6E05\u96F6\u8BA1\u5212",
+        "\u6D4B\u8BD5\u62A5\u544A"
+      ],
+      "tr5": [
+        "\u6027\u80FD\u57FA\u7EBF\u8FBE\u6807",
+        "\u7A33\u5B9A\u6027\u6D4B\u8BD5\u901A\u8FC7",
+        "\u529F\u8017\u6D4B\u8BD5\u62A5\u544A"
+      ],
+      "tr6": [
+        "\u53D1\u5E03\u8BC4\u5BA1\u901A\u8FC7",
+        "\u7248\u672C\u53D1\u5E03\u8BF4\u660E",
+        "\u8FD0\u7EF4\u6587\u6863"
+      ]
+    };
+    TR_WARNING_DAYS = 7;
+  }
+});
+
 // src/constants/index.ts
 var init_constants = __esm({
   "src/constants/index.ts"() {
     init_statuses();
     init_priorities();
+    init_ipd();
   }
 });
 
@@ -849,10 +941,10 @@ var InitService_exports = {};
 __export(InitService_exports, {
   InitService: () => InitService
 });
-var import_obsidian18, InitService;
+var import_obsidian19, InitService;
 var init_InitService = __esm({
   "src/services/InitService.ts"() {
-    import_obsidian18 = require("obsidian");
+    import_obsidian19 = require("obsidian");
     init_TemplateService();
     InitService = class {
       constructor(app, settings) {
@@ -868,7 +960,7 @@ var init_InitService = __esm({
           return false;
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const dashboardFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        return dashboardFile instanceof import_obsidian18.TFile;
+        return dashboardFile instanceof import_obsidian19.TFile;
       }
       async initialize() {
         await this.ensureFolder(this.BASE_FOLDER);
@@ -880,7 +972,7 @@ var init_InitService = __esm({
       async openDashboard() {
         const dashboardPath = `${this.BASE_FOLDER}/${this.DASHBOARD_FILE}`;
         const file = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (file instanceof import_obsidian18.TFile) {
+        if (file instanceof import_obsidian19.TFile) {
           await this.app.workspace.getLeaf().openFile(file);
         } else {
           await this.initialize();
@@ -901,7 +993,7 @@ var init_InitService = __esm({
         const date = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
         const content = await this.templateService.renderOverviewTemplate({ date });
         const existingFile = this.app.vault.getAbstractFileByPath(dashboardPath);
-        if (existingFile instanceof import_obsidian18.TFile) {
+        if (existingFile instanceof import_obsidian19.TFile) {
           await this.app.vault.modify(existingFile, content);
         } else {
           await this.app.vault.create(dashboardPath, content);
@@ -917,7 +1009,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian19 = require("obsidian");
+var import_obsidian20 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -1097,6 +1189,7 @@ var BaseStore = class {
 
 // src/core/stores/VersionStore.ts
 init_TemplateService();
+init_constants();
 var VersionStore = class extends BaseStore {
   constructor(fs, app, cache, settings) {
     super(fs, app);
@@ -1125,10 +1218,14 @@ var VersionStore = class extends BaseStore {
   }
   async create(data) {
     const id = this.generateId("ver");
+    const trCheckpoints = data.trCheckpoints || createDefaultTRCheckpoints();
     const version = {
       id,
       name: data.name,
       status: data.status || "planning",
+      phase: data.phase || "tr3",
+      trCheckpoints,
+      targetDate: data.targetDate,
       owner: data.owner,
       startDate: data.startDate,
       endDate: data.endDate,
@@ -1140,6 +1237,9 @@ var VersionStore = class extends BaseStore {
       id: version.id,
       name: version.name,
       status: version.status,
+      phase: version.phase,
+      trCheckpoints: version.trCheckpoints,
+      targetDate: version.targetDate,
       owner: version.owner,
       startDate: version.startDate,
       endDate: version.endDate,
@@ -1169,6 +1269,9 @@ var VersionStore = class extends BaseStore {
       id: updated.id,
       name: updated.name,
       status: updated.status,
+      phase: updated.phase,
+      trCheckpoints: updated.trCheckpoints,
+      targetDate: updated.targetDate,
       owner: updated.owner,
       startDate: updated.startDate,
       endDate: updated.endDate,
@@ -1216,17 +1319,62 @@ var VersionStore = class extends BaseStore {
   async list() {
     var _a;
     if (this.cache) {
-      return this.cache.getAllVersions();
+      const cached = this.cache.getAllVersions();
+      return this.ensureVersionsTRCheckpoints(cached);
     }
     const files = this.fs.listFiles(this.FOLDER);
     const versions = [];
     for (const file of files) {
       const fileData = await this.fs.readFile(file.path);
       if ((_a = fileData == null ? void 0 : fileData.frontmatter) == null ? void 0 : _a.id) {
-        versions.push(fileData.frontmatter);
+        const version = this.parseVersionWithTRCheckpoints(fileData.frontmatter);
+        versions.push(version);
       }
     }
     return versions.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  /**
+   * 解析版本数据，确保 trCheckpoints 字段正确
+   */
+  parseVersionWithTRCheckpoints(frontmatter) {
+    const version = frontmatter;
+    if (!version.trCheckpoints || !Array.isArray(version.trCheckpoints)) {
+      version.trCheckpoints = createDefaultTRCheckpoints();
+    } else {
+      version.trCheckpoints = version.trCheckpoints.map((cp) => ({
+        ...cp,
+        deliverables: Array.isArray(cp.deliverables) ? cp.deliverables : [],
+        risks: Array.isArray(cp.risks) ? cp.risks : []
+      }));
+    }
+    if (!version.phase) {
+      version.phase = "tr3";
+    }
+    if (!version.tags) {
+      version.tags = [];
+    }
+    return version;
+  }
+  /**
+   * 确保所有版本都有正确的 trCheckpoints
+   */
+  ensureVersionsTRCheckpoints(versions) {
+    return versions.map((v) => {
+      if (!v.trCheckpoints || !Array.isArray(v.trCheckpoints)) {
+        return {
+          ...v,
+          trCheckpoints: createDefaultTRCheckpoints()
+        };
+      }
+      return {
+        ...v,
+        trCheckpoints: v.trCheckpoints.map((cp) => ({
+          ...cp,
+          deliverables: Array.isArray(cp.deliverables) ? cp.deliverables : [],
+          risks: Array.isArray(cp.risks) ? cp.risks : []
+        }))
+      };
+    });
   }
   async hasProjects(versionId) {
     var _a;
@@ -1673,6 +1821,7 @@ var FeatureStore = class extends BaseStore {
 
 // src/core/cache/EntityCache.ts
 var import_obsidian3 = require("obsidian");
+init_constants();
 var EntityCache = class {
   constructor(app) {
     this.app = app;
@@ -1821,15 +1970,34 @@ var EntityCache = class {
     const cache = this.app.metadataCache.getFileCache(file);
     if (!((_a = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a.id))
       return null;
+    let trCheckpoints;
+    const rawCheckpoints = cache.frontmatter.trCheckpoints;
+    if (Array.isArray(rawCheckpoints)) {
+      trCheckpoints = rawCheckpoints.map((cp) => ({
+        phase: cp.phase || "tr3",
+        status: cp.status || "not-started",
+        plannedDate: cp.plannedDate,
+        actualDate: cp.actualDate,
+        deliverables: Array.isArray(cp.deliverables) ? cp.deliverables.filter((d) => typeof d === "string" && !d.includes("{{")) : [],
+        risks: Array.isArray(cp.risks) ? cp.risks.filter((r) => typeof r === "string" && !r.includes("{{")) : []
+      }));
+    } else {
+      trCheckpoints = createDefaultTRCheckpoints();
+    }
     return {
       id: cache.frontmatter.id,
       name: cache.frontmatter.name || file.basename,
       status: cache.frontmatter.status || "planning",
       description: cache.frontmatter.description,
       startDate: cache.frontmatter.startDate,
+      endDate: cache.frontmatter.endDate,
       releaseDate: cache.frontmatter.releaseDate,
       owner: cache.frontmatter.owner,
-      tags: cache.frontmatter.tags || []
+      tags: Array.isArray(cache.frontmatter.tags) ? cache.frontmatter.tags : [],
+      // IPD扩展字段
+      phase: cache.frontmatter.phase || "tr3",
+      trCheckpoints,
+      targetDate: cache.frontmatter.targetDate
     };
   }
   /**
@@ -1871,8 +2039,11 @@ var EntityCache = class {
       progress: cache.frontmatter.progress || 0,
       description: cache.frontmatter.description,
       dueDate: cache.frontmatter.dueDate,
+      startDate: cache.frontmatter.startDate,
       owner: cache.frontmatter.owner,
-      tags: cache.frontmatter.tags || []
+      tags: cache.frontmatter.tags || [],
+      // IPD扩展字段
+      trPhase: cache.frontmatter.trPhase
     };
   }
   /**
@@ -2297,11 +2468,13 @@ var CreateVersionModal = class extends import_obsidian5.Modal {
     this.result = {
       name: "",
       status: "planning",
+      phase: "tr3",
       tags: []
     };
     // 用于存储输入元素引用以便更新值
     this.startDateInput = null;
     this.endDateInput = null;
+    this.targetDateInput = null;
     this.onSubmit = onSubmit;
   }
   onOpen() {
@@ -2319,6 +2492,35 @@ var CreateVersionModal = class extends import_obsidian5.Modal {
       dropdown.setValue(this.result.status);
       dropdown.onChange((value) => {
         this.result.status = value;
+      });
+    });
+    new import_obsidian5.Setting(contentEl).setName("\u5F53\u524D TR \u9636\u6BB5").setDesc("\u9009\u62E9\u7248\u672C\u5F53\u524D\u7684 IPD \u9636\u6BB5").addDropdown((dropdown) => {
+      IPD_PHASES.forEach((phase) => {
+        dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+      });
+      dropdown.setValue(this.result.phase || "tr3");
+      dropdown.onChange((value) => {
+        this.result.phase = value;
+      });
+    });
+    const targetDateSetting = new import_obsidian5.Setting(contentEl).setName("TR6 \u76EE\u6807\u53D1\u5E03\u65E5\u671F").setDesc(formatDateDisplay(this.result.targetDate) || "\uFF08\u53EF\u9009\uFF0CTR6\u9636\u6BB5\u7684\u76EE\u6807\u53D1\u5E03\u65E5\u671F\uFF09");
+    targetDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+      this.targetDateInput = div.createEl("input", {
+        type: "date",
+        cls: "pm-date-picker"
+      });
+      this.targetDateInput.value = this.result.targetDate || "";
+      this.targetDateInput.addEventListener("change", (e) => {
+        const value = e.target.value;
+        this.result.targetDate = value || void 0;
+        targetDateSetting.setDesc(formatDateDisplay(this.result.targetDate) || "\uFF08\u53EF\u9009\uFF09");
+      });
+      this.createQuickDateButtons(div, (date) => {
+        this.result.targetDate = date;
+        if (this.targetDateInput) {
+          this.targetDateInput.value = date;
+        }
+        targetDateSetting.setDesc(formatDateDisplay(date));
       });
     });
     const startDateSetting = new import_obsidian5.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
@@ -2401,6 +2603,8 @@ var CreateVersionModal = class extends import_obsidian5.Modal {
     this.result = {
       name: "v1.0.0 \u6625\u5B63\u8FED\u4EE3",
       status: "planning",
+      phase: "tr3",
+      targetDate: nextQuarter.toISOString().split("T")[0],
       owner: "\u5F20\u4E09",
       startDate: today.toISOString().split("T")[0],
       endDate: nextQuarter.toISOString().split("T")[0],
@@ -2716,6 +2920,16 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
         this.result.isMilestone = value;
       });
     });
+    new import_obsidian7.Setting(contentEl).setName("\u4EA4\u4ED8 TR \u9636\u6BB5").setDesc("\u9009\u62E9\u7279\u6027\u8BA1\u5212\u5728\u54EA\u4E2A TR \u9636\u6BB5\u4EA4\u4ED8\uFF08\u53EF\u9009\uFF09").addDropdown((dropdown) => {
+      dropdown.addOption("", "\uFF08\u672A\u6307\u5B9A\uFF09");
+      IPD_PHASES.forEach((phase) => {
+        dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+      });
+      dropdown.setValue(this.result.trPhase || "");
+      dropdown.onChange((value) => {
+        this.result.trPhase = value || void 0;
+      });
+    });
     new import_obsidian7.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
       this.result.owner = value || void 0;
     }));
@@ -2773,7 +2987,8 @@ var CreateFeatureModal = class extends import_obsidian7.Modal {
       dueDate: nextWeek.toISOString().split("T")[0],
       owner: "\u8BBE\u8BA1\u5E08\u5C0F\u738B",
       tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"],
-      isMilestone: false
+      isMilestone: false,
+      trPhase: "tr4"
     };
     this.onOpen();
   }
@@ -2993,7 +3208,8 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
       dueDate: feature.dueDate,
       owner: feature.owner,
       tags: [...feature.tags],
-      isMilestone: feature.isMilestone
+      isMilestone: feature.isMilestone,
+      trPhase: feature.trPhase
     };
   }
   onOpen() {
@@ -3088,6 +3304,16 @@ var EditFeatureModal = class extends import_obsidian12.Modal {
       toggle.setValue(this.result.isMilestone || false);
       toggle.onChange((value) => {
         this.result.isMilestone = value;
+      });
+    });
+    new import_obsidian12.Setting(contentEl).setName("\u4EA4\u4ED8 TR \u9636\u6BB5").setDesc("\u9009\u62E9\u7279\u6027\u8BA1\u5212\u5728\u54EA\u4E2A TR \u9636\u6BB5\u4EA4\u4ED8\uFF08\u53EF\u9009\uFF09").addDropdown((dropdown) => {
+      dropdown.addOption("", "\uFF08\u672A\u6307\u5B9A\uFF09");
+      IPD_PHASES.forEach((phase) => {
+        dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+      });
+      dropdown.setValue(this.result.trPhase || "");
+      dropdown.onChange((value) => {
+        this.result.trPhase = value || void 0;
       });
     });
     new import_obsidian12.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
@@ -4042,7 +4268,8 @@ var VIEW_MODE_LABELS = {
   "grid": "\u25A6 \u7F51\u683C\u89C6\u56FE",
   "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
   "timeline": "\u23F1\uFE0F \u65F6\u95F4\u7EBF\u89C6\u56FE",
-  "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE"
+  "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE",
+  "tr-milestone": "\u{1F3AF} TR\u91CC\u7A0B\u7891"
 };
 var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "name", label: "\u540D\u79F0", required: true },
@@ -4251,7 +4478,7 @@ var FilterBar = class {
     this.owners = ["\u5168\u90E8\u8D1F\u8D23\u4EBA", ...Array.from(ownersSet).sort()];
   }
   /**
-   * 渲染筛选器 - 横向紧凑卡片式，6个筛选+重置按钮排成一排
+   * 渲染筛选器 - 横向紧凑卡片式，6个筛选排成一排
    */
   render(parent, initialFilters) {
     this.container = parent.createDiv("pm-filter-container");
@@ -4294,13 +4521,6 @@ var FilterBar = class {
         this.onFilterChange();
       }
     );
-    const resetBtn = filterBar.createEl("button", {
-      cls: "pm-filter-reset-compact",
-      text: "\u21BA \u91CD\u7F6E"
-    });
-    resetBtn.addEventListener("click", () => {
-      this.resetFilters();
-    });
     return this.container;
   }
   /**
@@ -4489,22 +4709,6 @@ var FilterBar = class {
         select.addEventListener("change", () => {
           onChange(select.value);
         });
-      }
-    });
-  }
-  /**
-   * 重置所有筛选条件
-   */
-  resetFilters() {
-    this.filters = { mode: this.filters.mode };
-    this.loadOptions().then(() => {
-      if (this.container) {
-        const selects = this.container.querySelectorAll(".pm-filter-select-compact");
-        selects.forEach((selectEl, index) => {
-          const select = selectEl;
-          select.value = "";
-        });
-        this.onFilterChange();
       }
     });
   }
@@ -5076,6 +5280,7 @@ var BaseRenderer = class {
 };
 
 // src/view-engine/renderers/KanbanRenderer.ts
+init_constants();
 var KanbanRenderer = class extends BaseRenderer {
   constructor(app, entityManager, dataService, actionService) {
     super(app, entityManager, dataService, actionService);
@@ -5097,6 +5302,8 @@ var KanbanRenderer = class extends BaseRenderer {
     const boardContainer = container.createDiv("pm-kanban-container");
     if (this.config.groupBy === "priority") {
       this.renderPriorityBoard(boardContainer, sorted);
+    } else if (this.config.groupBy === "trPhase") {
+      this.renderTRPhaseBoard(boardContainer, sorted);
     } else {
       this.renderStatusBoard(boardContainer, sorted);
     }
@@ -5312,6 +5519,43 @@ var KanbanRenderer = class extends BaseRenderer {
     card.addEventListener("click", () => {
       this.actionService.openEntity(entityType, entity.id);
     });
+  }
+  /**
+   * 按TR阶段渲染看板
+   */
+  renderTRPhaseBoard(container, entities) {
+    const board = container.createDiv("pm-kanban-board");
+    const featureEntities = entities.filter((e) => "trPhase" in e);
+    IPD_PHASES.forEach((phase) => {
+      const columnEl = this.createColumn(board, phase.label, phase.color);
+      const columnEntities = featureEntities.filter(
+        (e) => e.trPhase === phase.value
+      );
+      const countEl = columnEl.querySelector(".pm-kanban-column-count");
+      if (countEl) {
+        countEl.textContent = String(columnEntities.length);
+      }
+      const cardsContainer = columnEl.querySelector(".pm-kanban-cards");
+      if (cardsContainer) {
+        columnEntities.forEach((entity) => {
+          this.renderKanbanCard(cardsContainer, entity);
+        });
+      }
+    });
+    const ungroupedColumn = this.createColumn(board, "\u672A\u5206\u7EC4", "#999");
+    const ungroupedEntities = featureEntities.filter(
+      (e) => !e.trPhase
+    );
+    const ungroupedCountEl = ungroupedColumn.querySelector(".pm-kanban-column-count");
+    if (ungroupedCountEl) {
+      ungroupedCountEl.textContent = String(ungroupedEntities.length);
+    }
+    const ungroupedCardsContainer = ungroupedColumn.querySelector(".pm-kanban-cards");
+    if (ungroupedCardsContainer) {
+      ungroupedEntities.forEach((entity) => {
+        this.renderKanbanCard(ungroupedCardsContainer, entity);
+      });
+    }
   }
   /**
    * 获取下一个状态（用于快速切换）
@@ -6228,7 +6472,26 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
    * 将实体转换为时间视图项
    */
   convertToTimeItems(entities) {
-    return entities.filter((e) => "dueDate" in e && !!e.dueDate).map((e) => {
+    console.log("[TimeView] convertToTimeItems \u8F93\u5165:", entities.length);
+    if (entities.length > 0) {
+      const sample = entities[0];
+      console.log("[TimeView] \u7B2C\u4E00\u4E2A\u5B9E\u4F53:", {
+        id: sample.id,
+        name: sample.name,
+        dueDate: sample.dueDate,
+        hasDueDate: "dueDate" in sample,
+        dueDateType: typeof sample.dueDate
+      });
+    }
+    const withDueDate = entities.filter((e) => {
+      const hasDueDate = "dueDate" in e && !!e.dueDate;
+      if (!hasDueDate) {
+        console.log("[TimeView] \u8FC7\u6EE4\u6389\u65E0dueDate:", e.id, e.name);
+      }
+      return hasDueDate;
+    });
+    console.log("[TimeView] \u6709dueDate\u7684\u5B9E\u4F53:", withDueDate.length);
+    return withDueDate.map((e) => {
       const entity = e;
       const endDate = new Date(entity.dueDate);
       const startDate = entity.startDate ? new Date(entity.startDate) : new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1e3);
@@ -6240,7 +6503,13 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
         progress: entity.progress || 0,
         entityType: getEntityType(entity)
       };
-    }).filter((item) => !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime()));
+    }).filter((item) => {
+      const valid = !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime());
+      if (!valid) {
+        console.log("[TimeView] \u65E0\u6548\u65E5\u671F:", item.entity.id, item.entity.name, item.entity.dueDate);
+      }
+      return valid;
+    });
   }
   /**
    * 渲染空状态
@@ -6699,14 +6968,289 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     });
   }
   /**
-   * 渲染季度视图
+   * 渲染季度视图 - 以周为单位的甘特图，显示整个季度
    */
   renderQuarterView(container, items) {
     container.empty();
-    container.createDiv({
-      cls: "pm-timeview-placeholder",
-      text: "\u5B63\u5EA6\u89C6\u56FE\u5F00\u53D1\u4E2D..."
+    container.addClass("pm-timeview-quarter");
+    const { currentDate } = this.state;
+    const year = currentDate.getFullYear();
+    const quarter = Math.floor(currentDate.getMonth() / 3) + 1;
+    const quarterStartMonth = (quarter - 1) * 3;
+    const quarterStart = new Date(year, quarterStartMonth, 1);
+    const quarterEnd = new Date(year, quarterStartMonth + 3, 0);
+    const weeks = this.getQuarterWeeks(quarterStart, quarterEnd);
+    const quarterContainer = container.createDiv("pm-timeview-quarter-container");
+    this.renderQuarterMonthHeader(quarterContainer, year, quarter);
+    this.renderQuarterWeekHeader(quarterContainer, weeks);
+    this.renderQuarterGantt(quarterContainer, items, weeks, quarterStart, quarterEnd);
+  }
+  /**
+   * 获取季度所有周的开始日期
+   */
+  getQuarterWeeks(start, end) {
+    const weeks = [];
+    let currentWeek = this.getWeekStart(start);
+    while (currentWeek <= end) {
+      weeks.push(new Date(currentWeek));
+      currentWeek.setDate(currentWeek.getDate() + 7);
+    }
+    return weeks;
+  }
+  /**
+   * 渲染季度视图月份标题
+   */
+  renderQuarterMonthHeader(container, year, quarter) {
+    const header = container.createDiv("pm-timeview-quarter-month-header");
+    header.style.cssText = `
+      display: flex;
+      margin-bottom: 8px;
+      border-bottom: 2px solid var(--background-modifier-border);
+      padding-bottom: 8px;
+    `;
+    const titleArea = header.createDiv("pm-timeview-quarter-title");
+    titleArea.style.cssText = "flex: 0 0 200px; font-weight: 600; font-size: 16px;";
+    titleArea.textContent = `${year}\u5E74 Q${quarter}`;
+    const monthsArea = header.createDiv("pm-timeview-quarter-months");
+    monthsArea.style.cssText = "flex: 1; display: flex;";
+    const quarterStartMonth = (quarter - 1) * 3;
+    const monthNames = ["1\u6708", "2\u6708", "3\u6708", "4\u6708", "5\u6708", "6\u6708", "7\u6708", "8\u6708", "9\u6708", "10\u6708", "11\u6708", "12\u6708"];
+    for (let i = 0; i < 3; i++) {
+      const monthDiv = monthsArea.createDiv("pm-timeview-quarter-month");
+      monthDiv.style.cssText = `
+        flex: 1;
+        text-align: center;
+        font-weight: 500;
+        color: var(--text-muted);
+        border-right: ${i < 2 ? "1px solid var(--background-modifier-border)" : "none"};
+      `;
+      monthDiv.textContent = monthNames[quarterStartMonth + i];
+    }
+  }
+  /**
+   * 渲染季度视图周标题行
+   */
+  renderQuarterWeekHeader(container, weeks) {
+    const header = container.createDiv("pm-timeview-quarter-week-header");
+    header.style.cssText = `
+      display: flex;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    `;
+    const labelArea = header.createDiv();
+    labelArea.style.cssText = "flex: 0 0 200px;";
+    const weeksArea = header.createDiv("pm-timeview-quarter-weeks");
+    weeksArea.style.cssText = "flex: 1; display: flex;";
+    weeks.forEach((week, index) => {
+      const weekDiv = weeksArea.createDiv("pm-timeview-quarter-week-label");
+      weekDiv.style.cssText = `
+        flex: 1;
+        text-align: center;
+        padding: 4px 2px;
+        font-size: 10px;
+        border-right: 1px solid var(--background-modifier-border-hover);
+        ${this.isWeekCurrent(week) ? "background: var(--background-modifier-accent); color: var(--text-on-accent); border-radius: 4px;" : ""}
+      `;
+      weekDiv.textContent = `${week.getMonth() + 1}/${week.getDate()}`;
+      weekDiv.title = `\u7B2C${index + 1}\u5468: ${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, "0")}-${String(week.getDate()).padStart(2, "0")}`;
     });
+  }
+  /**
+   * 判断是否为当前周
+   */
+  isWeekCurrent(weekStart) {
+    const today = /* @__PURE__ */ new Date();
+    const currentWeekStart = this.getWeekStart(today);
+    return this.isSameDay(weekStart, currentWeekStart);
+  }
+  /**
+   * 渲染季度视图甘特图
+   */
+  renderQuarterGantt(container, items, weeks, quarterStart, quarterEnd) {
+    const ganttContainer = container.createDiv("pm-timeview-quarter-gantt");
+    ganttContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 500px;
+      overflow-y: auto;
+    `;
+    if (items.length === 0) {
+      this.renderEmptyState(ganttContainer, "\u672C\u5B63\u5EA6\u6CA1\u6709\u4EFB\u52A1");
+      return;
+    }
+    const quarterItems = items.filter(
+      (item) => this.isDateRangeOverlap(item.startDate, item.endDate, quarterStart, quarterEnd)
+    );
+    if (quarterItems.length === 0) {
+      this.renderEmptyState(ganttContainer, "\u672C\u5B63\u5EA6\u6CA1\u6709\u4EFB\u52A1");
+      return;
+    }
+    const rows = this.calculateQuarterRows(quarterItems, weeks, quarterStart, quarterEnd);
+    rows.forEach((rowItems) => {
+      const rowEl = ganttContainer.createDiv("pm-timeview-quarter-row");
+      rowEl.style.cssText = `
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+        border-bottom: 1px solid var(--background-modifier-border-hover);
+      `;
+      rowItems.forEach((item) => {
+        this.renderQuarterGanttBar(rowEl, item, weeks, quarterStart, quarterEnd);
+      });
+    });
+    this.renderQuarterGridBackground(ganttContainer, weeks);
+  }
+  /**
+   * 计算季度视图的行分配
+   */
+  calculateQuarterRows(items, weeks, quarterStart, quarterEnd) {
+    const rows = [];
+    const occupied = [];
+    const sortedItems = [...items].sort(
+      (a, b) => a.startDate.getTime() - b.startDate.getTime()
+    );
+    for (const item of sortedItems) {
+      const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
+      const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
+      const startCol = this.getWeekIndex(actualStart, weeks);
+      const endCol = this.getWeekIndex(actualEnd, weeks);
+      if (startCol === -1 || endCol === -1)
+        continue;
+      let rowIndex = 0;
+      while (occupied.some(
+        (o) => o.row === rowIndex && !(o.endCol < startCol || o.startCol > endCol)
+      )) {
+        rowIndex++;
+      }
+      if (!rows[rowIndex]) {
+        rows[rowIndex] = [];
+      }
+      rows[rowIndex].push(item);
+      occupied.push({ startCol, endCol, row: rowIndex });
+    }
+    return rows.length > 0 ? rows : [[]];
+  }
+  /**
+   * 获取日期所在的周索引
+   */
+  getWeekIndex(date, weeks) {
+    for (let i = 0; i < weeks.length; i++) {
+      const weekStart = weeks[i];
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      if (date >= weekStart && date <= weekEnd) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  /**
+   * 渲染季度视图甘特条
+   */
+  renderQuarterGanttBar(container, item, weeks, quarterStart, quarterEnd) {
+    const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
+    const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
+    const startCol = this.getWeekIndex(actualStart, weeks);
+    const endCol = this.getWeekIndex(actualEnd, weeks);
+    if (startCol === -1 || endCol === -1)
+      return;
+    const bar = container.createDiv("pm-timeview-quarter-bar");
+    const leftOffset = 200;
+    const weekWidth = 100 / weeks.length;
+    const left = leftOffset + startCol * weekWidth;
+    const width = (endCol - startCol + 1) * weekWidth;
+    const priorityColor = getPriorityColor2(item.entity.priority);
+    bar.style.cssText = `
+      position: absolute;
+      left: ${left}px;
+      width: calc(${width}% - 8px);
+      height: 28px;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.15s ease;
+      z-index: 1;
+    `;
+    if (item.isMilestone) {
+      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
+      bar.style.color = "#fff";
+      bar.textContent = "\u{1F537} ";
+    } else {
+      if (item.progress > 0) {
+        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
+      } else {
+        bar.style.background = priorityColor.bg;
+      }
+      bar.style.color = priorityColor.text;
+    }
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = item.entity.name;
+    nameSpan.style.overflow = "hidden";
+    nameSpan.style.textOverflow = "ellipsis";
+    bar.appendChild(nameSpan);
+    bar.addEventListener("mouseenter", () => {
+      bar.style.transform = "translateY(-2px)";
+      bar.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+      bar.style.zIndex = "10";
+    });
+    bar.addEventListener("mouseleave", () => {
+      bar.style.transform = "translateY(0)";
+      bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+      bar.style.zIndex = "1";
+    });
+    bar.addEventListener("click", () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
+    });
+    const labelEl = container.createDiv("pm-timeview-quarter-bar-label");
+    labelEl.style.cssText = `
+      flex: 0 0 200px;
+      padding-right: 12px;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-normal);
+      font-weight: 500;
+    `;
+    labelEl.textContent = item.entity.name;
+    labelEl.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
+  }
+  /**
+   * 渲染季度视图网格背景
+   */
+  renderQuarterGridBackground(container, weeks) {
+    const gridBg = container.createDiv("pm-timeview-quarter-grid-bg");
+    gridBg.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 200px;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      pointer-events: none;
+      z-index: 0;
+    `;
+    weeks.forEach((week, index) => {
+      const weekCol = gridBg.createDiv("pm-timeview-quarter-grid-col");
+      weekCol.style.cssText = `
+        flex: 1;
+        border-right: 1px solid var(--background-modifier-border-hover);
+        background: ${this.isWeekCurrent(week) ? "var(--background-modifier-accent)" : "transparent"};
+        opacity: ${this.isWeekCurrent(week) ? 0.1 : 1};
+      `;
+    });
+    container.insertBefore(gridBg, container.firstChild);
   }
   /**
    * 获取周开始日期（周日）
@@ -6736,6 +7280,356 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
 // 静态变量保持状态 across 重新渲染
 _TimeViewRenderer.sharedState = null;
 var TimeViewRenderer = _TimeViewRenderer;
+
+// src/view-engine/renderers/TRMilestoneRenderer.ts
+init_constants();
+var import_obsidian17 = require("obsidian");
+var TRMilestoneRenderer = class extends BaseRenderer {
+  constructor(app, entityManager, dataService, actionService) {
+    super(app, entityManager, dataService, actionService);
+    this.versions = [];
+  }
+  /**
+   * 渲染TR里程碑视图
+   */
+  async render(container) {
+    container.empty();
+    container.addClass("pm-tr-milestone-view");
+    this.versions = await this.entityManager.listVersions();
+    const viewContainer = container.createDiv("pm-tr-milestone-container");
+    const header = viewContainer.createDiv("pm-tr-milestone-header");
+    header.createEl("h3", { text: "\u{1F4CA} TR\u91CC\u7A0B\u7891\u603B\u89C8" });
+    this.createLegend(viewContainer);
+    if (this.versions.length === 0) {
+      this.createEmptyState(viewContainer, "\u6682\u65E0\u7248\u672C\u6570\u636E");
+    } else {
+      this.renderMilestoneTable(viewContainer);
+    }
+  }
+  /**
+   * 创建图例
+   */
+  createLegend(container) {
+    const legend = container.createDiv("pm-tr-milestone-legend");
+    legend.createSpan({ text: "\u56FE\u4F8B: ", cls: "pm-legend-label" });
+    const items = [
+      { emoji: "\u2705", label: "\u5DF2\u5B8C\u6210" },
+      { emoji: "\u{1F504}", label: "\u8FDB\u884C\u4E2D" },
+      { emoji: "\u23F3", label: "\u672A\u5F00\u59CB" },
+      { emoji: "\u26A0\uFE0F", label: "\u5EF6\u671F\u98CE\u9669" }
+    ];
+    items.forEach((item) => {
+      const span = legend.createSpan({ cls: "pm-legend-item" });
+      span.createSpan({ text: item.emoji, cls: "pm-legend-emoji" });
+      span.createSpan({ text: item.label, cls: "pm-legend-text" });
+    });
+  }
+  /**
+   * 渲染里程碑表格
+   */
+  renderMilestoneTable(container) {
+    const table = container.createEl("table", { cls: "pm-tr-milestone-table" });
+    const thead = table.createEl("thead");
+    const headerRow = thead.createEl("tr");
+    headerRow.createEl("th", { text: "\u7248\u672C" });
+    IPD_PHASES.forEach((phase) => {
+      const th = headerRow.createEl("th");
+      th.createDiv({ text: phase.label, cls: "pm-tr-phase-label" });
+      th.createDiv({ text: phase.description, cls: "pm-tr-phase-desc" });
+    });
+    headerRow.createEl("th", { text: "\u72B6\u6001/\u98CE\u9669" });
+    const tbody = table.createEl("tbody");
+    this.versions.forEach((version) => {
+      const row = tbody.createEl("tr");
+      const nameCell = row.createEl("td");
+      const nameLink = nameCell.createEl("a", {
+        text: version.name,
+        cls: "pm-tr-version-name"
+      });
+      nameLink.onclick = () => {
+        this.actionService.openEntity("version", version.id);
+      };
+      IPD_PHASES.forEach((phase) => {
+        var _a;
+        const cell = row.createEl("td");
+        const checkpoint = (_a = version.trCheckpoints) == null ? void 0 : _a.find((cp) => cp.phase === phase.value);
+        if (checkpoint) {
+          this.renderCheckpointCell(cell, checkpoint, version, phase.value);
+        } else {
+          cell.createSpan({ text: "-", cls: "pm-tr-empty" });
+        }
+      });
+      const statusCell = row.createEl("td");
+      this.renderCurrentStatusWithRisks(statusCell, version);
+    });
+  }
+  /**
+   * 渲染检查点单元格（带点击交互）
+   */
+  renderCheckpointCell(cell, checkpoint, version, phaseValue) {
+    const status = checkpoint.status;
+    const emoji = getTRStatusEmoji(status);
+    cell.addClass(`pm-tr-status-${status}`);
+    cell.style.cursor = "pointer";
+    cell.title = "\u70B9\u51FB\u5FEB\u901F\u66F4\u65B0\u72B6\u6001";
+    const statusEl = cell.createDiv({ cls: "pm-tr-status-icon" });
+    statusEl.textContent = emoji;
+    if (checkpoint.plannedDate) {
+      const dateEl = cell.createDiv({ cls: "pm-tr-date" });
+      dateEl.textContent = this.formatShortDate(checkpoint.plannedDate);
+      if (this.isWarningStatus(checkpoint)) {
+        cell.addClass("pm-tr-warning");
+        cell.style.background = "#ff6b6b20";
+        cell.style.border = "2px solid #ff6b6b";
+        const warningEl = cell.createDiv({ cls: "pm-tr-warning-badge" });
+        warningEl.textContent = "\u26A0\uFE0F";
+        warningEl.title = `\u5373\u5C06\u5230\u671F (${this.getDaysUntil(checkpoint.plannedDate)}\u5929)`;
+      }
+    }
+    if (checkpoint.actualDate && status === "passed") {
+      const actualEl = cell.createDiv({ cls: "pm-tr-actual-date" });
+      actualEl.textContent = this.formatShortDate(checkpoint.actualDate);
+    }
+    cell.onclick = (e) => {
+      e.stopPropagation();
+      this.showCheckpointQuickUpdate(cell, checkpoint, version, phaseValue);
+    };
+  }
+  /**
+   * 显示检查点快速更新菜单
+   */
+  showCheckpointQuickUpdate(cell, checkpoint, version, phaseValue) {
+    const existingMenu = document.querySelector(".pm-tr-quick-update-menu");
+    if (existingMenu)
+      existingMenu.remove();
+    const menu = document.createElement("div");
+    menu.className = "pm-tr-quick-update-menu";
+    menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 8px 0;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 180px;
+    `;
+    const phaseInfo = IPD_PHASES.find((p) => p.value === phaseValue);
+    const title = menu.createEl("div", {
+      text: `${(phaseInfo == null ? void 0 : phaseInfo.label) || phaseValue} \u72B6\u6001\u66F4\u65B0`,
+      cls: "pm-menu-title"
+    });
+    title.style.cssText = "padding: 8px 16px; font-weight: 600; border-bottom: 1px solid var(--background-modifier-border); margin-bottom: 4px;";
+    const statuses = [
+      { value: "not-started", label: "\u672A\u5F00\u59CB", emoji: "\u23F3" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", emoji: "\u{1F504}" },
+      { value: "passed", label: "\u5DF2\u901A\u8FC7", emoji: "\u2705" },
+      { value: "blocked", label: "\u963B\u585E", emoji: "\u26A0\uFE0F" }
+    ];
+    statuses.forEach((s) => {
+      const item = menu.createDiv({ cls: "pm-menu-item" });
+      item.style.cssText = `
+        padding: 8px 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        ${checkpoint.status === s.value ? "background: var(--background-modifier-hover); font-weight: 600;" : ""}
+      `;
+      item.innerHTML = `<span>${s.emoji}</span><span>${s.label}</span>`;
+      if (checkpoint.status !== s.value) {
+        item.addEventListener("mouseenter", () => {
+          item.style.background = "var(--background-modifier-hover)";
+        });
+        item.addEventListener("mouseleave", () => {
+          item.style.background = "";
+        });
+        item.addEventListener("click", async () => {
+          menu.remove();
+          await this.updateCheckpointStatus(version, phaseValue, s.value);
+        });
+      }
+    });
+    menu.createDiv({ cls: "pm-menu-separator" }).style.cssText = "height: 1px; background: var(--background-modifier-border); margin: 4px 0;";
+    const dateBtn = menu.createDiv({ cls: "pm-menu-item" });
+    dateBtn.style.cssText = "padding: 8px 16px; cursor: pointer; font-size: 13px;";
+    dateBtn.innerHTML = "\u{1F4C5} \u8BBE\u7F6E\u8BA1\u5212\u65E5\u671F";
+    dateBtn.onclick = () => {
+      menu.remove();
+      this.showSetDateModal(version, phaseValue, checkpoint.plannedDate);
+    };
+    const rect = cell.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.top = `${rect.bottom + 4}px`;
+    document.body.appendChild(menu);
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+  }
+  /**
+   * 更新检查点状态
+   */
+  async updateCheckpointStatus(version, phaseValue, newStatus) {
+    var _a;
+    const updatedCheckpoints = ((_a = version.trCheckpoints) == null ? void 0 : _a.map(
+      (cp) => cp.phase === phaseValue ? { ...cp, status: newStatus } : cp
+    )) || [];
+    if (newStatus === "passed") {
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const index = updatedCheckpoints.findIndex((cp) => cp.phase === phaseValue);
+      if (index !== -1) {
+        updatedCheckpoints[index] = { ...updatedCheckpoints[index], actualDate: today };
+      }
+    }
+    await this.entityManager.updateVersion(version.id, {
+      trCheckpoints: updatedCheckpoints,
+      // 如果当前阶段更新了，同步更新 version.phase
+      ...version.phase === phaseValue ? {} : {}
+    });
+    new import_obsidian17.Notice(`TR\u9636\u6BB5\u72B6\u6001\u5DF2\u66F4\u65B0: ${newStatus}`);
+    const container = document.querySelector(".pm-tr-milestone-view");
+    if (container) {
+      this.render(container);
+    }
+  }
+  /**
+   * 显示设置日期模态框
+   */
+  showSetDateModal(version, phaseValue, currentDate) {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+      background: var(--background-primary);
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 300px;
+      width: 90%;
+    `;
+    const phaseInfo = IPD_PHASES.find((p) => p.value === phaseValue);
+    modal.createEl("h4", { text: `\u8BBE\u7F6E ${(phaseInfo == null ? void 0 : phaseInfo.label) || phaseValue} \u8BA1\u5212\u65E5\u671F` });
+    const input = modal.createEl("input", {
+      type: "date",
+      value: currentDate || ""
+    });
+    input.style.cssText = "width: 100%; padding: 8px; margin: 16px 0;";
+    const btnContainer = modal.createDiv();
+    btnContainer.style.cssText = "display: flex; gap: 8px; justify-content: flex-end;";
+    const cancelBtn = btnContainer.createEl("button", { text: "\u53D6\u6D88" });
+    cancelBtn.onclick = () => overlay.remove();
+    const saveBtn = btnContainer.createEl("button", { text: "\u4FDD\u5B58", cls: "mod-cta" });
+    saveBtn.onclick = async () => {
+      var _a;
+      const newDate = input.value || void 0;
+      const updatedCheckpoints = ((_a = version.trCheckpoints) == null ? void 0 : _a.map(
+        (cp) => cp.phase === phaseValue ? { ...cp, plannedDate: newDate } : cp
+      )) || [];
+      await this.entityManager.updateVersion(version.id, {
+        trCheckpoints: updatedCheckpoints
+      });
+      overlay.remove();
+      new import_obsidian17.Notice("\u8BA1\u5212\u65E5\u671F\u5DF2\u66F4\u65B0");
+      const container = document.querySelector(".pm-tr-milestone-view");
+      if (container) {
+        this.render(container);
+      }
+    };
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.onclick = (e) => {
+      if (e.target === overlay)
+        overlay.remove();
+    };
+  }
+  /**
+   * 渲染当前状态和风险摘要
+   */
+  renderCurrentStatusWithRisks(container, version) {
+    var _a, _b;
+    const phase = version.phase || "tr3";
+    const checkpoint = (_a = version.trCheckpoints) == null ? void 0 : _a.find((cp) => cp.phase === phase);
+    if (checkpoint) {
+      const emoji = getTRStatusEmoji(checkpoint.status);
+      const phaseInfo = IPD_PHASES.find((p) => p.value === phase);
+      const statusEl = container.createDiv({ cls: "pm-tr-current-status" });
+      statusEl.createSpan({ text: emoji, cls: "pm-tr-status-emoji" });
+      statusEl.createSpan({ text: (phaseInfo == null ? void 0 : phaseInfo.label) || phase, cls: "pm-tr-phase-name" });
+      if (phaseInfo) {
+        statusEl.style.color = phaseInfo.color;
+      }
+      const currentCheckpoint = (_b = version.trCheckpoints) == null ? void 0 : _b.find((cp) => cp.phase === phase);
+      if (currentCheckpoint && currentCheckpoint.risks.length > 0) {
+        const riskBadge = container.createDiv({ cls: "pm-tr-risk-badge" });
+        riskBadge.textContent = `\u26A0\uFE0F ${currentCheckpoint.risks.length} \u98CE\u9669`;
+        riskBadge.style.cssText = `
+          font-size: 11px;
+          color: var(--text-error);
+          margin-top: 4px;
+          cursor: pointer;
+        `;
+        riskBadge.title = currentCheckpoint.risks.join("\n");
+        riskBadge.onclick = () => {
+          new import_obsidian17.Notice(currentCheckpoint.risks.join("\n"), 5e3);
+        };
+      }
+    } else {
+      container.createSpan({ text: "\u672A\u77E5", cls: "pm-tr-unknown" });
+    }
+  }
+  /**
+   * 检查是否为预警状态（7天内到期但未完成）
+   */
+  isWarningStatus(checkpoint) {
+    if (checkpoint.status === "passed" || checkpoint.status === "blocked") {
+      return false;
+    }
+    if (!checkpoint.plannedDate) {
+      return false;
+    }
+    const plannedDate = new Date(checkpoint.plannedDate);
+    const today = /* @__PURE__ */ new Date();
+    const diffDays = Math.ceil((plannedDate.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= TR_WARNING_DAYS;
+  }
+  /**
+   * 获取距离天数的文字描述
+   */
+  getDaysUntil(dateStr) {
+    const targetDate = new Date(dateStr);
+    const today = /* @__PURE__ */ new Date();
+    const diffDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
+    if (diffDays === 0)
+      return "\u4ECA\u5929";
+    if (diffDays === 1)
+      return "\u660E\u5929";
+    if (diffDays < 0)
+      return `\u5DF2\u5EF6\u671F ${Math.abs(diffDays)}`;
+    return `\u5269\u4F59 ${diffDays}`;
+  }
+  /**
+   * 格式化短日期 (MM-DD)
+   */
+  formatShortDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+};
 
 // src/view-engine/ViewEngine.ts
 var ViewEngine = class {
@@ -6936,6 +7830,8 @@ var ViewEngine = class {
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "timeview":
         return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case "tr-milestone":
+        return new TRMilestoneRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -7285,7 +8181,8 @@ var ViewEngine = class {
     select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
     const options = [
       { value: "status", label: "\u72B6\u6001" },
-      { value: "priority", label: "\u4F18\u5148\u7EA7" }
+      { value: "priority", label: "\u4F18\u5148\u7EA7" },
+      { value: "trPhase", label: "TR\u9636\u6BB5" }
     ];
     options.forEach((opt) => {
       const option = select.createEl("option");
@@ -7384,7 +8281,7 @@ var ViewEngine = class {
 };
 
 // src/settings/TemplateSettingTab.ts
-var import_obsidian17 = require("obsidian");
+var import_obsidian18 = require("obsidian");
 init_TemplateService();
 var TEMPLATE_LABELS = {
   overview: "\u603B\u89C8\u9875\u9762",
@@ -7398,7 +8295,7 @@ var TEMPLATE_DESCRIPTIONS = {
   project: "\u521B\u5EFA\u65B0\u9879\u76EE\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
   feature: "\u521B\u5EFA\u65B0\u7279\u6027\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F"
 };
-var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
+var TemplateSettingTab = class extends import_obsidian18.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -7408,7 +8305,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Project Manager \u6A21\u677F\u8BBE\u7F6E" });
-    new import_obsidian17.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
+    new import_obsidian18.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.enableCustomTemplates);
       toggle.onChange(async (value) => {
         this.plugin.settings.enableCustomTemplates = value;
@@ -7416,7 +8313,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
         this.templateService.updateSettings(this.plugin.settings);
       });
     });
-    new import_obsidian17.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
+    new import_obsidian18.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
       text.setPlaceholder("ProjectManager/.templates");
       text.setValue(this.plugin.settings.templateFolder || "");
       text.onChange(async (value) => {
@@ -7432,7 +8329,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
     }
     containerEl.createEl("hr");
     containerEl.createEl("h3", { text: "\u6279\u91CF\u64CD\u4F5C" });
-    new import_obsidian17.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
+    new import_obsidian18.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
       button.setButtonText("\u5BFC\u51FA\u6A21\u677F");
       button.onClick(async () => {
         try {
@@ -7440,13 +8337,13 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
           for (const type of types) {
             await this.templateService.exportTemplateToFile(type);
           }
-          new import_obsidian17.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
+          new import_obsidian18.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
         } catch (error) {
-          new import_obsidian17.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
+          new import_obsidian18.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
         }
       });
     });
-    new import_obsidian17.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
+    new import_obsidian18.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
       button.setButtonText("\u91CD\u7F6E");
       button.setWarning();
       button.onClick(async () => {
@@ -7454,7 +8351,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
           this.plugin.settings.customTemplates = {};
           await this.plugin.saveSettings();
           this.templateService.updateSettings(this.plugin.settings);
-          new import_obsidian17.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
+          new import_obsidian18.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
           this.display();
         }
       });
@@ -7507,7 +8404,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
         delete this.plugin.settings.customTemplates[type];
         await this.plugin.saveSettings();
         this.templateService.updateSettings(this.plugin.settings);
-        new import_obsidian17.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
+        new import_obsidian18.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
       }
     });
   }
@@ -7534,7 +8431,7 @@ var TemplateSettingTab = class extends import_obsidian17.PluginSettingTab {
     new TemplatePreviewModal(this.app, type, template).open();
   }
 };
-var TemplateEditorModal = class extends import_obsidian17.Modal {
+var TemplateEditorModal = class extends import_obsidian18.Modal {
   constructor(app, templateService, type, onSave) {
     super(app);
     this.textArea = null;
@@ -7549,9 +8446,9 @@ var TemplateEditorModal = class extends import_obsidian17.Modal {
     const defaultTemplate = this.templateService.getDefaultTemplate(this.type);
     const settings = this.templateService.getSettings();
     const currentTemplate = settings.customTemplates[this.type] || defaultTemplate;
-    const setting = new import_obsidian17.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
+    const setting = new import_obsidian18.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
     setting.controlEl.style.width = "100%";
-    this.textArea = new import_obsidian17.TextAreaComponent(setting.controlEl);
+    this.textArea = new import_obsidian18.TextAreaComponent(setting.controlEl);
     this.textArea.setValue(currentTemplate);
     this.textArea.inputEl.style.width = "100%";
     this.textArea.inputEl.style.minHeight = "400px";
@@ -7579,7 +8476,7 @@ var TemplateEditorModal = class extends import_obsidian17.Modal {
       var _a;
       const content = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
       await this.onSave(content);
-      new import_obsidian17.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
+      new import_obsidian18.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
       this.close();
     });
   }
@@ -7636,7 +8533,7 @@ var TemplateEditorModal = class extends import_obsidian17.Modal {
     }
   }
 };
-var TemplatePreviewModal = class extends import_obsidian17.Modal {
+var TemplatePreviewModal = class extends import_obsidian18.Modal {
   constructor(app, type, template) {
     super(app);
     this.type = type;
@@ -7684,7 +8581,13 @@ var PREVIEW_EXAMPLES = {
     owner: "\u5F20\u4E09",
     startDate: "2026-04-01",
     endDate: "2026-06-30",
-    tags: ["\u91CD\u8981", "\u79FB\u52A8\u7AEF"]
+    tags: ["\u91CD\u8981", "\u79FB\u52A8\u7AEF"],
+    phase: "tr4",
+    trCheckpoints: [
+      { phase: "tr3", status: "passed", plannedDate: "2026-04-01", actualDate: "2026-03-28", deliverables: ["\u9700\u6C42\u89C4\u683C\u8BF4\u660E\u4E66"], risks: [] },
+      { phase: "tr4", status: "in-progress", plannedDate: "2026-05-01", deliverables: ["\u4EE3\u7801\u5F00\u53D1\u5B8C\u6210"], risks: ["\u8FDB\u5EA6\u7A0D\u6709\u5EF6\u8FDF"] }
+    ],
+    targetDate: "2026-06-30"
   },
   project: {
     id: "proj-homepage",
@@ -7705,7 +8608,8 @@ var PREVIEW_EXAMPLES = {
     priority: "critical",
     progress: 65,
     dueDate: "2026-04-15",
-    tags: ["\u540E\u7AEF", "\u5B89\u5168"]
+    tags: ["\u540E\u7AEF", "\u5B89\u5168"],
+    trPhase: "tr4"
   },
   overview: {
     date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
@@ -7713,7 +8617,7 @@ var PREVIEW_EXAMPLES = {
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian20.Plugin {
   async onload() {
     await this.loadSettings();
     this.entityManager = new EntityManager(this.app, this.settings);
@@ -7765,7 +8669,7 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian19.TFile) {
+        if (file instanceof import_obsidian20.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -7773,7 +8677,7 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian19.TFile) {
+        if (file instanceof import_obsidian20.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -7794,6 +8698,38 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
       })
     );
     this.addSettingTab(new TemplateSettingTab(this.app, this));
+    this.registerVersionCardEvents();
+  }
+  /**
+   * 注册版本卡片右键菜单事件
+   */
+  registerVersionCardEvents() {
+    document.addEventListener("pm:update-version-phase", async (e) => {
+      var _a;
+      const customEvent = e;
+      const { versionId, newPhase } = customEvent.detail;
+      const version = await this.entityManager.getVersion(versionId);
+      if (version) {
+        await this.entityManager.updateVersion(versionId, {
+          phase: newPhase,
+          trCheckpoints: (_a = version.trCheckpoints) == null ? void 0 : _a.map(
+            (cp) => cp.phase === newPhase ? { ...cp, status: "in-progress" } : cp
+          )
+        });
+        new import_obsidian20.Notice(`\u7248\u672C\u5DF2\u63A8\u8FDB\u5230 ${newPhase.toUpperCase()}`);
+      }
+    });
+    document.addEventListener("pm:open-version", async (e) => {
+      const customEvent = e;
+      const { versionId } = customEvent.detail;
+      const path = await this.entityManager.getVersionPath(versionId);
+      if (path) {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (file instanceof import_obsidian20.TFile) {
+          this.app.workspace.getLeaf().openFile(file);
+        }
+      }
+    });
   }
   onunload() {
   }
@@ -7860,7 +8796,7 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
   async getCodeBlockIndex(sourcePath, source, el) {
     try {
       const file = this.app.vault.getAbstractFileByPath(sourcePath);
-      if (!(file instanceof import_obsidian19.TFile))
+      if (!(file instanceof import_obsidian20.TFile))
         return 0;
       const content = await this.app.vault.read(file);
       const lines = content.split("\n");
@@ -7918,7 +8854,7 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian19.TFile))
+    if (!(file instanceof import_obsidian20.TFile))
       return;
     const containerEl = el.parentElement;
     if (!containerEl)
@@ -7926,8 +8862,23 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     const firstEl = containerEl.querySelector(":scope > *");
     if (firstEl !== el)
       return;
+    if (containerEl.closest(".pm-view") || containerEl.closest(".pm-view-wrapper")) {
+      return;
+    }
+    const isMarkdownContainer = containerEl.classList.contains("markdown-preview-view") || containerEl.classList.contains("markdown-reading-view") || containerEl.classList.contains("view-content") || el.classList.contains("mod-header");
+    if (!isMarkdownContainer) {
+      const markdownPreview = el.closest(".markdown-preview-view, .markdown-reading-view");
+      if (!markdownPreview)
+        return;
+      const allChildren = Array.from(markdownPreview.children);
+      const elIndex = allChildren.indexOf(el);
+      if (elIndex > 3)
+        return;
+    }
     setTimeout(() => {
       if (!containerEl.isConnected)
+        return;
+      if (containerEl.querySelector(".pm-breadcrumb"))
         return;
       this.breadcrumb.renderForFile(file, containerEl);
     }, 0);

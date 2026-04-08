@@ -12,6 +12,7 @@ import {
   CascadeRenderer,
   TimelineRenderer,
   TimeViewRenderer,
+  TRMilestoneRenderer,
 } from './renderers';
 
 /**
@@ -316,6 +317,8 @@ export class ViewEngine {
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case 'timeview':
         return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case 'tr-milestone':
+        return new TRMilestoneRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -778,6 +781,7 @@ export class ViewEngine {
     const options = [
       { value: 'status', label: '状态' },
       { value: 'priority', label: '优先级' },
+      { value: 'trPhase', label: 'TR阶段' },
     ];
     options.forEach(opt => {
       const option = select.createEl('option');

@@ -13,6 +13,8 @@
 - 🧭 **面包屑导航** - 层级导航，支持点击穿透
 - 📅 **ICS导出** - 导出特性截止日期到 .ics 文件
 - 📝 **自定义模板** - 支持自定义总览/版本/项目/特性的页面模板
+- 🎯 **IPD 流程** - 完整的 TR 里程碑管理（TR3→TR4→TR4A→TR5→TR6）
+- 📊 **TR 里程碑视图** - 可视化展示所有版本的 TR 阶段进度和风险
 
 ## 📦 安装
 
@@ -65,6 +67,7 @@ groupBy: status
 | `calendar` | 日历视图 | `mode: calendar`<br>`type: feature` |
 | `selector` | 选择器视图 | `mode: selector`<br>`type: version` |
 | `cascade-selector` | 级联选择器 | `mode: cascade-selector` |
+| `tr-milestone` | TR 里程碑视图 | `mode: tr-milestone` |
 
 ### 通用配置参数
 
@@ -268,6 +271,18 @@ status: {{status}}
 - 仅支持桌面端
 
 ## 📜 版本历史
+
+### v0.6.0 (2026-04-08)
+
+- **新增**：IPD 流程支持，完整的 TR 里程碑管理（TR3→TR4→TR4A→TR5→TR6）
+- **新增**：TR 里程碑视图（`mode: tr-milestone`），可视化展示所有版本的 TR 阶段进度
+- **新增**：版本右键菜单，支持快速推进阶段、设置 TR 日期、查看交付件清单
+- **优化**：修复面包屑导航出现在 pm-view 表格内部的问题
+- **优化**：模板渲染支持嵌套属性（如 `{{tr3.status}}`）
+
+### v0.5.1 (2026-04-07)
+
+- 修复模板渲染问题
 
 ### v0.4.0 (2026-04-07)
 

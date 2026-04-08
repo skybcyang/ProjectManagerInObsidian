@@ -1,5 +1,5 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
-import { FEATURE_STATUSES, PRIORITIES } from '../constants';
+import { FEATURE_STATUSES, PRIORITIES, IPD_PHASES } from '../constants';
 import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { CreateFeatureData, Version, Project } from '../types';
@@ -222,6 +222,21 @@ export class CreateFeatureModal extends Modal {
         });
       });
 
+    // 交付 TR 阶段
+    new Setting(contentEl)
+      .setName('交付 TR 阶段')
+      .setDesc('选择特性计划在哪个 TR 阶段交付（可选）')
+      .addDropdown(dropdown => {
+        dropdown.addOption('', '（未指定）');
+        IPD_PHASES.forEach(phase => {
+          dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
+        });
+        dropdown.setValue(this.result.trPhase || '');
+        dropdown.onChange(value => {
+          this.result.trPhase = value as CreateFeatureData['trPhase'] || undefined;
+        });
+      });
+
     // 负责人
     new Setting(contentEl)
       .setName('负责人')
@@ -302,6 +317,7 @@ export class CreateFeatureModal extends Modal {
       owner: '设计师小王',
       tags: ['UI', '首页', '设计'],
       isMilestone: false,
+      trPhase: 'tr4',
     };
     
     // 重新渲染

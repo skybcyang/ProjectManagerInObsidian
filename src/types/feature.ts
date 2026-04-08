@@ -1,33 +1,40 @@
+import type { IPDPhaseValue } from '../constants';
+
 export type FeatureStatus = 'backlog' | 'todo' | 'in-progress' | 'testing' | 'completed' | 'archived';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
 
 export interface Feature {
   id: string;
   name: string;
-  versionId: string;  // 必填
-  projectId: string;  // 必填
+  versionId: string;
+  projectId: string;
   status: FeatureStatus;
   owner?: string;
   priority: Priority;
   tags: string[];
   progress: number;
   dueDate?: string;
-  startDate?: string;      // 开始日期，用于时间视图规划
-  isMilestone?: boolean;   // 手动标记为里程碑
+  startDate?: string;
+  isMilestone?: boolean;
+  
+  // === IPD扩展字段 ===
+  /** 特性交付的TR阶段 */
+  trPhase?: IPDPhaseValue;
 }
 
 export interface CreateFeatureData {
   name: string;
-  versionId: string;  // 必填
-  projectId: string;  // 必填
+  versionId: string;
+  projectId: string;
   status?: FeatureStatus;
   owner?: string;
   priority?: Priority;
   tags?: string[];
   progress?: number;
   dueDate?: string;
-  startDate?: string;      // 开始日期
-  isMilestone?: boolean;   // 标记为里程碑
+  startDate?: string;
+  isMilestone?: boolean;
+  trPhase?: IPDPhaseValue;
 }
 
 export interface UpdateFeatureData {
@@ -40,6 +47,7 @@ export interface UpdateFeatureData {
   tags?: string[];
   progress?: number;
   dueDate?: string;
-  startDate?: string;      // 开始日期
-  isMilestone?: boolean;   // 标记为里程碑
+  startDate?: string;
+  isMilestone?: boolean;
+  trPhase?: IPDPhaseValue;
 }

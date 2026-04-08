@@ -15,6 +15,8 @@ describe('EntityCache', () => {
     cache.clear();
   });
 
+
+
   describe('basic operations', () => {
     it('should set and get version', () => {
       const version: Version = {

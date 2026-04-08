@@ -1,7 +1,7 @@
 {
 	"id": "project-manager",
 	"name": "Project Manager",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"minAppVersion": "0.15.0",
 	"description": "在 Obsidian 中进行项目管理，支持看板视图、面包屑导航和 .ics 导出",
 	"author": "skybcyang",

@@ -1,5 +1,7 @@
 import { App, TFile } from 'obsidian';
 import type { Version, Project, Feature } from '../../types';
+import type { TRCheckpoint } from '../../types/version';
+import { createDefaultTRCheckpoints } from '../../constants';
 
 /**
  * 实体缓存管理器
@@ -177,15 +179,43 @@ export class EntityCache {
     const cache = this.app.metadataCache.getFileCache(file);
     if (!cache?.frontmatter?.id) return null;
     
+    // 验证并修复 trCheckpoints 数据
+    let trCheckpoints: TRCheckpoint[] | undefined;
+    const rawCheckpoints = cache.frontmatter.trCheckpoints;
+    
+    if (Array.isArray(rawCheckpoints)) {
+      // 验证每个检查点的数据结构
+      trCheckpoints = rawCheckpoints.map(cp => ({
+        phase: cp.phase || 'tr3',
+        status: cp.status || 'not-started',
+        plannedDate: cp.plannedDate,
+        actualDate: cp.actualDate,
+        deliverables: Array.isArray(cp.deliverables) 
+          ? cp.deliverables.filter((d: unknown) => typeof d === 'string' && !d.includes('{{'))
+          : [],
+        risks: Array.isArray(cp.risks) 
+          ? cp.risks.filter((r: unknown) => typeof r === 'string' && !r.includes('{{'))
+          : [],
+      }));
+    } else {
+      // 如果没有 trCheckpoints，创建默认值
+      trCheckpoints = createDefaultTRCheckpoints();
+    }
+    
     return {
       id: cache.frontmatter.id,
       name: cache.frontmatter.name || file.basename,
       status: cache.frontmatter.status || 'planning',
       description: cache.frontmatter.description,
       startDate: cache.frontmatter.startDate,
+      endDate: cache.frontmatter.endDate,
       releaseDate: cache.frontmatter.releaseDate,
       owner: cache.frontmatter.owner,
-      tags: cache.frontmatter.tags || [],
+      tags: Array.isArray(cache.frontmatter.tags) ? cache.frontmatter.tags : [],
+      // IPD扩展字段
+      phase: cache.frontmatter.phase || 'tr3',
+      trCheckpoints,
+      targetDate: cache.frontmatter.targetDate,
     } as Version;
   }
 
@@ -227,8 +257,11 @@ export class EntityCache {
       progress: cache.frontmatter.progress || 0,
       description: cache.frontmatter.description,
       dueDate: cache.frontmatter.dueDate,
+      startDate: cache.frontmatter.startDate,
       owner: cache.frontmatter.owner,
       tags: cache.frontmatter.tags || [],
+      // IPD扩展字段
+      trPhase: cache.frontmatter.trPhase,
     } as Feature;
   }
 

@@ -124,8 +124,28 @@ export class TimeViewRenderer extends BaseRenderer {
    * 将实体转换为时间视图项
    */
   private convertToTimeItems(entities: Entity[]): TimeViewItem[] {
-    return entities
-      .filter((e) => 'dueDate' in e && !!e.dueDate)
+    console.log('[TimeView] convertToTimeItems 输入:', entities.length);
+    if (entities.length > 0) {
+      const sample = entities[0] as any;
+      console.log('[TimeView] 第一个实体:', {
+        id: sample.id,
+        name: sample.name,
+        dueDate: sample.dueDate,
+        hasDueDate: 'dueDate' in sample,
+        dueDateType: typeof sample.dueDate,
+      });
+    }
+    
+    const withDueDate = entities.filter((e) => {
+      const hasDueDate = 'dueDate' in e && !!(e as any).dueDate;
+      if (!hasDueDate) {
+        console.log('[TimeView] 过滤掉无dueDate:', (e as any).id, (e as any).name);
+      }
+      return hasDueDate;
+    });
+    console.log('[TimeView] 有dueDate的实体:', withDueDate.length);
+    
+    return withDueDate
       .map((e) => {
         const entity = e as Feature;
         const endDate = new Date(entity.dueDate!);
@@ -143,7 +163,13 @@ export class TimeViewRenderer extends BaseRenderer {
           entityType: getEntityType(entity),
         };
       })
-      .filter((item) => !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime()));
+      .filter((item) => {
+        const valid = !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime());
+        if (!valid) {
+          console.log('[TimeView] 无效日期:', item.entity.id, item.entity.name, item.entity.dueDate);
+        }
+        return valid;
+      });
   }
 
   /**
@@ -770,14 +796,389 @@ export class TimeViewRenderer extends BaseRenderer {
   }
 
   /**
-   * 渲染季度视图
+   * 渲染季度视图 - 以周为单位的甘特图，显示整个季度
    */
   private renderQuarterView(container: HTMLElement, items: TimeViewItem[]): void {
     container.empty();
-    container.createDiv({
-      cls: 'pm-timeview-placeholder',
-      text: '季度视图开发中...',
+    container.addClass('pm-timeview-quarter');
+
+    const { currentDate } = this.state;
+    const year = currentDate.getFullYear();
+    const quarter = Math.floor(currentDate.getMonth() / 3) + 1;
+    
+    // 计算季度开始和结束日期
+    const quarterStartMonth = (quarter - 1) * 3;
+    const quarterStart = new Date(year, quarterStartMonth, 1);
+    const quarterEnd = new Date(year, quarterStartMonth + 3, 0);
+    
+    // 获取该季度所有周的开始日期
+    const weeks = this.getQuarterWeeks(quarterStart, quarterEnd);
+    
+    // 创建主容器
+    const quarterContainer = container.createDiv('pm-timeview-quarter-container');
+    
+    // 渲染月份标题行
+    this.renderQuarterMonthHeader(quarterContainer, year, quarter);
+    
+    // 渲染周标题行
+    this.renderQuarterWeekHeader(quarterContainer, weeks);
+    
+    // 渲染甘特图区域
+    this.renderQuarterGantt(quarterContainer, items, weeks, quarterStart, quarterEnd);
+  }
+
+  /**
+   * 获取季度所有周的开始日期
+   */
+  private getQuarterWeeks(start: Date, end: Date): Date[] {
+    const weeks: Date[] = [];
+    let currentWeek = this.getWeekStart(start);
+    
+    while (currentWeek <= end) {
+      weeks.push(new Date(currentWeek));
+      currentWeek.setDate(currentWeek.getDate() + 7);
+    }
+    
+    return weeks;
+  }
+
+  /**
+   * 渲染季度视图月份标题
+   */
+  private renderQuarterMonthHeader(container: HTMLElement, year: number, quarter: number): void {
+    const header = container.createDiv('pm-timeview-quarter-month-header');
+    header.style.cssText = `
+      display: flex;
+      margin-bottom: 8px;
+      border-bottom: 2px solid var(--background-modifier-border);
+      padding-bottom: 8px;
+    `;
+    
+    // 左侧标题区域
+    const titleArea = header.createDiv('pm-timeview-quarter-title');
+    titleArea.style.cssText = 'flex: 0 0 200px; font-weight: 600; font-size: 16px;';
+    titleArea.textContent = `${year}年 Q${quarter}`;
+    
+    // 月份区域
+    const monthsArea = header.createDiv('pm-timeview-quarter-months');
+    monthsArea.style.cssText = 'flex: 1; display: flex;';
+    
+    const quarterStartMonth = (quarter - 1) * 3;
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    
+    for (let i = 0; i < 3; i++) {
+      const monthDiv = monthsArea.createDiv('pm-timeview-quarter-month');
+      monthDiv.style.cssText = `
+        flex: 1;
+        text-align: center;
+        font-weight: 500;
+        color: var(--text-muted);
+        border-right: ${i < 2 ? '1px solid var(--background-modifier-border)' : 'none'};
+      `;
+      monthDiv.textContent = monthNames[quarterStartMonth + i];
+    }
+  }
+
+  /**
+   * 渲染季度视图周标题行
+   */
+  private renderQuarterWeekHeader(container: HTMLElement, weeks: Date[]): void {
+    const header = container.createDiv('pm-timeview-quarter-week-header');
+    header.style.cssText = `
+      display: flex;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    `;
+    
+    // 左侧标签占位
+    const labelArea = header.createDiv();
+    labelArea.style.cssText = 'flex: 0 0 200px;';
+    
+    // 周标签区域
+    const weeksArea = header.createDiv('pm-timeview-quarter-weeks');
+    weeksArea.style.cssText = 'flex: 1; display: flex;';
+    
+    weeks.forEach((week, index) => {
+      const weekDiv = weeksArea.createDiv('pm-timeview-quarter-week-label');
+      weekDiv.style.cssText = `
+        flex: 1;
+        text-align: center;
+        padding: 4px 2px;
+        font-size: 10px;
+        border-right: 1px solid var(--background-modifier-border-hover);
+        ${this.isWeekCurrent(week) ? 'background: var(--background-modifier-accent); color: var(--text-on-accent); border-radius: 4px;' : ''}
+      `;
+      weekDiv.textContent = `${week.getMonth() + 1}/${week.getDate()}`;
+      weekDiv.title = `第${index + 1}周: ${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, '0')}-${String(week.getDate()).padStart(2, '0')}`;
     });
+  }
+
+  /**
+   * 判断是否为当前周
+   */
+  private isWeekCurrent(weekStart: Date): boolean {
+    const today = new Date();
+    const currentWeekStart = this.getWeekStart(today);
+    return this.isSameDay(weekStart, currentWeekStart);
+  }
+
+  /**
+   * 渲染季度视图甘特图
+   */
+  private renderQuarterGantt(
+    container: HTMLElement, 
+    items: TimeViewItem[], 
+    weeks: Date[],
+    quarterStart: Date,
+    quarterEnd: Date
+  ): void {
+    const ganttContainer = container.createDiv('pm-timeview-quarter-gantt');
+    ganttContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 500px;
+      overflow-y: auto;
+    `;
+
+    if (items.length === 0) {
+      this.renderEmptyState(ganttContainer, '本季度没有任务');
+      return;
+    }
+
+    // 筛选出在季度范围内的任务
+    const quarterItems = items.filter(item => 
+      this.isDateRangeOverlap(item.startDate, item.endDate, quarterStart, quarterEnd)
+    );
+
+    if (quarterItems.length === 0) {
+      this.renderEmptyState(ganttContainer, '本季度没有任务');
+      return;
+    }
+
+    // 计算每行的任务
+    const rows = this.calculateQuarterRows(quarterItems, weeks, quarterStart, quarterEnd);
+
+    // 渲染每行
+    rows.forEach(rowItems => {
+      const rowEl = ganttContainer.createDiv('pm-timeview-quarter-row');
+      rowEl.style.cssText = `
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+        border-bottom: 1px solid var(--background-modifier-border-hover);
+      `;
+
+      // 渲染行中的每个任务
+      rowItems.forEach(item => {
+        this.renderQuarterGanttBar(rowEl, item, weeks, quarterStart, quarterEnd);
+      });
+    });
+
+    // 添加网格背景
+    this.renderQuarterGridBackground(ganttContainer, weeks);
+  }
+
+  /**
+   * 计算季度视图的行分配
+   */
+  private calculateQuarterRows(
+    items: TimeViewItem[],
+    weeks: Date[],
+    quarterStart: Date,
+    quarterEnd: Date
+  ): TimeViewItem[][] {
+    const rows: TimeViewItem[][] = [];
+    const occupied: { startCol: number; endCol: number; row: number }[] = [];
+
+    // 按开始日期排序
+    const sortedItems = [...items].sort(
+      (a, b) => a.startDate.getTime() - b.startDate.getTime()
+    );
+
+    for (const item of sortedItems) {
+      // 计算在季度范围内的位置
+      const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
+      const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
+
+      // 计算开始和结束的周索引
+      const startCol = this.getWeekIndex(actualStart, weeks);
+      const endCol = this.getWeekIndex(actualEnd, weeks);
+
+      if (startCol === -1 || endCol === -1) continue;
+
+      // 找到第一个不冲突的行
+      let rowIndex = 0;
+      while (
+        occupied.some(
+          o =>
+            o.row === rowIndex &&
+            !(o.endCol < startCol || o.startCol > endCol)
+        )
+      ) {
+        rowIndex++;
+      }
+
+      if (!rows[rowIndex]) {
+        rows[rowIndex] = [];
+      }
+      rows[rowIndex].push(item);
+      occupied.push({ startCol, endCol, row: rowIndex });
+    }
+
+    return rows.length > 0 ? rows : [[]];
+  }
+
+  /**
+   * 获取日期所在的周索引
+   */
+  private getWeekIndex(date: Date, weeks: Date[]): number {
+    for (let i = 0; i < weeks.length; i++) {
+      const weekStart = weeks[i];
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      if (date >= weekStart && date <= weekEnd) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * 渲染季度视图甘特条
+   */
+  private renderQuarterGanttBar(
+    container: HTMLElement,
+    item: TimeViewItem,
+    weeks: Date[],
+    quarterStart: Date,
+    quarterEnd: Date
+  ): void {
+    // 计算在季度范围内的位置
+    const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
+    const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
+
+    const startCol = this.getWeekIndex(actualStart, weeks);
+    const endCol = this.getWeekIndex(actualEnd, weeks);
+
+    if (startCol === -1 || endCol === -1) return;
+
+    const bar = container.createDiv('pm-timeview-quarter-bar');
+    
+    // 计算位置（左侧留白给任务名称）
+    const leftOffset = 200; // 任务名称区域宽度
+    const weekWidth = 100 / weeks.length;
+    const left = leftOffset + (startCol * weekWidth);
+    const width = ((endCol - startCol + 1) * weekWidth);
+
+    const priorityColor = getPriorityColor(item.entity.priority);
+
+    bar.style.cssText = `
+      position: absolute;
+      left: ${left}px;
+      width: calc(${width}% - 8px);
+      height: 28px;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.15s ease;
+      z-index: 1;
+    `;
+
+    // 里程碑特殊样式
+    if (item.isMilestone) {
+      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
+      bar.style.color = '#fff';
+      bar.textContent = '🔷 ';
+    } else {
+      // 进度条效果
+      if (item.progress > 0) {
+        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
+      } else {
+        bar.style.background = priorityColor.bg;
+      }
+      bar.style.color = priorityColor.text;
+    }
+
+    // 任务名称
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = item.entity.name;
+    nameSpan.style.overflow = 'hidden';
+    nameSpan.style.textOverflow = 'ellipsis';
+    bar.appendChild(nameSpan);
+
+    // 悬停效果
+    bar.addEventListener('mouseenter', () => {
+      bar.style.transform = 'translateY(-2px)';
+      bar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      bar.style.zIndex = '10';
+    });
+    bar.addEventListener('mouseleave', () => {
+      bar.style.transform = 'translateY(0)';
+      bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      bar.style.zIndex = '1';
+    });
+
+    // 点击打开
+    bar.addEventListener('click', () => {
+      this.actionService.openEntity(item.entityType, item.entity.id);
+    });
+
+    // 添加任务名称标签（固定在左侧）
+    const labelEl = container.createDiv('pm-timeview-quarter-bar-label');
+    labelEl.style.cssText = `
+      flex: 0 0 200px;
+      padding-right: 12px;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-normal);
+      font-weight: 500;
+    `;
+    labelEl.textContent = item.entity.name;
+    labelEl.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
+  }
+
+  /**
+   * 渲染季度视图网格背景
+   */
+  private renderQuarterGridBackground(container: HTMLElement, weeks: Date[]): void {
+    const gridBg = container.createDiv('pm-timeview-quarter-grid-bg');
+    gridBg.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 200px;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      pointer-events: none;
+      z-index: 0;
+    `;
+
+    weeks.forEach((week, index) => {
+      const weekCol = gridBg.createDiv('pm-timeview-quarter-grid-col');
+      weekCol.style.cssText = `
+        flex: 1;
+        border-right: 1px solid var(--background-modifier-border-hover);
+        background: ${this.isWeekCurrent(week) ? 'var(--background-modifier-accent)' : 'transparent'};
+        opacity: ${this.isWeekCurrent(week) ? 0.1 : 1};
+      `;
+    });
+
+    // 将背景移到最底层
+    container.insertBefore(gridBg, container.firstChild);
   }
 
   /**

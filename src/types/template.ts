@@ -2,8 +2,20 @@
  * 模板类型定义
  */
 
+import type { IPDPhaseValue, TRStatusValue } from '../constants';
+
 /** 模板类型 */
 export type TemplateType = 'overview' | 'version' | 'project' | 'feature';
+
+/** TR检查点模板上下文 */
+export interface TRCheckpointTemplateContext {
+  phase: IPDPhaseValue;
+  status: TRStatusValue;
+  plannedDate?: string;
+  actualDate?: string;
+  deliverables: string[];
+  risks: string[];
+}
 
 /** 模板配置 */
 export interface TemplateConfig {
@@ -26,6 +38,10 @@ export interface VersionTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
+  // IPD扩展字段
+  phase?: IPDPhaseValue;
+  trCheckpoints?: TRCheckpointTemplateContext[];
+  targetDate?: string;
 }
 
 /** 模板变量上下文 - 项目 */
@@ -51,6 +67,8 @@ export interface FeatureTemplateContext {
   progress: number;
   dueDate?: string;
   tags: string[];
+  // IPD扩展字段
+  trPhase?: IPDPhaseValue;
 }
 
 /** 模板变量上下文 - 总览 */
@@ -91,6 +109,12 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-06-30',
     tags: ['重要', '移动端'],
+    phase: 'tr4',
+    trCheckpoints: [
+      { phase: 'tr3', status: 'passed', plannedDate: '2026-04-01', actualDate: '2026-03-28', deliverables: ['需求规格说明书'], risks: [] },
+      { phase: 'tr4', status: 'in-progress', plannedDate: '2026-05-01', deliverables: ['代码开发完成'], risks: ['进度稍有延迟'] },
+    ],
+    targetDate: '2026-06-30',
   },
   project: {
     id: 'proj-homepage',
@@ -112,6 +136,7 @@ export const PREVIEW_EXAMPLES = {
     progress: 65,
     dueDate: '2026-04-15',
     tags: ['后端', '安全'],
+    trPhase: 'tr4',
   },
   overview: {
     date: new Date().toISOString().split('T')[0],
