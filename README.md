@@ -1,20 +1,28 @@
 # Project Manager for Obsidian
 
-在 Obsidian 中进行项目管理，支持版本、项目、特性三层结构化管理，提供看板视图、面包屑导航和日历导出功能。
+在 Obsidian 中进行项目管理，支持版本、项目、特性三层结构化管理，提供看板视图、列表视图、级联视图、时间线视图等多种可视化方式。
 
 ## ✨ 功能特性
 
-- 📦 **版本管理** - 规划和管理产品版本迭代
-- 📁 **项目管理** - 组织和管理项目，必须关联版本
-- ✨ **特性管理** - 跟踪特性开发进度，支持优先级、截止日期
-- 📊 **统一视图** - 通过 `pm-view` 代码块统一展示所有视图类型
+### 核心功能
+- 📦 **版本管理** - 规划和管理产品版本迭代，支持开始/结束日期
+- 📁 **项目管理** - 组织和管理项目，必须关联版本，支持开始/结束日期
+- ✨ **特性管理** - 跟踪特性开发进度，支持优先级、进度、里程碑标记
 
+### 视图系统
+- 📊 **看板视图** (`mode: kanban`) - 按状态/优先级分组展示
+- 📋 **列表视图** (`mode: list`) - 表格形式展示，支持列配置
+- ▦ **网格视图** (`mode: grid`) - 卡片网格布局
+- 🌲 **级联视图** (`mode: cascade`) - 版本→项目→特性的层级展示
+- ⏱️ **时间线视图** (`mode: timeline`) - 水平/垂直时间线展示
+- 🗓️ **时间视图** (`mode: timeview`) - 日历形式展示
+
+### 交互特性
 - 🔗 **级联展示** - 展示版本→项目→特性的完整层级结构和实时状态
 - 🧭 **面包屑导航** - 层级导航，支持点击穿透
-- 📅 **ICS导出** - 导出特性截止日期到 .ics 文件
+- 🎯 **统一筛选栏** - SelectCell 风格的筛选器，支持树形层级选择
+- 📅 **ICS导出** - 导出特性时间到 .ics 文件
 - 📝 **自定义模板** - 支持自定义总览/版本/项目/特性的页面模板
-- 🎯 **IPD 流程** - 完整的 TR 里程碑管理（TR3→TR4→TR4A→TR5→TR6）
-- 📊 **TR 里程碑视图** - 可视化展示所有版本的 TR 阶段进度和风险
 
 ## 📦 安装
 
@@ -61,28 +69,24 @@ groupBy: status
 | 模式 | 说明 | 示例配置 |
 |------|------|----------|
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
-| `grid` | 网格视图 | `mode: grid`<br>`type: feature`<br>`cols: 3` |
+| `list` | 列表视图 | `mode: list`<br>`type: feature` |
+| `grid` | 网格视图 | `mode: grid`<br>`type: project` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
 | `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
-| `calendar` | 日历视图 | `mode: calendar`<br>`type: feature` |
-| `selector` | 选择器视图 | `mode: selector`<br>`type: version` |
-| `cascade-selector` | 级联选择器 | `mode: cascade-selector` |
-| `tr-milestone` | TR 里程碑视图 | `mode: tr-milestone` |
+| `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
 
 ### 通用配置参数
 
 ```yaml
 mode: kanban          # 视图模式（必填）
 type: feature         # 实体类型：version/project/feature
-id: feat-001          # 具体实体ID
+version: ver-001      # 筛选特定版本
+project: proj-001     # 筛选特定项目
+status: in-progress   # 按状态筛选
+priority: high        # 按优先级筛选
+owner: 张三           # 按负责人筛选
 groupBy: status       # 分组方式：status/priority/version/project
-cols: 3               # 网格列数：1/2/3/4
-filter:               # 过滤条件
-  status: in-progress
-  priority: high
-  versionId: ver-001
-  projectId: proj-001
-sortBy: dueDate       # 排序字段
+sortBy: endDate       # 排序字段
 sortOrder: desc       # 排序方向：asc/desc
 limit: 20             # 限制数量
 ```
@@ -107,12 +111,12 @@ ProjectManager/
 ┌─────────────────────────────────────────┐
 │              UI Layer                    │
 │  ┌──────────┐ ┌──────────┐ ┌─────────┐ │
-│  │  View    │ │  Cards   │ │Breadcrumb│ │
-│  │ Engine   │ │ Registry │ │          │ │
+│  │  View    │ │  Filter  │ │Breadcrumb│ │
+│  │ Engine   │ │   Bar    │ │          │ │
 │  └────┬─────┘ └────┬─────┘ └────┬────┘ │
 │       └─────────────┴────────────┘      │
 │                   │                      │
-│            CardRegistry                 │
+│            EntityTreeSelector           │
 └───────────────────┬─────────────────────┘
                     │
 ┌───────────────────┼─────────────────────┐
@@ -131,26 +135,64 @@ ProjectManager/
 ```
 
 - **Core 层** - 负责文件读写和数据一致性
-- **UI 层** - 通过 ViewEngine 统一处理所有视图，CardRegistry 实现卡片组件化
+- **UI 层** - 通过 ViewEngine 统一处理所有视图，FilterBar 提供统一筛选
 
 ## 📝 数据格式
 
 所有数据以 Markdown 格式存储，元数据放在 frontmatter 中：
 
+### 版本
 ```yaml
 ---
-id: abc12345
-name: 示例特性
-versionId: ver12345
-projectId: proj12345
+id: ver-abc123
+name: v1.0 第一季度
+type: version
+status: planning
+owner: 张三
+startDate: 2026-04-01
+endDate: 2026-06-30
+tags:
+  - 重要
+  - 移动端
+---
+```
+
+### 项目
+```yaml
+---
+id: proj-abc123
+name: 官网重构
+type: project
+versionId: ver-abc123
 status: in-progress
 priority: high
-progress: 50
-dueDate: 2026-04-15
-owner: 张三
+owner: 李四
+startDate: 2026-04-01
+endDate: 2026-05-15
 tags:
   - 前端
-  - API
+  - UI
+---
+```
+
+### 特性
+```yaml
+---
+id: feat-abc123
+name: 登录功能优化
+type: feature
+versionId: ver-abc123
+projectId: proj-abc123
+status: in-progress
+priority: critical
+progress: 65
+owner: 王五
+startDate: 2026-04-01
+endDate: 2026-04-15
+isMilestone: false
+tags:
+  - 后端
+  - 安全
 ---
 ```
 
@@ -200,6 +242,8 @@ id: {{id}}
 name: {{name}}
 status: {{status}}
 {{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}---
 
 # {{priorityEmoji}} {{name}}
@@ -227,10 +271,10 @@ status: {{status}}
 - `{{owner}}`, `{{startDate}}`, `{{endDate}}`, `{{tags}}`
 
 **项目模板：**
-- `{{versionId}}`, `{{owner}}`, `{{priority}}`, `{{tags}}`
+- `{{versionId}}`, `{{owner}}`, `{{priority}}`, `{{startDate}}`, `{{endDate}}`, `{{tags}}`
 
 **特性模板：**
-- `{{versionId}}`, `{{projectId}}`, `{{owner}}`, `{{priority}}`, `{{progress}}`, `{{dueDate}}`, `{{tags}}`
+- `{{versionId}}`, `{{projectId}}`, `{{owner}}`, `{{priority}}`, `{{progress}}`, `{{startDate}}`, `{{endDate}}`, `{{isMilestone}}`, `{{tags}}`
 
 **总览模板：**
 - `{{date}}`
@@ -239,6 +283,7 @@ status: {{status}}
 
 ```markdown
 {{#if owner}}负责人: {{owner}}{{/if}}
+{{#if startDate}}开始日期: {{startDate}}{{/if}}
 ```
 
 #### 循环语法
@@ -272,51 +317,16 @@ status: {{status}}
 
 ## 📜 版本历史
 
-### v0.6.0 (2026-04-08)
+### v0.7.0 (2026-04-10)
 
-- **新增**：IPD 流程支持，完整的 TR 里程碑管理（TR3→TR4→TR4A→TR5→TR6）
-- **新增**：TR 里程碑视图（`mode: tr-milestone`），可视化展示所有版本的 TR 阶段进度
-- **新增**：版本右键菜单，支持快速推进阶段、设置 TR 日期、查看交付件清单
-- **优化**：修复面包屑导航出现在 pm-view 表格内部的问题
-- **优化**：模板渲染支持嵌套属性（如 `{{tr3.status}}`）
+- **⚠️ 重大变更**：删除 IPD 流程支持（TR 里程碑管理系统）
+- **新增**：项目类型支持 `startDate` 和 `endDate` 字段
+- **新增**：FilterBar 统一使用 SelectCell 风格
+- **新增**：特性类型新增 `isMilestone` 里程碑标记
+- **优化**：所有实体统一使用 `startDate`/`endDate` 日期字段
+- **优化**：用树形层级选择器替代三个独立下拉框
 
-### v0.5.1 (2026-04-07)
-
-- 修复模板渲染问题
-
-### v0.4.0 (2026-04-07)
-
-- 新增自定义模板功能，支持自定义总览/版本/项目/特性页面模板
-- 在插件设置中添加「模板设置」页面
-- 支持模板变量（`{{variable}}`）、条件（`{{#if}}`）和循环（`{{#each}}`）语法
-- 支持导出模板到文件和从文件加载模板
-
-### v0.3.0 (2026-04-05)
-
-- 新增统一视图引擎 `pm-view`，支持 7 种视图模式
-- 新增 `cascade-selector` 级联选择器模式
-
-- 删除冗余 UI 类，简化架构
-- 代码块文字"导出日历"改为"导出ICS"
-
-### v0.2.0 (2026-04-03)
-
-
-- 新增实体选择器（`pm-selector` 代码块）
-- 级联卡片支持最新进展自动提取
-- 级联卡片头部支持点击跳转
-- 总览页面重构，简化信息展示
-- 即将到期和延期特性标记
-
-### v0.1.0 (2026-04-02)
-
-- 初始版本
-- 支持版本、项目、特性三层管理
-- 看板视图（支持点击跳转）
-
-- 面包屑导航
-- ICS 日历导出
-- 双层架构重构（Core + UI）
+查看完整 [CHANGELOG](./docs/CHANGELOG.md)
 
 ## 📄 许可证
 

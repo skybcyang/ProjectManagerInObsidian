@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from 'obsidian';
-import { FEATURE_STATUSES, PRIORITIES, IPD_PHASES, getStatusLabel } from '../constants';
+import { FEATURE_STATUSES, PRIORITIES, getStatusLabel } from '../constants';
 import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { Feature, UpdateFeatureData } from '../types';
@@ -12,10 +12,10 @@ export class EditFeatureModal extends Modal {
   private onSubmit: (data: UpdateFeatureData) => void;
   private onDelete?: () => void;
   private entityManager: EntityManager;
-  
+
   // 用于存储输入元素引用
-  private dueDateInput: HTMLInputElement | null = null;
-  private dueDateSetting: Setting | null = null;
+  private endDateInput: HTMLInputElement | null = null;
+  private endDateSetting: Setting | null = null;
   private startDateInput: HTMLInputElement | null = null;
   private startDateSetting: Setting | null = null;
 
@@ -37,11 +37,10 @@ export class EditFeatureModal extends Modal {
       priority: feature.priority,
       progress: feature.progress,
       startDate: feature.startDate,
-      dueDate: feature.dueDate,
+      endDate: feature.endDate,
       owner: feature.owner,
       tags: [...feature.tags],
       isMilestone: feature.isMilestone,
-      trPhase: feature.trPhase,
     };
   }
 
@@ -118,7 +117,7 @@ export class EditFeatureModal extends Modal {
     this.startDateSetting = new Setting(contentEl)
       .setName('开始日期')
       .setDesc(formatDateDisplay(this.result.startDate) || '（可选，用于时间视图规划）');
-    
+
     this.startDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
       this.startDateInput = div.createEl('input', {
         type: 'date',
@@ -130,7 +129,7 @@ export class EditFeatureModal extends Modal {
         this.result.startDate = value || undefined;
         this.startDateSetting?.setDesc(formatDateDisplay(this.result.startDate) || '（可选）');
       });
-      
+
       // 快捷按钮
       this.createQuickDateButtons(div, (date) => {
         this.result.startDate = date;
@@ -141,30 +140,30 @@ export class EditFeatureModal extends Modal {
       });
     });
 
-    // 截止日期 - 使用日历选择器
-    this.dueDateSetting = new Setting(contentEl)
-      .setName('截止日期')
-      .setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
-    
-    this.dueDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
-      this.dueDateInput = div.createEl('input', {
+    // 结束日期 - 使用日历选择器
+    this.endDateSetting = new Setting(contentEl)
+      .setName('结束日期')
+      .setDesc(formatDateDisplay(this.result.endDate) || '（可选）');
+
+    this.endDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.endDateInput = div.createEl('input', {
         type: 'date',
         cls: 'pm-date-picker',
       });
-      this.dueDateInput.value = this.result.dueDate || '';
-      this.dueDateInput.addEventListener('change', (e) => {
+      this.endDateInput.value = this.result.endDate || '';
+      this.endDateInput.addEventListener('change', (e) => {
         const value = (e.target as HTMLInputElement).value;
-        this.result.dueDate = value || undefined;
-        this.dueDateSetting?.setDesc(formatDateDisplay(this.result.dueDate) || '（可选）');
+        this.result.endDate = value || undefined;
+        this.endDateSetting?.setDesc(formatDateDisplay(this.result.endDate) || '（可选）');
       });
-      
+
       // 快捷按钮
       this.createQuickDateButtons(div, (date) => {
-        this.result.dueDate = date;
-        if (this.dueDateInput) {
-          this.dueDateInput.value = date;
+        this.result.endDate = date;
+        if (this.endDateInput) {
+          this.endDateInput.value = date;
         }
-        this.dueDateSetting?.setDesc(formatDateDisplay(date));
+        this.endDateSetting?.setDesc(formatDateDisplay(date));
       });
     });
 
@@ -176,21 +175,6 @@ export class EditFeatureModal extends Modal {
         toggle.setValue(this.result.isMilestone || false);
         toggle.onChange(value => {
           this.result.isMilestone = value;
-        });
-      });
-
-    // 交付 TR 阶段
-    new Setting(contentEl)
-      .setName('交付 TR 阶段')
-      .setDesc('选择特性计划在哪个 TR 阶段交付（可选）')
-      .addDropdown(dropdown => {
-        dropdown.addOption('', '（未指定）');
-        IPD_PHASES.forEach(phase => {
-          dropdown.addOption(phase.value, `${phase.label} - ${phase.description}`);
-        });
-        dropdown.setValue(this.result.trPhase || '');
-        dropdown.onChange(value => {
-          this.result.trPhase = value as UpdateFeatureData['trPhase'] || undefined;
         });
       });
 
@@ -217,10 +201,10 @@ export class EditFeatureModal extends Modal {
 
     // 按钮
     const buttonContainer = contentEl.createDiv({ cls: 'pm-modal__buttons' });
-    
+
     // 删除按钮（如果有回调）
     if (this.onDelete) {
-      const deleteButton = buttonContainer.createEl('button', { 
+      const deleteButton = buttonContainer.createEl('button', {
         text: '删除',
         cls: 'mod-warning',
       });
@@ -241,7 +225,7 @@ export class EditFeatureModal extends Modal {
     const cancelButton = buttonContainer.createEl('button', { text: '取消' });
     cancelButton.addEventListener('click', () => this.close());
 
-    const submitButton = buttonContainer.createEl('button', { 
+    const submitButton = buttonContainer.createEl('button', {
       text: '保存',
       cls: 'mod-cta',
     });
@@ -262,7 +246,7 @@ export class EditFeatureModal extends Modal {
     onSelect: (date: string) => void
   ): void {
     const quickContainer = container.createDiv({ cls: 'pm-date-quick' });
-    
+
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);

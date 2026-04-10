@@ -12,7 +12,6 @@ import {
   CascadeRenderer,
   TimelineRenderer,
   TimeViewRenderer,
-  TRMilestoneRenderer,
 } from './renderers';
 
 /**
@@ -24,12 +23,134 @@ export class ViewEngine {
   private actionService: ActionService;
   private pendingSave: { [key: string]: NodeJS.Timeout } = {};
 
+  private fullscreenKeyListener?: (e: KeyboardEvent) => void;
+
   constructor(
     private app: App,
     private entityManager: EntityManager
   ) {
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
+    this.setupFullscreenKeyListener();
+  }
+
+  /**
+   * 设置全屏 ESC 键监听
+   */
+  private setupFullscreenKeyListener(): void {
+    if (this.fullscreenKeyListener) return;
+    
+    this.fullscreenKeyListener = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const fullscreenWrapper = document.querySelector('.pm-view-fullscreen');
+        if (fullscreenWrapper) {
+          const btn = fullscreenWrapper.querySelector('.pm-fullscreen-btn');
+          if (btn) {
+            this.toggleFullscreen(fullscreenWrapper as HTMLElement, btn as HTMLElement);
+          }
+        }
+      }
+    };
+    document.addEventListener('keydown', this.fullscreenKeyListener);
+  }
+
+  private fullscreenOverlay: HTMLElement | null = null;
+
+  /**
+   * 切换全屏模式
+   */
+  private toggleFullscreen(wrapper: HTMLElement, btn: HTMLElement): void {
+    if (this.fullscreenOverlay) {
+      // 退出全屏
+      this.exitFullscreen();
+      btn.textContent = '⛶';
+      btn.setAttribute('title', '全屏');
+    } else {
+      // 进入全屏
+      this.enterFullscreen(wrapper);
+      btn.textContent = '✕';
+      btn.setAttribute('title', '退出全屏');
+    }
+  }
+
+  /**
+   * 进入全屏
+   */
+  private enterFullscreen(wrapper: HTMLElement): void {
+    // 创建全屏遮罩
+    const overlay = document.createElement('div');
+    overlay.className = 'pm-fullscreen-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      background: var(--background-primary, #1e1e1e);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      box-sizing: border-box;
+    `;
+
+    // 创建关闭按钮
+    const closeBtn = overlay.createEl('button', {
+      text: '✕ 退出全屏',
+      cls: 'pm-fullscreen-close-btn'
+    });
+    closeBtn.style.cssText = `
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 100000;
+    `;
+    closeBtn.addEventListener('click', () => this.exitFullscreen());
+
+    // 创建内容容器
+    const contentContainer = overlay.createDiv('pm-fullscreen-content');
+    contentContainer.style.cssText = `
+      flex: 1;
+      overflow: auto;
+      margin-top: 40px;
+    `;
+
+    // 克隆视图内容
+    const contentClone = wrapper.cloneNode(true) as HTMLElement;
+    contentContainer.appendChild(contentClone);
+
+    // 添加到 body
+    document.body.appendChild(overlay);
+    this.fullscreenOverlay = overlay;
+
+    // ESC 键退出
+    const escHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        this.exitFullscreen();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    console.log('[PM] 进入全屏');
+  }
+
+  /**
+   * 退出全屏
+   */
+  private exitFullscreen(): void {
+    if (this.fullscreenOverlay) {
+      this.fullscreenOverlay.remove();
+      this.fullscreenOverlay = null;
+      console.log('[PM] 退出全屏');
+    }
   }
 
   /**
@@ -170,6 +291,19 @@ export class ViewEngine {
     });
     propBtn.addEventListener('click', () => {
       this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
+    });
+
+    // 全屏按钮
+    const fullscreenBtn = buttonGroup.createEl('button', {
+      cls: 'pm-toolbar-btn pm-fullscreen-btn',
+      text: '⛶',
+      attr: { title: '全屏' }
+    });
+
+    fullscreenBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('[PM] 全屏按钮被点击');
+      this.toggleFullscreen(wrapper, fullscreenBtn);
     });
 
     return toolbar;
@@ -317,8 +451,6 @@ export class ViewEngine {
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case 'timeview':
         return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
-      case 'tr-milestone':
-        return new TRMilestoneRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -423,7 +555,8 @@ export class ViewEngine {
 
     const sortFields = [
       { value: 'name', label: '名称' },
-      { value: 'dueDate', label: '截止日期' },
+      { value: 'startDate', label: '开始日期' },
+      { value: 'endDate', label: '结束日期' },
       { value: 'priority', label: '优先级' },
       { value: 'progress', label: '进度' },
       { value: 'created', label: '创建时间' },
@@ -781,7 +914,6 @@ export class ViewEngine {
     const options = [
       { value: 'status', label: '状态' },
       { value: 'priority', label: '优先级' },
-      { value: 'trPhase', label: 'TR阶段' },
     ];
     options.forEach(opt => {
       const option = select.createEl('option');

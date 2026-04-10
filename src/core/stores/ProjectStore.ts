@@ -45,6 +45,8 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       status: data.status || 'backlog',
       owner: data.owner,
       priority: data.priority || 'medium',
+      startDate: data.startDate,
+      endDate: data.endDate,
       tags: data.tags || [],
     };
 
@@ -78,6 +80,8 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       status: project.status,
       owner: project.owner,
       priority: project.priority,
+      startDate: project.startDate,
+      endDate: project.endDate,
       tags: project.tags,
     });
     
@@ -137,6 +141,8 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       status: updated.status,
       owner: updated.owner,
       priority: updated.priority,
+      startDate: updated.startDate,
+      endDate: updated.endDate,
       tags: updated.tags,
     });
     

@@ -52,10 +52,10 @@ export class QuickCreateModal extends Modal {
     // 设置默认值
     this.result.versionId = this.versions[0].id;
     this.result.projectId = this.projects[0].id;
-    this.result.dueDate = this.defaultDate;
-    // 默认开始日期为截止日期前7天
-    const due = new Date(this.defaultDate);
-    const start = new Date(due.getTime() - 7 * 24 * 60 * 60 * 1000);
+    this.result.endDate = this.defaultDate;
+    // 默认开始日期为结束日期前7天
+    const end = new Date(this.defaultDate);
+    const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
     this.result.startDate = start.toISOString().split('T')[0];
     this.updateFilteredProjects();
 

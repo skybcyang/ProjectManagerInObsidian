@@ -1,5 +1,3 @@
-import type { IPDPhaseValue } from '../constants';
-
 export type FeatureStatus = 'backlog' | 'todo' | 'in-progress' | 'testing' | 'completed' | 'archived';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
 
@@ -13,13 +11,9 @@ export interface Feature {
   priority: Priority;
   tags: string[];
   progress: number;
-  dueDate?: string;
   startDate?: string;
+  endDate?: string;
   isMilestone?: boolean;
-  
-  // === IPD扩展字段 ===
-  /** 特性交付的TR阶段 */
-  trPhase?: IPDPhaseValue;
 }
 
 export interface CreateFeatureData {
@@ -31,10 +25,9 @@ export interface CreateFeatureData {
   priority?: Priority;
   tags?: string[];
   progress?: number;
-  dueDate?: string;
   startDate?: string;
+  endDate?: string;
   isMilestone?: boolean;
-  trPhase?: IPDPhaseValue;
 }
 
 export interface UpdateFeatureData {
@@ -46,8 +39,7 @@ export interface UpdateFeatureData {
   priority?: Priority;
   tags?: string[];
   progress?: number;
-  dueDate?: string;
   startDate?: string;
+  endDate?: string;
   isMilestone?: boolean;
-  trPhase?: IPDPhaseValue;
 }

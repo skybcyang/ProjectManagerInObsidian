@@ -80,9 +80,7 @@ id: {{id}}
 name: {{name}}
 type: version
 status: {{status}}
-{{#if phase}}phase: {{phase}}
-{{/if}}{{#if targetDate}}targetDate: {{targetDate}}
-{{/if}}{{#if owner}}owner: {{owner}}
+{{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}tags:
@@ -91,10 +89,10 @@ status: {{status}}
 
 # 📦 {{name}}
 
-> **状态**: {{status}}{{#if phase}} | **当前阶段**: {{phase}}{{/if}} | **ID**: {{id}}
+> **状态**: {{status}} | **ID**: {{id}}
 {{#if owner}}> **负责人**: @{{owner}}
 {{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
-{{/if}}{{#if targetDate}}> **目标发布**: {{targetDate}}
+{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
 {{/if}}
 
 ---
@@ -115,18 +113,6 @@ Border: off
 <span class="pm-btn pm-btn--primary" data-action="create-feature" data-version-id="{{id}}">✨ 创建特性</span>
 
 --- end-multi-column
-
----
-
-## 🎯 TR里程碑
-
-| 阶段 | 状态 | 计划日期 | 实际日期 | 交付物 | 风险 |
-|------|------|----------|----------|--------|------|
-| TR3 | {{tr3.status}} | {{tr3.plannedDate}} | {{tr3.actualDate}} | {{tr3.deliverables}} | {{tr3.risks}} |
-| TR4 | {{tr4.status}} | {{tr4.plannedDate}} | {{tr4.actualDate}} | {{tr4.deliverables}} | {{tr4.risks}} |
-| TR4A | {{tr4a.status}} | {{tr4a.plannedDate}} | {{tr4a.actualDate}} | {{tr4a.deliverables}} | {{tr4a.risks}} |
-| TR5 | {{tr5.status}} | {{tr5.plannedDate}} | {{tr5.actualDate}} | {{tr5.deliverables}} | {{tr5.risks}} |
-| TR6 | {{tr6.status}} | {{tr6.plannedDate}} | {{tr6.actualDate}} | {{tr6.deliverables}} | {{tr6.risks}} |
 
 ---
 
@@ -174,6 +160,8 @@ versionId: {{versionId}}
 status: {{status}}
 priority: {{priority}}
 {{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
@@ -182,6 +170,8 @@ priority: {{priority}}
 
 > **状态**: {{status}} | **优先级**: {{priority}} | **ID**: {{id}}
 {{#if owner}}> **负责人**: @{{owner}}
+{{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
+{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
 {{/if}}
 
 ---
@@ -251,10 +241,11 @@ projectId: {{projectId}}
 status: {{status}}
 priority: {{priority}}
 progress: {{progress}}
-{{#if trPhase}}trPhase: {{trPhase}}
-{{/if}}{{#if owner}}owner: {{owner}}
-{{/if}}{{#if dueDate}}dueDate: {{dueDate}}
-{{/if}}tags:
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}isMilestone: {{isMilestone}}
+tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
 
@@ -263,7 +254,7 @@ progress: {{progress}}
 > **状态**: {{status}} | **优先级**: {{priority}} | **进度**: {{progress}}%
 > **ID**: {{id}}
 {{#if owner}}> **负责人**: @{{owner}}
-{{/if}}{{#if dueDate}}> **截止日期**: {{dueDate}}
+{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
 {{/if}}
 ---
 

@@ -151,10 +151,17 @@ export class DataService {
     switch (field) {
       case 'name':
         return a.name.localeCompare(b.name);
-      case 'dueDate':
-        if ('dueDate' in a && 'dueDate' in b) {
-          const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-          const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      case 'endDate':
+        if ('endDate' in a && 'endDate' in b) {
+          const dateA = a.endDate ? new Date(a.endDate).getTime() : 0;
+          const dateB = b.endDate ? new Date(b.endDate).getTime() : 0;
+          return dateA - dateB;
+        }
+        return 0;
+      case 'startDate':
+        if ('startDate' in a && 'startDate' in b) {
+          const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+          const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
           return dateA - dateB;
         }
         return 0;
@@ -249,8 +256,8 @@ export class DataService {
       }
 
       // 逾期统计
-      if ('dueDate' in entity && entity.dueDate && 'status' in entity) {
-        if (entity.status !== 'completed' && new Date(entity.dueDate) < now) {
+      if ('endDate' in entity && entity.endDate && 'status' in entity) {
+        if (entity.status !== 'completed' && new Date(entity.endDate) < now) {
           overdue++;
         }
       }

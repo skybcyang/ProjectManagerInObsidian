@@ -48,7 +48,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       priority: data.priority || 'medium',
       tags: data.tags || [],
       progress: data.progress || 0,
-      dueDate: data.dueDate,
+      startDate: data.startDate,
+      endDate: data.endDate,
     };
 
     // 获取版本名称和项目名称
@@ -101,7 +102,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       owner: feature.owner,
       priority: feature.priority,
       progress: feature.progress,
-      dueDate: feature.dueDate,
+      startDate: feature.startDate,
+      endDate: feature.endDate,
       tags: feature.tags,
     });
     
@@ -180,7 +182,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       owner: updated.owner,
       priority: updated.priority,
       progress: updated.progress,
-      dueDate: updated.dueDate,
+      startDate: updated.startDate,
+      endDate: updated.endDate,
       tags: updated.tags,
     });
     

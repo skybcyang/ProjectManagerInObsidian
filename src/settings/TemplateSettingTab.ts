@@ -331,7 +331,8 @@ class TemplateEditorModal extends Modal {
           owner: '负责人（可选）',
           priority: '优先级',
           progress: '进度（0-100）',
-          dueDate: '截止日期（可选）',
+          startDate: '开始日期（可选）',
+          endDate: '结束日期（可选）',
           tags: '标签数组',
         };
       default:

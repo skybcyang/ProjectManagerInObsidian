@@ -91,7 +91,7 @@ export class TimeViewRenderer extends BaseRenderer {
       })));
     }
 
-    // 转换为时间视图项（只处理有截止日期的实体）
+    // 转换为时间视图项（只处理有结束日期的实体）
     const items = this.convertToTimeItems(filtered);
 
     // 渲染工具栏（传入统计信息）
@@ -102,7 +102,7 @@ export class TimeViewRenderer extends BaseRenderer {
 
     // 如果没有数据，显示提示
     if (items.length === 0) {
-      this.renderEmptyState(contentArea, filtered.length === 0 ? '暂无数据' : '没有带截止日期的实体');
+      this.renderEmptyState(contentArea, filtered.length === 0 ? '暂无数据' : '没有带结束日期的实体');
       return;
     }
 
@@ -130,26 +130,26 @@ export class TimeViewRenderer extends BaseRenderer {
       console.log('[TimeView] 第一个实体:', {
         id: sample.id,
         name: sample.name,
-        dueDate: sample.dueDate,
-        hasDueDate: 'dueDate' in sample,
-        dueDateType: typeof sample.dueDate,
+        endDate: sample.endDate,
+        hasEndDate: 'endDate' in sample,
+        endDateType: typeof sample.endDate,
       });
     }
-    
-    const withDueDate = entities.filter((e) => {
-      const hasDueDate = 'dueDate' in e && !!(e as any).dueDate;
-      if (!hasDueDate) {
-        console.log('[TimeView] 过滤掉无dueDate:', (e as any).id, (e as any).name);
+
+    const withEndDate = entities.filter((e) => {
+      const hasEndDate = 'endDate' in e && !!(e as any).endDate;
+      if (!hasEndDate) {
+        console.log('[TimeView] 过滤掉无endDate:', (e as any).id, (e as any).name);
       }
-      return hasDueDate;
+      return hasEndDate;
     });
-    console.log('[TimeView] 有dueDate的实体:', withDueDate.length);
-    
-    return withDueDate
+    console.log('[TimeView] 有endDate的实体:', withEndDate.length);
+
+    return withEndDate
       .map((e) => {
         const entity = e as Feature;
-        const endDate = new Date(entity.dueDate!);
-        // 如果有 startDate 就用，否则默认从开始日期为截止日期的7天前
+        const endDate = new Date(entity.endDate!);
+        // 如果有 startDate 就用，否则默认从开始日期为结束日期的7天前
         const startDate = entity.startDate
           ? new Date(entity.startDate)
           : new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -166,7 +166,7 @@ export class TimeViewRenderer extends BaseRenderer {
       .filter((item) => {
         const valid = !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime());
         if (!valid) {
-          console.log('[TimeView] 无效日期:', item.entity.id, item.entity.name, item.entity.dueDate);
+          console.log('[TimeView] 无效日期:', item.entity.id, item.entity.name, item.entity.endDate);
         }
         return valid;
       });
@@ -191,7 +191,7 @@ export class TimeViewRenderer extends BaseRenderer {
     
     const hint = empty.createDiv({ cls: 'pm-timeview-empty-hint' });
     hint.style.cssText = 'font-size: 12px; opacity: 0.7;';
-    hint.textContent = '提示：为实体添加 dueDate 字段即可在时间视图中显示';
+    hint.textContent = '提示：为实体添加 endDate 字段即可在时间视图中显示';
   }
 
   /**

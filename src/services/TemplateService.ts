@@ -219,34 +219,12 @@ export class TemplateService {
     }
 
     // 添加创建时间
-    enriched.createTime = new Date().toLocaleString('zh-CN', { 
-      month: '2-digit', 
-      day: '2-digit', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    enriched.createTime = new Date().toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-
-    // 处理 TR 检查点数据，转换为扁平化格式
-    if ('trCheckpoints' in context && Array.isArray(context.trCheckpoints)) {
-      const checkpoints = context.trCheckpoints as Array<{
-        phase: string;
-        status?: string;
-        plannedDate?: string;
-        actualDate?: string;
-        deliverables?: string[];
-        risks?: string[];
-      }>;
-      
-      for (const cp of checkpoints) {
-        enriched[`${cp.phase}`] = {
-          status: cp.status || 'not-started',
-          plannedDate: cp.plannedDate || '',
-          actualDate: cp.actualDate || '',
-          deliverables: Array.isArray(cp.deliverables) ? cp.deliverables.join('、') : '',
-          risks: Array.isArray(cp.risks) ? cp.risks.join('、') : '',
-        };
-      }
-    }
 
     return enriched;
   }

@@ -38,7 +38,7 @@ export interface GridConfig {
     owner?: string;
     tag?: string;
   };
-  sortBy?: 'name' | 'dueDate' | 'priority' | 'progress' | 'created';
+  sortBy?: 'name' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
 }

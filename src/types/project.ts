@@ -8,6 +8,8 @@ export interface Project {
   status: ProjectStatus;
   owner?: string;
   priority: Priority;
+  startDate?: string;
+  endDate?: string;
   tags: string[];
 }
 
@@ -17,6 +19,8 @@ export interface CreateProjectData {
   status?: ProjectStatus;
   owner?: string;
   priority?: Priority;
+  startDate?: string;
+  endDate?: string;
   tags?: string[];
 }
 
@@ -26,5 +30,7 @@ export interface UpdateProjectData {
   status?: ProjectStatus;
   owner?: string;
   priority?: Priority;
+  startDate?: string;
+  endDate?: string;
   tags?: string[];
 }

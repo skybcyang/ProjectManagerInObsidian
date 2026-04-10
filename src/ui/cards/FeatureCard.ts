@@ -152,15 +152,15 @@ export class FeatureCard implements CardComponent {
       });
     }
 
-    // 截止日期
-    if (feature.dueDate) {
+    // 结束日期
+    if (feature.endDate) {
       const dueEl = footer.createEl('span', {
-        text: `📅 ${feature.dueDate}`,
+        text: `📅 ${feature.endDate}`,
         cls: 'pm-card__due',
       });
-      
+
       // 逾期高亮
-      if (new Date(feature.dueDate) < new Date() && feature.status !== 'completed') {
+      if (new Date(feature.endDate) < new Date() && feature.status !== 'completed') {
         dueEl.addClass('pm-card__due--overdue');
       }
     }

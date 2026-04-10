@@ -4,6 +4,9 @@ import { formatDateDisplay } from '../ui/components/DatePicker';
 import type { EntityManager } from '../core';
 import type { CreateProjectData, Version } from '../types';
 
+// Helper to format date as YYYY-MM-DD
+const formatDate = (date: Date): string => date.toISOString().split('T')[0];
+
 export class CreateProjectModal extends Modal {
   private result: CreateProjectData = {
     name: '',
@@ -15,6 +18,8 @@ export class CreateProjectModal extends Modal {
   private versions: Version[] = [];
   private onSubmit: (data: CreateProjectData) => void;
   private entityManager: EntityManager;
+  private startDateInput: HTMLInputElement | null = null;
+  private endDateInput: HTMLInputElement | null = null;
 
   constructor(
     app: App,
@@ -117,6 +122,100 @@ export class CreateProjectModal extends Modal {
           this.result.owner = value || undefined;
         }));
 
+    // 开始日期 - 使用日历选择器
+    const startDateSetting = new Setting(contentEl)
+      .setName('开始日期')
+      .setDesc(formatDateDisplay(this.result.startDate) || '（可选）');
+
+    startDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.startDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.startDateInput.value = this.result.startDate || '';
+      this.startDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.startDate = value || undefined;
+        startDateSetting.setDesc(formatDateDisplay(this.result.startDate) || '（可选）');
+      });
+
+      // 快捷按钮
+      const quickContainer = div.createDiv({ cls: 'pm-date-quick' });
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextMonth = new Date(today);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+      [
+        { label: '今天', date: formatDate(today) },
+        { label: '明天', date: formatDate(tomorrow) },
+        { label: '一周后', date: formatDate(nextWeek) },
+        { label: '一月后', date: formatDate(nextMonth) },
+      ].forEach(({ label, date }) => {
+        const btn = quickContainer.createEl('button', {
+          text: label,
+          cls: 'pm-date-quick-btn',
+        });
+        btn.addEventListener('click', () => {
+          this.result.startDate = date;
+          if (this.startDateInput) {
+            this.startDateInput.value = date;
+          }
+          startDateSetting.setDesc(formatDateDisplay(date));
+        });
+      });
+    });
+
+    // 结束日期 - 使用日历选择器
+    const endDateSetting = new Setting(contentEl)
+      .setName('结束日期')
+      .setDesc(formatDateDisplay(this.result.endDate) || '（可选）');
+
+    endDateSetting.settingEl.createDiv({ cls: 'pm-date-input' }, div => {
+      this.endDateInput = div.createEl('input', {
+        type: 'date',
+        cls: 'pm-date-picker',
+      });
+      this.endDateInput.value = this.result.endDate || '';
+      this.endDateInput.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        this.result.endDate = value || undefined;
+        endDateSetting.setDesc(formatDateDisplay(this.result.endDate) || '（可选）');
+      });
+
+      // 快捷按钮
+      const quickContainer = div.createDiv({ cls: 'pm-date-quick' });
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextMonth = new Date(today);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+      [
+        { label: '今天', date: formatDate(today) },
+        { label: '明天', date: formatDate(tomorrow) },
+        { label: '一周后', date: formatDate(nextWeek) },
+        { label: '一月后', date: formatDate(nextMonth) },
+      ].forEach(({ label, date }) => {
+        const btn = quickContainer.createEl('button', {
+          text: label,
+          cls: 'pm-date-quick-btn',
+        });
+        btn.addEventListener('click', () => {
+          this.result.endDate = date;
+          if (this.endDateInput) {
+            this.endDateInput.value = date;
+          }
+          endDateSetting.setDesc(formatDateDisplay(date));
+        });
+      });
+    });
+
     // 标签
     new Setting(contentEl)
       .setName('标签')
@@ -166,15 +265,21 @@ export class CreateProjectModal extends Modal {
    * 填入示例数据
    */
   private fillExample(): void {
+    const today = new Date();
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
     this.result = {
       name: '官网重构项目',
       versionId: this.versions.length > 0 ? this.versions[0].id : '',
       status: 'backlog',
       priority: 'high',
       owner: '李四',
+      startDate: formatDate(today),
+      endDate: formatDate(nextMonth),
       tags: ['前端', '设计', '官网'],
     };
-    
+
     // 重新渲染
     this.onOpen();
   }

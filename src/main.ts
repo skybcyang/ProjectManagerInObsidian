@@ -133,46 +133,7 @@ export default class ProjectManagerPlugin extends Plugin {
     // 注册设置页面
     this.addSettingTab(new TemplateSettingTab(this.app, this));
 
-    // 注册版本卡片右键菜单事件
-    this.registerVersionCardEvents();
-
     // 插件已加载
-  }
-
-  /**
-   * 注册版本卡片右键菜单事件
-   */
-  private registerVersionCardEvents(): void {
-    // 更新版本阶段
-    document.addEventListener('pm:update-version-phase', async (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const { versionId, newPhase } = customEvent.detail;
-      
-      const version = await this.entityManager.getVersion(versionId);
-      if (version) {
-        await this.entityManager.updateVersion(versionId, {
-          phase: newPhase,
-          trCheckpoints: version.trCheckpoints?.map(cp => 
-            cp.phase === newPhase ? { ...cp, status: 'in-progress' as const } : cp
-          ),
-        });
-        new Notice(`版本已推进到 ${newPhase.toUpperCase()}`);
-      }
-    });
-
-    // 打开版本文件
-    document.addEventListener('pm:open-version', async (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const { versionId } = customEvent.detail;
-      
-      const path = await this.entityManager.getVersionPath(versionId);
-      if (path) {
-        const file = this.app.vault.getAbstractFileByPath(path);
-        if (file instanceof TFile) {
-          this.app.workspace.getLeaf().openFile(file);
-        }
-      }
-    });
   }
 
   onunload(): void {

@@ -14,7 +14,7 @@ export function generateICS(features: Feature[], projectName?: string): string {
   const events: string[] = [];
   
   for (const feature of features) {
-    if (feature.dueDate) {
+    if (feature.endDate) {
       events.push(generateEvent(feature, timestamp, uid));
     }
   }
@@ -37,16 +37,16 @@ export function generateICS(features: Feature[], projectName?: string): string {
  * 生成单个事件
  */
 function generateEvent(feature: Feature, timestamp: string, uid: string): string {
-  const dueDate = new Date(feature.dueDate!);
-  const endDate = new Date(dueDate);
-  endDate.setDate(endDate.getDate() + 1); // 全天事件结束日期为次日
-  
+  const eventEndDate = new Date(feature.endDate!);
+  const icsEndDate = new Date(eventEndDate);
+  icsEndDate.setDate(icsEndDate.getDate() + 1); // 全天事件结束日期为次日
+
   const lines: string[] = [
     'BEGIN:VEVENT',
     `UID:${feature.id}@${uid}`,
     `DTSTAMP:${timestamp}`,
-    `DTSTART;VALUE=DATE:${formatDate(dueDate)}`,
-    `DTEND;VALUE=DATE:${formatDate(endDate)}`,
+    `DTSTART;VALUE=DATE:${formatDate(eventEndDate)}`,
+    `DTEND;VALUE=DATE:${formatDate(icsEndDate)}`,
     `SUMMARY:${escapeICS(feature.name)}`,
   ];
   

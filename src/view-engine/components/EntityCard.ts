@@ -226,11 +226,11 @@ export class EntityCard {
       ownerEl.textContent = entity.owner;
     }
 
-    // 截止日期
-    if (options.showDueDate && 'dueDate' in entity && entity.dueDate) {
-      const overdue = isOverdue(entity.dueDate, 'status' in entity ? entity.status : undefined);
+    // 结束日期
+    if (options.showDueDate && 'endDate' in entity && entity.endDate) {
+      const overdue = isOverdue(entity.endDate, 'status' in entity ? entity.status : undefined);
       const dueEl = metaLeft.createDiv('pm-entity-card__due');
-      dueEl.textContent = DateFormat.medium(entity.dueDate);
+      dueEl.textContent = DateFormat.medium(entity.endDate);
       if (overdue) {
         dueEl.addClass('pm-entity-card__due--overdue');
       }

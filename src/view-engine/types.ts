@@ -6,7 +6,7 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview' | 'tr-milestone';
+export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
@@ -15,8 +15,7 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'grid': '▦ 网格视图',
   'cascade': '🌲 级联视图',
   'timeline': '⏱️ 时间线视图',
-  'timeview': '🗓️ 时间视图',
-  'tr-milestone': '🎯 TR里程碑'
+  'timeview': '🗓️ 时间视图'
 };
 
 // 实体类型
@@ -71,7 +70,7 @@ export interface CardFieldsConfig {
 }
 
 // 列表视图列配置
-export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'dueDate' | 'progress' | 'tags' | 'versionId' | 'projectId';
+export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'versionId' | 'projectId';
 
 // EntityCard 可配置字段定义
 export const ENTITY_CARD_FIELD_DEFINITIONS = [
@@ -79,7 +78,8 @@ export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'priority', label: '优先级', required: true },
   { key: 'status', label: '状态徽章', required: false },
   { key: 'owner', label: '负责人', required: false },
-  { key: 'dueDate', label: '截止日期', required: false },
+  { key: 'startDate', label: '开始日期', required: false },
+  { key: 'endDate', label: '结束日期', required: false },
   { key: 'progress', label: '进度条', required: false },
   { key: 'tags', label: '标签', required: false },
   { key: 'description', label: '描述', required: false },
@@ -95,7 +95,8 @@ export const LIST_COLUMN_DEFINITIONS = [
   { key: 'status', label: '状态', required: false },
   { key: 'priority', label: '优先级', required: false },
   { key: 'owner', label: '负责人', required: false },
-  { key: 'dueDate', label: '截止日期', required: false },
+  { key: 'startDate', label: '开始日期', required: false },
+  { key: 'endDate', label: '结束日期', required: false },
   { key: 'progress', label: '进度', required: false },
   { key: 'tags', label: '标签', required: false },
   { key: 'versionId', label: '版本', required: false },
@@ -131,7 +132,7 @@ export interface ViewConfig {
   sorts?: SortConfig[];
 
   // 旧版排序（向后兼容）
-  sortBy?: 'name' | 'dueDate' | 'priority' | 'progress' | 'created';
+  sortBy?: 'name' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
   sortOrder?: 'asc' | 'desc';
 
   // 显示列配置（列表/网格视图用）
@@ -141,7 +142,7 @@ export interface ViewConfig {
   limit?: number;
 
   // 分组（看板/级联/日历用）
-  groupBy?: 'status' | 'priority' | 'version' | 'project' | 'dueDate' | 'trPhase';
+  groupBy?: 'status' | 'priority' | 'version' | 'project' | 'startDate' | 'endDate';
 
   // 视图选项
   options?: ViewOptions;
@@ -207,7 +208,8 @@ export const FEATURE_FIELDS: EntityField[] = [
   { name: 'status', label: '状态', type: 'select', options: ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
   { name: 'priority', label: '优先级', type: 'select', options: ['critical', 'high', 'medium', 'low'], editable: true, sortable: true, filterable: true },
   { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
-  { name: 'dueDate', label: '截止日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'progress', label: '进度', type: 'progress', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },

@@ -74,7 +74,8 @@ export class ListRenderer extends BaseRenderer {
       { value: 'name', label: '名称' },
       { value: 'status', label: '状态' },
       { value: 'priority', label: '优先级' },
-      { value: 'dueDate', label: '截止日期' },
+      { value: 'startDate', label: '开始日期' },
+      { value: 'endDate', label: '结束日期' },
       { value: 'progress', label: '进度' },
     ];
     
@@ -177,12 +178,12 @@ export class ListRenderer extends BaseRenderer {
       meta.createSpan({ cls: 'pm-list-card-owner', text: `@${entity.owner}` });
     }
 
-    // 截止日期
-    if ('dueDate' in entity && entity.dueDate) {
-      const isOverdueDate = isOverdue(entity.dueDate, entity.status as any);
+    // 结束日期
+    if ('endDate' in entity && entity.endDate) {
+      const isOverdueDate = isOverdue(entity.endDate, entity.status as any);
       meta.createSpan({
         cls: `pm-list-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
-        text: DateFormat.short(entity.dueDate),
+        text: DateFormat.short(entity.endDate),
       });
     }
 

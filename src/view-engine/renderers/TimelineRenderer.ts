@@ -64,8 +64,8 @@ export class TimelineRenderer extends BaseRenderer {
 
     // 计算时间范围
     const dates = entities
-      .filter((e) => 'dueDate' in e && e.dueDate)
-      .map((e) => new Date((e as any).dueDate).getTime());
+      .filter((e) => 'endDate' in e && e.endDate)
+      .map((e) => new Date((e as any).endDate).getTime());
 
     if (dates.length === 0) {
       track.createDiv({ text: '没有可显示的时间信息' });
@@ -82,8 +82,8 @@ export class TimelineRenderer extends BaseRenderer {
       
       // 计算位置
       let position = 0;
-      if ('dueDate' in entity && entity.dueDate) {
-        const entityDate = new Date(entity.dueDate).getTime();
+      if ('endDate' in entity && entity.endDate) {
+        const entityDate = new Date(entity.endDate).getTime();
         position = ((entityDate - minDate) / dateRange) * 100;
       } else {
         position = (index / (entities.length - 1 || 1)) * 100;
@@ -298,8 +298,8 @@ export class TimelineRenderer extends BaseRenderer {
 
     entities.forEach((entity) => {
       let dateKey = '未安排';
-      if ('dueDate' in entity && entity.dueDate) {
-        dateKey = entity.dueDate;
+      if ('endDate' in entity && entity.endDate) {
+        dateKey = entity.endDate;
       }
 
       if (!groups.has(dateKey)) {

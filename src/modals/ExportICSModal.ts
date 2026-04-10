@@ -117,14 +117,14 @@ export class ExportICSModal extends Modal {
       features = features.filter(f => f.projectId === projectId);
     }
 
-    const featuresWithDueDate = features.filter(f => f.dueDate);
+    const featuresWithEndDate = features.filter(f => f.endDate);
 
-    if (featuresWithDueDate.length === 0) {
-      new Notice('没有设置截止日期的特性', 3000);
+    if (featuresWithEndDate.length === 0) {
+      new Notice('没有设置结束日期的特性', 3000);
       return;
     }
 
-    let filename = '项目管理_截止日期';
+    let filename = '项目管理_结束日期';
     if (this.exportScope === 'version') {
       const version = this.versions.find(v => v.id === this.selectedVersionId);
       if (version) filename = `${version.name}_截止日期`;
@@ -133,10 +133,10 @@ export class ExportICSModal extends Modal {
       if (project) filename = `${project.name}_截止日期`;
     }
 
-    const icsContent = generateICS(featuresWithDueDate);
+    const icsContent = generateICS(featuresWithEndDate);
     downloadICS(icsContent, filename);
 
-    new Notice(`已导出 ${featuresWithDueDate.length} 个特性`, 3000);
+    new Notice(`已导出 ${featuresWithEndDate.length} 个特性`, 3000);
     this.close();
   }
 

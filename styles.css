@@ -1468,11 +1468,14 @@
 }
 
 .pm-filter-field-compact {
-  flex: 1 1 0;
-  min-width: 100px;
-  max-width: 160px;
+  flex: 0 0 auto;
+  min-width: auto;
+  max-width: none;
+  display: flex;
+  align-items: center;
 }
 
+/* 旧的选择器样式（保留用于兼容） */
 .pm-filter-select-compact {
   width: 100%;
   padding: 8px 28px 8px 12px;
@@ -1511,14 +1514,8 @@
     gap: 8px;
     padding: 10px 12px;
   }
-  
+
   .pm-filter-field-compact {
-    flex: 1 1 calc(33.333% - 8px);
-    max-width: none;
-    min-width: 120px;
-  }
-  
-  .pm-filter-reset-compact {
     flex: 0 0 auto;
   }
 }
@@ -1527,17 +1524,12 @@
 @media (max-width: 600px) {
   .pm-filter-bar-compact {
     gap: 6px;
+    padding: 8px 10px;
   }
-  
-  .pm-filter-field-compact {
-    flex: 1 1 calc(50% - 6px);
-    min-width: 100px;
-  }
-  
-  .pm-filter-select-compact {
-    font-size: 12px;
-    padding: 6px 24px 6px 10px;
-    height: 32px;
+
+  .pm-filter-badge {
+    padding: 5px 10px;
+    font-size: 11px;
   }
 }
 
@@ -1789,6 +1781,159 @@
 
 .pm-cell-dropdown-item:hover {
   background: var(--background-modifier-hover);
+}
+
+/* ========================================
+   EntityTreeSelector - SelectCell 风格
+   树形下拉选择器的自定义样式
+   ======================================== */
+
+/* 树形下拉面板 - 复用 pm-cell-dropdown 并添加特定样式 */
+.pm-tree-dropdown-panel {
+  padding: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* 树形下拉头部 - 采用 pm-cell-dropdown-item 风格 */
+.pm-tree-dropdown-header {
+  margin: 2px 0;
+}
+
+/* 树形容器 */
+.pm-tree-container {
+  padding: 2px 0;
+}
+
+/* 树节点内容行 - 复用 pm-cell-dropdown-item */
+.pm-tree-node-content {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.pm-tree-node-content:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* ========================================
+   FilterBar - Badge 风格筛选器样式
+   ======================================== */
+
+/* FilterBar 中的 badge 触发器 */
+.pm-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pm-filter-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* FilterBar 下拉菜单特殊样式 */
+.pm-filter-dropdown {
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.pm-filter-dropdown-item {
+  margin: 2px 0;
+}
+
+/* 树节点展开/折叠按钮 */
+.pm-tree-expand {
+  font-size: 10px;
+  width: 16px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.pm-tree-expand:hover {
+  opacity: 1;
+}
+
+.pm-tree-expand-placeholder {
+  width: 16px;
+}
+
+/* 颜色圆点 - 与 SelectCell 风格一致 */
+.pm-tree-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 树节点复选框 */
+.pm-tree-checkbox {
+  margin: 0 4px 0 2px;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* 树节点名称 */
+.pm-tree-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 树节点子容器 */
+.pm-tree-children {
+  position: relative;
+}
+
+/* 选中标记样式（复用 pm-cell-dropdown-check） */
+.pm-cell-dropdown-check {
+  margin-left: auto;
+  font-weight: bold;
+  color: var(--interactive-accent);
+}
+
+/* FilterBar 中 EntityTreeSelector 的触发按钮样式 */
+.pm-entity-tree-trigger.pm-cell-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pm-entity-tree-trigger.pm-cell-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pm-entity-tree-trigger-text {
+  white-space: nowrap;
+}
+
+.pm-entity-tree-trigger-arrow {
+  font-size: 10px;
+  opacity: 0.7;
 }
 
 /* 日期单元格 */
@@ -4044,8 +4189,8 @@
 }
 
 .pm-tree-node-content:hover {
-  background: var(--pm-bg-1);
-  border-color: var(--pm-border-hover);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
 }
 
 .pm-tree-toggle {
@@ -5541,5 +5686,720 @@
 
   .pm-timeview-month-day-number {
     font-size: 11px;
+  }
+}
+.pm-entity-tree-selector {
+  position: relative;
+  width: 100%;
+}
+
+/* 基础触发按钮样式（当不使用 pm-cell-badge 类时） */
+.pm-entity-tree-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-trigger:hover {
+  border-color: var(--interactive-accent);
+}
+
+/* SelectCell 风格的触发按钮 - 覆盖基础样式 */
+.pm-entity-tree-trigger.pm-cell-badge {
+  width: auto;
+  min-width: 80px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.pm-entity-tree-trigger.pm-cell-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pm-entity-tree-trigger-placeholder {
+  color: var(--text-muted);
+}
+
+.pm-entity-tree-trigger-text {
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-entity-tree-trigger-arrow {
+  color: currentColor;
+  font-size: 10px;
+  margin-left: 4px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* 旧的下拉样式（保留用于兼容） */
+.pm-entity-tree-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--pm-bg-0);
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius-md);
+  box-shadow: var(--pm-shadow-lg);
+  z-index: 10000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.pm-entity-tree-selectable {
+  cursor: pointer;
+}
+
+.pm-entity-tree-selectable:hover {
+  background: rgba(var(--pm-primary-rgb), 0.05);
+}
+
+.pm-entity-tree-all-option {
+  padding: var(--pm-space-2) var(--pm-space-3);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pm-text-secondary);
+  border-bottom: 1px solid var(--pm-border);
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-all-option:hover {
+  background: var(--pm-bg-2);
+}
+
+.pm-entity-tree-all-option.pm-entity-tree-selected {
+  background: rgba(var(--pm-primary-rgb), 0.1);
+  color: var(--pm-primary);
+}
+
+.pm-entity-tree-container {
+  padding: var(--pm-space-1) 0;
+}
+
+.pm-entity-tree-node {
+  position: relative;
+}
+
+.pm-entity-tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-1);
+  padding: var(--pm-space-1) var(--pm-space-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-node-content:hover {
+  background: var(--pm-bg-2);
+}
+
+.pm-entity-tree-selectable > .pm-entity-tree-node-content:hover {
+  background: rgba(var(--pm-primary-rgb), 0.08);
+}
+
+.pm-entity-tree-selected > .pm-entity-tree-node-content {
+  background: rgba(var(--pm-primary-rgb), 0.1);
+  color: var(--pm-primary);
+}
+
+.pm-entity-tree-expand,
+.pm-entity-tree-expand-placeholder {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--pm-text-secondary);
+  cursor: pointer;
+  border-radius: var(--pm-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-expand:hover {
+  background: var(--pm-bg-3);
+  color: var(--pm-text-primary);
+}
+
+.pm-entity-tree-icon {
+  font-size: 14px;
+  margin-right: var(--pm-space-1);
+}
+
+.pm-entity-tree-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-entity-tree-children {
+  position: relative;
+}
+
+/* 树形连接线 */
+.pm-entity-tree-children::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 8px;
+  width: 1px;
+  background: var(--pm-border);
+  opacity: 0.5;
+}
+
+/* FilterBar 紧凑模式调整 */
+.pm-filter-bar-compact .pm-entity-tree-field {
+  flex: 2;
+  min-width: 200px;
+}
+
+.pm-filter-bar-compact .pm-entity-tree-trigger {
+  height: 32px;
+}
+
+/* ========================================
+   Error State - 错误状态
+   ======================================== */
+
+.pm-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pm-space-8);
+  text-align: center;
+  color: var(--text-error);
+}
+
+.pm-error-icon {
+  font-size: 36px;
+  margin-bottom: var(--pm-space-3);
+}
+
+.pm-error-text {
+  font-weight: 600;
+  margin-bottom: var(--pm-space-1);
+}
+
+.pm-error-detail {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* ========================================
+   Responsive - 响应式
+   ======================================== */
+
+@media (max-width: 1200px) {
+  .pm-filter-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pm-kanban-board {
+.pm-entity-tree-selector {
+  position: relative;
+  width: 100%;
+}
+
+.pm-entity-tree-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-trigger:hover {
+  border-color: var(--interactive-accent);
+}
+
+.pm-entity-tree-trigger-placeholder {
+  color: var(--text-muted);
+}
+
+.pm-entity-tree-trigger-text {
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-entity-tree-trigger-arrow {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-left: 8px;
+  pointer-events: none;
+}
+
+.pm-entity-tree-dropdown {
+  position: fixed;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  animation: pm-dropdown-in 0.15s ease;
+}
+
+@keyframes pm-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pm-entity-tree-selectable {
+  cursor: pointer;
+}
+
+.pm-entity-tree-selectable:hover {
+  background: rgba(var(--pm-primary-rgb), 0.05);
+}
+
+.pm-entity-tree-all-option {
+  padding: var(--pm-space-2) var(--pm-space-3);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pm-text-secondary);
+  border-bottom: 1px solid var(--pm-border);
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-all-option:hover {
+  background: var(--pm-bg-2);
+}
+
+.pm-entity-tree-all-option.pm-entity-tree-selected {
+  background: rgba(var(--pm-primary-rgb), 0.1);
+  color: var(--pm-primary);
+}
+
+.pm-entity-tree-container {
+  padding: var(--pm-space-1) 0;
+}
+
+.pm-entity-tree-node {
+  position: relative;
+}
+
+.pm-entity-tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-1);
+  padding: var(--pm-space-1) var(--pm-space-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-node-content:hover {
+  background: var(--pm-bg-2);
+}
+
+.pm-entity-tree-selectable > .pm-entity-tree-node-content:hover {
+  background: rgba(var(--pm-primary-rgb), 0.08);
+}
+
+.pm-entity-tree-selected > .pm-entity-tree-node-content {
+  background: rgba(var(--pm-primary-rgb), 0.1);
+  color: var(--pm-primary);
+}
+
+.pm-entity-tree-expand,
+.pm-entity-tree-expand-placeholder {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--pm-text-secondary);
+  cursor: pointer;
+  border-radius: var(--pm-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.pm-entity-tree-expand:hover {
+  background: var(--pm-bg-3);
+  color: var(--pm-text-primary);
+}
+
+.pm-entity-tree-icon {
+  font-size: 14px;
+  margin-right: var(--pm-space-1);
+}
+
+.pm-entity-tree-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-entity-tree-children {
+  position: relative;
+}
+
+/* 树形连接线 */
+.pm-entity-tree-children::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 8px;
+  width: 1px;
+  background: var(--pm-border);
+  opacity: 0.5;
+}
+
+/* FilterBar 紧凑模式调整 */
+.pm-filter-bar-compact .pm-entity-tree-field {
+  flex: 2;
+  min-width: 200px;
+}
+
+.pm-filter-bar-compact .pm-entity-tree-trigger {
+  height: 32px;
+}
+
+/* ========================================
+   Error State - 错误状态
+   ======================================== */
+
+.pm-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pm-space-8);
+  text-align: center;
+  color: var(--text-error);
+}
+
+.pm-error-icon {
+  font-size: 36px;
+  margin-bottom: var(--pm-space-3);
+}
+
+.pm-error-text {
+  font-weight: 600;
+  margin-bottom: var(--pm-space-1);
+}
+
+.pm-error-detail {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* 树形下拉 - 模仿原生 select 样式 */
+/* 树形下拉 - 模仿原生 select 样式 */
+.pm-tree-dropdown {
+  position: fixed !important;
+  background: #ffffff !important;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+  overflow-y: auto;
+  z-index: 10000;
+  padding: 4px;
+  min-width: 180px;
+  animation: pm-tree-dropdown-in 0.15s ease;
+}
+
+/* 暗黑模式适配 */
+.theme-dark .pm-tree-dropdown {
+  background: #2d2d2d !important;
+  border-color: #404040;
+}
+
+@keyframes pm-tree-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 下拉头部 - 模仿 select 默认选项 */
+.pm-tree-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+
+.pm-tree-dropdown-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* 树形容器 */
+.pm-tree-container {
+  padding: 0;
+}
+
+/* 树节点 - 模仿 select 选项 */
+.pm-tree-node {
+  position: relative;
+}
+
+.pm-tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.pm-tree-node-content:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.pm-tree-node-content:hover .pm-tree-expand,
+.pm-tree-node-content:hover .pm-tree-icon,
+.pm-tree-node-content:hover .pm-tree-name {
+  color: var(--text-on-accent);
+}
+
+/* 展开/折叠按钮 */
+.pm-tree-expand,
+.pm-tree-expand-placeholder {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.pm-tree-expand:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.pm-tree-checkbox-placeholder {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+/* Checkbox 样式 */
+.pm-tree-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--interactive-accent);
+}
+
+/* 图标 */
+.pm-tree-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* 节点名称 */
+.pm-tree-name {
+  font-size: 13px;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 子节点容器 */
+.pm-tree-children {
+  position: relative;
+}
+
+.pm-entity-tree-expand:hover {
+  background: var(--pm-bg-3);
+  color: var(--pm-text-primary);
+}
+
+.pm-entity-tree-icon {
+  font-size: 14px;
+  margin-right: var(--pm-space-1);
+}
+
+.pm-entity-tree-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-entity-tree-children {
+  position: relative;
+}
+
+/* 树形连接线 */
+.pm-entity-tree-children::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 8px;
+  width: 1px;
+  background: var(--pm-border);
+  opacity: 0.5;
+}
+
+/* FilterBar 紧凑模式调整 */
+.pm-filter-bar-compact .pm-entity-tree-field {
+  flex: 2;
+  min-width: 200px;
+}
+
+.pm-filter-bar-compact .pm-entity-tree-trigger {
+  height: 32px;
+}
+
+/* ========================================
+   Error State - 错误状态
+   ======================================== */
+
+.pm-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pm-space-8);
+  text-align: center;
+  color: var(--text-error);
+}
+
+.pm-error-icon {
+  font-size: 36px;
+  margin-bottom: var(--pm-space-3);
+}
+
+.pm-error-text {
+  font-weight: 600;
+  margin-bottom: var(--pm-space-1);
+
+
+/* ========================================
+   Fullscreen Mode - 全屏模式
+   ======================================== */
+
+/* 全屏按钮样式 */
+.pm-fullscreen-btn {
+  font-size: 14px;
+  padding: 4px 8px;
+  min-width: 32px;
+}
+
+/* 全屏样式 - 使用 body 上下文确保最高层级 */
+body .pm-view-wrapper.pm-view-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background: var(--pm-bg-0) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+body .pm-view-wrapper.pm-view-fullscreen .pm-view-toolbar {
+  flex: 0 0 auto !important;
+  padding: var(--pm-space-3) var(--pm-space-4) !important;
+  border-bottom: 1px solid var(--pm-border) !important;
+  background: var(--pm-bg-1) !important;
+}
+
+body .pm-view-wrapper.pm-view-fullscreen .pm-view-content {
+  flex: 1 1 auto !important;
+  overflow: auto !important;
+  padding: var(--pm-space-4) !important;
+  min-height: 0 !important;
+}
+
+/* 全屏时各视图容器的调整 */
+body .pm-view-wrapper.pm-view-fullscreen .pm-kanban-container {
+  height: calc(100vh - 140px) !important;
+  max-height: calc(100vh - 140px) !important;
+}
+
+body .pm-view-wrapper.pm-view-fullscreen .pm-kanban-column {
+  max-height: calc(100vh - 180px) !important;
+}
+
+body .pm-view-wrapper.pm-view-fullscreen .pm-list-container,
+body .pm-view-wrapper.pm-view-fullscreen .pm-grid-container,
+body .pm-view-wrapper.pm-view-fullscreen .pm-cascade-container,
+body .pm-view-wrapper.pm-view-fullscreen .pm-timeline-view,
+body .pm-view-wrapper.pm-view-fullscreen .pm-timeview {
+  max-height: calc(100vh - 140px) !important;
+  overflow: auto !important;
+}
+
+/* 过渡动画 */
+.pm-view-wrapper {
+  transition: box-shadow 0.2s ease;
+}
+
+body .pm-view-wrapper.pm-view-fullscreen {
+  animation: pm-fullscreen-enter 0.25s ease-out;
+}
+
+@keyframes pm-fullscreen-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }

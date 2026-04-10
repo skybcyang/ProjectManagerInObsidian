@@ -1387,3 +1387,42 @@
     gap: var(--pm-space-2);
   }
 }
+/* ========================================
+   Fullscreen Mode - 全屏模式
+   ======================================== */
+
+/* 全屏按钮样式 */
+.pm-fullscreen-btn {
+  font-size: 14px;
+  padding: 4px 8px;
+  min-width: 32px;
+}
+
+/* 全屏样式 - pm-view 容器 */
+.pm-view.pm-view-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: var(--background-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.pm-view.pm-view-fullscreen .pm-view-wrapper {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.pm-view.pm-view-fullscreen .pm-view-toolbar {
+  flex: 0 0 auto !important;
+}
+
+.pm-view.pm-view-fullscreen .pm-view-content {
+  flex: 1 1 auto !important;
+  overflow: auto !important;
+}

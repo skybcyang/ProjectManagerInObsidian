@@ -1,7 +1,5 @@
 import { App, TFile } from 'obsidian';
 import type { Version, Project, Feature } from '../../types';
-import type { TRCheckpoint } from '../../types/version';
-import { createDefaultTRCheckpoints } from '../../constants';
 
 /**
  * 实体缓存管理器
@@ -20,13 +18,13 @@ export class EntityCache {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     await Promise.all([
       this.loadVersions(),
       this.loadProjects(),
       this.loadFeatures(),
     ]);
-    
+
     this.initialized = true;
     this.setupFileWatcher();
   }
@@ -131,7 +129,7 @@ export class EntityCache {
     const folder = 'ProjectManager/Versions';
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => f.path.startsWith(folder));
-    
+
     for (const file of files) {
       const version = await this.parseVersionFile(file);
       if (version) {
@@ -147,7 +145,7 @@ export class EntityCache {
     const folder = 'ProjectManager/Projects';
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => f.path.startsWith(folder));
-    
+
     for (const file of files) {
       const project = await this.parseProjectFile(file);
       if (project) {
@@ -163,7 +161,7 @@ export class EntityCache {
     const folder = 'ProjectManager/Features';
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => f.path.startsWith(folder));
-    
+
     for (const file of files) {
       const feature = await this.parseFeatureFile(file);
       if (feature) {
@@ -178,44 +176,15 @@ export class EntityCache {
   private async parseVersionFile(file: TFile): Promise<Version | null> {
     const cache = this.app.metadataCache.getFileCache(file);
     if (!cache?.frontmatter?.id) return null;
-    
-    // 验证并修复 trCheckpoints 数据
-    let trCheckpoints: TRCheckpoint[] | undefined;
-    const rawCheckpoints = cache.frontmatter.trCheckpoints;
-    
-    if (Array.isArray(rawCheckpoints)) {
-      // 验证每个检查点的数据结构
-      trCheckpoints = rawCheckpoints.map(cp => ({
-        phase: cp.phase || 'tr3',
-        status: cp.status || 'not-started',
-        plannedDate: cp.plannedDate,
-        actualDate: cp.actualDate,
-        deliverables: Array.isArray(cp.deliverables) 
-          ? cp.deliverables.filter((d: unknown) => typeof d === 'string' && !d.includes('{{'))
-          : [],
-        risks: Array.isArray(cp.risks) 
-          ? cp.risks.filter((r: unknown) => typeof r === 'string' && !r.includes('{{'))
-          : [],
-      }));
-    } else {
-      // 如果没有 trCheckpoints，创建默认值
-      trCheckpoints = createDefaultTRCheckpoints();
-    }
-    
+
     return {
       id: cache.frontmatter.id,
       name: cache.frontmatter.name || file.basename,
       status: cache.frontmatter.status || 'planning',
-      description: cache.frontmatter.description,
+      owner: cache.frontmatter.owner,
       startDate: cache.frontmatter.startDate,
       endDate: cache.frontmatter.endDate,
-      releaseDate: cache.frontmatter.releaseDate,
-      owner: cache.frontmatter.owner,
       tags: Array.isArray(cache.frontmatter.tags) ? cache.frontmatter.tags : [],
-      // IPD扩展字段
-      phase: cache.frontmatter.phase || 'tr3',
-      trCheckpoints,
-      targetDate: cache.frontmatter.targetDate,
     } as Version;
   }
 
@@ -225,7 +194,7 @@ export class EntityCache {
   private async parseProjectFile(file: TFile): Promise<Project | null> {
     const cache = this.app.metadataCache.getFileCache(file);
     if (!cache?.frontmatter?.id) return null;
-    
+
     return {
       id: cache.frontmatter.id,
       name: cache.frontmatter.name || file.basename,
@@ -246,7 +215,7 @@ export class EntityCache {
   private async parseFeatureFile(file: TFile): Promise<Feature | null> {
     const cache = this.app.metadataCache.getFileCache(file);
     if (!cache?.frontmatter?.id) return null;
-    
+
     return {
       id: cache.frontmatter.id,
       name: cache.frontmatter.name || file.basename,
@@ -256,12 +225,11 @@ export class EntityCache {
       priority: cache.frontmatter.priority || 'medium',
       progress: cache.frontmatter.progress || 0,
       description: cache.frontmatter.description,
-      dueDate: cache.frontmatter.dueDate,
       startDate: cache.frontmatter.startDate,
+      endDate: cache.frontmatter.endDate,
       owner: cache.frontmatter.owner,
       tags: cache.frontmatter.tags || [],
-      // IPD扩展字段
-      trPhase: cache.frontmatter.trPhase,
+      isMilestone: cache.frontmatter.isMilestone,
     } as Feature;
   }
 
@@ -303,7 +271,7 @@ export class EntityCache {
    */
   private async handleFileChange(file: TFile): Promise<void> {
     const path = file.path;
-    
+
     if (path.startsWith('ProjectManager/Versions/')) {
       const version = await this.parseVersionFile(file);
       if (version) {
@@ -328,11 +296,11 @@ export class EntityCache {
    */
   private handleFileDelete(file: TFile): void {
     const path = file.path;
-    
+
     // 通过文件名查找并删除对应缓存
     // 文件名格式: 版本名.md / 版本名-项目名.md / 版本名-项目名-特性名.md
     const fileName = file.basename;
-    
+
     if (path.startsWith('ProjectManager/Versions/')) {
       // 查找匹配的版本缓存
       for (const [id, version] of this.versionCache.entries()) {

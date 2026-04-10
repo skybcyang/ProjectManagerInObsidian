@@ -70,8 +70,8 @@ export function validateCreateFeature(data: CreateFeatureData): void {
       throw new ValidationError('进度必须在 0-100 之间');
     }
   }
-  if (data.dueDate) {
-    validateDateFormat(data.dueDate, '截止日期');
+  if (data.endDate) {
+    validateDateFormat(data.endDate, '结束日期');
   }
 }
 
@@ -98,8 +98,8 @@ export function validateUpdateFeature(data: UpdateFeatureData): void {
       throw new ValidationError('进度必须在 0-100 之间');
     }
   }
-  if (data.dueDate) {
-    validateDateFormat(data.dueDate, '截止日期');
+  if (data.endDate) {
+    validateDateFormat(data.endDate, '结束日期');
   }
 }
 

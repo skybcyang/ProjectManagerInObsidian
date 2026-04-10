@@ -352,11 +352,11 @@ export class CascadeRenderer extends BaseRenderer {
       });
     }
 
-    // 截止日期
-    if (feature.dueDate) {
-      const isOverdueDate = isOverdue(feature.dueDate, feature.status);
-      const isUpcoming = !isOverdueDate && new Date(feature.dueDate).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000;
-      
+    // 结束日期
+    if (feature.endDate) {
+      const isOverdueDate = isOverdue(feature.endDate, feature.status);
+      const isUpcoming = !isOverdueDate && new Date(feature.endDate).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000;
+
       let dueClass = 'pm-cascade__feature-due';
       if (feature.status === 'completed') dueClass += ' pm-cascade__feature-due--completed';
       else if (isOverdueDate) dueClass += ' pm-cascade__feature-due--overdue';
@@ -364,7 +364,7 @@ export class CascadeRenderer extends BaseRenderer {
 
       row.createSpan({
         cls: dueClass,
-        text: DateFormat.short(feature.dueDate),
+        text: DateFormat.short(feature.endDate),
       });
     }
 

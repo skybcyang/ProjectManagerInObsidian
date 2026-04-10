@@ -153,12 +153,12 @@ export class GridRenderer extends BaseRenderer {
       });
     }
 
-    // 截止日期
-    if ('dueDate' in entity && entity.dueDate) {
-      const isOverdueDate = isOverdue(entity.dueDate, entity.status as any);
+    // 结束日期
+    if ('endDate' in entity && entity.endDate) {
+      const isOverdueDate = isOverdue(entity.endDate, entity.status as any);
       footerLeft.createSpan({
         cls: `pm-grid-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
-        text: DateFormat.short(entity.dueDate),
+        text: DateFormat.short(entity.endDate),
       });
     }
 

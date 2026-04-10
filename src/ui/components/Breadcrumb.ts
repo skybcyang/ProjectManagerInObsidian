@@ -157,7 +157,8 @@ export class Breadcrumb {
       priority: String(fm.priority || 'medium') as Feature['priority'],
       tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
       progress: Number(fm.progress ?? 0),
-      dueDate: fm.dueDate ? String(fm.dueDate) : undefined,
+      startDate: fm.startDate ? String(fm.startDate) : undefined,
+      endDate: fm.endDate ? String(fm.endDate) : undefined,
     };
   }
 
