@@ -2,8 +2,8 @@ name: Release Obsidian Plugin
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 jobs:
   build:
@@ -25,9 +25,17 @@ jobs:
       - name: Build plugin
         run: npm run build
 
+      - name: Get version from manifest
+        id: get_version
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Create or Update Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: ${{ steps.get_version.outputs.version }}
           files: |
             main.js
             manifest.json
@@ -35,6 +43,6 @@ jobs:
           body_path: docs/CHANGELOG.md
           generate_release_notes: false
           # 如果 release 已存在则更新
-          fail_on_unmatched_files: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
