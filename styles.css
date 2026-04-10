@@ -6403,3 +6403,1572 @@ body .pm-view-wrapper.pm-view-fullscreen {
     transform: scale(1);
   }
 }
+
+
+/* ========================================
+   Gantt Timeline Styles
+   甘特图时间线样式
+   ======================================== */
+
+.pm-timeline-gantt {
+  padding: 16px;
+  background: var(--pm-bg);
+  border-radius: var(--pm-radius);
+}
+
+.pm-gantt-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius);
+  overflow: hidden;
+}
+
+/* ---------- 表头 ---------- */
+.pm-gantt-header {
+  display: flex;
+  align-items: center;
+  background: var(--pm-bg-secondary);
+  border-bottom: 1px solid var(--pm-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pm-text-muted);
+}
+
+.pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 10px 12px;
+  border-right: 1px solid var(--pm-border);
+  text-align: left;
+  font-weight: 600;
+}
+
+.pm-gantt-timeline-header {
+  flex: 1;
+  position: relative;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.pm-gantt-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--pm-text-muted);
+  white-space: nowrap;
+}
+
+.pm-gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pm-border);
+  opacity: 0.5;
+}
+
+/* ---------- 甘特图主体 ---------- */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* ---------- 甘特图行 ---------- */
+.pm-gantt-row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--pm-border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none;
+}
+
+.pm-gantt-row:hover {
+  background: var(--pm-bg-secondary);
+}
+
+.pm-gantt-row-hover .pm-gantt-name {
+  color: var(--pm-primary);
+}
+
+/* 名称列 */
+.pm-gantt-row .pm-gantt-name-col {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--pm-bg);
+  border-right: 1px solid var(--pm-border);
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.pm-gantt-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 时间轴列 */
+.pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* 甘特条形 */
+.pm-gantt-bar {
+  position: absolute;
+  height: 24px;
+  border-radius: 4px;
+  min-width: 4px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.pm-gantt-row:hover .pm-gantt-bar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* 进度填充 */
+.pm-gantt-progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px 0 0 4px;
+}
+
+/* 悬停卡片 */
+.pm-gantt-hover-card {
+  position: absolute;
+  left: 160px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+  background: var(--pm-bg);
+  border: 1px solid var(--pm-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 200px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.pm-gantt-row:hover .pm-gantt-hover-card {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
+}
+
+.pm-gantt-hover-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pm-border);
+}
+
+.pm-gantt-hover-type {
+  font-size: 14px;
+}
+
+.pm-gantt-hover-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pm-text);
+}
+
+.pm-gantt-hover-dates {
+  font-size: 12px;
+  color: var(--pm-text-muted);
+  margin-bottom: 8px;
+}
+
+.pm-gantt-hover-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.pm-gantt-hover-progress {
+  font-size: 12px;
+  color: var(--pm-text);
+  margin-top: 4px;
+}
+
+.pm-gantt-hover-owner {
+  font-size: 12px;
+  color: var(--pm-text-muted);
+  margin-top: 4px;
+}
+
+/* ---------- 响应式调整 ---------- */
+@media (max-width: 768px) {
+  .pm-gantt-name-col {
+    width: 120px;
+    min-width: 120px;
+  }
+  
+  .pm-gantt-hover-card {
+    left: 130px;
+    min-width: 160px;
+  }
+}
+
+/* ---------- 全屏模式 ---------- */
+.pm-view-fullscreen .pm-gantt-body {
+  max-height: calc(100vh - 200px);
+}
+
+/* ========================================
+   Gantt Timeline Fixes
+   ======================================== */
+
+/* 确保时间线视图容器有最小高度 */
+.pm-timeline-view {
+  min-height: 200px;
+}
+
+/* 甘特图容器 */
+.pm-timeline-gantt {
+  min-height: 200px;
+  width: 100%;
+}
+
+/* 甘特图包装器 */
+.pm-gantt-wrapper {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 甘特图主体需要可见 */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+}
+
+/* 甘特图行必须有高度 */
+.pm-gantt-row {
+  display: flex;
+  min-height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 名称列样式 */
+.pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  border-right: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+}
+
+/* 时间轴列 */
+.pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* 甘特条形 */
+.pm-gantt-bar {
+  position: absolute;
+  height: 24px;
+  border-radius: 4px;
+  min-width: 4px;
+  background: #3b82f6;
+}
+
+/* 表头 */
+.pm-gantt-header {
+  display: flex;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-timeline-header {
+  flex: 1;
+  position: relative;
+  height: 40px;
+}
+
+.pm-gantt-tick {
+  position: absolute;
+  font-size: 11px;
+  color: var(--text-muted);
+  transform: translateX(-50%);
+}
+
+/* ========================================
+   Gantt Timeline Critical Fixes
+   ======================================== */
+
+/* 确保甘特图行正确显示 */
+.pm-timeline-gantt {
+  width: 100%;
+  min-height: 200px;
+}
+
+.pm-gantt-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 表头 */
+.pm-gantt-header {
+  display: flex;
+  align-items: center;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  min-height: 40px;
+}
+
+.pm-gantt-timeline-header {
+  flex: 1;
+  position: relative;
+  height: 40px;
+}
+
+/* 甘特图主体 */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 甘特图行 */
+.pm-gantt-row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  width: 100%;
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none;
+}
+
+/* 名称列 */
+.pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 8px 12px;
+  background: var(--background-primary);
+  border-right: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+}
+
+.pm-gantt-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 时间轴列 - 关键：需要相对定位 */
+.pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+  height: 44px;
+  min-height: 44px;
+}
+
+/* 甘特条形 - 关键：需要绝对定位 */
+.pm-gantt-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 22px;
+  border-radius: 4px;
+  min-width: 4px;
+  background: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pm-gantt-progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px 0 0 4px;
+}
+
+/* 悬停卡片 */
+.pm-gantt-hover-card {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 100%;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.pm-gantt-row:hover .pm-gantt-hover-card {
+  display: block;
+}
+
+/* ========================================
+   Gantt Bar Force Display
+   ======================================== */
+
+/* 强制显示甘特条形 */
+.pm-timeline-view .pm-gantt-timeline-col {
+  position: relative !important;
+  flex: 1 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  background: transparent !important;
+}
+
+.pm-timeline-view .pm-gantt-bar {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  height: 20px !important;
+  border-radius: 4px !important;
+  min-width: 2px !important;
+  background: #3b82f6 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 10 !important;
+}
+
+/* 优先级颜色 */
+.pm-timeline-view .pm-gantt-bar[style*="background: rgb(239, 68, 68)"],
+.pm-timeline-view .pm-gantt-bar[style*="#ef4444"] {
+  background: #ef4444 !important;
+}
+
+.pm-timeline-view .pm-gantt-bar[style*="background: rgb(249, 115, 22)"],
+.pm-timeline-view .pm-gantt-bar[style*="#f97316"] {
+  background: #f97316 !important;
+}
+
+.pm-timeline-view .pm-gantt-bar[style*="background: rgb(245, 158, 11)"],
+.pm-timeline-view .pm-gantt-bar[style*="#f59e0b"] {
+  background: #f59e0b !important;
+}
+
+.pm-timeline-view .pm-gantt-bar[style*="background: rgb(34, 197, 94)"],
+.pm-timeline-view .pm-gantt-bar[style*="#22c55e"] {
+  background: #22c55e !important;
+}
+
+/* 进度填充 */
+.pm-timeline-view .pm-gantt-progress-fill {
+  height: 100% !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  border-radius: 4px 0 0 4px !important;
+}
+
+/* 行hover效果 */
+.pm-timeline-view .pm-gantt-row:hover .pm-gantt-bar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  filter: brightness(1.1) !important;
+}
+
+/* ========================================
+   Gantt Layout Fixes
+   ======================================== */
+
+/* 确保时间线视图容器有正确布局 */
+.pm-timeline-view {
+  width: 100% !important;
+  min-height: 300px !important;
+  display: block !important;
+}
+
+/* 甘特图包装器 */
+.pm-timeline-view .pm-timeline-gantt {
+  width: 100% !important;
+  padding: 16px !important;
+}
+
+.pm-timeline-view .pm-gantt-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* 表头 */
+.pm-timeline-view .pm-gantt-header {
+  display: flex !important;
+  align-items: center !important;
+  background: var(--background-secondary) !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  min-height: 40px !important;
+}
+
+.pm-timeline-view .pm-gantt-name-col {
+  width: 150px !important;
+  min-width: 150px !important;
+  padding: 10px 12px !important;
+  border-right: 1px solid var(--background-modifier-border) !important;
+}
+
+.pm-timeline-view .pm-gantt-timeline-header {
+  flex: 1 !important;
+  position: relative !important;
+  height: 40px !important;
+}
+
+/* 刻度 */
+.pm-timeline-view .pm-gantt-tick {
+  position: absolute !important;
+  transform: translateX(-50%) !important;
+  font-size: 11px !important;
+  color: var(--text-muted) !important;
+}
+
+/* 网格线 */
+.pm-timeline-view .pm-gantt-grid-line {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 1px !important;
+  background: var(--background-modifier-border) !important;
+  opacity: 0.5 !important;
+}
+
+/* 甘特图主体 */
+.pm-timeline-view .pm-gantt-body {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* 行 */
+.pm-timeline-view .pm-gantt-row {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  cursor: pointer !important;
+}
+
+.pm-timeline-view .pm-gantt-row:hover {
+  background: var(--background-modifier-hover) !important;
+}
+
+.pm-timeline-view .pm-gantt-row .pm-gantt-name-col {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.pm-timeline-view .pm-gantt-name {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-normal) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ========================================
+   Gantt Bar DEBUG - Force Red
+   ======================================== */
+
+/* 强制所有甘特条形为红色 */
+div.pm-gantt-bar {
+  background: #ff0000 !important;
+  background-color: #ff0000 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* ========================================
+   Gantt Bar FINAL FIX
+   ======================================== */
+
+/* 使用!important和更高优先级 */
+.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-timeline-col .pm-gantt-bar {
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  transform: translateY(-50%) !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  border-radius: 4px !important;
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 100 !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 时间轴列必须有相对定位 */
+.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-timeline-col {
+  position: relative !important;
+  flex: 1 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: block !important;
+}
+
+/* 行必须有flex布局 */
+.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  width: 100% !important;
+}
+
+/* 行内的名称列 */
+.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-name-col {
+  width: 150px !important;
+  min-width: 150px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* ========================================
+   Gantt Layout FINAL FIX
+   ======================================== */
+
+/* 确保甘特图使用正确的flex布局 */
+.pm-timeline-gantt {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pm-gantt-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 表头 */
+.pm-gantt-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  min-height: 40px;
+}
+
+.pm-gantt-header .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 10px 12px;
+  border-right: 1px solid var(--background-modifier-border);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.pm-gantt-header .pm-gantt-timeline-header {
+  flex: 1;
+  position: relative;
+  height: 40px;
+}
+
+/* 甘特图主体 */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 行 */
+.pm-gantt-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none;
+}
+
+/* 名称列 */
+.pm-gantt-row .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.pm-gantt-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 时间轴列 - 关键：相对定位 */
+.pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+  height: 44px;
+  min-height: 44px;
+  background: transparent;
+}
+
+/* 甘特条形 - 绝对定位在时间轴列内 */
+.pm-gantt-bar {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 刻度 */
+.pm-gantt-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  bottom: 4px;
+}
+
+/* 网格线 */
+.pm-gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--background-modifier-border);
+  opacity: 0.3;
+}
+
+/* 悬停卡片 */
+.pm-gantt-hover-card {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 100%;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.pm-gantt-row:hover .pm-gantt-hover-card {
+  display: block;
+}
+
+/* ========================================
+   Timeline View Clean Layout
+   ======================================== */
+
+/* 隐藏旧的时间线样式 */
+.pm-timeline-view .pm-timeline-horizontal,
+.pm-timeline-view .pm-timeline-track,
+.pm-timeline-view .pm-timeline-point,
+.pm-timeline-view .pm-timeline-marker,
+.pm-timeline-view .pm-timeline-labels {
+  display: none !important;
+}
+
+/* 确保甘特图独占显示 */
+.pm-timeline-gantt {
+  display: block !important;
+  width: 100% !important;
+}
+
+.pm-gantt-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background: var(--background-primary) !important;
+}
+
+/* 表头布局 */
+.pm-gantt-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  background: var(--background-secondary) !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+.pm-gantt-header .pm-gantt-name-col {
+  width: 150px !important;
+  min-width: 150px !important;
+  padding: 0 12px !important;
+  border-right: 1px solid var(--background-modifier-border) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+.pm-gantt-header .pm-gantt-timeline-header {
+  flex: 1 !important;
+  position: relative !important;
+  height: 100% !important;
+}
+
+/* 甘特图主体 */
+.pm-gantt-body {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* 行布局 */
+.pm-gantt-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none !important;
+}
+
+.pm-gantt-row:hover {
+  background: var(--background-modifier-hover) !important;
+}
+
+/* 名称列 */
+.pm-gantt-row .pm-gantt-name-col {
+  width: 150px !important;
+  min-width: 150px !important;
+  padding: 0 12px !important;
+  border-right: 1px solid var(--background-modifier-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  background: var(--background-primary) !important;
+}
+
+.pm-gantt-name {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-normal) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  width: 100% !important;
+}
+
+/* 时间轴列 */
+.pm-gantt-timeline-col {
+  flex: 1 !important;
+  position: relative !important;
+  height: 100% !important;
+  min-height: 44px !important;
+  background: transparent !important;
+}
+
+/* 甘特条形 */
+.pm-gantt-bar {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.pm-gantt-row:hover .pm-gantt-bar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  filter: brightness(1.05) !important;
+}
+
+/* 刻度 */
+.pm-gantt-tick {
+  position: absolute !important;
+  bottom: 4px !important;
+  transform: translateX(-50%) !important;
+  font-size: 11px !important;
+  color: var(--text-muted) !important;
+  white-space: nowrap !important;
+}
+
+/* 网格线 */
+.pm-gantt-grid-line {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 1px !important;
+  background: var(--background-modifier-border) !important;
+  opacity: 0.3 !important;
+}
+
+/* 进度填充 */
+.pm-gantt-progress-fill {
+  height: 100% !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  border-radius: 4px 0 0 4px !important;
+}
+
+/* 悬停卡片 */
+.pm-gantt-hover-card {
+  display: none !important;
+  position: absolute !important;
+  left: 10px !important;
+  top: 36px !important;
+  background: var(--background-primary) !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  z-index: 1000 !important;
+  min-width: 220px !important;
+}
+
+.pm-gantt-row:hover .pm-gantt-hover-card {
+  display: block !important;
+}
+
+/* ========================================
+   FORCE Gantt Only Display
+   ======================================== */
+
+/* 确保甘特图容器正确 */
+.pm-timeline-view .pm-timeline-gantt {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+/* 甘特图包装器 */
+.pm-timeline-view .pm-gantt-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* 甘特图容器 - 块级显示 */
+.pm-timeline-view .pm-timeline-gantt {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* 表头 - flex 横向布局 */
+.pm-timeline-view .pm-gantt-header {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+}
+
+/* 表头名称列 */
+.pm-timeline-view .pm-gantt-header .pm-gantt-name-col {
+  display: flex !important;
+  align-items: center !important;
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+/* 表头时间轴 */
+.pm-timeline-view .pm-gantt-header .pm-gantt-timeline-col {
+  display: block !important;
+  flex: 1 !important;
+  position: relative !important;
+}
+
+/* 主体 - 纵向 flex */
+.pm-timeline-view .pm-gantt-body {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* 行 - 横向 flex */
+.pm-timeline-view .pm-gantt-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+/* 行名称列 */
+.pm-timeline-view .pm-gantt-row .pm-gantt-name-col {
+  display: flex !important;
+  align-items: center !important;
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+/* 行时间轴 */
+.pm-timeline-view .pm-gantt-row .pm-gantt-timeline-col {
+  display: block !important;
+  flex: 1 !important;
+  position: relative !important;
+}
+
+/* 条形 */
+.pm-timeline-view .pm-gantt-bar {
+  display: block !important;
+  position: absolute !important;
+}
+
+/* 刻度和网格线 */
+.pm-timeline-view .pm-gantt-tick,
+.pm-timeline-view .pm-gantt-grid-line {
+  display: block !important;
+  position: absolute !important;
+}
+
+/* ========================================
+   Gantt Timeline FINAL
+   ======================================== */
+
+/* 隐藏所有旧的垂直时间线元素 */
+.pm-timeline-vertical,
+.pm-timeline-group,
+.pm-timeline-date,
+.pm-timeline-items,
+.pm-timeline-card,
+.pm-timeline-horizontal,
+.pm-timeline-track,
+.pm-timeline-point,
+.pm-timeline-marker,
+.pm-timeline-labels,
+.pm-timeline-label {
+  display: none !important;
+}
+
+/* 甘特图基础 */
+.pm-timeline-gantt {
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.pm-gantt-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+/* 表头 */
+.pm-gantt-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  height: 40px;
+}
+
+.pm-gantt-header .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 0 12px;
+  border-right: 1px solid var(--background-modifier-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.pm-gantt-header .pm-gantt-timeline-header {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+/* 主体 */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 行 */
+.pm-gantt-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none;
+}
+
+.pm-gantt-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* 名称列 */
+.pm-gantt-row .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 0 12px;
+  border-right: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+  background: var(--background-primary);
+}
+
+.pm-gantt-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 时间轴 */
+.pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+/* 条形 */
+.pm-gantt-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.pm-gantt-row:hover .pm-gantt-bar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.05);
+}
+
+/* 刻度 */
+.pm-gantt-tick {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 网格线 */
+.pm-gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--background-modifier-border);
+  opacity: 0.3;
+}
+
+/* 进度 */
+.pm-gantt-progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px 0 0 4px;
+}
+
+/* 悬停卡片 */
+.pm-gantt-hover-card {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 30px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 220px;
+}
+
+.pm-gantt-row:hover .pm-gantt-hover-card {
+  display: block;
+}
+
+/* ========================================
+   GANTT TIMELINE - CLEAN
+   ======================================== */
+
+.pm-gantt-container {
+  width: 100%;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+/* 表头 */
+.pm-gantt-header {
+  display: flex;
+  height: 40px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-header-name,
+.pm-gantt-header .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-header-timeline,
+.pm-gantt-header .pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+}
+
+/* 刻度 */
+.pm-gantt-tick {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* 网格线 */
+.pm-gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--background-modifier-border);
+  opacity: 0.3;
+}
+
+/* 主体 */
+.pm-gantt-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 行 */
+.pm-gantt-row {
+  display: flex;
+  height: 44px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  position: relative;
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: none;
+}
+
+.pm-gantt-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* 名称 */
+.pm-gantt-name,
+.pm-gantt-row .pm-gantt-name-col {
+  width: 150px;
+  min-width: 150px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+/* 时间轴 */
+.pm-gantt-timeline,
+.pm-gantt-row .pm-gantt-timeline-col {
+  flex: 1;
+  position: relative;
+}
+
+/* 条形 */
+.pm-gantt-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  min-width: 2px;
+}
+
+.pm-gantt-row:hover .pm-gantt-bar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.05);
+}
+
+/* 进度 */
+.pm-gantt-progress {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px 0 0 4px;
+}
+
+/* 悬停提示 */
+.pm-gantt-tooltip {
+  display: none;
+  position: absolute;
+  left: 160px;
+  top: 36px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 220px;
+}
+
+.pm-gantt-row:hover .pm-gantt-tooltip {
+  display: block;
+}
+
+.pm-gantt-tooltip-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pm-gantt-tooltip-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.pm-gantt-tooltip-status,
+.pm-gantt-tooltip-progress,
+.pm-gantt-tooltip-owner {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ========================================
+   GANTT TOOLTIP FIX
+   ======================================== */
+
+/* 强制隐藏 tooltip */
+.pm-gantt-row .pm-gantt-tooltip {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+}
+
+/* 悬停时显示 */
+.pm-gantt-row:hover .pm-gantt-tooltip {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* ========================================
+   GANTT TOOLTIP POSITION FIX
+   ======================================== */
+
+.pm-gantt-timeline .pm-gantt-tooltip {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 10px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 200px;
+  pointer-events: none;
+}
+
+.pm-gantt-row:hover .pm-gantt-timeline .pm-gantt-tooltip {
+  display: block;
+}
+
+.pm-gantt-tooltip-header {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.pm-gantt-tooltip-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.pm-gantt-tooltip-status {
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  display: inline-block;
+}
+
+.pm-gantt-tooltip-progress {
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--text-normal);
+}
+
+.pm-gantt-tooltip-owner {
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   GANTT HEADER FORCE SHOW
+   ======================================== */
+
+/* 强制显示表头 */
+.pm-gantt-header {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  background: var(--background-secondary) !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  width: 100% !important;
+}
+
+.pm-gantt-header-name {
+  display: flex !important;
+  align-items: center !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  border-right: 1px solid var(--background-modifier-border) !important;
+}
+
+.pm-gantt-header-timeline {
+  display: block !important;
+  position: relative !important;
+  flex: 1 !important;
+  height: 100% !important;
+  min-height: 40px !important;
+}
+
+/* 强制显示刻度 */
+.pm-gantt-tick {
+  display: block !important;
+  position: absolute !important;
+  bottom: 4px !important;
+  transform: translateX(-50%) !important;
+  font-size: 11px !important;
+  color: var(--text-normal) !important;
+  background: transparent !important;
+  z-index: 10 !important;
+}
+
+/* 强制显示网格线 */
+.pm-gantt-grid-line {
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 1px !important;
+  background: var(--background-modifier-border) !important;
+  opacity: 0.5 !important;
+}
