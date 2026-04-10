@@ -127,8 +127,8 @@ export class EntityCache {
    */
   private async loadVersions(): Promise<void> {
     const folder = 'ProjectManager/Versions';
-    const files = this.app.vault.getMarkdownFiles()
-      .filter(f => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles()
+      .filter(f => f.path.startsWith(folder) && f.extension === 'md');
 
     for (const file of files) {
       const version = await this.parseVersionFile(file);
@@ -143,8 +143,8 @@ export class EntityCache {
    */
   private async loadProjects(): Promise<void> {
     const folder = 'ProjectManager/Projects';
-    const files = this.app.vault.getMarkdownFiles()
-      .filter(f => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles()
+      .filter(f => f.path.startsWith(folder) && f.extension === 'md');
 
     for (const file of files) {
       const project = await this.parseProjectFile(file);
@@ -159,8 +159,8 @@ export class EntityCache {
    */
   private async loadFeatures(): Promise<void> {
     const folder = 'ProjectManager/Features';
-    const files = this.app.vault.getMarkdownFiles()
-      .filter(f => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles()
+      .filter(f => f.path.startsWith(folder) && f.extension === 'md');
 
     for (const file of files) {
       const feature = await this.parseFeatureFile(file);
@@ -175,17 +175,58 @@ export class EntityCache {
    */
   private async parseVersionFile(file: TFile): Promise<Version | null> {
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!cache?.frontmatter?.id) return null;
+    let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
+
+    // 如果 metadata 还没准备好，直接从文件读取
+    if (!frontmatter?.id) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!parsed?.id) return null;
+      frontmatter = parsed;
+    }
 
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      status: cache.frontmatter.status || 'planning',
-      owner: cache.frontmatter.owner,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      tags: Array.isArray(cache.frontmatter.tags) ? cache.frontmatter.tags : [],
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      status: String(frontmatter.status || 'planning'),
+      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : undefined,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     } as Version;
+  }
+
+  /**
+   * 从文件内容解析 frontmatter
+   */
+  private parseFrontmatterFromContent(content: string): Record<string, unknown> | null {
+    const match = content.match(/^---\n([\s\S]*?)\n---\n/);
+    if (!match) return null;
+
+    const yaml = match[1];
+    const frontmatter: Record<string, unknown> = {};
+
+    for (const line of yaml.split('\n')) {
+      const colonIndex = line.indexOf(':');
+      if (colonIndex === -1) continue;
+
+      const key = line.slice(0, colonIndex).trim();
+      const value = line.slice(colonIndex + 1).trim();
+
+      if (value.startsWith('[') && value.endsWith(']')) {
+        frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
+      } else if (value === 'true') {
+        frontmatter[key] = true;
+      } else if (value === 'false') {
+        frontmatter[key] = false;
+      } else if (/^\d+$/.test(value)) {
+        frontmatter[key] = parseInt(value, 10);
+      } else {
+        frontmatter[key] = value;
+      }
+    }
+
+    return frontmatter;
   }
 
   /**
@@ -193,19 +234,27 @@ export class EntityCache {
    */
   private async parseProjectFile(file: TFile): Promise<Project | null> {
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!cache?.frontmatter?.id) return null;
+    let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
+
+    // 如果 metadata 还没准备好，直接从文件读取
+    if (!frontmatter?.id) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!parsed?.id) return null;
+      frontmatter = parsed;
+    }
 
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      versionId: cache.frontmatter.versionId,
-      status: cache.frontmatter.status || 'backlog',
-      description: cache.frontmatter.description,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      owner: cache.frontmatter.owner,
-      priority: cache.frontmatter.priority,
-      tags: cache.frontmatter.tags || [],
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      versionId: frontmatter.versionId ? String(frontmatter.versionId) : undefined,
+      status: String(frontmatter.status || 'backlog'),
+      description: frontmatter.description ? String(frontmatter.description) : undefined,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : undefined,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
+      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
+      priority: frontmatter.priority ? String(frontmatter.priority) : undefined,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     } as Project;
   }
 
@@ -214,22 +263,30 @@ export class EntityCache {
    */
   private async parseFeatureFile(file: TFile): Promise<Feature | null> {
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!cache?.frontmatter?.id) return null;
+    let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
+
+    // 如果 metadata 还没准备好，直接从文件读取
+    if (!frontmatter?.id) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!parsed?.id) return null;
+      frontmatter = parsed;
+    }
 
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      projectId: cache.frontmatter.projectId,
-      versionId: cache.frontmatter.versionId,
-      status: cache.frontmatter.status || 'backlog',
-      priority: cache.frontmatter.priority || 'medium',
-      progress: cache.frontmatter.progress || 0,
-      description: cache.frontmatter.description,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      owner: cache.frontmatter.owner,
-      tags: cache.frontmatter.tags || [],
-      isMilestone: cache.frontmatter.isMilestone,
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      projectId: frontmatter.projectId ? String(frontmatter.projectId) : undefined,
+      versionId: frontmatter.versionId ? String(frontmatter.versionId) : undefined,
+      status: String(frontmatter.status || 'backlog'),
+      priority: String(frontmatter.priority || 'medium'),
+      progress: typeof frontmatter.progress === 'number' ? frontmatter.progress : 0,
+      description: frontmatter.description ? String(frontmatter.description) : undefined,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : undefined,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
+      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+      isMilestone: frontmatter.isMilestone === true,
     } as Feature;
   }
 

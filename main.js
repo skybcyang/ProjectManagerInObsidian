@@ -1802,7 +1802,7 @@ var EntityCache = class {
    */
   async loadVersions() {
     const folder = "ProjectManager/Versions";
-    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles().filter((f) => f.path.startsWith(folder) && f.extension === "md");
     for (const file of files) {
       const version = await this.parseVersionFile(file);
       if (version) {
@@ -1815,7 +1815,7 @@ var EntityCache = class {
    */
   async loadProjects() {
     const folder = "ProjectManager/Projects";
-    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles().filter((f) => f.path.startsWith(folder) && f.extension === "md");
     for (const file of files) {
       const project = await this.parseProjectFile(file);
       if (project) {
@@ -1828,7 +1828,7 @@ var EntityCache = class {
    */
   async loadFeatures() {
     const folder = "ProjectManager/Features";
-    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(folder));
+    const files = this.app.vault.getFiles().filter((f) => f.path.startsWith(folder) && f.extension === "md");
     for (const file of files) {
       const feature = await this.parseFeatureFile(file);
       if (feature) {
@@ -1840,63 +1840,107 @@ var EntityCache = class {
    * 解析版本文件
    */
   async parseVersionFile(file) {
-    var _a;
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!((_a = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a.id))
-      return null;
+    let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    if (!(frontmatter == null ? void 0 : frontmatter.id)) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!(parsed == null ? void 0 : parsed.id))
+        return null;
+      frontmatter = parsed;
+    }
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      status: cache.frontmatter.status || "planning",
-      owner: cache.frontmatter.owner,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      tags: Array.isArray(cache.frontmatter.tags) ? cache.frontmatter.tags : []
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      status: String(frontmatter.status || "planning"),
+      owner: frontmatter.owner ? String(frontmatter.owner) : void 0,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : void 0,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : void 0,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : []
     };
+  }
+  /**
+   * 从文件内容解析 frontmatter
+   */
+  parseFrontmatterFromContent(content) {
+    const match = content.match(/^---\n([\s\S]*?)\n---\n/);
+    if (!match)
+      return null;
+    const yaml = match[1];
+    const frontmatter = {};
+    for (const line of yaml.split("\n")) {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex === -1)
+        continue;
+      const key = line.slice(0, colonIndex).trim();
+      const value = line.slice(colonIndex + 1).trim();
+      if (value.startsWith("[") && value.endsWith("]")) {
+        frontmatter[key] = value.slice(1, -1).split(",").map((v) => v.trim()).filter((v) => v);
+      } else if (value === "true") {
+        frontmatter[key] = true;
+      } else if (value === "false") {
+        frontmatter[key] = false;
+      } else if (/^\d+$/.test(value)) {
+        frontmatter[key] = parseInt(value, 10);
+      } else {
+        frontmatter[key] = value;
+      }
+    }
+    return frontmatter;
   }
   /**
    * 解析项目文件
    */
   async parseProjectFile(file) {
-    var _a;
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!((_a = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a.id))
-      return null;
+    let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    if (!(frontmatter == null ? void 0 : frontmatter.id)) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!(parsed == null ? void 0 : parsed.id))
+        return null;
+      frontmatter = parsed;
+    }
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      versionId: cache.frontmatter.versionId,
-      status: cache.frontmatter.status || "backlog",
-      description: cache.frontmatter.description,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      owner: cache.frontmatter.owner,
-      priority: cache.frontmatter.priority,
-      tags: cache.frontmatter.tags || []
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      versionId: frontmatter.versionId ? String(frontmatter.versionId) : void 0,
+      status: String(frontmatter.status || "backlog"),
+      description: frontmatter.description ? String(frontmatter.description) : void 0,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : void 0,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : void 0,
+      owner: frontmatter.owner ? String(frontmatter.owner) : void 0,
+      priority: frontmatter.priority ? String(frontmatter.priority) : void 0,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : []
     };
   }
   /**
    * 解析特性文件
    */
   async parseFeatureFile(file) {
-    var _a;
     const cache = this.app.metadataCache.getFileCache(file);
-    if (!((_a = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a.id))
-      return null;
+    let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    if (!(frontmatter == null ? void 0 : frontmatter.id)) {
+      const content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!(parsed == null ? void 0 : parsed.id))
+        return null;
+      frontmatter = parsed;
+    }
     return {
-      id: cache.frontmatter.id,
-      name: cache.frontmatter.name || file.basename,
-      projectId: cache.frontmatter.projectId,
-      versionId: cache.frontmatter.versionId,
-      status: cache.frontmatter.status || "backlog",
-      priority: cache.frontmatter.priority || "medium",
-      progress: cache.frontmatter.progress || 0,
-      description: cache.frontmatter.description,
-      startDate: cache.frontmatter.startDate,
-      endDate: cache.frontmatter.endDate,
-      owner: cache.frontmatter.owner,
-      tags: cache.frontmatter.tags || [],
-      isMilestone: cache.frontmatter.isMilestone
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      projectId: frontmatter.projectId ? String(frontmatter.projectId) : void 0,
+      versionId: frontmatter.versionId ? String(frontmatter.versionId) : void 0,
+      status: String(frontmatter.status || "backlog"),
+      priority: String(frontmatter.priority || "medium"),
+      progress: typeof frontmatter.progress === "number" ? frontmatter.progress : 0,
+      description: frontmatter.description ? String(frontmatter.description) : void 0,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : void 0,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : void 0,
+      owner: frontmatter.owner ? String(frontmatter.owner) : void 0,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+      isMilestone: frontmatter.isMilestone === true
     };
   }
   /**
@@ -8789,10 +8833,10 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
     this.viewEngine = new ViewEngine(this.app, this.entityManager);
-    this.entityManager.initialize().then(() => {
-      const stats = this.entityManager.cache.getStats();
-      console.log("\u3010ProjectManager\u3011\u7F13\u5B58\u521D\u59CB\u5316\u5B8C\u6210:", stats);
-    });
+    await this.waitForMetadataCache();
+    await this.entityManager.initialize();
+    const stats = this.entityManager.cache.getStats();
+    console.log("\u3010ProjectManager\u3011\u7F13\u5B58\u521D\u59CB\u5316\u5B8C\u6210:", stats);
     this.registerMarkdownCodeBlockProcessor("pm-view", this.processViewBlock.bind(this));
     this.registerMarkdownPostProcessor((el, ctx) => {
       this.processButtons(el, ctx);
@@ -8864,6 +8908,23 @@ var ProjectManagerPlugin = class extends import_obsidian19.Plugin {
     this.addSettingTab(new TemplateSettingTab(this.app, this));
   }
   onunload() {
+  }
+  /**
+   * 等待 metadata cache 准备就绪
+   * Obsidian 启动时需要时间索引所有文件
+   */
+  async waitForMetadataCache() {
+    return new Promise((resolve) => {
+      const checkReady = () => {
+        const files = this.app.vault.getMarkdownFiles();
+        if (files.length > 0) {
+          setTimeout(resolve, 100);
+        } else {
+          setTimeout(checkReady, 50);
+        }
+      };
+      checkReady();
+    });
   }
   /**
    * 加载设置

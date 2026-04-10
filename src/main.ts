@@ -30,11 +30,11 @@ export default class ProjectManagerPlugin extends Plugin {
     this.progressInput = new ProgressInput(this.app);
     this.viewEngine = new ViewEngine(this.app, this.entityManager);
 
-    // 初始化缓存
-    this.entityManager.initialize().then(() => {
-      const stats = this.entityManager.cache.getStats();
-      console.log('【ProjectManager】缓存初始化完成:', stats);
-    });
+    // 初始化缓存 - 等待 metadata cache 准备好
+    await this.waitForMetadataCache();
+    await this.entityManager.initialize();
+    const stats = this.entityManager.cache.getStats();
+    console.log('【ProjectManager】缓存初始化完成:', stats);
 
     // 注册代码块处理器：pm-view（唯一入口）
     this.registerMarkdownCodeBlockProcessor('pm-view', this.processViewBlock.bind(this));
@@ -138,6 +138,29 @@ export default class ProjectManagerPlugin extends Plugin {
 
   onunload(): void {
     // 插件已卸载
+  }
+
+  /**
+   * 等待 metadata cache 准备就绪
+   * Obsidian 启动时需要时间索引所有文件
+   */
+  private async waitForMetadataCache(): Promise<void> {
+    // 等待 vault 文件系统准备好
+    return new Promise((resolve) => {
+      const checkReady = () => {
+        // 通过检查 vault 是否有文件来判断
+        const files = this.app.vault.getMarkdownFiles();
+        // 如果有文件或者已经过了足够时间，认为准备好了
+        if (files.length > 0) {
+          // 再给一个短暂的延迟确保 metadata 被解析
+          setTimeout(resolve, 100);
+        } else {
+          // vault 可能是空的，或者还没准备好，继续等待
+          setTimeout(checkReady, 50);
+        }
+      };
+      checkReady();
+    });
   }
 
   /**

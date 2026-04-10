@@ -1,6 +1,6 @@
 # Project Manager 文档中心
 
-> 当前版本：**v0.6.0**
+> 当前版本：**v0.7.0**
 
 本文档中心包含 Project Manager for Obsidian 插件的完整技术文档。
 
