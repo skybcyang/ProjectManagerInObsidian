@@ -25,8 +25,8 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             main.js
@@ -34,5 +34,7 @@ jobs:
             styles.css
           body_path: docs/CHANGELOG.md
           generate_release_notes: false
+          # 如果 release 已存在则更新
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
