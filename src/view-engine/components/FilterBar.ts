@@ -149,12 +149,16 @@ export class FilterBar {
 
     triggerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      console.log('[FilterBar] Clicked:', label, 'current dropdown:', !!dropdownEl);
       if (dropdownEl) {
+        console.log('[FilterBar] Closing existing dropdown');
         dropdownEl.remove();
         dropdownEl = null;
         return;
       }
+      console.log('[FilterBar] Creating dropdown for:', label);
       dropdownEl = this.createDropdown(wrapper, options, value, (newValue) => {
+        console.log('[FilterBar] Selected:', label, '=', newValue);
         onChange(newValue);
         const newOption = options.find(opt => opt.value === newValue) || options[0];
         this.updateBadgeStyle(triggerBtn, newOption);

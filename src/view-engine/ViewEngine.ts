@@ -116,19 +116,30 @@ export class ViewEngine {
    * 进入全屏 - 使用CSS类方式，保持事件监听器
    */
   private enterFullscreen(wrapper: HTMLElement): void {
+    console.log('[ViewEngine] enterFullscreen called, wrapper:', wrapper);
+    console.log('[ViewEngine] wrapper parent before move:', wrapper.parentElement);
+    console.log('[ViewEngine] wrapper next sibling before move:', wrapper.nextSibling);
+
     // 记录原始父元素和位置，用于退出时恢复
     this.fullscreenOriginalParent = wrapper.parentElement;
     this.fullscreenOriginalNextSibling = wrapper.nextSibling;
 
+    console.log('[ViewEngine] recorded parent:', this.fullscreenOriginalParent);
+    console.log('[ViewEngine] recorded next sibling:', this.fullscreenOriginalNextSibling);
+
     // 给wrapper添加全屏类
     wrapper.classList.add('pm-view-fullscreen');
+    console.log('[ViewEngine] added pm-view-fullscreen class');
 
     // 将wrapper移动到body下以确保最高层级
     document.body.appendChild(wrapper);
+    console.log('[ViewEngine] moved wrapper to body');
+    console.log('[ViewEngine] wrapper parent after move:', wrapper.parentElement);
 
     // ESC键退出
     const escHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        console.log('[ViewEngine] ESC pressed, exiting fullscreen');
         this.exitFullscreen(wrapper);
         document.removeEventListener('keydown', escHandler);
         this.fullscreenEscHandler = null;
@@ -137,38 +148,43 @@ export class ViewEngine {
     document.addEventListener('keydown', escHandler);
     this.fullscreenEscHandler = escHandler;
 
-    console.log('[PM] 进入全屏');
+    console.log('[ViewEngine] 进入全屏完成');
   }
 
   /**
    * 退出全屏 - 恢复DOM到原始位置
    */
   private exitFullscreen(wrapper: HTMLElement): void {
+    console.log('[ViewEngine] exitFullscreen called, wrapper:', wrapper);
+    console.log('[ViewEngine] wrapper parent before restore:', wrapper.parentElement);
+    console.log('[ViewEngine] recorded parent:', this.fullscreenOriginalParent);
+    console.log('[ViewEngine] recorded next sibling:', this.fullscreenOriginalNextSibling);
+
     // 移除全屏类
     wrapper.classList.remove('pm-view-fullscreen');
+    console.log('[ViewEngine] removed pm-view-fullscreen class');
 
     // 恢复原始位置
     if (this.fullscreenOriginalParent) {
+      console.log('[ViewEngine] restoring wrapper to original parent');
       // 如果原始父元素存在，将wrapper插回原来的位置
-      const placeholder = document.createElement('div');
-      placeholder.id = 'pm-fullscreen-restore-placeholder';
-
-      // 先插入占位符到body中的wrapper位置（实际不需要，因为我们直接append）
-      if (wrapper.parentNode) {
-        // 确保wrapper还在DOM中
-        if (this.fullscreenOriginalNextSibling) {
-          this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
-        } else {
-          this.fullscreenOriginalParent.appendChild(wrapper);
-        }
+      if (this.fullscreenOriginalNextSibling) {
+        console.log('[ViewEngine] inserting before next sibling');
+        this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
+      } else {
+        console.log('[ViewEngine] appending to parent');
+        this.fullscreenOriginalParent.appendChild(wrapper);
       }
-
-      console.log('[PM] 退出全屏，恢复DOM位置');
+      console.log('[ViewEngine] wrapper restored, new parent:', wrapper.parentElement);
+    } else {
+      console.log('[ViewEngine] ERROR: no original parent recorded!');
     }
 
     // 清理记录
     this.fullscreenOriginalParent = null;
     this.fullscreenOriginalNextSibling = null;
+
+    console.log('[ViewEngine] 退出全屏完成');
   }
 
   /**
@@ -203,8 +219,11 @@ export class ViewEngine {
     context: ViewContext,
     codeBlockIndex?: number
   ): Promise<void> {
+    console.log('[ViewEngine] render called, codeBlockIndex:', codeBlockIndex);
+
     // 清理旧的 FilterBar
     if (this.currentFilterBar) {
+      console.log('[ViewEngine] destroying old FilterBar');
       this.currentFilterBar.destroy();
       this.currentFilterBar = undefined;
     }
@@ -214,15 +233,19 @@ export class ViewEngine {
 
     // 创建视图包装器
     const wrapper = container.createDiv('pm-view-wrapper');
+    console.log('[ViewEngine] created wrapper:', wrapper);
 
     // 1. 渲染工具栏（视图切换、属性面板等）
     const toolbarEl = this.renderToolbar(wrapper, config, context, codeBlockIndex);
+    console.log('[ViewEngine] rendered toolbar:', toolbarEl);
 
     // 2. 创建筛选器
+    console.log('[ViewEngine] creating FilterBar');
     this.currentFilterBar = new FilterBar(
       this.app,
       this.entityManager,
       async (filters) => {
+        console.log('[ViewEngine] FilterBar onChange called, filters:', filters);
         const finalConfig: ViewConfig = { ...config, ...filters };
         await this.renderContent(contentArea, finalConfig, context);
       },
@@ -230,7 +253,9 @@ export class ViewEngine {
       codeBlockIndex
     );
     await this.currentFilterBar.loadOptions();
+    console.log('[ViewEngine] FilterBar loaded options, owners:', this.currentFilterBar['owners']);
     this.currentFilterBar.render(wrapper, config);
+    console.log('[ViewEngine] FilterBar rendered');
 
     // 3. 再创建内容区域（在下）
     const contentArea = wrapper.createDiv('pm-view-content');
@@ -290,10 +315,13 @@ export class ViewEngine {
       text: '筛选 ▼',
     });
     filterBtn.addEventListener('click', () => {
+      console.log('[ViewEngine] 筛选按钮被点击');
       // 显示/隐藏筛选栏
       const filterBar = wrapper.querySelector('.pm-filter-container') as HTMLElement;
+      console.log('[ViewEngine] 筛选栏元素:', filterBar);
       if (filterBar) {
         const isHidden = filterBar.style.display === 'none';
+        console.log('[ViewEngine] 筛选栏当前状态:', isHidden ? 'hidden' : 'visible');
         filterBar.style.display = isHidden ? 'block' : 'none';
         filterBtn.textContent = isHidden ? '筛选 ▲' : '筛选 ▼';
       }
@@ -305,6 +333,7 @@ export class ViewEngine {
       text: '排序 ▼',
     });
     sortBtn.addEventListener('click', () => {
+      console.log('[ViewEngine] 排序按钮被点击');
       this.showSortMenu(sortBtn, wrapper, config, context, codeBlockIndex);
     });
 
@@ -314,6 +343,7 @@ export class ViewEngine {
       text: '属性 ▼',
     });
     propBtn.addEventListener('click', () => {
+      console.log('[ViewEngine] 属性按钮被点击');
       this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
     });
 
@@ -326,7 +356,7 @@ export class ViewEngine {
 
     fullscreenBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('[PM] 全屏按钮被点击');
+      console.log('[ViewEngine] 全屏按钮被点击');
       this.toggleFullscreen(wrapper, fullscreenBtn);
     });
 

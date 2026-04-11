@@ -6293,12 +6293,16 @@ var FilterBar = class {
     let dropdownEl = null;
     triggerBtn.addEventListener("click", (e) => {
       e.stopPropagation();
+      console.log("[FilterBar] Clicked:", label, "current dropdown:", !!dropdownEl);
       if (dropdownEl) {
+        console.log("[FilterBar] Closing existing dropdown");
         dropdownEl.remove();
         dropdownEl = null;
         return;
       }
+      console.log("[FilterBar] Creating dropdown for:", label);
       dropdownEl = this.createDropdown(wrapper, options, value, (newValue) => {
+        console.log("[FilterBar] Selected:", label, "=", newValue);
         onChange(newValue);
         const newOption = options.find((opt) => opt.value === newValue) || options[0];
         this.updateBadgeStyle(triggerBtn, newOption);
@@ -7301,6 +7305,7 @@ var KanbanRenderer = class extends BaseRenderer {
     }
     card.addEventListener("click", async (e) => {
       e.stopPropagation();
+      console.log("[KanbanRenderer] Card clicked:", entity.name, entityType, entity.id);
       await this.actionService.openEntity(entityType, entity.id);
     });
   }
@@ -9484,12 +9489,21 @@ var ViewEngine = class {
    * 进入全屏 - 使用CSS类方式，保持事件监听器
    */
   enterFullscreen(wrapper) {
+    console.log("[ViewEngine] enterFullscreen called, wrapper:", wrapper);
+    console.log("[ViewEngine] wrapper parent before move:", wrapper.parentElement);
+    console.log("[ViewEngine] wrapper next sibling before move:", wrapper.nextSibling);
     this.fullscreenOriginalParent = wrapper.parentElement;
     this.fullscreenOriginalNextSibling = wrapper.nextSibling;
+    console.log("[ViewEngine] recorded parent:", this.fullscreenOriginalParent);
+    console.log("[ViewEngine] recorded next sibling:", this.fullscreenOriginalNextSibling);
     wrapper.classList.add("pm-view-fullscreen");
+    console.log("[ViewEngine] added pm-view-fullscreen class");
     document.body.appendChild(wrapper);
+    console.log("[ViewEngine] moved wrapper to body");
+    console.log("[ViewEngine] wrapper parent after move:", wrapper.parentElement);
     const escHandler = (e) => {
       if (e.key === "Escape") {
+        console.log("[ViewEngine] ESC pressed, exiting fullscreen");
         this.exitFullscreen(wrapper);
         document.removeEventListener("keydown", escHandler);
         this.fullscreenEscHandler = null;
@@ -9497,27 +9511,34 @@ var ViewEngine = class {
     };
     document.addEventListener("keydown", escHandler);
     this.fullscreenEscHandler = escHandler;
-    console.log("[PM] \u8FDB\u5165\u5168\u5C4F");
+    console.log("[ViewEngine] \u8FDB\u5165\u5168\u5C4F\u5B8C\u6210");
   }
   /**
    * 退出全屏 - 恢复DOM到原始位置
    */
   exitFullscreen(wrapper) {
+    console.log("[ViewEngine] exitFullscreen called, wrapper:", wrapper);
+    console.log("[ViewEngine] wrapper parent before restore:", wrapper.parentElement);
+    console.log("[ViewEngine] recorded parent:", this.fullscreenOriginalParent);
+    console.log("[ViewEngine] recorded next sibling:", this.fullscreenOriginalNextSibling);
     wrapper.classList.remove("pm-view-fullscreen");
+    console.log("[ViewEngine] removed pm-view-fullscreen class");
     if (this.fullscreenOriginalParent) {
-      const placeholder = document.createElement("div");
-      placeholder.id = "pm-fullscreen-restore-placeholder";
-      if (wrapper.parentNode) {
-        if (this.fullscreenOriginalNextSibling) {
-          this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
-        } else {
-          this.fullscreenOriginalParent.appendChild(wrapper);
-        }
+      console.log("[ViewEngine] restoring wrapper to original parent");
+      if (this.fullscreenOriginalNextSibling) {
+        console.log("[ViewEngine] inserting before next sibling");
+        this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
+      } else {
+        console.log("[ViewEngine] appending to parent");
+        this.fullscreenOriginalParent.appendChild(wrapper);
       }
-      console.log("[PM] \u9000\u51FA\u5168\u5C4F\uFF0C\u6062\u590DDOM\u4F4D\u7F6E");
+      console.log("[ViewEngine] wrapper restored, new parent:", wrapper.parentElement);
+    } else {
+      console.log("[ViewEngine] ERROR: no original parent recorded!");
     }
     this.fullscreenOriginalParent = null;
     this.fullscreenOriginalNextSibling = null;
+    console.log("[ViewEngine] \u9000\u51FA\u5168\u5C4F\u5B8C\u6210");
   }
   /**
    * 防抖保存配置 - 避免频繁保存
@@ -9536,18 +9557,24 @@ var ViewEngine = class {
    * 渲染视图 - 工具栏在上，筛选在中，视图在下
    */
   async render(container, config, context, codeBlockIndex) {
+    console.log("[ViewEngine] render called, codeBlockIndex:", codeBlockIndex);
     if (this.currentFilterBar) {
+      console.log("[ViewEngine] destroying old FilterBar");
       this.currentFilterBar.destroy();
       this.currentFilterBar = void 0;
     }
     container.empty();
     container.addClass("pm-view");
     const wrapper = container.createDiv("pm-view-wrapper");
+    console.log("[ViewEngine] created wrapper:", wrapper);
     const toolbarEl = this.renderToolbar(wrapper, config, context, codeBlockIndex);
+    console.log("[ViewEngine] rendered toolbar:", toolbarEl);
+    console.log("[ViewEngine] creating FilterBar");
     this.currentFilterBar = new FilterBar(
       this.app,
       this.entityManager,
       async (filters) => {
+        console.log("[ViewEngine] FilterBar onChange called, filters:", filters);
         const finalConfig = { ...config, ...filters };
         await this.renderContent(contentArea, finalConfig, context);
       },
@@ -9555,7 +9582,9 @@ var ViewEngine = class {
       codeBlockIndex
     );
     await this.currentFilterBar.loadOptions();
+    console.log("[ViewEngine] FilterBar loaded options, owners:", this.currentFilterBar["owners"]);
     this.currentFilterBar.render(wrapper, config);
+    console.log("[ViewEngine] FilterBar rendered");
     const contentArea = wrapper.createDiv("pm-view-content");
     await this.renderContent(contentArea, config, context);
   }
@@ -9590,9 +9619,12 @@ var ViewEngine = class {
       text: "\u7B5B\u9009 \u25BC"
     });
     filterBtn.addEventListener("click", () => {
+      console.log("[ViewEngine] \u7B5B\u9009\u6309\u94AE\u88AB\u70B9\u51FB");
       const filterBar = wrapper.querySelector(".pm-filter-container");
+      console.log("[ViewEngine] \u7B5B\u9009\u680F\u5143\u7D20:", filterBar);
       if (filterBar) {
         const isHidden = filterBar.style.display === "none";
+        console.log("[ViewEngine] \u7B5B\u9009\u680F\u5F53\u524D\u72B6\u6001:", isHidden ? "hidden" : "visible");
         filterBar.style.display = isHidden ? "block" : "none";
         filterBtn.textContent = isHidden ? "\u7B5B\u9009 \u25B2" : "\u7B5B\u9009 \u25BC";
       }
@@ -9602,6 +9634,7 @@ var ViewEngine = class {
       text: "\u6392\u5E8F \u25BC"
     });
     sortBtn.addEventListener("click", () => {
+      console.log("[ViewEngine] \u6392\u5E8F\u6309\u94AE\u88AB\u70B9\u51FB");
       this.showSortMenu(sortBtn, wrapper, config, context, codeBlockIndex);
     });
     const propBtn = buttonGroup.createEl("button", {
@@ -9609,6 +9642,7 @@ var ViewEngine = class {
       text: "\u5C5E\u6027 \u25BC"
     });
     propBtn.addEventListener("click", () => {
+      console.log("[ViewEngine] \u5C5E\u6027\u6309\u94AE\u88AB\u70B9\u51FB");
       this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
     });
     const fullscreenBtn = buttonGroup.createEl("button", {
@@ -9618,7 +9652,7 @@ var ViewEngine = class {
     });
     fullscreenBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      console.log("[PM] \u5168\u5C4F\u6309\u94AE\u88AB\u70B9\u51FB");
+      console.log("[ViewEngine] \u5168\u5C4F\u6309\u94AE\u88AB\u70B9\u51FB");
       this.toggleFullscreen(wrapper, fullscreenBtn);
     });
     return toolbar;

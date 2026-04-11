@@ -334,6 +334,7 @@ export class KanbanRenderer extends BaseRenderer {
     // 点击卡片打开
     card.addEventListener('click', async (e) => {
       e.stopPropagation();
+      console.log('[KanbanRenderer] Card clicked:', entity.name, entityType, entity.id);
       await this.actionService.openEntity(entityType, entity.id);
     });
   }
