@@ -9417,7 +9417,9 @@ var ViewEngine = class {
     this.app = app;
     this.entityManager = entityManager;
     this.pendingSave = {};
-    this.fullscreenOverlay = null;
+    this.fullscreenOriginalParent = null;
+    this.fullscreenOriginalNextSibling = null;
+    this.fullscreenEscHandler = null;
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
     this.configService = new CodeBlockConfigService(app);
@@ -9450,9 +9452,9 @@ var ViewEngine = class {
       document.removeEventListener("keydown", this.fullscreenKeyListener);
       this.fullscreenKeyListener = void 0;
     }
-    if (this.fullscreenOverlay) {
-      this.fullscreenOverlay.remove();
-      this.fullscreenOverlay = null;
+    if (this.fullscreenEscHandler) {
+      document.removeEventListener("keydown", this.fullscreenEscHandler);
+      this.fullscreenEscHandler = null;
     }
     if (this.currentFilterBar) {
       this.currentFilterBar.destroy();
@@ -9467,8 +9469,9 @@ var ViewEngine = class {
    * 切换全屏模式
    */
   toggleFullscreen(wrapper, btn) {
-    if (this.fullscreenOverlay) {
-      this.exitFullscreen();
+    const isFullscreen = wrapper.classList.contains("pm-view-fullscreen");
+    if (isFullscreen) {
+      this.exitFullscreen(wrapper);
       btn.textContent = "\u26F6";
       btn.setAttribute("title", "\u5168\u5C4F");
     } else {
@@ -9478,70 +9481,43 @@ var ViewEngine = class {
     }
   }
   /**
-   * 进入全屏
+   * 进入全屏 - 使用CSS类方式，保持事件监听器
    */
   enterFullscreen(wrapper) {
-    const overlay = document.createElement("div");
-    overlay.className = "pm-fullscreen-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 99999;
-      background: var(--background-primary, #1e1e1e);
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      box-sizing: border-box;
-    `;
-    const closeBtn = overlay.createEl("button", {
-      text: "\u2715 \u9000\u51FA\u5168\u5C4F",
-      cls: "pm-fullscreen-close-btn"
-    });
-    closeBtn.style.cssText = `
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 8px 16px;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      z-index: 100000;
-    `;
-    closeBtn.addEventListener("click", () => this.exitFullscreen());
-    const contentContainer = overlay.createDiv("pm-fullscreen-content");
-    contentContainer.style.cssText = `
-      flex: 1;
-      overflow: auto;
-      margin-top: 40px;
-    `;
-    const contentClone = wrapper.cloneNode(true);
-    contentContainer.appendChild(contentClone);
-    document.body.appendChild(overlay);
-    this.fullscreenOverlay = overlay;
+    this.fullscreenOriginalParent = wrapper.parentElement;
+    this.fullscreenOriginalNextSibling = wrapper.nextSibling;
+    wrapper.classList.add("pm-view-fullscreen");
+    document.body.appendChild(wrapper);
     const escHandler = (e) => {
       if (e.key === "Escape") {
-        this.exitFullscreen();
+        this.exitFullscreen(wrapper);
         document.removeEventListener("keydown", escHandler);
+        this.fullscreenEscHandler = null;
       }
     };
     document.addEventListener("keydown", escHandler);
+    this.fullscreenEscHandler = escHandler;
     console.log("[PM] \u8FDB\u5165\u5168\u5C4F");
   }
   /**
-   * 退出全屏
+   * 退出全屏 - 恢复DOM到原始位置
    */
-  exitFullscreen() {
-    if (this.fullscreenOverlay) {
-      this.fullscreenOverlay.remove();
-      this.fullscreenOverlay = null;
-      console.log("[PM] \u9000\u51FA\u5168\u5C4F");
+  exitFullscreen(wrapper) {
+    wrapper.classList.remove("pm-view-fullscreen");
+    if (this.fullscreenOriginalParent) {
+      const placeholder = document.createElement("div");
+      placeholder.id = "pm-fullscreen-restore-placeholder";
+      if (wrapper.parentNode) {
+        if (this.fullscreenOriginalNextSibling) {
+          this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
+        } else {
+          this.fullscreenOriginalParent.appendChild(wrapper);
+        }
+      }
+      console.log("[PM] \u9000\u51FA\u5168\u5C4F\uFF0C\u6062\u590DDOM\u4F4D\u7F6E");
     }
+    this.fullscreenOriginalParent = null;
+    this.fullscreenOriginalNextSibling = null;
   }
   /**
    * 防抖保存配置 - 避免频繁保存

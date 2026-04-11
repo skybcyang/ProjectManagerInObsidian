@@ -30,6 +30,9 @@ export class ViewEngine {
   private currentFilterBar?: FilterBar;
 
   private fullscreenKeyListener?: (e: KeyboardEvent) => void;
+  private fullscreenOriginalParent: HTMLElement | null = null;
+  private fullscreenOriginalNextSibling: Node | null = null;
+  private fullscreenEscHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(
     private app: App,
@@ -61,8 +64,6 @@ export class ViewEngine {
     document.addEventListener('keydown', this.fullscreenKeyListener);
   }
 
-  private fullscreenOverlay: HTMLElement | null = null;
-
   /**
    * 销毁视图引擎，清理所有资源
    */
@@ -73,10 +74,10 @@ export class ViewEngine {
       this.fullscreenKeyListener = undefined;
     }
 
-    // 2. 清理全屏遮罩
-    if (this.fullscreenOverlay) {
-      this.fullscreenOverlay.remove();
-      this.fullscreenOverlay = null;
+    // 2. 如果处于全屏状态，先退出全屏（恢复DOM位置）
+    if (this.fullscreenEscHandler) {
+      document.removeEventListener('keydown', this.fullscreenEscHandler);
+      this.fullscreenEscHandler = null;
     }
 
     // 3. 清理 FilterBar
@@ -96,9 +97,11 @@ export class ViewEngine {
    * 切换全屏模式
    */
   private toggleFullscreen(wrapper: HTMLElement, btn: HTMLElement): void {
-    if (this.fullscreenOverlay) {
+    const isFullscreen = wrapper.classList.contains('pm-view-fullscreen');
+
+    if (isFullscreen) {
       // 退出全屏
-      this.exitFullscreen();
+      this.exitFullscreen(wrapper);
       btn.textContent = '⛶';
       btn.setAttribute('title', '全屏');
     } else {
@@ -110,83 +113,62 @@ export class ViewEngine {
   }
 
   /**
-   * 进入全屏
+   * 进入全屏 - 使用CSS类方式，保持事件监听器
    */
   private enterFullscreen(wrapper: HTMLElement): void {
-    // 创建全屏遮罩
-    const overlay = document.createElement('div');
-    overlay.className = 'pm-fullscreen-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 99999;
-      background: var(--background-primary, #1e1e1e);
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      box-sizing: border-box;
-    `;
+    // 记录原始父元素和位置，用于退出时恢复
+    this.fullscreenOriginalParent = wrapper.parentElement;
+    this.fullscreenOriginalNextSibling = wrapper.nextSibling;
 
-    // 创建关闭按钮
-    const closeBtn = overlay.createEl('button', {
-      text: '✕ 退出全屏',
-      cls: 'pm-fullscreen-close-btn'
-    });
-    closeBtn.style.cssText = `
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 8px 16px;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      z-index: 100000;
-    `;
-    closeBtn.addEventListener('click', () => this.exitFullscreen());
+    // 给wrapper添加全屏类
+    wrapper.classList.add('pm-view-fullscreen');
 
-    // 创建内容容器
-    const contentContainer = overlay.createDiv('pm-fullscreen-content');
-    contentContainer.style.cssText = `
-      flex: 1;
-      overflow: auto;
-      margin-top: 40px;
-    `;
+    // 将wrapper移动到body下以确保最高层级
+    document.body.appendChild(wrapper);
 
-    // 克隆视图内容
-    const contentClone = wrapper.cloneNode(true) as HTMLElement;
-    contentContainer.appendChild(contentClone);
-
-    // 添加到 body
-    document.body.appendChild(overlay);
-    this.fullscreenOverlay = overlay;
-
-    // ESC 键退出
+    // ESC键退出
     const escHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        this.exitFullscreen();
+        this.exitFullscreen(wrapper);
         document.removeEventListener('keydown', escHandler);
+        this.fullscreenEscHandler = null;
       }
     };
     document.addEventListener('keydown', escHandler);
+    this.fullscreenEscHandler = escHandler;
 
     console.log('[PM] 进入全屏');
   }
 
   /**
-   * 退出全屏
+   * 退出全屏 - 恢复DOM到原始位置
    */
-  private exitFullscreen(): void {
-    if (this.fullscreenOverlay) {
-      this.fullscreenOverlay.remove();
-      this.fullscreenOverlay = null;
-      console.log('[PM] 退出全屏');
+  private exitFullscreen(wrapper: HTMLElement): void {
+    // 移除全屏类
+    wrapper.classList.remove('pm-view-fullscreen');
+
+    // 恢复原始位置
+    if (this.fullscreenOriginalParent) {
+      // 如果原始父元素存在，将wrapper插回原来的位置
+      const placeholder = document.createElement('div');
+      placeholder.id = 'pm-fullscreen-restore-placeholder';
+
+      // 先插入占位符到body中的wrapper位置（实际不需要，因为我们直接append）
+      if (wrapper.parentNode) {
+        // 确保wrapper还在DOM中
+        if (this.fullscreenOriginalNextSibling) {
+          this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
+        } else {
+          this.fullscreenOriginalParent.appendChild(wrapper);
+        }
+      }
+
+      console.log('[PM] 退出全屏，恢复DOM位置');
     }
+
+    // 清理记录
+    this.fullscreenOriginalParent = null;
+    this.fullscreenOriginalNextSibling = null;
   }
 
   /**
