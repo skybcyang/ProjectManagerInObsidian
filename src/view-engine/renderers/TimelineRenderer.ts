@@ -288,8 +288,8 @@ export class TimelineRenderer extends BaseRenderer {
     }
 
     // 点击
-    row.addEventListener('click', () => {
-      this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
+    row.addEventListener('click', async () => {
+      await this.actionService.openEntity(getEntityType(entity) as EntityType, entity.id);
     });
 
     // 悬停提示

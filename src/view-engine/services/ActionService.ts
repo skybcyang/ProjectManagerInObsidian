@@ -217,12 +217,28 @@ export class ActionService {
    */
   async openEntity(type: EntityType, id: string): Promise<void> {
     const path = await this.entityManager.getEntityPath(type, id);
-    if (!path) return;
+    if (!path) {
+      console.error(`[ActionService] 无法获取实体路径: ${type} ${id}`);
+      return;
+    }
 
     const obsidian = require('obsidian');
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (file && file instanceof obsidian.TFile) {
-      await this.app.workspace.getLeaf().openFile(file as TFile);
+    if (!file) {
+      console.error(`[ActionService] 文件不存在: ${path}`);
+      return;
+    }
+
+    if (file instanceof obsidian.TFile) {
+      try {
+        // 尝试获取或创建标签页并打开文件
+        const leaf = this.app.workspace.getLeaf('tab');
+        await leaf.openFile(file as TFile);
+      } catch (error) {
+        console.error(`[ActionService] 打开文件失败: ${path}`, error);
+      }
+    } else {
+      console.error(`[ActionService] 路径不是文件: ${path}`);
     }
   }
 

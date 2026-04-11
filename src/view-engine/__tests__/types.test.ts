@@ -18,16 +18,15 @@ describe('getEntityType', () => {
   });
   
   it('should identify feature by projectId precedence', () => {
-    // Edge case: if has projectId, it's a feature (even with versionId)
-    const feature = { 
-      id: 'feat-001', 
-      name: 'Test Feature', 
+    // Feature has both projectId and versionId, but projectId should take precedence
+    const feature = {
+      id: 'feat-001',
+      name: 'Test Feature',
       projectId: 'proj-001',
       versionId: 'ver-001'
     } as any;
-    // Note: current logic checks versionId first, so this returns 'project'
-    // This test documents the current behavior
-    expect(getEntityType(feature)).toBe('project');
+    // Fixed: projectId is checked first, so this correctly returns 'feature'
+    expect(getEntityType(feature)).toBe('feature');
   });
 });
 

@@ -221,8 +221,8 @@ export class ListRenderer extends BaseRenderer {
     };
 
     // 点击卡片打开
-    card.addEventListener('click', () => {
-      this.actionService.openEntity(entityType, entity.id);
+    card.addEventListener('click', async () => {
+      await this.actionService.openEntity(entityType, entity.id);
     });
   }
 

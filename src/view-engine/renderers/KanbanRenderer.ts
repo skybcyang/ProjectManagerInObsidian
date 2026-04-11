@@ -332,8 +332,9 @@ export class KanbanRenderer extends BaseRenderer {
     }
 
     // 点击卡片打开
-    card.addEventListener('click', () => {
-      this.actionService.openEntity(entityType, entity.id);
+    card.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await this.actionService.openEntity(entityType, entity.id);
     });
   }
 

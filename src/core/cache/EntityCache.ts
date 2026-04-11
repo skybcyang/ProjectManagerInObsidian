@@ -9,6 +9,7 @@ export class EntityCache {
   private versionCache = new Map<string, Version>();
   private projectCache = new Map<string, Project>();
   private featureCache = new Map<string, Feature>();
+  private ownerIndex = new Set<string>();
   private initialized = false;
 
   constructor(private app: App) {}
@@ -108,6 +109,7 @@ export class EntityCache {
     this.versionCache.clear();
     this.projectCache.clear();
     this.featureCache.clear();
+    this.ownerIndex.clear();
     this.initialized = false;
   }
 
@@ -120,6 +122,40 @@ export class EntityCache {
       projects: this.projectCache.size,
       features: this.featureCache.size,
     };
+  }
+
+  /**
+   * 获取所有负责人列表（从缓存）
+   */
+  getOwners(): string[] {
+    return Array.from(this.ownerIndex).sort();
+  }
+
+  /**
+   * 重建负责人索引
+   * 在 owner 变更或文件删除时调用
+   */
+  private rebuildOwnerIndex(): void {
+    this.ownerIndex.clear();
+
+    // 从所有项目和特性中收集 owner
+    for (const project of this.projectCache.values()) {
+      if (project.owner) {
+        this.ownerIndex.add(project.owner);
+      }
+    }
+
+    for (const feature of this.featureCache.values()) {
+      if (feature.owner) {
+        this.ownerIndex.add(feature.owner);
+      }
+    }
+
+    for (const version of this.versionCache.values()) {
+      if (version.owner) {
+        this.ownerIndex.add(version.owner);
+      }
+    }
   }
 
   /**
@@ -150,6 +186,10 @@ export class EntityCache {
       const project = await this.parseProjectFile(file);
       if (project) {
         this.projectCache.set(project.id, project);
+        // 更新负责人索引
+        if (project.owner) {
+          this.ownerIndex.add(project.owner);
+        }
       }
     }
   }
@@ -166,6 +206,10 @@ export class EntityCache {
       const feature = await this.parseFeatureFile(file);
       if (feature) {
         this.featureCache.set(feature.id, feature);
+        // 更新负责人索引
+        if (feature.owner) {
+          this.ownerIndex.add(feature.owner);
+        }
       }
     }
   }
@@ -287,6 +331,8 @@ export class EntityCache {
       owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
       isMilestone: frontmatter.isMilestone === true,
+      estimatedHours: typeof frontmatter.estimatedHours === 'number' ? frontmatter.estimatedHours : undefined,
+      actualHours: typeof frontmatter.actualHours === 'number' ? frontmatter.actualHours : undefined,
     } as Feature;
   }
 
@@ -333,16 +379,50 @@ export class EntityCache {
       const version = await this.parseVersionFile(file);
       if (version) {
         this.versionCache.set(version.id, version);
+        // 更新负责人索引
+        if (version.owner) {
+          this.ownerIndex.add(version.owner);
+        }
       }
     } else if (path.startsWith('ProjectManager/Projects/')) {
+      // 获取旧的项目信息（如果有）
+      let oldOwner: string | undefined;
+      for (const [id, project] of this.projectCache.entries()) {
+        if (id.includes(file.basename) || file.basename.includes(project.name)) {
+          oldOwner = project.owner;
+          break;
+        }
+      }
+
       const project = await this.parseProjectFile(file);
       if (project) {
         this.projectCache.set(project.id, project);
+        // 更新负责人索引
+        if (oldOwner && oldOwner !== project.owner) {
+          this.rebuildOwnerIndex();
+        } else if (project.owner) {
+          this.ownerIndex.add(project.owner);
+        }
       }
     } else if (path.startsWith('ProjectManager/Features/')) {
+      // 获取旧的特性信息（如果有）
+      let oldOwner: string | undefined;
+      for (const [id, feature] of this.featureCache.entries()) {
+        if (id.includes(file.basename) || file.basename.includes(feature.name)) {
+          oldOwner = feature.owner;
+          break;
+        }
+      }
+
       const feature = await this.parseFeatureFile(file);
       if (feature) {
         this.featureCache.set(feature.id, feature);
+        // 更新负责人索引
+        if (oldOwner && oldOwner !== feature.owner) {
+          this.rebuildOwnerIndex();
+        } else if (feature.owner) {
+          this.ownerIndex.add(feature.owner);
+        }
       }
     }
   }
@@ -386,6 +466,9 @@ export class EntityCache {
         }
       }
     }
+
+    // 文件删除后重建负责人索引
+    this.rebuildOwnerIndex();
   }
 
   /**

@@ -26,6 +26,8 @@ export interface VersionTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
+  estimatedHours?: number;
+  actualHours?: number;
 }
 
 /** 模板变量上下文 - 项目 */
@@ -39,6 +41,8 @@ export interface ProjectTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
+  estimatedHours?: number;
+  actualHours?: number;
 }
 
 /** 模板变量上下文 - 特性 */
@@ -54,6 +58,8 @@ export interface FeatureTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
+  estimatedHours?: number;
+  actualHours?: number;
 }
 
 /** 模板变量上下文 - 总览 */
@@ -94,6 +100,8 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-06-30',
     tags: ['重要', '移动端'],
+    estimatedHours: 240,
+    actualHours: 120,
   },
   project: {
     id: 'proj-homepage',
@@ -105,6 +113,8 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-05-15',
     tags: ['前端', 'UI'],
+    estimatedHours: 80,
+    actualHours: 45,
   },
   feature: {
     id: 'feat-login',
@@ -118,6 +128,8 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-04-15',
     tags: ['后端', '安全'],
+    estimatedHours: 40,
+    actualHours: 26,
   },
   overview: {
     date: new Date().toISOString().split('T')[0],

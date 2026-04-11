@@ -3435,6 +3435,307 @@
 }
 
 /* ========================================
+   Burndown View Stats Cards
+   燃尽图统计卡片样式
+   ======================================== */
+
+/* 统计卡片容器 */
+.pm-view .pm-burndown-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+/* 单个统计卡片 */
+.pm-view .pm-stat-card {
+  flex: 1;
+  min-width: 120px;
+  padding: 16px 20px;
+  background: var(--background-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pm-view .pm-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* 标签文字 */
+.pm-view .pm-stat-card__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* 数值 */
+.pm-view .pm-stat-card__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-normal);
+  line-height: 1.2;
+}
+
+/* 状态变体 - 警告 */
+.pm-view .pm-stat-card--warning .pm-stat-card__value {
+  color: #f59e0b;
+}
+
+/* 状态变体 - 成功 */
+.pm-view .pm-stat-card--success .pm-stat-card__value {
+  color: #22c55e;
+}
+
+/* 燃尽图标题栏 */
+.pm-view .pm-burndown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pm-view .pm-burndown-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0;
+}
+
+.pm-view .pm-burndown-range {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* 燃尽图图表容器 */
+.pm-view .pm-burndown-chart-container {
+  background: var(--background-primary);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pm-view .pm-burndown-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ========================================
+   Workload View - 工作量统计视图
+   ======================================== */
+
+/* 工具栏 */
+.pm-view .pm-workload-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.pm-view .pm-workload-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0;
+}
+
+/* 分组切换按钮 */
+.pm-view .pm-workload-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.pm-view .pm-workload-toggle__btn {
+  padding: 6px 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pm-view .pm-workload-toggle__btn:hover {
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.pm-view .pm-workload-toggle__btn.active {
+  background: var(--interactive-accent);
+  color: white;
+  border-color: var(--interactive-accent);
+}
+
+/* 汇总统计 */
+.pm-view .pm-workload-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.pm-view .pm-workload-summary__card {
+  flex: 1;
+  min-width: 100px;
+  padding: 16px 20px;
+  background: var(--background-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pm-view .pm-workload-summary__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.pm-view .pm-workload-summary__value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-normal);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.pm-view .pm-workload-summary__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 工作量条形图容器 */
+.pm-view .pm-workload-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+/* 单个工作量条 */
+.pm-view .pm-workload-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--background-primary);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.pm-view .pm-workload-bar:hover {
+  background: var(--background-primary-alt);
+}
+
+.pm-view .pm-workload-bar--hover {
+  background: var(--background-primary-alt);
+}
+
+/* 名称 */
+.pm-view .pm-workload-bar__name {
+  width: 120px;
+  min-width: 120px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 进度条容器 */
+.pm-view .pm-workload-bar__progress {
+  flex: 1;
+  height: 20px;
+  background: var(--background-modifier-border);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 预估工时条（背景） */
+.pm-view .pm-workload-bar__estimated {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #94a3b8 0%, #64748b 100%);
+  border-radius: 10px;
+  opacity: 0.3;
+}
+
+/* 实际工时条（前景） */
+.pm-view .pm-workload-bar__actual {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  height: 16px;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
+
+/* 实际工时条 - 超出预估 */
+.pm-view .pm-workload-bar__actual--over {
+  background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+/* 实际工时条 - 低于预估 */
+.pm-view .pm-workload-bar__actual--under {
+  background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
+}
+
+/* 数值标签 */
+.pm-view .pm-workload-bar__value {
+  width: 70px;
+  min-width: 70px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* 效率标签 */
+.pm-view .pm-workload-bar__efficiency {
+  width: 50px;
+  min-width: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+  text-align: right;
+}
+
+.pm-view .pm-workload-bar__efficiency--over {
+  color: #ef4444;
+}
+
+.pm-view .pm-workload-bar__efficiency--under {
+  color: #22c55e;
+}
+
+/* ========================================
    Entity Card - 统一实体卡片
    ======================================== */
 
@@ -7972,3 +8273,4 @@ div.pm-gantt-bar {
   background: var(--background-modifier-border) !important;
   opacity: 0.5 !important;
 }
+

@@ -526,8 +526,8 @@ export class TimeViewRenderer extends BaseRenderer {
     });
 
     // 点击打开
-    bar.addEventListener('click', () => {
-      this.actionService.openEntity(item.entityType, item.entity.id);
+    bar.addEventListener('click', async () => {
+      await this.actionService.openEntity(item.entityType, item.entity.id);
     });
   }
 
@@ -699,8 +699,8 @@ export class TimeViewRenderer extends BaseRenderer {
     });
 
     // 点击打开
-    bar.addEventListener('click', () => {
-      this.actionService.openEntity(item.entityType, item.entity.id);
+    bar.addEventListener('click', async () => {
+      await this.actionService.openEntity(item.entityType, item.entity.id);
     });
   }
 
@@ -724,8 +724,8 @@ export class TimeViewRenderer extends BaseRenderer {
     bar.textContent = item.entity.name;
     bar.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
 
-    bar.addEventListener('click', () => {
-      this.actionService.openEntity(item.entityType, item.entity.id);
+    bar.addEventListener('click', async () => {
+      await this.actionService.openEntity(item.entityType, item.entity.id);
     });
   }
 
@@ -790,8 +790,8 @@ export class TimeViewRenderer extends BaseRenderer {
       `;
     }
 
-    itemEl.addEventListener('click', () => {
-      this.actionService.openEntity(item.entityType, item.entity.id);
+    itemEl.addEventListener('click', async () => {
+      await this.actionService.openEntity(item.entityType, item.entity.id);
     });
   }
 
@@ -1131,8 +1131,8 @@ export class TimeViewRenderer extends BaseRenderer {
     });
 
     // 点击打开
-    bar.addEventListener('click', () => {
-      this.actionService.openEntity(item.entityType, item.entity.id);
+    bar.addEventListener('click', async () => {
+      await this.actionService.openEntity(item.entityType, item.entity.id);
     });
 
     // 添加任务名称标签（固定在左侧）

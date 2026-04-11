@@ -83,6 +83,8 @@ status: {{status}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
+{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
@@ -162,6 +164,8 @@ priority: {{priority}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
+{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
@@ -244,6 +248,8 @@ progress: {{progress}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
+{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
 {{/if}}isMilestone: {{isMilestone}}
 tags:
 {{#each tags}}  - {{this}}

@@ -4,6 +4,8 @@ import type { ViewConfig, ViewContext, ViewMode, CardFieldsConfig, ListColumnFie
 import { VIEW_MODE_LABELS, ENTITY_CARD_FIELD_DEFINITIONS, LIST_COLUMN_DEFINITIONS } from './types';
 import { DataService, ActionService } from './services';
 import { FilterBar } from './components/FilterBar';
+import { CodeBlockConfigService } from '../services';
+import { ConfigValidator, ErrorHandler } from '../utils';
 import {
   BaseRenderer,
   KanbanRenderer,
@@ -12,6 +14,8 @@ import {
   CascadeRenderer,
   TimelineRenderer,
   TimeViewRenderer,
+  BurndownRenderer,
+  WorkloadRenderer,
 } from './renderers';
 
 /**
@@ -21,7 +25,9 @@ import {
 export class ViewEngine {
   private dataService: DataService;
   private actionService: ActionService;
+  private configService: CodeBlockConfigService;
   private pendingSave: { [key: string]: NodeJS.Timeout } = {};
+  private currentFilterBar?: FilterBar;
 
   private fullscreenKeyListener?: (e: KeyboardEvent) => void;
 
@@ -31,6 +37,7 @@ export class ViewEngine {
   ) {
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
+    this.configService = new CodeBlockConfigService(app);
     this.setupFullscreenKeyListener();
   }
 
@@ -55,6 +62,35 @@ export class ViewEngine {
   }
 
   private fullscreenOverlay: HTMLElement | null = null;
+
+  /**
+   * 销毁视图引擎，清理所有资源
+   */
+  destroy(): void {
+    // 1. 清理全屏键盘监听
+    if (this.fullscreenKeyListener) {
+      document.removeEventListener('keydown', this.fullscreenKeyListener);
+      this.fullscreenKeyListener = undefined;
+    }
+
+    // 2. 清理全屏遮罩
+    if (this.fullscreenOverlay) {
+      this.fullscreenOverlay.remove();
+      this.fullscreenOverlay = null;
+    }
+
+    // 3. 清理 FilterBar
+    if (this.currentFilterBar) {
+      this.currentFilterBar.destroy();
+      this.currentFilterBar = undefined;
+    }
+
+    // 4. 清理所有待执行的防抖定时器
+    Object.values(this.pendingSave).forEach(timeout => {
+      clearTimeout(timeout);
+    });
+    this.pendingSave = {};
+  }
 
   /**
    * 切换全屏模式
@@ -185,6 +221,12 @@ export class ViewEngine {
     context: ViewContext,
     codeBlockIndex?: number
   ): Promise<void> {
+    // 清理旧的 FilterBar
+    if (this.currentFilterBar) {
+      this.currentFilterBar.destroy();
+      this.currentFilterBar = undefined;
+    }
+
     container.empty();
     container.addClass('pm-view');
 
@@ -195,7 +237,7 @@ export class ViewEngine {
     const toolbarEl = this.renderToolbar(wrapper, config, context, codeBlockIndex);
 
     // 2. 创建筛选器
-    const filterBar = new FilterBar(
+    this.currentFilterBar = new FilterBar(
       this.app,
       this.entityManager,
       async (filters) => {
@@ -205,8 +247,8 @@ export class ViewEngine {
       context.sourcePath,
       codeBlockIndex
     );
-    await filterBar.loadOptions();
-    filterBar.render(wrapper, config);
+    await this.currentFilterBar.loadOptions();
+    this.currentFilterBar.render(wrapper, config);
 
     // 3. 再创建内容区域（在下）
     const contentArea = wrapper.createDiv('pm-view-content');
@@ -321,82 +363,15 @@ export class ViewEngine {
   }
 
   /**
-   * 保存视图配置到代码块（通用方法）
+   * 保存视图配置到代码块（使用 CodeBlockConfigService）
    */
   private async saveViewConfig(
     sourcePath: string,
     codeBlockIndex: number | undefined,
     updates: Partial<ViewConfig>
   ): Promise<void> {
-    if (!sourcePath || codeBlockIndex === undefined) return;
-
-    const { TFile } = require('obsidian');
-    const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile)) return;
-
-    try {
-      const content = await this.app.vault.read(file as TFile);
-      const lines = content.split('\n');
-
-      // 找到代码块
-      let blockStart = -1;
-      let blockEnd = -1;
-      let currentIndex = 0;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (line === '```pm-view') {
-          if (currentIndex === codeBlockIndex) {
-            blockStart = i;
-          }
-          currentIndex++;
-        }
-
-        if (blockStart !== -1 && line === '```') {
-          blockEnd = i;
-          break;
-        }
-      }
-
-      if (blockStart === -1 || blockEnd === -1) return;
-
-      // 提取原有配置
-      const configLines = lines.slice(blockStart + 1, blockEnd);
-      const configText = configLines.join('\n');
-      const { parseYaml, stringifyYaml } = require('obsidian');
-      const currentConfig = parseYaml(configText) || {};
-
-      // 合并更新
-      const newConfig = { ...currentConfig, ...updates };
-
-      // 清理 undefined 值
-      Object.keys(newConfig).forEach(key => {
-        if (newConfig[key] === undefined) {
-          delete newConfig[key];
-        }
-      });
-
-      // 序列化为 YAML
-      const yamlContent = stringifyYaml(newConfig).trim();
-
-      // 构建新代码块
-      const newBlock = ['```pm-view', yamlContent, '```'];
-
-      // 替换原代码块
-      const newLines = [
-        ...lines.slice(0, blockStart),
-        ...newBlock,
-        ...lines.slice(blockEnd + 1)
-      ];
-
-      const newContent = newLines.join('\n');
-      if (newContent !== content) {
-        await this.app.vault.modify(file as TFile, newContent);
-      }
-    } catch (error) {
-      console.error('保存视图配置失败:', error);
-    }
+    if (codeBlockIndex === undefined) return;
+    await this.configService.saveConfig(sourcePath, codeBlockIndex, updates);
   }
 
   /**
@@ -451,6 +426,10 @@ export class ViewEngine {
         return new TimelineRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case 'timeview':
         return new TimeViewRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case 'burndown':
+        return new BurndownRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+      case 'workload':
+        return new WorkloadRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       default:
         return null;
     }
@@ -465,64 +444,25 @@ export class ViewEngine {
     try {
       const parsed = parseYaml(source) || {};
 
-      // 构建 ViewConfig
-      const config: ViewConfig = {
-        mode: parsed.mode || 'kanban',
-        title: parsed.title,
+      // 使用 ConfigValidator 验证配置
+      const validation = ConfigValidator.validate(parsed);
 
-        // 实体类型筛选
-        entityType: parsed.entityType || 'feature',
+      // 记录错误和警告
+      if (validation.errors.length > 0) {
+        validation.errors.forEach(err => {
+          ErrorHandler.handleUserError(err, '配置验证');
+        });
+      }
 
-        // 单实体筛选（旧版兼容）
-        // 支持 version/versionId, project/projectId 两种写法
-        version: parsed.version || parsed.versionId,
-        project: parsed.project || parsed.projectId,
-        feature: parsed.feature,
+      if (validation.warnings.length > 0) {
+        validation.warnings.forEach(warn => {
+          console.warn('[ProjectManager] 配置警告:', warn);
+        });
+      }
 
-        // 新版组合筛选
-        filters: parsed.filters,
-
-        // 旧版筛选（向后兼容）
-        status: parsed.status,
-        priority: parsed.priority,
-        owner: parsed.owner,
-        tag: parsed.tag,
-
-        // 新版排序
-        sorts: parsed.sorts,
-
-        // 旧版排序（向后兼容）
-        sortBy: parsed.sortBy,
-        sortOrder: parsed.sortOrder,
-
-        // 列配置
-        columns: parsed.columns,
-
-        // ⭐ 新增：列表视图列配置
-        listColumns: parsed.listColumns,
-
-        // ⭐ 新增：EntityCard 字段配置
-        cardFields: parsed.cardFields,
-
-        // 限制
-        limit: parsed.limit,
-
-        // 分组
-        groupBy: parsed.groupBy,
-
-        // 视图选项
-        options: parsed.options,
-
-        // 旧版配置（向后兼容）
-        cols: parsed.cols,
-        expanded: parsed.expanded,
-        maxProjects: parsed.maxProjects,
-        maxFeaturesPerProject: parsed.maxFeaturesPerProject,
-      };
-
-      return config;
+      return validation.config;
     } catch (error) {
-      console.error('配置解析失败:', error);
+      ErrorHandler.handle(error, '配置解析失败', { category: 'user' });
       return { mode: 'kanban' };
     }
   }

@@ -6,6 +6,7 @@ import type { Version, Project, Feature, ProjectManagerSettings } from '../types
 import type { CreateVersionData, UpdateVersionData } from '../types';
 import type { CreateProjectData, UpdateProjectData } from '../types';
 import type { CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../types';
+import { ChangeLogService } from '../services/ChangeLogService';
 
 /**
  * 实体管理器
@@ -16,6 +17,7 @@ export class EntityManager {
   readonly project: ProjectStore;
   readonly feature: FeatureStore;
   readonly cache: EntityCache;
+  private changeLogService: ChangeLogService;
 
   constructor(app: App, settings?: ProjectManagerSettings) {
     const fs = new FileSystem(app);
@@ -23,6 +25,7 @@ export class EntityManager {
     this.version = new VersionStore(fs, app, this.cache, settings);
     this.project = new ProjectStore(fs, app, this.cache, settings);
     this.feature = new FeatureStore(fs, app, this.cache, settings);
+    this.changeLogService = new ChangeLogService(app);
   }
 
   /**
@@ -35,11 +38,18 @@ export class EntityManager {
   // ==================== 版本操作 ====================
 
   async createVersion(data: CreateVersionData): Promise<Version> {
-    return this.version.create(data);
+    const version = await this.version.create(data);
+    await this.changeLogService.logCreate('version', version);
+    return version;
   }
 
   async updateVersion(id: string, data: UpdateVersionData): Promise<Version | null> {
-    return this.version.update(id, data);
+    const oldVersion = await this.version.getById(id);
+    const newVersion = await this.version.update(id, data);
+    if (oldVersion && newVersion) {
+      await this.changeLogService.logUpdate('version', oldVersion, newVersion);
+    }
+    return newVersion;
   }
 
   /**
@@ -47,9 +57,12 @@ export class EntityManager {
    * @param cascade 是否级联删除关联项目
    */
   async deleteVersion(id: string, cascade: boolean = false): Promise<boolean> {
+    // 获取版本信息（用于变更日志）
+    const version = await this.version.getById(id);
+
     // 检查是否有关联项目
     const relatedProjects = await this.getVersionProjects(id);
-    
+
     if (relatedProjects.length > 0) {
       if (!cascade) {
         throw new Error(`无法删除版本：存在 ${relatedProjects.length} 个关联项目，请先删除或转移关联项目`);
@@ -59,8 +72,15 @@ export class EntityManager {
         await this.deleteProject(project.id, true);
       }
     }
-    
-    return this.version.delete(id);
+
+    const result = await this.version.delete(id);
+
+    // 记录变更日志
+    if (result && version) {
+      await this.changeLogService.logDelete('version', version);
+    }
+
+    return result;
   }
 
   /**
@@ -86,11 +106,18 @@ export class EntityManager {
   // ==================== 项目操作 ====================
 
   async createProject(data: CreateProjectData): Promise<Project> {
-    return this.project.create(data);
+    const project = await this.project.create(data);
+    await this.changeLogService.logCreate('project', project);
+    return project;
   }
 
   async updateProject(id: string, data: UpdateProjectData): Promise<Project | null> {
-    return this.project.update(id, data);
+    const oldProject = await this.project.getById(id);
+    const newProject = await this.project.update(id, data);
+    if (oldProject && newProject) {
+      await this.changeLogService.logUpdate('project', oldProject, newProject);
+    }
+    return newProject;
   }
 
   /**
@@ -98,9 +125,12 @@ export class EntityManager {
    * @param cascade 是否级联删除关联特性
    */
   async deleteProject(id: string, cascade: boolean = false): Promise<boolean> {
+    // 获取项目信息（用于变更日志）
+    const project = await this.project.getById(id);
+
     // 检查是否有关联特性
     const relatedFeatures = await this.getProjectFeatures(id);
-    
+
     if (relatedFeatures.length > 0) {
       if (!cascade) {
         throw new Error(`无法删除项目：存在 ${relatedFeatures.length} 个关联特性，请先删除或转移关联特性`);
@@ -110,8 +140,15 @@ export class EntityManager {
         await this.deleteFeature(feature.id);
       }
     }
-    
-    return this.project.delete(id);
+
+    const result = await this.project.delete(id);
+
+    // 记录变更日志
+    if (result && project) {
+      await this.changeLogService.logDelete('project', project);
+    }
+
+    return result;
   }
 
   /**
@@ -137,15 +174,31 @@ export class EntityManager {
   // ==================== 特性操作 ====================
 
   async createFeature(data: CreateFeatureData): Promise<Feature> {
-    return this.feature.create(data);
+    const feature = await this.feature.create(data);
+    await this.changeLogService.logCreate('feature', feature);
+    return feature;
   }
 
   async updateFeature(id: string, data: UpdateFeatureData): Promise<Feature | null> {
-    return this.feature.update(id, data);
+    const oldFeature = await this.feature.getById(id);
+    const newFeature = await this.feature.update(id, data);
+    if (oldFeature && newFeature) {
+      await this.changeLogService.logUpdate('feature', oldFeature, newFeature);
+    }
+    return newFeature;
   }
 
   async deleteFeature(id: string): Promise<boolean> {
-    return this.feature.delete(id);
+    // 获取特性信息（用于变更日志）
+    const feature = await this.feature.getById(id);
+    const result = await this.feature.delete(id);
+
+    // 记录变更日志
+    if (result && feature) {
+      await this.changeLogService.logDelete('feature', feature);
+    }
+
+    return result;
   }
 
   async getFeature(id: string): Promise<Feature | null> {
@@ -192,5 +245,15 @@ export class EntityManager {
     if (version) return { type: 'version', entity: version };
 
     return null;
+  }
+
+  // ==================== 缓存优化查询 ====================
+
+  /**
+   * 获取所有负责人列表（从缓存，高性能）
+   * 用于 FilterBar 负责人筛选下拉框
+   */
+  getOwners(): string[] {
+    return this.cache.getOwners();
   }
 }

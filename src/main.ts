@@ -2,7 +2,7 @@ import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderC
 import { EntityManager } from './core';
 import { Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
-import { ValidationError, needsStatusConfirmation } from './utils';
+import { ValidationError, needsStatusConfirmation, ErrorHandler } from './utils';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
 import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature, ProjectManagerSettings } from './types';
 import { ViewEngine } from './view-engine';
@@ -94,6 +94,13 @@ export default class ProjectManagerPlugin extends Plugin {
       callback: () => this.exportICS(),
     });
 
+    // 命令：查看变更历史
+    this.addCommand({
+      id: 'view-changelog',
+      name: '查看变更历史',
+      callback: () => this.openChangelogView(),
+    });
+
     // 文件右键菜单
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
@@ -137,7 +144,8 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   onunload(): void {
-    // 插件已卸载
+    // 清理视图引擎资源
+    this.viewEngine.destroy();
   }
 
   /**
@@ -219,7 +227,7 @@ export default class ProjectManagerPlugin extends Plugin {
       try {
         await this.viewEngine.render(el, config, viewContext, codeBlockIndex);
       } catch (error) {
-        console.error('[processViewBlock] 渲染错误:', error);
+        ErrorHandler.handle(error, '视图渲染失败', { category: 'system' });
         el.empty();
         el.createEl('div', {
           text: `渲染失败: ${(error as Error).message}`,
@@ -227,7 +235,7 @@ export default class ProjectManagerPlugin extends Plugin {
         });
       }
     } catch (error) {
-      console.error('[processViewBlock] 错误:', error);
+      ErrorHandler.handle(error, '视图配置解析失败', { category: 'user' });
       el.createEl('div', {
         text: `视图配置错误: ${(error as Error).message}`,
         cls: 'pm-error',
@@ -524,12 +532,12 @@ export default class ProjectManagerPlugin extends Plugin {
       async (data: CreateVersionData) => {
         try {
           await this.entityManager.createVersion(data);
-          new (require('obsidian').Notice)('版本创建成功', 3000);
+          ErrorHandler.handleSuccess('版本创建成功');
         } catch (error) {
           if (error instanceof ValidationError) {
-            console.error('验证失败:', (error as ValidationError).message);
+            ErrorHandler.handleUserError((error as ValidationError).message, '创建版本');
           } else {
-            console.error('创建版本失败:', error);
+            ErrorHandler.handleSystemError(error, '创建版本失败');
           }
         }
       }
@@ -547,12 +555,12 @@ export default class ProjectManagerPlugin extends Plugin {
       async (data: CreateProjectData) => {
         try {
           await this.entityManager.createProject(data);
-          new (require('obsidian').Notice)('项目创建成功', 3000);
+          ErrorHandler.handleSuccess('项目创建成功');
         } catch (error) {
           if (error instanceof ValidationError) {
-            console.error('验证失败:', (error as ValidationError).message);
+            ErrorHandler.handleUserError((error as ValidationError).message, '创建项目');
           } else {
-            console.error('创建项目失败:', error);
+            ErrorHandler.handleSystemError(error, '创建项目失败');
           }
         }
       }
@@ -571,12 +579,12 @@ export default class ProjectManagerPlugin extends Plugin {
       async (data: CreateFeatureData) => {
         try {
           await this.entityManager.createFeature(data);
-          new (require('obsidian').Notice)('特性创建成功', 3000);
+          ErrorHandler.handleSuccess('特性创建成功');
         } catch (error) {
           if (error instanceof ValidationError) {
-            console.error('验证失败:', (error as ValidationError).message);
+            ErrorHandler.handleUserError((error as ValidationError).message, '创建特性');
           } else {
-            console.error('创建特性失败:', error);
+            ErrorHandler.handleSystemError(error, '创建特性失败');
           }
         }
       }
@@ -588,5 +596,41 @@ export default class ProjectManagerPlugin extends Plugin {
    */
   private exportICS(): void {
     new ExportICSModal(this.app, this.entityManager).open();
+  }
+
+  /**
+   * 打开变更历史视图
+   */
+  private openChangelogView(): void {
+    // 创建一个新文件来展示变更历史
+    const fileName = `ProjectManager/变更历史_${new Date().toISOString().split('T')[0]}.md`;
+
+    const content = '---\n' +
+      'title: 变更历史\n' +
+      '---\n\n' +
+      '# 📜 项目变更历史\n\n' +
+      '> 生成时间: ' + new Date().toLocaleString('zh-CN') + '\n\n' +
+      '## 使用说明\n\n' +
+      '在任意代码块中使用以下配置查看变更历史:\n\n' +
+      '```pm-view\n' +
+      'mode: changelog\n' +
+      'entityType: feature  # 可选: version/project/feature\n' +
+      'limit: 50\n' +
+      'days: 30\n' +
+      '```\n\n' +
+      '变更日志会自动记录在 ProjectManager/.changelog/ 目录下。\n';
+
+    // 检查文件是否存在
+    const existingFile = this.app.vault.getAbstractFileByPath(fileName);
+    if (existingFile instanceof TFile) {
+      this.app.workspace.openLinkText(fileName, '', false);
+    } else {
+      this.app.vault.create(fileName, content).then((file) => {
+        this.app.workspace.openLinkText(file.path, '', false);
+      }).catch(() => {
+        // 文件已存在，直接打开
+        this.app.workspace.openLinkText(fileName, '', false);
+      });
+    }
   }
 }

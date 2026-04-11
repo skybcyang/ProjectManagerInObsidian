@@ -13,3 +13,11 @@ export type {
   ProjectManagerSettings 
 } from './template';
 export { DEFAULT_SETTINGS } from './template';
+export type {
+  ChangeLogEntry,
+  ChangeLogEntityType,
+  ChangeLogAction,
+  FieldChange,
+  LogQueryOptions,
+  ChangeLogStats
+} from './changelog';

@@ -50,6 +50,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       progress: data.progress || 0,
       startDate: data.startDate,
       endDate: data.endDate,
+      estimatedHours: data.estimatedHours,
+      actualHours: data.actualHours,
     };
 
     // 获取版本名称和项目名称
@@ -105,6 +107,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       startDate: feature.startDate,
       endDate: feature.endDate,
       tags: feature.tags,
+      estimatedHours: feature.estimatedHours,
+      actualHours: feature.actualHours,
     });
     
     await this.writeTemplate(path, content);
@@ -185,8 +189,10 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       startDate: updated.startDate,
       endDate: updated.endDate,
       tags: updated.tags,
+      estimatedHours: updated.estimatedHours,
+      actualHours: updated.actualHours,
     });
-    
+
     await this.writeTemplate(path, content);
     return updated;
   }

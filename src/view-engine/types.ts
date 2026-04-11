@@ -6,7 +6,7 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview';
+export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview' | 'burndown' | 'workload';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
@@ -15,7 +15,9 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'grid': '▦ 网格视图',
   'cascade': '🌲 级联视图',
   'timeline': '⏱️ 时间线视图',
-  'timeview': '🗓️ 时间视图'
+  'timeview': '🗓️ 时间视图',
+  'burndown': '📉 燃尽图',
+  'workload': '⚖️ 工作量统计'
 };
 
 // 实体类型
@@ -180,13 +182,54 @@ export interface StatsData {
   overdue: number;
 }
 
+// ==================== 报表数据类型 ====================
+
+/** 燃尽图数据点 */
+export interface BurndownDataPoint {
+  date: string;
+  planned: number;
+  actual: number;
+  completed: number;
+}
+
+/** 工作量数据 */
+export interface WorkloadData {
+  name: string;
+  estimated: number;
+  actual: number;
+  remaining: number;
+  taskCount: number;
+  efficiency: number;
+}
+
+/** 趋势数据点 */
+export interface TrendDataPoint {
+  date: string;
+  count: number;
+}
+
+/** 项目健康度指标 */
+export interface HealthMetrics {
+  totalFeatures: number;
+  completedFeatures: number;
+  completionRate: number;
+  overdueCount: number;
+  overdueRate: number;
+  totalEstimatedHours: number;
+  totalActualHours: number;
+  hoursVariance: number;
+  avgProgress: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
 // 帮助函数：获取实体类型
 export function getEntityType(entity: Entity): EntityType {
-  if ('versionId' in entity && entity.versionId !== undefined) {
-    return 'project';
-  }
+  // 必须先检查 projectId，因为 feature 也有 versionId
   if ('projectId' in entity && entity.projectId !== undefined) {
     return 'feature';
+  }
+  if ('versionId' in entity && entity.versionId !== undefined) {
+    return 'project';
   }
   return 'version';
 }
@@ -211,6 +254,8 @@ export const FEATURE_FIELDS: EntityField[] = [
   { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'progress', label: '进度', type: 'progress', editable: true, sortable: true, filterable: false },
+  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
   { name: 'projectId', label: '项目', type: 'entity', editable: true, sortable: true, filterable: true },
@@ -222,6 +267,10 @@ export const PROJECT_FIELDS: EntityField[] = [
   { name: 'status', label: '状态', type: 'select', options: ['backlog', 'in-progress', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
   { name: 'priority', label: '优先级', type: 'select', options: ['critical', 'high', 'medium', 'low'], editable: true, sortable: true, filterable: true },
   { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
 ];
@@ -233,6 +282,8 @@ export const VERSION_FIELDS: EntityField[] = [
   { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
   { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
 ];
 

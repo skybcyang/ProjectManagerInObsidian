@@ -17,6 +17,10 @@ Thumbs.db
 # Test files
 tests/coverage/
 
+# Build output
+main.js
+*.js.map
+
 # Logs
 *.log
 npm-debug.log*

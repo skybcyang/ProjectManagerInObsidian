@@ -1,8 +1,9 @@
-import { type App, TFile } from 'obsidian';
+import { type App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { ViewConfig, EntityType } from '../types';
 import { EntityTreeSelector } from './EntityTreeSelector';
 import type { TreeSelection } from './EntityTreeSelector';
+import { CodeBlockConfigService } from '../../services';
 
 /**
  * FilterBar - 精致长条卡片式筛选器
@@ -16,6 +17,8 @@ export class FilterBar {
   private owners: string[] = [];
   private treeSelector?: EntityTreeSelector;
   private currentEntityType: EntityType = 'feature';
+  private cleanupFns: (() => void)[] = [];
+  private configService: CodeBlockConfigService;
 
   // 实体类型选项（带颜色）
   private readonly entityTypeOptions = [
@@ -49,19 +52,17 @@ export class FilterBar {
     private onChange: (filters: ViewConfig) => void,
     private sourcePath?: string,
     private codeBlockStart?: number
-  ) {}
+  ) {
+    this.configService = new CodeBlockConfigService(app);
+  }
 
   /**
-   * 加载选项数据
+   * 加载选项数据（使用缓存优化）
    */
   async loadOptions(): Promise<void> {
-    // 加载负责人列表（去重）
-    const features = await this.entityManager.listFeatures();
-    const ownersSet = new Set<string>();
-    features.forEach(f => {
-      if (f.owner) ownersSet.add(f.owner);
-    });
-    this.owners = ['全部负责人', ...Array.from(ownersSet).sort()];
+    // 从缓存加载负责人列表（O(1) 性能，无需遍历所有文件）
+    const ownersFromCache = this.entityManager.getOwners();
+    this.owners = ['全部负责人', ...ownersFromCache];
   }
 
   /**
@@ -72,6 +73,11 @@ export class FilterBar {
 
     if (initialFilters) {
       this.filters = { ...this.filters, ...initialFilters };
+
+      // 同步 entityType 到 currentEntityType，确保 FilterBar 显示与配置一致
+      if (initialFilters.entityType) {
+        this.currentEntityType = initialFilters.entityType;
+      }
     }
 
     // 筛选器横向条
@@ -158,10 +164,19 @@ export class FilterBar {
     });
 
     // 点击外部关闭
-    document.addEventListener('click', (e) => {
+    const closeHandler = (e: MouseEvent) => {
       if (dropdownEl && !dropdownEl.contains(e.target as Node) && !wrapper.contains(e.target as Node)) {
         dropdownEl.remove();
         dropdownEl = null;
+      }
+    };
+    document.addEventListener('click', closeHandler);
+
+    // 保存清理函数
+    this.cleanupFns.push(() => {
+      document.removeEventListener('click', closeHandler);
+      if (dropdownEl) {
+        dropdownEl.remove();
       }
     });
 
@@ -332,110 +347,28 @@ export class FilterBar {
   }
 
   /**
-   * 保存筛选条件到代码块
+   * 保存筛选条件到代码块（使用 CodeBlockConfigService）
    */
   private async saveFiltersToCodeBlock(): Promise<void> {
     if (!this.sourcePath || this.codeBlockStart === undefined) return;
 
-    const file = this.app.vault.getAbstractFileByPath(this.sourcePath);
-    if (!(file instanceof TFile)) return;
+    // 只保存筛选相关的字段，保留其他配置
+    const filterUpdates: Record<string, unknown> = {};
 
-    try {
-      const content = await this.app.vault.read(file);
-      const lines = content.split('\n');
+    if (this.filters.version) filterUpdates.version = this.filters.version;
+    if (this.filters.project) filterUpdates.project = this.filters.project;
+    if (this.filters.feature) filterUpdates.feature = this.filters.feature;
+    if (this.filters.status) filterUpdates.status = this.filters.status;
+    if (this.filters.priority) filterUpdates.priority = this.filters.priority;
+    if (this.filters.owner) filterUpdates.owner = this.filters.owner;
+    if (this.filters.tag) filterUpdates.tag = this.filters.tag;
 
-      let blockStart = -1;
-      let blockEnd = -1;
-      let codeBlockIndex = 0;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line === '```pm-view') {
-          if (codeBlockIndex === this.codeBlockStart) {
-            blockStart = i;
-          }
-          codeBlockIndex++;
-        }
-        if (blockStart !== -1 && line === '```') {
-          blockEnd = i;
-          break;
-        }
-      }
-
-      if (blockStart === -1 || blockEnd === -1) return;
-
-      const originalLines = lines.slice(blockStart + 1, blockEnd);
-      const originalConfig = this.parseOriginalConfig(originalLines);
-
-      const newConfig = {
-        ...originalConfig,
-        mode: this.filters.mode,
-        ...(this.filters.version && { version: this.filters.version }),
-        ...(this.filters.project && { project: this.filters.project }),
-        ...(this.filters.feature && { feature: this.filters.feature }),
-        ...(this.filters.status && { status: this.filters.status }),
-        ...(this.filters.priority && { priority: this.filters.priority }),
-        ...(this.filters.owner && { owner: this.filters.owner }),
-        ...(this.filters.tag && { tag: this.filters.tag }),
-      };
-
-      const yamlLines = this.configToYaml(newConfig);
-      const newBlockLines = ['```pm-view', ...yamlLines, '```'];
-
-      const newLines = [
-        ...lines.slice(0, blockStart),
-        ...newBlockLines,
-        ...lines.slice(blockEnd + 1)
-      ];
-
-      const newContent = newLines.join('\n');
-      if (newContent !== content) {
-        await this.app.vault.modify(file, newContent);
-      }
-    } catch (error) {
-      console.error('保存筛选条件失败:', error);
-    }
-  }
-
-  /**
-   * 解析原有配置
-   */
-  private parseOriginalConfig(lines: string[]): Partial<ViewConfig> {
-    const config: Partial<ViewConfig> = {};
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-
-      const colonIndex = trimmed.indexOf(':');
-      if (colonIndex === -1) continue;
-
-      const key = trimmed.slice(0, colonIndex).trim();
-      const value = trimmed.slice(colonIndex + 1).trim();
-
-      if (['mode', 'title', 'groupBy', 'sortBy', 'sortOrder', 'limit', 'cols', 'expanded', 'tag'].includes(key)) {
-        (config as any)[key] = value;
-      }
-    }
-
-    return config;
-  }
-
-  /**
-   * 将配置转换为 YAML 格式
-   */
-  private configToYaml(config: Partial<ViewConfig>): string[] {
-    const lines: string[] = [];
-    const order = ['mode', 'title', 'version', 'project', 'feature', 'status', 'priority', 'owner', 'tag', 'groupBy', 'sortBy', 'sortOrder', 'limit', 'cols', 'expanded'];
-
-    for (const key of order) {
-      const value = (config as any)[key];
-      if (value !== undefined && value !== '') {
-        lines.push(`${key}: ${value}`);
-      }
-    }
-
-    return lines;
+    await this.configService.saveConfig(
+      this.sourcePath,
+      this.codeBlockStart,
+      filterUpdates,
+      { preserveKeys: ['mode', 'title', 'groupBy', 'sortBy', 'sortOrder', 'limit', 'cols', 'expanded'] }
+    );
   }
 
   /**
@@ -443,5 +376,26 @@ export class FilterBar {
    */
   getFilters(): ViewConfig {
     return { ...this.filters };
+  }
+
+  /**
+   * 销毁筛选栏，清理所有事件监听器
+   */
+  destroy(): void {
+    // 执行所有清理函数
+    this.cleanupFns.forEach(fn => fn());
+    this.cleanupFns = [];
+
+    // 清理容器
+    if (this.container) {
+      this.container.remove();
+      this.container = undefined;
+    }
+
+    // 清理树选择器
+    if (this.treeSelector) {
+      // EntityTreeSelector 没有 destroy 方法，只需清理引用
+      this.treeSelector = undefined;
+    }
   }
 }

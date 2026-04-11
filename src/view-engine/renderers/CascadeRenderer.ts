@@ -160,8 +160,8 @@ export class CascadeRenderer extends BaseRenderer {
     const header = container.createDiv('pm-cascade__header');
     if (!isPlaceholder) {
       header.addClass('pm-cascade__header--clickable');
-      header.addEventListener('click', () => {
-        this.actionService.openEntity('version', version.id);
+      header.addEventListener('click', async () => {
+        await this.actionService.openEntity('version', version.id);
       });
     } else {
       header.addClass('pm-cascade__header--placeholder');
@@ -243,15 +243,18 @@ export class CascadeRenderer extends BaseRenderer {
 
     // 项目头部
     const header = card.createDiv('pm-cascade__project-header');
-    header.addEventListener('click', () => {
-      this.actionService.openEntity('project', project.id);
+    header.addEventListener('click', async () => {
+      await this.actionService.openEntity('project', project.id);
     });
 
     header.createSpan({ cls: 'pm-cascade__icon', text: this.getEntityTypeIcon('project') });
     header.createSpan({ cls: 'pm-cascade__project-name', text: project.name });
 
     // 加载特性统计
-    const features = await this.entityManager.listFeatures({ projectId: project.id });
+    let features = await this.entityManager.listFeatures({ projectId: project.id });
+    
+    // 应用筛选条件（owner等）
+    features = this.dataService.applyFilters(features as any, this.config) as any;
     
     // 应用排序
     const sortedFeatures = this.sortEntities(features) as Feature[];
@@ -318,8 +321,8 @@ export class CascadeRenderer extends BaseRenderer {
       row.addClass('pm-cascade__feature--highlighted');
     }
 
-    row.addEventListener('click', () => {
-      this.actionService.openEntity('feature', feature.id);
+    row.addEventListener('click', async () => {
+      await this.actionService.openEntity('feature', feature.id);
     });
 
     // 优先级标记

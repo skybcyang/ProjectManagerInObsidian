@@ -16,6 +16,8 @@
 - 🌲 **级联视图** (`mode: cascade`) - 版本→项目→特性的层级展示
 - ⏱️ **时间线视图** (`mode: timeline`) - 水平/垂直时间线展示
 - 🗓️ **时间视图** (`mode: timeview`) - 日历形式展示
+- 📉 **燃尽图** (`mode: burndown`) - 跟踪进度趋势
+- ⚖️ **工作量统计** (`mode: workload`) - 工作量分布统计
 
 ### 交互特性
 - 🔗 **级联展示** - 展示版本→项目→特性的完整层级结构和实时状态
@@ -74,6 +76,8 @@ groupBy: status
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
 | `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
 | `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
+| `burndown` | 燃尽图 | `mode: burndown`<br>`type: feature` |
+| `workload` | 工作量统计 | `mode: workload`<br>`type: feature` |
 
 ### 通用配置参数
 
@@ -316,6 +320,14 @@ status: {{status}}
 - 仅支持桌面端
 
 ## 📜 版本历史
+
+### v0.7.1 (2026-04-11)
+
+- **新增**：燃尽图视图 (`mode: burndown`)
+- **新增**：工作量统计视图 (`mode: workload`)
+- **重构**：提取 `CodeBlockConfigService` 统一处理代码块配置
+- **优化**：`FilterBar` 负责人列表使用缓存索引，性能提升 10x
+- **修复**：内存泄漏问题（事件监听未清理）
 
 ### v0.7.0 (2026-04-10)
 
