@@ -1,6 +1,28 @@
 # 版本迭代记录
 
-## v0.7.3 (2026-04-12)
+## v0.7.3 (2026-04-13)
+
+### 代码清理与优化
+
+- **移除调试代码** - 清理所有 `console.log` 调试语句
+  - `ViewEngine.ts`：移除 9 处调试日志
+  - `FilterBar.ts`：移除 4 处调试日志
+
+- **修复类型安全问题**
+  - 新增 `EntityBase` 接口（`src/types/index.ts`），定义实体共享字段
+  - `ActionService.ts`：`(entity as any).status` → `(entity as EntityBase).status`
+  - `ViewEngine.ts`：`NodeJS.Timeout` → `ReturnType<typeof setTimeout>`
+  - 修复 4 处 `as any` 类型转换
+
+- **统一版本号** - `package.json` 版本号与 `manifest.json` 保持一致（0.7.3）
+
+- **删除重复样式文件** - 删除 `src/view-engine/styles.css`（内容已合并到根目录）
+
+- **修复事件处理问题**
+  - `FilterBar.ts`：移除下拉选项点击事件的 `e.stopPropagation()`
+  - `SelectCell.ts`：同上，避免下拉菜单关闭异常
+
+- **统一 CSS 变量** - 使用 `--pm-z-dropdown` 替代硬编码 z-index
 
 ### 修复
 
