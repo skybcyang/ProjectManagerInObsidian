@@ -4857,6 +4857,12 @@ var ActionService = class {
     this.refreshCallback = callback;
   }
   /**
+   * 设置打开实体前的回调
+   */
+  setBeforeOpenEntityCallback(callback) {
+    this.beforeOpenEntityCallback = callback;
+  }
+  /**
    * 触发刷新
    */
   triggerRefresh() {
@@ -5001,6 +5007,9 @@ var ActionService = class {
    * 打开实体文件
    */
   async openEntity(type, id) {
+    if (this.beforeOpenEntityCallback) {
+      this.beforeOpenEntityCallback();
+    }
     const path = await this.entityManager.getEntityPath(type, id);
     if (!path) {
       console.error(`[ActionService] \u65E0\u6CD5\u83B7\u53D6\u5B9E\u4F53\u8DEF\u5F84: ${type} ${id}`);
@@ -6293,16 +6302,12 @@ var FilterBar = class {
     let dropdownEl = null;
     triggerBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      console.log("[FilterBar] Clicked:", label, "current dropdown:", !!dropdownEl);
       if (dropdownEl) {
-        console.log("[FilterBar] Closing existing dropdown");
         dropdownEl.remove();
         dropdownEl = null;
         return;
       }
-      console.log("[FilterBar] Creating dropdown for:", label);
       dropdownEl = this.createDropdown(wrapper, options, value, (newValue) => {
-        console.log("[FilterBar] Selected:", label, "=", newValue);
         onChange(newValue);
         const newOption = options.find((opt) => opt.value === newValue) || options[0];
         this.updateBadgeStyle(triggerBtn, newOption);
@@ -6361,6 +6366,7 @@ var FilterBar = class {
   createDropdown(container, options, currentValue, onSelect) {
     const rect = container.getBoundingClientRect();
     const dropdown = document.body.createDiv("pm-cell-dropdown pm-filter-dropdown");
+    const zIndex = "var(--pm-z-dropdown, 1000)";
     dropdown.style.cssText = `
       position: fixed;
       left: ${rect.left}px;
@@ -6373,7 +6379,7 @@ var FilterBar = class {
       border: 1px solid var(--background-modifier-border);
       border-radius: 8px;
       padding: 4px;
-      z-index: 10000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     `;
     options.forEach((opt) => {
@@ -6404,8 +6410,7 @@ var FilterBar = class {
           cls: "pm-cell-dropdown-check"
         }).style.cssText = "margin-left: auto; font-weight: bold;";
       }
-      item.addEventListener("click", (e) => {
-        e.stopPropagation();
+      item.addEventListener("click", () => {
         onSelect(opt.value);
       });
       item.addEventListener("mouseenter", () => {
@@ -6537,6 +6542,7 @@ var StatusPicker = class {
   show(triggerEl, currentStatus, onSelect, options) {
     this.hide();
     const statuses = (options == null ? void 0 : options.statusOptions) || FEATURE_STATUS_OPTIONS;
+    const zIndex = "var(--pm-z-dropdown, 1000)";
     this.menu = document.createElement("div");
     this.menu.className = "pm-status-picker";
     this.menu.style.cssText = `
@@ -6545,7 +6551,7 @@ var StatusPicker = class {
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
       padding: 4px;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 140px;
     `;
@@ -6647,6 +6653,7 @@ var ProgressPicker = class {
   show(triggerEl, currentProgress, onSelect) {
     this.hide();
     const progress = currentProgress || 0;
+    const zIndex = "var(--pm-z-dropdown, 1000)";
     this.menu = document.createElement("div");
     this.menu.className = "pm-progress-picker";
     this.menu.style.cssText = `
@@ -6655,7 +6662,7 @@ var ProgressPicker = class {
       border: 1px solid var(--background-modifier-border);
       border-radius: 8px;
       padding: 12px;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 180px;
     `;
@@ -7319,8 +7326,9 @@ var KanbanRenderer = class extends BaseRenderer {
 
 // src/view-engine/renderers/ListRenderer.ts
 var ListRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
+  constructor(app, entityManager, dataService, actionService, configService) {
     super(app, entityManager, dataService, actionService);
+    this.configService = configService;
     this.entities = [];
   }
   /**
@@ -7499,56 +7507,20 @@ var ListRenderer = class extends BaseRenderer {
     return null;
   }
   /**
-   * 保存排序配置到代码块 - 使用 YAML 解析
+   * 保存排序配置到代码块 - 使用 CodeBlockConfigService
    */
   async saveSortConfig(newConfig) {
-    if (!this.context.sourcePath)
-      return;
-    const { TFile: TFile11, parseYaml: parseYaml2, stringifyYaml } = require("obsidian");
-    const file = this.app.vault.getAbstractFileByPath(this.context.sourcePath);
-    if (!(file instanceof TFile11))
+    if (!this.context.sourcePath || this.context.codeBlockIndex === void 0)
       return;
     try {
-      const content = await this.app.vault.read(file);
-      const lines = content.split("\n");
-      let blockStart = -1;
-      let blockEnd = -1;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line === "```pm-view") {
-          blockStart = i;
+      await this.configService.saveConfig(
+        this.context.sourcePath,
+        this.context.codeBlockIndex,
+        {
+          sortBy: newConfig.sortBy,
+          sortOrder: newConfig.sortOrder
         }
-        if (blockStart !== -1 && line === "```") {
-          blockEnd = i;
-          break;
-        }
-      }
-      if (blockStart === -1 || blockEnd === -1)
-        return;
-      const configLines = lines.slice(blockStart + 1, blockEnd);
-      const configText = configLines.join("\n");
-      const currentConfig = parseYaml2(configText) || {};
-      const updatedConfig = {
-        ...currentConfig,
-        sortBy: newConfig.sortBy,
-        sortOrder: newConfig.sortOrder
-      };
-      Object.keys(updatedConfig).forEach((key) => {
-        if (updatedConfig[key] === void 0) {
-          delete updatedConfig[key];
-        }
-      });
-      const yamlContent = stringifyYaml(updatedConfig).trim();
-      const newBlock = ["```pm-view", yamlContent, "```"];
-      const newLines = [
-        ...lines.slice(0, blockStart),
-        ...newBlock,
-        ...lines.slice(blockEnd + 1)
-      ];
-      const newContent = newLines.join("\n");
-      if (newContent !== content) {
-        await this.app.vault.modify(file, newContent);
-      }
+      );
       this.config = newConfig;
     } catch (error) {
       console.error("\u4FDD\u5B58\u6392\u5E8F\u914D\u7F6E\u5931\u8D25:", error);
@@ -9422,123 +9394,24 @@ var ViewEngine = class {
     this.app = app;
     this.entityManager = entityManager;
     this.pendingSave = {};
-    this.fullscreenOriginalParent = null;
-    this.fullscreenOriginalNextSibling = null;
-    this.fullscreenEscHandler = null;
+    // 使用 Map 来存储每个容器的 FilterBar，避免多个代码块之间的冲突
+    this.filterBarMap = /* @__PURE__ */ new Map();
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
     this.configService = new CodeBlockConfigService(app);
-    this.setupFullscreenKeyListener();
-  }
-  /**
-   * 设置全屏 ESC 键监听
-   */
-  setupFullscreenKeyListener() {
-    if (this.fullscreenKeyListener)
-      return;
-    this.fullscreenKeyListener = (e) => {
-      if (e.key === "Escape") {
-        const fullscreenWrapper = document.querySelector(".pm-view-fullscreen");
-        if (fullscreenWrapper) {
-          const btn = fullscreenWrapper.querySelector(".pm-fullscreen-btn");
-          if (btn) {
-            this.toggleFullscreen(fullscreenWrapper, btn);
-          }
-        }
-      }
-    };
-    document.addEventListener("keydown", this.fullscreenKeyListener);
   }
   /**
    * 销毁视图引擎，清理所有资源
    */
   destroy() {
-    if (this.fullscreenKeyListener) {
-      document.removeEventListener("keydown", this.fullscreenKeyListener);
-      this.fullscreenKeyListener = void 0;
-    }
-    if (this.fullscreenEscHandler) {
-      document.removeEventListener("keydown", this.fullscreenEscHandler);
-      this.fullscreenEscHandler = null;
-    }
-    if (this.currentFilterBar) {
-      this.currentFilterBar.destroy();
-      this.currentFilterBar = void 0;
-    }
+    this.filterBarMap.forEach((filterBar) => {
+      filterBar.destroy();
+    });
+    this.filterBarMap.clear();
     Object.values(this.pendingSave).forEach((timeout) => {
       clearTimeout(timeout);
     });
     this.pendingSave = {};
-  }
-  /**
-   * 切换全屏模式
-   */
-  toggleFullscreen(wrapper, btn) {
-    const isFullscreen = wrapper.classList.contains("pm-view-fullscreen");
-    if (isFullscreen) {
-      this.exitFullscreen(wrapper);
-      btn.textContent = "\u26F6";
-      btn.setAttribute("title", "\u5168\u5C4F");
-    } else {
-      this.enterFullscreen(wrapper);
-      btn.textContent = "\u2715";
-      btn.setAttribute("title", "\u9000\u51FA\u5168\u5C4F");
-    }
-  }
-  /**
-   * 进入全屏 - 使用CSS类方式，保持事件监听器
-   */
-  enterFullscreen(wrapper) {
-    console.log("[ViewEngine] enterFullscreen called, wrapper:", wrapper);
-    console.log("[ViewEngine] wrapper parent before move:", wrapper.parentElement);
-    console.log("[ViewEngine] wrapper next sibling before move:", wrapper.nextSibling);
-    this.fullscreenOriginalParent = wrapper.parentElement;
-    this.fullscreenOriginalNextSibling = wrapper.nextSibling;
-    console.log("[ViewEngine] recorded parent:", this.fullscreenOriginalParent);
-    console.log("[ViewEngine] recorded next sibling:", this.fullscreenOriginalNextSibling);
-    wrapper.classList.add("pm-view-fullscreen");
-    console.log("[ViewEngine] added pm-view-fullscreen class");
-    document.body.appendChild(wrapper);
-    console.log("[ViewEngine] moved wrapper to body");
-    console.log("[ViewEngine] wrapper parent after move:", wrapper.parentElement);
-    const escHandler = (e) => {
-      if (e.key === "Escape") {
-        console.log("[ViewEngine] ESC pressed, exiting fullscreen");
-        this.exitFullscreen(wrapper);
-        document.removeEventListener("keydown", escHandler);
-        this.fullscreenEscHandler = null;
-      }
-    };
-    document.addEventListener("keydown", escHandler);
-    this.fullscreenEscHandler = escHandler;
-    console.log("[ViewEngine] \u8FDB\u5165\u5168\u5C4F\u5B8C\u6210");
-  }
-  /**
-   * 退出全屏 - 恢复DOM到原始位置
-   */
-  exitFullscreen(wrapper) {
-    console.log("[ViewEngine] exitFullscreen called, wrapper:", wrapper);
-    console.log("[ViewEngine] wrapper parent before restore:", wrapper.parentElement);
-    console.log("[ViewEngine] recorded parent:", this.fullscreenOriginalParent);
-    console.log("[ViewEngine] recorded next sibling:", this.fullscreenOriginalNextSibling);
-    wrapper.classList.remove("pm-view-fullscreen");
-    console.log("[ViewEngine] removed pm-view-fullscreen class");
-    if (this.fullscreenOriginalParent) {
-      console.log("[ViewEngine] restoring wrapper to original parent");
-      if (this.fullscreenOriginalNextSibling) {
-        console.log("[ViewEngine] inserting before next sibling");
-        this.fullscreenOriginalParent.insertBefore(wrapper, this.fullscreenOriginalNextSibling);
-      } else {
-        console.log("[ViewEngine] appending to parent");
-        this.fullscreenOriginalParent.appendChild(wrapper);
-      }
-      console.log("[ViewEngine] wrapper restored, new parent:", wrapper.parentElement);
-    } else {
-      console.log("[ViewEngine] ERROR: no original parent recorded!");
-    }
-    this.fullscreenOriginalParent = null;
-    this.fullscreenOriginalNextSibling = null;
-    console.log("[ViewEngine] \u9000\u51FA\u5168\u5C4F\u5B8C\u6210");
   }
   /**
    * 防抖保存配置 - 避免频繁保存
@@ -9557,35 +9430,29 @@ var ViewEngine = class {
    * 渲染视图 - 工具栏在上，筛选在中，视图在下
    */
   async render(container, config, context, codeBlockIndex) {
-    console.log("[ViewEngine] render called, codeBlockIndex:", codeBlockIndex);
-    if (this.currentFilterBar) {
-      console.log("[ViewEngine] destroying old FilterBar");
-      this.currentFilterBar.destroy();
-      this.currentFilterBar = void 0;
-    }
     container.empty();
     container.addClass("pm-view");
     const wrapper = container.createDiv("pm-view-wrapper");
-    console.log("[ViewEngine] created wrapper:", wrapper);
-    const toolbarEl = this.renderToolbar(wrapper, config, context, codeBlockIndex);
-    console.log("[ViewEngine] rendered toolbar:", toolbarEl);
-    console.log("[ViewEngine] creating FilterBar");
-    this.currentFilterBar = new FilterBar(
+    this.renderToolbar(wrapper, config, context, codeBlockIndex);
+    const oldFilterBar = this.filterBarMap.get(wrapper);
+    if (oldFilterBar) {
+      oldFilterBar.destroy();
+    }
+    const filterBar = new FilterBar(
       this.app,
       this.entityManager,
       async (filters) => {
-        console.log("[ViewEngine] FilterBar onChange called, filters:", filters);
         const finalConfig = { ...config, ...filters };
         await this.renderContent(contentArea, finalConfig, context);
       },
       context.sourcePath,
       codeBlockIndex
     );
-    await this.currentFilterBar.loadOptions();
-    console.log("[ViewEngine] FilterBar loaded options, owners:", this.currentFilterBar["owners"]);
-    this.currentFilterBar.render(wrapper, config);
-    console.log("[ViewEngine] FilterBar rendered");
+    await filterBar.loadOptions();
+    filterBar.render(wrapper, config);
+    this.filterBarMap.set(wrapper, filterBar);
     const contentArea = wrapper.createDiv("pm-view-content");
+    context.codeBlockIndex = codeBlockIndex;
     await this.renderContent(contentArea, config, context);
   }
   /**
@@ -9608,7 +9475,8 @@ var ViewEngine = class {
       const newMode = viewModeSelect.value;
       const newConfig = { ...config, mode: newMode };
       await this.saveViewModeChange(context.sourcePath, codeBlockIndex, newMode);
-      const contentArea = wrapper.querySelector(".pm-view-content");
+      const currentWrapper = viewModeSelect.closest(".pm-view-wrapper");
+      const contentArea = currentWrapper == null ? void 0 : currentWrapper.querySelector(".pm-view-content");
       if (contentArea) {
         await this.renderContent(contentArea, newConfig, context);
       }
@@ -9619,12 +9487,10 @@ var ViewEngine = class {
       text: "\u7B5B\u9009 \u25BC"
     });
     filterBtn.addEventListener("click", () => {
-      console.log("[ViewEngine] \u7B5B\u9009\u6309\u94AE\u88AB\u70B9\u51FB");
-      const filterBar = wrapper.querySelector(".pm-filter-container");
-      console.log("[ViewEngine] \u7B5B\u9009\u680F\u5143\u7D20:", filterBar);
+      const currentWrapper = filterBtn.closest(".pm-view-wrapper");
+      const filterBar = currentWrapper == null ? void 0 : currentWrapper.querySelector(".pm-filter-container");
       if (filterBar) {
         const isHidden = filterBar.style.display === "none";
-        console.log("[ViewEngine] \u7B5B\u9009\u680F\u5F53\u524D\u72B6\u6001:", isHidden ? "hidden" : "visible");
         filterBar.style.display = isHidden ? "block" : "none";
         filterBtn.textContent = isHidden ? "\u7B5B\u9009 \u25B2" : "\u7B5B\u9009 \u25BC";
       }
@@ -9634,26 +9500,16 @@ var ViewEngine = class {
       text: "\u6392\u5E8F \u25BC"
     });
     sortBtn.addEventListener("click", () => {
-      console.log("[ViewEngine] \u6392\u5E8F\u6309\u94AE\u88AB\u70B9\u51FB");
-      this.showSortMenu(sortBtn, wrapper, config, context, codeBlockIndex);
+      const currentWrapper = sortBtn.closest(".pm-view-wrapper");
+      this.showSortMenu(sortBtn, currentWrapper, config, context, codeBlockIndex);
     });
     const propBtn = buttonGroup.createEl("button", {
       cls: "pm-toolbar-btn",
       text: "\u5C5E\u6027 \u25BC"
     });
     propBtn.addEventListener("click", () => {
-      console.log("[ViewEngine] \u5C5E\u6027\u6309\u94AE\u88AB\u70B9\u51FB");
-      this.showPropertyPanel(propBtn, wrapper, config, context, codeBlockIndex);
-    });
-    const fullscreenBtn = buttonGroup.createEl("button", {
-      cls: "pm-toolbar-btn pm-fullscreen-btn",
-      text: "\u26F6",
-      attr: { title: "\u5168\u5C4F" }
-    });
-    fullscreenBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      console.log("[ViewEngine] \u5168\u5C4F\u6309\u94AE\u88AB\u70B9\u51FB");
-      this.toggleFullscreen(wrapper, fullscreenBtn);
+      const currentWrapper = propBtn.closest(".pm-view-wrapper");
+      this.showPropertyPanel(propBtn, currentWrapper, config, context, codeBlockIndex);
     });
     return toolbar;
   }
@@ -9700,7 +9556,7 @@ var ViewEngine = class {
       case "kanban":
         return new KanbanRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "list":
-        return new ListRenderer(this.app, this.entityManager, this.dataService, this.actionService);
+        return new ListRenderer(this.app, this.entityManager, this.dataService, this.actionService, this.configService);
       case "grid":
         return new GridRenderer(this.app, this.entityManager, this.dataService, this.actionService);
       case "cascade":
@@ -9756,7 +9612,7 @@ var ViewEngine = class {
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
       padding: 8px;
-      z-index: 1000;
+      z-index: var(--pm-z-dropdown, 1000);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 180px;
     `;
@@ -9841,7 +9697,7 @@ var ViewEngine = class {
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
       padding: 12px;
-      z-index: 1000;
+      z-index: var(--pm-z-dropdown, 1000);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 260px;
       max-height: 500px;
@@ -10044,8 +9900,9 @@ var ViewEngine = class {
         option.selected = true;
     });
     select.addEventListener("change", () => {
-      const newConfig = { ...config, groupBy: select.value };
-      this.debouncedSave(context.sourcePath, codeBlockIndex, { groupBy: select.value });
+      const groupByValue = select.value;
+      const newConfig = { ...config, groupBy: groupByValue };
+      this.debouncedSave(context.sourcePath, codeBlockIndex, { groupBy: groupByValue });
       const contentArea = wrapper.querySelector(".pm-view-content");
       if (contentArea) {
         this.renderContent(contentArea, newConfig, context);

@@ -74,6 +74,8 @@ export class SelectCell extends BaseCell<string> {
     const existingMenu = container.querySelector('.pm-cell-dropdown');
     if (existingMenu) existingMenu.remove();
 
+    const zIndex = 'var(--pm-z-dropdown, 1000)';
+
     const menu = container.createDiv('pm-cell-dropdown');
     menu.style.cssText = `
       position: absolute;
@@ -84,7 +86,7 @@ export class SelectCell extends BaseCell<string> {
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
       padding: 4px;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       max-height: 200px;
       overflow-y: auto;
@@ -124,8 +126,7 @@ export class SelectCell extends BaseCell<string> {
         }).style.cssText = 'margin-left: auto; font-weight: bold;';
       }
 
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
+      item.addEventListener('click', () => {
         this.value = opt.value;
         this.endEdit(true);
       });

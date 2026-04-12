@@ -149,16 +149,12 @@ export class FilterBar {
 
     triggerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('[FilterBar] Clicked:', label, 'current dropdown:', !!dropdownEl);
       if (dropdownEl) {
-        console.log('[FilterBar] Closing existing dropdown');
         dropdownEl.remove();
         dropdownEl = null;
         return;
       }
-      console.log('[FilterBar] Creating dropdown for:', label);
       dropdownEl = this.createDropdown(wrapper, options, value, (newValue) => {
-        console.log('[FilterBar] Selected:', label, '=', newValue);
         onChange(newValue);
         const newOption = options.find(opt => opt.value === newValue) || options[0];
         this.updateBadgeStyle(triggerBtn, newOption);
@@ -231,7 +227,9 @@ export class FilterBar {
     onSelect: (value: string) => void
   ): HTMLElement {
     const rect = container.getBoundingClientRect();
+
     const dropdown = document.body.createDiv('pm-cell-dropdown pm-filter-dropdown');
+    const zIndex = 'var(--pm-z-dropdown, 1000)';
 
     dropdown.style.cssText = `
       position: fixed;
@@ -245,7 +243,7 @@ export class FilterBar {
       border: 1px solid var(--background-modifier-border);
       border-radius: 8px;
       padding: 4px;
-      z-index: 10000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     `;
 
@@ -284,8 +282,7 @@ export class FilterBar {
         }).style.cssText = 'margin-left: auto; font-weight: bold;';
       }
 
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
+      item.addEventListener('click', () => {
         onSelect(opt.value);
       });
 

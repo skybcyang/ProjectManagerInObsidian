@@ -21,6 +21,8 @@ export class ProgressPicker {
 
     const progress = currentProgress || 0;
 
+    const zIndex = 'var(--pm-z-dropdown, 1000)';
+
     // 创建菜单
     this.menu = document.createElement('div');
     this.menu.className = 'pm-progress-picker';
@@ -30,7 +32,7 @@ export class ProgressPicker {
       border: 1px solid var(--background-modifier-border);
       border-radius: 8px;
       padding: 12px;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 180px;
     `;

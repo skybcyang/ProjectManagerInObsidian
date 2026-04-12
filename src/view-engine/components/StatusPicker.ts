@@ -25,6 +25,8 @@ export class StatusPicker {
 
     const statuses = options?.statusOptions || FEATURE_STATUS_OPTIONS;
 
+    const zIndex = 'var(--pm-z-dropdown, 1000)';
+
     // 创建菜单
     this.menu = document.createElement('div');
     this.menu.className = 'pm-status-picker';
@@ -34,7 +36,7 @@ export class StatusPicker {
       border: 1px solid var(--background-modifier-border);
       border-radius: 6px;
       padding: 4px;
-      z-index: 1000;
+      z-index: ${zIndex};
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 140px;
     `;

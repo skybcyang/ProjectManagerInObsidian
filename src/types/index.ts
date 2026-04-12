@@ -2,6 +2,22 @@ export type { Version, VersionStatus, CreateVersionData, UpdateVersionData } fro
 export type { Project, ProjectStatus, CreateProjectData, UpdateProjectData } from './project';
 export type { Feature, FeatureStatus, CreateFeatureData, UpdateFeatureData } from './feature';
 export type { Priority } from './feature';
+
+/**
+ * 通用实体基础接口
+ * 所有实体（Version、Project、Feature）共享的字段
+ */
+export interface EntityBase {
+  id: string;
+  name: string;
+  status: string;
+  owner?: string;
+  tags: string[];
+  startDate?: string;
+  endDate?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+}
 export type { 
   TemplateType, 
   TemplateConfig, 

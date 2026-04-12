@@ -92,6 +92,9 @@ export class DateCell extends BaseCell<string> {
 
     // 快速选择按钮
     const quickActions = wrapper.createDiv('pm-cell-date-actions');
+
+    const zIndex = 'var(--pm-z-dropdown, 1000)';
+
     quickActions.style.cssText = `
       position: absolute;
       top: 100%;
@@ -102,7 +105,7 @@ export class DateCell extends BaseCell<string> {
       border-radius: 4px;
       margin-top: 4px;
       padding: 4px;
-      z-index: 1000;
+      z-index: ${zIndex};
       display: flex;
       gap: 4px;
     `;

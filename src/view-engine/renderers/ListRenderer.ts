@@ -4,6 +4,7 @@ import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFields } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
+import type { CodeBlockConfigService } from '../../services';
 
 /**
  * 列表渲染器 - 卡片列表风格
@@ -16,7 +17,8 @@ export class ListRenderer extends BaseRenderer {
     app: App,
     entityManager: EntityManager,
     dataService: DataService,
-    actionService: ActionService
+    actionService: ActionService,
+    private configService: CodeBlockConfigService
   ) {
     super(app, entityManager, dataService, actionService);
   }
@@ -245,71 +247,21 @@ export class ListRenderer extends BaseRenderer {
   }
 
   /**
-   * 保存排序配置到代码块 - 使用 YAML 解析
+   * 保存排序配置到代码块 - 使用 CodeBlockConfigService
    */
   private async saveSortConfig(newConfig: ViewConfig): Promise<void> {
-    if (!this.context.sourcePath) return;
-
-    const { TFile, parseYaml, stringifyYaml } = require('obsidian');
-    const file = this.app.vault.getAbstractFileByPath(this.context.sourcePath);
-    if (!(file instanceof TFile)) return;
+    if (!this.context.sourcePath || this.context.codeBlockIndex === undefined) return;
 
     try {
-      const content = await this.app.vault.read(file as TFile);
-      const lines = content.split('\n');
-
-      // 找到第一个 pm-view 代码块
-      let blockStart = -1;
-      let blockEnd = -1;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line === '```pm-view') {
-          blockStart = i;
+      await this.configService.saveConfig(
+        this.context.sourcePath,
+        this.context.codeBlockIndex,
+        {
+          sortBy: newConfig.sortBy,
+          sortOrder: newConfig.sortOrder
         }
-        if (blockStart !== -1 && line === '```') {
-          blockEnd = i;
-          break;
-        }
-      }
+      );
 
-      if (blockStart === -1 || blockEnd === -1) return;
-
-      // 提取并解析配置
-      const configLines = lines.slice(blockStart + 1, blockEnd);
-      const configText = configLines.join('\n');
-      const currentConfig = parseYaml(configText) || {};
-
-      // 合并排序配置
-      const updatedConfig = {
-        ...currentConfig,
-        sortBy: newConfig.sortBy,
-        sortOrder: newConfig.sortOrder
-      };
-
-      // 清理 undefined 值
-      Object.keys(updatedConfig).forEach(key => {
-        if (updatedConfig[key] === undefined) {
-          delete updatedConfig[key];
-        }
-      });
-
-      // 序列化为 YAML
-      const yamlContent = stringifyYaml(updatedConfig).trim();
-      const newBlock = ['```pm-view', yamlContent, '```'];
-
-      // 替换原代码块
-      const newLines = [
-        ...lines.slice(0, blockStart),
-        ...newBlock,
-        ...lines.slice(blockEnd + 1)
-      ];
-
-      const newContent = newLines.join('\n');
-      if (newContent !== content) {
-        await this.app.vault.modify(file as TFile, newContent);
-      }
-      
       // 更新本地配置
       this.config = newConfig;
     } catch (error) {

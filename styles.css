@@ -13,7 +13,21 @@
   --pm-text-muted: var(--text-muted);
   --pm-radius: 8px;
   --pm-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  
+
+  /* z-index 层级系统 */
+  --pm-z-base: 1;
+  --pm-z-sticky: 100;
+  --pm-z-toolbar: 500;
+  --pm-z-dropdown: 1000;
+  --pm-z-popover: 2000;
+  --pm-z-modal: 3000;
+  --pm-z-tooltip: 4000;
+
+  /* 全屏模式层级 - 必须高于普通层级 */
+  --pm-z-fullscreen: 99990;
+  --pm-z-fullscreen-dropdown: 99995;
+  --pm-z-fullscreen-modal: 99998;
+
   font-family: var(--font-interface);
   color: var(--pm-text);
 }
@@ -6622,88 +6636,6 @@
 .pm-error-text {
   font-weight: 600;
   margin-bottom: var(--pm-space-1);
-
-
-/* ========================================
-   Fullscreen Mode - 全屏模式
-   ======================================== */
-
-/* 全屏按钮样式 */
-.pm-fullscreen-btn {
-  font-size: 14px;
-  padding: 4px 8px;
-  min-width: 32px;
-}
-
-/* 全屏样式 - 使用 body 上下文确保最高层级 */
-body .pm-view-wrapper.pm-view-fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 999999 !important;
-  background: var(--pm-bg-0) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-body .pm-view-wrapper.pm-view-fullscreen .pm-view-toolbar {
-  flex: 0 0 auto !important;
-  padding: var(--pm-space-3) var(--pm-space-4) !important;
-  border-bottom: 1px solid var(--pm-border) !important;
-  background: var(--pm-bg-1) !important;
-}
-
-body .pm-view-wrapper.pm-view-fullscreen .pm-view-content {
-  flex: 1 1 auto !important;
-  overflow: auto !important;
-  padding: var(--pm-space-4) !important;
-  min-height: 0 !important;
-}
-
-/* 全屏时各视图容器的调整 */
-body .pm-view-wrapper.pm-view-fullscreen .pm-kanban-container {
-  height: calc(100vh - 140px) !important;
-  max-height: calc(100vh - 140px) !important;
-}
-
-body .pm-view-wrapper.pm-view-fullscreen .pm-kanban-column {
-  max-height: calc(100vh - 180px) !important;
-}
-
-body .pm-view-wrapper.pm-view-fullscreen .pm-list-container,
-body .pm-view-wrapper.pm-view-fullscreen .pm-grid-container,
-body .pm-view-wrapper.pm-view-fullscreen .pm-cascade-container,
-body .pm-view-wrapper.pm-view-fullscreen .pm-timeline-view,
-body .pm-view-wrapper.pm-view-fullscreen .pm-timeview {
-  max-height: calc(100vh - 140px) !important;
-  overflow: auto !important;
-}
-
-/* 过渡动画 */
-.pm-view-wrapper {
-  transition: box-shadow 0.2s ease;
-}
-
-body .pm-view-wrapper.pm-view-fullscreen {
-  animation: pm-fullscreen-enter 0.25s ease-out;
-}
-
-@keyframes pm-fullscreen-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
 
 /* ========================================

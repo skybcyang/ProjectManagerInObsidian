@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { EntityType } from '../types';
+import type { EntityBase } from '../../types';
 
 /**
  * 操作服务
@@ -9,6 +10,8 @@ import type { EntityType } from '../types';
 export class ActionService {
   // 刷新回调函数
   private refreshCallback?: () => void;
+  // 打开实体前的回调（用于退出全屏等）
+  private beforeOpenEntityCallback?: () => void;
 
   constructor(
     private app: App,
@@ -20,6 +23,13 @@ export class ActionService {
    */
   setRefreshCallback(callback: () => void): void {
     this.refreshCallback = callback;
+  }
+
+  /**
+   * 设置打开实体前的回调
+   */
+  setBeforeOpenEntityCallback(callback: () => void): void {
+    this.beforeOpenEntityCallback = callback;
   }
 
   /**
@@ -45,7 +55,7 @@ export class ActionService {
       const entity = await this.getEntity(type, id);
       if (!entity) return false;
 
-      const currentStatus = (entity as any).status;
+      const currentStatus = (entity as EntityBase).status;
 
       // 从 completed 返回时需要确认
       if (confirmNeeded && currentStatus === 'completed') {
@@ -216,6 +226,11 @@ export class ActionService {
    * 打开实体文件
    */
   async openEntity(type: EntityType, id: string): Promise<void> {
+    // 调用打开前的回调（用于退出全屏等）
+    if (this.beforeOpenEntityCallback) {
+      this.beforeOpenEntityCallback();
+    }
+
     const path = await this.entityManager.getEntityPath(type, id);
     if (!path) {
       console.error(`[ActionService] 无法获取实体路径: ${type} ${id}`);

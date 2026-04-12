@@ -28,6 +28,7 @@ export interface ViewContext {
   sourcePath: string;
   el: HTMLElement;
   ctx?: MarkdownPostProcessorContext;
+  codeBlockIndex?: number;
 }
 
 // 列配置（列表/网格视图用）
@@ -42,7 +43,7 @@ export interface ColumnConfig {
 export interface FilterCondition {
   field: string;
   operator: 'equals' | 'not' | 'contains' | 'gt' | 'lt' | 'in' | 'isEmpty' | 'isNotEmpty';
-  value?: any;
+  value?: string | number | boolean | string[];
 }
 
 // 筛选条件组
