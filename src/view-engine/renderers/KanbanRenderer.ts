@@ -4,6 +4,7 @@ import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
 import type { CreateFeatureData, FeatureStatus } from '../../types';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 import {
   KANBAN_COLUMNS,
   PRIORITY_OPTIONS,
@@ -35,16 +36,9 @@ export class KanbanRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-kanban-view');
 
-    // 加载数据
-    this.entities = await this.dataService.loadEntities(this.config);
-    
-    // 应用过滤和排序
-    const filtered = this.dataService.applyFilters(this.entities, this.config);
-    const sorted = this.dataService.applySort(
-      filtered,
-      this.config.sortBy,
-      this.config.sortOrder
-    );
+    // 使用基类统一的数据准备方法
+    const sorted = await this.prepareData();
+    this.entities = sorted;
 
     // 创建看板容器
     const boardContainer = container.createDiv('pm-kanban-container');
@@ -188,9 +182,9 @@ export class KanbanRenderer extends BaseRenderer {
   /**
    * 显示快速创建模态框
    */
-  private showQuickCreateModal(status: string): void {
-    const { QuickCreateModal } = require('../../modals/QuickCreateModal');
-    
+  private async showQuickCreateModal(status: string): Promise<void> {
+    const { QuickCreateModal } = await import('../../modals/QuickCreateModal');
+
     new QuickCreateModal(
       this.app,
       this.entityManager,
@@ -346,3 +340,6 @@ export class KanbanRenderer extends BaseRenderer {
     return getNextStatus(currentStatus);
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register('kanban', KanbanRenderer);

@@ -24,6 +24,20 @@ export {
   TimeViewRenderer,
 } from './renderers';
 
+// 注册表导出
+export { RendererRegistry } from './RendererRegistry';
+
+// 控制器导出
+export {
+  ToolbarController,
+  SortMenuController,
+  PropertyPanelController,
+} from './controllers';
+export type {
+  ToolbarOptions,
+  PropertyPanelOptions,
+} from './controllers';
+
 // 核心引擎导出
 export { ViewEngine } from './ViewEngine';
 

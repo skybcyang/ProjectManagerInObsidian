@@ -8,6 +8,7 @@ import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
 import { ReportService, type BurndownDataPoint } from '../../services/ReportService';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 
 export class BurndownRenderer extends BaseRenderer {
   private reportService: ReportService;
@@ -221,3 +222,6 @@ export class BurndownRenderer extends BaseRenderer {
     valueEl.textContent = value;
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register("burndown", BurndownRenderer);

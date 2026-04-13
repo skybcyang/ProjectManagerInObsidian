@@ -14,7 +14,52 @@ export interface SaveConfigOptions {
  * 统一处理 pm-view 代码块配置的读写
  */
 export class CodeBlockConfigService {
+  // 防抖定时器存储
+  private pendingSave = new Map<string, ReturnType<typeof setTimeout>>();
+
   constructor(private app: App) {}
+
+  /**
+   * 防抖保存配置 - 避免频繁保存
+   * @param sourcePath - 文件路径
+   * @param codeBlockIndex - 代码块索引
+   * @param updates - 要更新的配置
+   * @param delay - 延迟时间（毫秒）
+   */
+  debouncedSave(
+    sourcePath: string,
+    codeBlockIndex: number | undefined,
+    updates: Record<string, unknown>,
+    delay: number = 300
+  ): void {
+    if (codeBlockIndex === undefined) return;
+
+    const key = `${sourcePath}:${codeBlockIndex}`;
+
+    // 清除之前的定时器
+    const existingTimeout = this.pendingSave.get(key);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    // 设置新的定时器
+    const timeout = setTimeout(() => {
+      this.saveConfig(sourcePath, codeBlockIndex, updates);
+      this.pendingSave.delete(key);
+    }, delay);
+
+    this.pendingSave.set(key, timeout);
+  }
+
+  /**
+   * 清理所有待执行的防抖定时器
+   */
+  clearPendingSaves(): void {
+    this.pendingSave.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    this.pendingSave.clear();
+  }
 
   /**
    * 保存配置到代码块

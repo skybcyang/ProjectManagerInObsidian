@@ -36,7 +36,31 @@ export abstract class BaseRenderer {
   }
 
   /**
+   * 准备数据 - 统一的数据加载、过滤、排序流程
+   * 子类可以重写此方法以自定义数据准备逻辑
+   */
+  protected async prepareData(): Promise<Entity[]> {
+    // 1. 加载数据
+    const entities = await this.dataService.loadEntities(this.config);
+
+    // 2. 应用过滤
+    const filtered = this.dataService.applyFilters(entities, this.config);
+
+    // 3. 应用排序
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
+
+    return sorted;
+  }
+
+  /**
    * 渲染视图（子类必须实现）
+   * 推荐使用 renderData 模式：
+   * 1. 子类重写 render 方法，调用 prepareData() 获取数据
+   * 2. 然后调用 renderData(container, data) 渲染具体内容
    */
   abstract render(container: HTMLElement): Promise<void>;
 

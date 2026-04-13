@@ -4,6 +4,7 @@ import type { DataService, ActionService } from '../services';
 import type { ViewConfig, Entity, EntityType } from '../types';
 import { getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 
 /**
@@ -29,16 +30,9 @@ export class GridRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-grid-view');
 
-    // 加载数据
-    this.entities = await this.dataService.loadEntities(this.config);
-
-    // 应用过滤和排序
-    const filtered = this.dataService.applyFilters(this.entities, this.config);
-    const sorted = this.dataService.applySort(
-      filtered,
-      this.config.sortBy,
-      this.config.sortOrder
-    );
+    // 使用基类统一的数据准备方法
+    let sorted = await this.prepareData();
+    this.entities = sorted;
 
     // 限制数量
     const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
@@ -191,3 +185,6 @@ export class GridRenderer extends BaseRenderer {
     return labels[type] || type;
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register('grid', GridRenderer);

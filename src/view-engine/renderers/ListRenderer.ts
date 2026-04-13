@@ -3,6 +3,7 @@ import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFields } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 import type { CodeBlockConfigService } from '../../services';
 
@@ -30,13 +31,9 @@ export class ListRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-list-view');
 
-    this.entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(this.entities, this.config);
-    const sorted = this.dataService.applySort(
-      filtered,
-      this.config.sortBy,
-      this.config.sortOrder
-    );
+    // 使用基类统一的数据准备方法
+    const sorted = await this.prepareData();
+    this.entities = sorted;
 
     // 创建列表容器
     const listContainer = container.createDiv('pm-list-container');
@@ -269,3 +266,6 @@ export class ListRenderer extends BaseRenderer {
     }
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register('list', ListRenderer);

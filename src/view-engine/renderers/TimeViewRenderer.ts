@@ -4,6 +4,7 @@ import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
 import type { Feature } from '../../types';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 import { DateFormat, getPriorityColor, translateStatus } from '../design-tokens';
 
 /**
@@ -1212,3 +1213,6 @@ export class TimeViewRenderer extends BaseRenderer {
     return d >= s && d <= e;
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register("timeview", TimeViewRenderer);

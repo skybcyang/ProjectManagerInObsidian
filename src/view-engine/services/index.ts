@@ -1,2 +1,2 @@
 export { DataService } from './DataService';
-export { ActionService } from './ActionService';
+export { ActionService, EventBus } from './ActionService';

@@ -15,7 +15,56 @@ npm run build      # 生产构建
 npm run test       # 运行测试
 ```
 
+## 文档索引
+
+| 文档 | 说明 |
+|------|------|
+| [核心设计原则](docs/核心设计原则.md) | 架构原则、设计决策、双层架构 |
+| [技术架构](docs/技术架构.md) | 详细架构设计、目录结构、核心机制、扩展指南 |
+| [视图系统详细设计](docs/视图系统详细设计.md) | 8种视图详解、FilterBar、数据流、样式规范 |
+| [Dataview集成计划](docs/Dataview集成计划.md) | Dataview 集成方案 |
+| [测试策略](docs/测试策略.md) | 测试规范 |
+| [CHANGELOG](docs/CHANGELOG.md) | 完整版本历史 |
+
+## 开发流程
+
+### 代码修改后
+
+```bash
+# 1. 构建
+npm run dev
+
+# 2. 复制到 Obsidian 插件目录（替换为你的 Vault 路径）
+cp main.js styles.css manifest.json /path/to/vault/.obsidian/plugins/project-manager/
+
+# 3. 在 Obsidian 中重载插件（命令面板 → "Reload app without saving"）
+
+# 4. 运行测试
+npm test
+```
+
+### Storybook 组件测试
+
+```bash
+npm run storybook         # 启动 Storybook 开发服务器 http://localhost:6006
+npm run build-storybook   # 构建静态 Storybook
+```
+
+Storybook 用于：
+- **可视化测试** - 独立展示 UI 组件，确保样式正确
+- **组件文档** - 查看组件各种状态和变体
+- **开发调试** - 快速迭代和调试组件样式
+
+### 新增视图渲染器步骤
+
+1. 在 `src/view-engine/renderers/` 创建渲染器类，继承 `BaseRenderer`
+2. 在文件末尾注册：`RendererRegistry.register('modeName', NewRenderer)`
+3. 在 `ViewMode` 类型中添加新模式
+4. 在 `VIEW_MODE_LABELS` 中添加显示名称
+
 ## 架构设计
+
+> 详细架构设计、核心机制、扩展指南见 [技术架构](docs/技术架构.md)
 
 ### 三层数据模型
 
@@ -39,6 +88,7 @@ src/
 │   ├── components/          # FilterBar, EntityCard 等组件
 │   ├── cells/               # 行内编辑单元格
 │   ├── services/            # DataService, ActionService
+│   ├── controllers/         # ToolbarController, SortMenuController, PropertyPanelController
 │   └── ViewEngine.ts        # 视图引擎主类
 ├── services/                # 业务服务
 │   ├── TemplateService.ts   # 模板渲染服务
@@ -50,7 +100,8 @@ src/
 ├── ui/                      # UI 组件
 ├── types/                   # TypeScript 类型定义
 ├── constants/               # 状态、优先级等常量
-└── utils/                   # 工具函数
+├── utils/                   # 工具函数
+└── stories/                 # Storybook 组件测试
 ```
 
 ## 视图模式
@@ -67,6 +118,8 @@ src/
 | `timeview` | TimeViewRenderer | 日历视图 |
 | `burndown` | BurndownRenderer | 燃尽图 |
 | `workload` | WorkloadRenderer | 工作量分布统计 |
+
+> 详细视图配置、FilterBar 设计、样式规范见 [视图系统详细设计](docs/视图系统详细设计.md)
 
 ## 核心模式
 

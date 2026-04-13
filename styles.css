@@ -6234,6 +6234,9 @@
 
 @media (max-width: 768px) {
   .pm-kanban-board {
+  }
+}
+
 .pm-entity-tree-selector {
   position: relative;
   width: 100%;
@@ -6636,6 +6639,7 @@
 .pm-error-text {
   font-weight: 600;
   margin-bottom: var(--pm-space-1);
+}
 
 
 /* ========================================

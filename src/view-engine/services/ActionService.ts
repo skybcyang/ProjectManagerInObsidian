@@ -1,28 +1,105 @@
 import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { EntityType } from '../types';
-import type { EntityBase } from '../../types';
+import type { EntityBase, Version, Project, Feature } from '../../types';
+
+/**
+ * 实体策略接口
+ */
+interface EntityStrategy<T = EntityBase> {
+  get: (id: string) => Promise<T | null>;
+  update: (id: string, data: Partial<T>) => Promise<T | null>;
+}
+
+/**
+ * 实体策略注册表
+ */
+class EntityStrategyRegistry {
+  private strategies: Map<EntityType, EntityStrategy>;
+
+  constructor(private entityManager: EntityManager) {
+    this.strategies = new Map([
+      ['version', {
+        get: (id: string) => this.entityManager.getVersion(id),
+        update: (id: string, data: Partial<Version>) => this.entityManager.updateVersion(id, data),
+      }],
+      ['project', {
+        get: (id: string) => this.entityManager.getProject(id),
+        update: (id: string, data: Partial<Project>) => this.entityManager.updateProject(id, data),
+      }],
+      ['feature', {
+        get: (id: string) => this.entityManager.getFeature(id),
+        update: (id: string, data: Partial<Feature>) => this.entityManager.updateFeature(id, data),
+      }],
+    ]);
+  }
+
+  get(type: EntityType): EntityStrategy | undefined {
+    return this.strategies.get(type);
+  }
+
+  has(type: EntityType): boolean {
+    return this.strategies.has(type);
+  }
+}
+
+/**
+ * 事件总线 - 简单的发布订阅实现
+ */
+export class EventBus {
+  private listeners = new Map<string, Set<(...args: any[]) => void>>();
+
+  on(event: string, listener: (...args: any[]) => void): () => void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(listener);
+
+    // 返回取消订阅函数
+    return () => {
+      this.listeners.get(event)?.delete(listener);
+    };
+  }
+
+  emit(event: string, ...args: any[]): void {
+    this.listeners.get(event)?.forEach(listener => listener(...args));
+  }
+
+  off(event: string, listener: (...args: any[]) => void): void {
+    this.listeners.get(event)?.delete(listener);
+  }
+}
 
 /**
  * 操作服务
  * 统一处理所有交互操作（状态变更、进度更新等）
  */
 export class ActionService {
-  // 刷新回调函数
-  private refreshCallback?: () => void;
+  private strategyRegistry: EntityStrategyRegistry;
+  private eventBus: EventBus;
   // 打开实体前的回调（用于退出全屏等）
   private beforeOpenEntityCallback?: () => void;
 
   constructor(
     private app: App,
     private entityManager: EntityManager
-  ) {}
+  ) {
+    this.strategyRegistry = new EntityStrategyRegistry(entityManager);
+    this.eventBus = new EventBus();
+  }
 
   /**
-   * 设置刷新回调
+   * 获取事件总线实例
    */
-  setRefreshCallback(callback: () => void): void {
-    this.refreshCallback = callback;
+  getEventBus(): EventBus {
+    return this.eventBus;
+  }
+
+  /**
+   * 订阅刷新事件
+   */
+  onRefresh(callback: () => void): () => void {
+    return this.eventBus.on('refresh', callback);
   }
 
   /**
@@ -36,9 +113,14 @@ export class ActionService {
    * 触发刷新
    */
   private triggerRefresh(): void {
-    if (this.refreshCallback) {
-      this.refreshCallback();
-    }
+    this.eventBus.emit('refresh');
+  }
+
+  /**
+   * 获取实体策略
+   */
+  private getStrategy(type: EntityType): EntityStrategy | null {
+    return this.strategyRegistry.get(type) || null;
   }
 
   /**
@@ -51,11 +133,14 @@ export class ActionService {
     confirmNeeded: boolean = true
   ): Promise<boolean> {
     try {
+      const strategy = this.getStrategy(type);
+      if (!strategy) return false;
+
       // 获取当前实体
-      const entity = await this.getEntity(type, id);
+      const entity = await strategy.get(id);
       if (!entity) return false;
 
-      const currentStatus = (entity as EntityBase).status;
+      const currentStatus = entity.status;
 
       // 从 completed 返回时需要确认
       if (confirmNeeded && currentStatus === 'completed') {
@@ -67,11 +152,11 @@ export class ActionService {
       }
 
       // 更新状态
-      await this.updateEntity(type, id, { status: newStatus });
-      
+      await strategy.update(id, { status: newStatus } as any);
+
       // 触发刷新
       this.triggerRefresh();
-      
+
       return true;
     } catch (error) {
       console.error('状态变更失败:', error);
@@ -195,7 +280,10 @@ export class ActionService {
     owner: string
   ): Promise<boolean> {
     try {
-      await this.updateEntity(type, id, { owner });
+      const strategy = this.getStrategy(type);
+      if (!strategy) return false;
+
+      await strategy.update(id, { owner } as any);
       this.triggerRefresh();
       return true;
     } catch (error) {
@@ -213,7 +301,10 @@ export class ActionService {
     priority: string
   ): Promise<boolean> {
     try {
-      await this.updateEntity(type, id, { priority });
+      const strategy = this.getStrategy(type);
+      if (!strategy) return false;
+
+      await strategy.update(id, { priority } as any);
       this.triggerRefresh();
       return true;
     } catch (error) {
@@ -258,43 +349,6 @@ export class ActionService {
   }
 
   /**
-   * 获取实体
-   */
-  private async getEntity(type: EntityType, id: string): Promise<any | null> {
-    switch (type) {
-      case 'version':
-        return this.entityManager.getVersion(id);
-      case 'project':
-        return this.entityManager.getProject(id);
-      case 'feature':
-        return this.entityManager.getFeature(id);
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * 更新实体
-   */
-  private async updateEntity(
-    type: EntityType,
-    id: string,
-    data: any
-  ): Promise<void> {
-    switch (type) {
-      case 'version':
-        await this.entityManager.updateVersion(id, data);
-        break;
-      case 'project':
-        await this.entityManager.updateProject(id, data);
-        break;
-      case 'feature':
-        await this.entityManager.updateFeature(id, data);
-        break;
-    }
-  }
-
-  /**
    * 更新指定字段
    */
   async updateField(
@@ -304,8 +358,11 @@ export class ActionService {
     value: any
   ): Promise<boolean> {
     try {
+      const strategy = this.getStrategy(type);
+      if (!strategy) return false;
+
       const data = { [field]: value };
-      await this.updateEntity(type, id, data);
+      await strategy.update(id, data);
       this.triggerRefresh();
       return true;
     } catch (error) {
@@ -320,26 +377,26 @@ export class ActionService {
   private async showConfirmDialog(title: string, message: string): Promise<boolean> {
     return new Promise((resolve) => {
       const { Modal, ButtonComponent } = require('obsidian');
-      
+
       class ConfirmModal extends Modal {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl('h2', { text: title });
           contentEl.createEl('p', { text: message });
-          
+
           const buttonContainer = contentEl.createDiv();
           buttonContainer.style.display = 'flex';
           buttonContainer.style.justifyContent = 'flex-end';
           buttonContainer.style.gap = '10px';
           buttonContainer.style.marginTop = '20px';
-          
+
           new ButtonComponent(buttonContainer)
             .setButtonText('取消')
             .onClick(() => {
               resolve(false);
               this.close();
             });
-          
+
           new ButtonComponent(buttonContainer)
             .setButtonText('确认')
             .setCta()
@@ -348,13 +405,13 @@ export class ActionService {
               this.close();
             });
         }
-        
+
         onClose() {
           const { contentEl } = this;
           contentEl.empty();
         }
       }
-      
+
       new (ConfirmModal as any)(this.app).open();
     });
   }

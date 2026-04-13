@@ -3,6 +3,7 @@ import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
 import { ViewConfig, Entity, EntityType, Version, Project, Feature, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
+import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 
 /**
@@ -390,3 +391,6 @@ export class CascadeRenderer extends BaseRenderer {
     );
   }
 }
+
+// 自注册到渲染器注册表
+RendererRegistry.register('cascade', CascadeRenderer);

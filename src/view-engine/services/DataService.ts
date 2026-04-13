@@ -1,19 +1,70 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
-import type { Entity, ViewConfig, SortConfig } from '../types';
+import type { Entity, ViewConfig, SortConfig, EntityType } from '../types';
+import type { Version, Project, Feature } from '../../types';
+
+/**
+ * 实体策略接口
+ * 统一不同实体类型的操作接口
+ */
+export interface EntityStrategy<T = Entity> {
+  list: () => Promise<T[]>;
+  get: (id: string) => Promise<T | null>;
+  update: (id: string, data: Partial<T>) => Promise<T | null>;
+}
+
+/**
+ * 实体策略注册表
+ * 集中管理各实体类型的策略实现
+ */
+class EntityStrategyRegistry {
+  private strategies: Map<EntityType, EntityStrategy>;
+
+  constructor(private entityManager: EntityManager) {
+    this.strategies = new Map([
+      ['version', {
+        list: () => this.entityManager.listVersions(),
+        get: (id: string) => this.entityManager.getVersion(id),
+        update: (id: string, data: Partial<Version>) => this.entityManager.updateVersion(id, data),
+      }],
+      ['project', {
+        list: () => this.entityManager.listProjects(),
+        get: (id: string) => this.entityManager.getProject(id),
+        update: (id: string, data: Partial<Project>) => this.entityManager.updateProject(id, data),
+      }],
+      ['feature', {
+        list: () => this.entityManager.listFeatures(),
+        get: (id: string) => this.entityManager.getFeature(id),
+        update: (id: string, data: Partial<Feature>) => this.entityManager.updateFeature(id, data),
+      }],
+    ]);
+  }
+
+  get(type: EntityType): EntityStrategy | undefined {
+    return this.strategies.get(type);
+  }
+
+  has(type: EntityType): boolean {
+    return this.strategies.has(type);
+  }
+}
 
 /**
  * 数据服务 - 简化版
  * 统一处理实体数据的查询、过滤和排序
  */
 export class DataService {
+  private strategyRegistry: EntityStrategyRegistry;
+
   constructor(
     private app: App,
     private entityManager: EntityManager
-  ) {}
+  ) {
+    this.strategyRegistry = new EntityStrategyRegistry(entityManager);
+  }
 
   /**
-   * 加载实体数据 - 根据配置自动决定加载类型
+   * 加载实体数据 - 使用策略模式
    */
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
     // 如果指定了特性ID，加载特定特性
@@ -22,51 +73,41 @@ export class DataService {
       return feature ? [feature as Entity] : [];
     }
 
-    // 根据 entityType 加载对应类型的实体
+    // 根据 entityType 获取对应策略
     const entityType = config.entityType || 'feature';
-    
-    switch (entityType) {
-      case 'project': {
-        const projects = await this.entityManager.listProjects();
-        // 如果指定了项目ID，过滤出特定项目
-        if (config.project) {
-          return projects.filter(p => p.id === config.project) as Entity[];
-        }
-        return projects as Entity[];
-      }
-      case 'version': {
-        const versions = await this.entityManager.listVersions();
-        // 如果指定了版本ID，过滤出特定版本
-        if (config.version) {
-          return versions.filter(v => v.id === config.version) as Entity[];
-        }
-        return versions as Entity[];
-      }
-      case 'feature':
-      default: {
-        // 加载特性，可以根据项目ID或版本ID筛选
-        const features = await this.entityManager.listFeatures({
-          projectId: config.project,
-          versionId: config.version,
-        });
-        return features as Entity[];
-      }
+    const strategy = this.strategyRegistry.get(entityType);
+
+    if (!strategy) {
+      return [];
     }
+
+    // 使用策略加载数据
+    const entities = await strategy.list();
+
+    // 如果指定了特定ID，进行过滤
+    if (config.project && entityType === 'project') {
+      return entities.filter(e => e.id === config.project) as Entity[];
+    }
+    if (config.version && entityType === 'version') {
+      return entities.filter(e => e.id === config.version) as Entity[];
+    }
+
+    // 特性可以根据项目ID或版本ID筛选
+    if (entityType === 'feature') {
+      return this.entityManager.listFeatures({
+        projectId: config.project,
+        versionId: config.version,
+      }) as Promise<Entity[]>;
+    }
+
+    return entities as Entity[];
   }
 
   /**
    * 应用过滤器 - 使用扁平化的筛选字段
    */
   applyFilters(entities: Entity[], config: ViewConfig): Entity[] {
-    console.log('[DataService.applyFilters] 配置:', {
-      project: config.project,
-      version: config.version,
-      status: config.status,
-      priority: config.priority,
-    });
-    console.log('[DataService.applyFilters] 实体数量:', entities.length);
-    
-    const filtered = entities.filter((entity) => {
+    return entities.filter((entity) => {
       // 状态过滤
       if (config.status && 'status' in entity && entity.status !== config.status) {
         return false;
@@ -99,9 +140,6 @@ export class DataService {
 
       return true;
     });
-    
-    console.log('[DataService.applyFilters] 过滤后:', filtered.length);
-    return filtered;
   }
 
   /**
@@ -116,7 +154,7 @@ export class DataService {
     if (Array.isArray(sortBy) && sortBy.length > 0) {
       return this.applyMultiFieldSort(entities, sortBy);
     }
-    
+
     // 单字段排序
     if (!sortBy || typeof sortBy !== 'string') return entities;
 
@@ -227,7 +265,7 @@ export class DataService {
     overdue: number;
   } {
     const now = new Date();
-    
+
     const byStatus: Record<string, number> = {};
     const byPriority: Record<string, number> = {};
     let completed = 0;

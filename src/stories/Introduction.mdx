@@ -1,0 +1,80 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Introduction" />
+
+# Project Manager Storybook
+
+欢迎使用 Project Manager 插件的 Storybook 组件库！
+
+## 用途
+
+这个 Storybook 用于：
+
+1. **可视化测试** - 独立展示各个 UI 组件，确保样式正确
+2. **组件文档** - 查看组件的各种状态和变体
+3. **视觉回归测试** - 与 Chromatic 集成，自动检测 UI 变化
+4. **开发调试** - 快速迭代和调试组件样式
+
+## 组件分类
+
+### Components（基础组件）
+
+- **KanbanCard** - 看板卡片，展示任务信息
+- **KanbanColumn** - 看板列，包含多个卡片
+- **StatusBadge** - 状态徽章
+
+### Views（完整视图）
+
+- **KanbanBoard** - 完整看板视图
+
+## 如何使用
+
+### 本地开发
+
+```bash
+npm run storybook
+```
+
+打开 http://localhost:6006 查看组件库。
+
+### 构建静态版本
+
+```bash
+npm run build-storybook
+```
+
+生成的静态文件在 `storybook-static/` 目录。
+
+### 视觉回归测试
+
+```bash
+npm run chromatic
+```
+
+需要先在 [Chromatic](https://www.chromatic.com/) 注册项目。
+
+## 添加新 Story
+
+在 `src/stories/` 目录创建新的 `.stories.ts` 文件：
+
+```typescript
+import type { Meta, StoryObj } from '@storybook/html';
+
+const meta: Meta = {
+  title: 'Components/YourComponent',
+  render: () => {
+    const element = document.createElement('div');
+    // 创建你的组件
+    return element;
+  },
+};
+
+export default meta;
+```
+
+## 样式说明
+
+Storybook 使用 Obsidian 的 CSS 变量（如 `--background-primary`, `--text-normal` 等），
+在 `preview.ts` 中已经引入了 `styles.css`，确保组件样式与 Obsidian 中一致。
+
+背景色默认设置为 Obsidian 暗色主题（`#1e1e1e`），可以在工具栏切换到亮色主题。
