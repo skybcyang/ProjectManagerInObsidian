@@ -1,5 +1,40 @@
 # 版本迭代记录
 
+## v0.7.6 (2026-04-15)
+
+### 重构
+
+- **删除 ListRenderer 内联排序 UI**
+  - 移除 `ListRenderer` 表头内的 `<select>` 排序下拉和 ↑/↓ 按钮
+  - 列表视图统一使用工具栏的 `SortMenuController` 进行排序
+  - 在 `SortMenuController` 中补全「状态」排序字段，避免功能回退
+  - 清理 `.pm-list-sort` 等相关废弃 CSS 样式
+
+### 修复
+
+- **ViewEngine 内存泄漏与闭包陷阱**
+  - `renderContent()` 每次重绘前先取消旧的 `actionService.onRefresh` 订阅
+  - 新增 `currentConfigs: Map<string, ViewConfig>` 保存每个代码块的最新配置
+  - 所有配置变更回调（视图切换、筛选、排序、属性面板）统一读写 `currentConfigs`
+  - 修复切换视图模式后再次修改筛选会导致视图 revert 的问题
+
+- **EntityTreeSelector 与 FilterBar 状态同步**
+  - `EntityTreeSelector.updateEntityType()` 清空选择后主动回调 `onSelect(null)`
+  - `FilterBar` 切换实体类型时同时清空 `versions`/`projects`/`features` 数组字段
+  - 避免切换实体类型后旧筛选残留导致的视图与 UI 不一致
+
+- **燃尽图/工作量统计支持树形筛选**
+  - `ReportService` 新增 `applyFeatureFilters()` 统一支持 `versions[]`/`projects[]`/`features[]`
+  - `BurndownRenderer` 和 `WorkloadRenderer` 改为传入完整 `ViewConfig`
+  - 燃尽图和工作量视图现在能正确响应树形下拉栏的范围筛选
+
+- **级联视图支持树形筛选**
+  - `CascadeRenderer` 重写数据加载逻辑，通过 `DataService.loadEntities()` 获取筛选后实体
+  - 从筛选结果反推需要显示的版本和项目，保持三层 UI 结构不变
+  - 版本头部的统计信息改为从过滤后数据计算，确保与实际渲染内容一致
+
+---
+
 ## v0.7.5 (2026-04-14)
 
 ### 修复

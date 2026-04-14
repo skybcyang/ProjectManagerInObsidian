@@ -69,7 +69,26 @@ export class FilterBar {
    * 渲染筛选器 - 横向紧凑卡片式，所有下拉框使用 SelectCell 风格
    */
   render(parent: HTMLElement, initialFilters?: Partial<ViewConfig>): HTMLElement {
-    this.container = parent.createDiv('pm-filter-container');
+    const container = parent.createDiv('pm-filter-container');
+    this.doRender(container, initialFilters);
+    return container;
+  }
+
+  /**
+   * 渲染筛选器到指定的容器内部（用于嵌入 Toolbar）
+   */
+  renderInto(parent: HTMLElement, initialFilters?: Partial<ViewConfig>): HTMLElement {
+    const wrapper = parent.createDiv('pm-filter-inline');
+    wrapper.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;';
+    this.doRender(wrapper, initialFilters);
+    return wrapper;
+  }
+
+  /**
+   * 实际渲染逻辑
+   */
+  private doRender(container: HTMLElement, initialFilters?: Partial<ViewConfig>): void {
+    this.container = container;
 
     if (initialFilters) {
       this.filters = { ...this.filters, ...initialFilters };
@@ -80,11 +99,8 @@ export class FilterBar {
       }
     }
 
-    // 筛选器横向条
-    const filterBar = this.container.createDiv('pm-filter-bar-compact');
-
     // 实体类型选择器 - SelectCell 风格
-    this.createSelectCell(filterBar, '实体类型', this.entityTypeOptions, this.currentEntityType, (value) => {
+    this.createSelectCell(container, '实体类型', this.entityTypeOptions, this.currentEntityType, (value) => {
       this.currentEntityType = value as EntityType;
       this.filters.entityType = this.currentEntityType;
 
@@ -92,13 +108,16 @@ export class FilterBar {
       this.filters.version = undefined;
       this.filters.project = undefined;
       this.filters.feature = undefined;
+      this.filters.versions = undefined;
+      this.filters.projects = undefined;
+      this.filters.features = undefined;
 
       this.treeSelector?.updateEntityType(this.currentEntityType);
       this.onFilterChange();
     });
 
     // 树形层级选择器（已经是 SelectCell 风格）
-    const treeWrapper = filterBar.createDiv('pm-filter-tree-wrapper');
+    const treeWrapper = container.createDiv('pm-filter-tree-wrapper');
     this.treeSelector = new EntityTreeSelector(this.app, this.entityManager, {
       entityType: this.currentEntityType,
       onSelect: (selection) => {
@@ -109,13 +128,13 @@ export class FilterBar {
     this.treeSelector.render(treeWrapper);
 
     // 状态筛选 - SelectCell 风格
-    this.createSelectCell(filterBar, '状态', this.statusOptions, this.filters.status || '', (value) => {
+    this.createSelectCell(container, '状态', this.statusOptions, this.filters.status || '', (value) => {
       this.filters.status = value || undefined;
       this.onFilterChange();
     });
 
     // 优先级筛选 - SelectCell 风格
-    this.createSelectCell(filterBar, '优先级', this.priorityOptions, this.filters.priority || '', (value) => {
+    this.createSelectCell(container, '优先级', this.priorityOptions, this.filters.priority || '', (value) => {
       this.filters.priority = value || undefined;
       this.onFilterChange();
     });
@@ -126,12 +145,10 @@ export class FilterBar {
       label: o,
       color: '#8b5cf6'
     }));
-    this.createSelectCell(filterBar, '负责人', ownerOptions, this.filters.owner || '', (value) => {
+    this.createSelectCell(container, '负责人', ownerOptions, this.filters.owner || '', (value) => {
       this.filters.owner = value || undefined;
       this.onFilterChange();
     });
-
-    return this.container;
   }
 
   /**

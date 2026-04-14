@@ -1,16 +1,34 @@
 import { App, MarkdownRenderChild, Notice } from 'obsidian';
 import type { EntityManager } from '../../core';
-import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, ExportICSModal } from '../../modals';
+import { CreateVersionModal, CreateProjectModal, CreateFeatureModal } from '../../modals';
+import { downloadEML } from '../../utils';
+import { EmailSummaryService } from '../../services';
 
 /**
  * 按钮组件
  * 处理 Markdown 中的 pm-btn 按钮交互
  */
 export class Button {
+  private emailSummaryService: EmailSummaryService;
+
   constructor(
     private app: App,
     private entityManager: EntityManager
-  ) {}
+  ) {
+    this.emailSummaryService = new EmailSummaryService(app, entityManager);
+  }
+
+  /**
+   * 处理单个按钮点击（供全局事件委托使用）
+   */
+  handleButtonClick(buttonEl: HTMLElement): void {
+    const action = buttonEl.getAttribute('data-action');
+    if (!action) return;
+
+    const versionId = buttonEl.getAttribute('data-version-id');
+    const projectId = buttonEl.getAttribute('data-project-id');
+    this.handleAction(action, versionId, projectId);
+  }
 
   /**
    * 处理容器中的所有按钮
@@ -64,8 +82,8 @@ export class Button {
       case 'create-feature':
         await this.handleCreateFeature(versionId, projectId);
         break;
-      case 'export-ics':
-        await this.handleExportICS();
+      case 'export-email-summary':
+        await this.handleExportEmailSummary();
         break;
       default:
         // 未知动作: action
@@ -154,13 +172,22 @@ export class Button {
   }
 
   /**
-   * 导出 ICS 日历
+   * 导出邮件总结（当前页面渲染结果）
    */
-  private handleExportICS(): void {
-    new ExportICSModal(
-      this.app,
-      this.entityManager,
-    ).open();
+  private async handleExportEmailSummary(): Promise<void> {
+    try {
+      const result = await this.emailSummaryService.buildEmailFromRenderedPage();
+      if (!result) {
+        return;
+      }
+
+      const { emlContent, filename } = result;
+      downloadEML(emlContent, filename);
+      this.showNotice('邮件已导出', 3000);
+    } catch (error) {
+      console.error('导出邮件失败:', error);
+      this.showNotice('导出邮件失败: ' + (error as Error).message, 5000);
+    }
   }
 
   /**

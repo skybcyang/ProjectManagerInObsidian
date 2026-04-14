@@ -11,17 +11,77 @@ interface SortField {
 
 /**
  * 排序菜单控制器
- * 负责渲染排序菜单和处理排序交互
+ * 负责渲染排序 badge 和下拉菜单
  */
 export class SortMenuController {
   private sortFields: SortField[] = [
     { value: 'name', label: '名称' },
+    { value: 'status', label: '状态' },
     { value: 'startDate', label: '开始日期' },
     { value: 'endDate', label: '结束日期' },
     { value: 'priority', label: '优先级' },
     { value: 'progress', label: '进度' },
     { value: 'created', label: '创建时间' },
   ];
+
+  /**
+   * 渲染排序 badge（SelectCell 风格）
+   */
+  renderBadge(
+    container: HTMLElement,
+    config: ViewConfig,
+    onSortChange: (sortBy: string, sortOrder: 'asc' | 'desc') => void
+  ): HTMLElement {
+    const wrapper = container.createDiv('pm-sort-badge-wrapper');
+
+    const badge = wrapper.createDiv('pm-cell-badge pm-sort-badge');
+    this.updateBadgeText(badge, config.sortBy, config.sortOrder);
+
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.show(badge, config, (sortBy, sortOrder) => {
+        this.updateBadgeText(badge, sortBy, sortOrder);
+        onSortChange(sortBy, sortOrder);
+      });
+    });
+
+    return wrapper;
+  }
+
+  /**
+   * 更新 badge 显示文本
+   */
+  private updateBadgeText(
+    badge: HTMLElement,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
+  ): void {
+    badge.empty();
+
+    const field = this.sortFields.find(f => f.value === sortBy);
+    const label = field ? field.label : '排序';
+    const arrow = sortOrder === 'desc' ? '↓' : '↑';
+
+    badge.textContent = `${label} ${arrow}`;
+
+    // SelectCell 风格样式
+    const color = '#8b5cf6';
+    badge.style.cssText = `
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      background-color: ${this.hexToRgba(color, 0.15)};
+      color: ${color};
+      border: 1px solid ${this.hexToRgba(color, 0.3)};
+      transition: all 0.2s ease;
+    `;
+  }
 
   /**
    * 显示排序菜单
@@ -122,5 +182,15 @@ export class SortMenuController {
     });
 
     return item;
+  }
+
+  /**
+   * Hex 转 RGBA
+   */
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

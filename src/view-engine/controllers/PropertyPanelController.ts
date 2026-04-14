@@ -1,4 +1,4 @@
-import type { ViewConfig, ViewMode, CardFieldsConfig, ListColumnField, EntityType } from '../types';
+import type { ViewConfig, ViewMode, CardFieldsConfig, ListColumnField } from '../types';
 import { ENTITY_CARD_FIELD_DEFINITIONS, LIST_COLUMN_DEFINITIONS } from '../types';
 import { DropdownMenuManager } from '../components/DropdownMenu';
 
@@ -49,10 +49,7 @@ export class PropertyPanelController {
       cls: 'pm-panel-title'
     }).style.cssText = 'font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--background-modifier-border);';
 
-    // 1. 实体类型选择器
-    this.renderEntityTypeSelector(panel, config, options);
-
-    // 2. 列表视图：表头字段勾选配置
+    // 1. 列表视图：表头字段勾选配置
     if (config.mode === 'list') {
       this.renderListColumnSelector(panel, config, options);
     }
@@ -63,7 +60,7 @@ export class PropertyPanelController {
     }
 
     // 4. 视图特定配置
-    if (config.mode === 'kanban' || config.mode === 'cascade') {
+    if (config.mode === 'kanban') {
       this.renderGroupBySelector(panel, config, options);
     }
 
@@ -71,44 +68,7 @@ export class PropertyPanelController {
       this.renderColsSelector(panel, config, options);
     }
 
-    // 5. 通用配置：显示数量限制
-    this.renderLimitInput(panel, config, options);
-
     return panel;
-  }
-
-  /**
-   * 渲染实体类型选择器
-   */
-  private renderEntityTypeSelector(
-    panel: HTMLElement,
-    config: ViewConfig,
-    options: PropertyPanelOptions
-  ): void {
-    const section = panel.createDiv('pm-property-section');
-    section.style.marginBottom = '12px';
-    section.createEl('label', {
-      text: '实体类型',
-      cls: 'pm-property-label'
-    }).style.cssText = 'display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;';
-
-    const select = section.createEl('select', { cls: 'pm-property-select' });
-    select.style.cssText = 'width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;';
-    const entityTypes = [
-      { value: 'feature', label: '特性' },
-      { value: 'project', label: '项目' },
-      { value: 'version', label: '版本' }
-    ];
-    entityTypes.forEach(type => {
-      const option = select.createEl('option');
-      option.value = type.value;
-      option.textContent = type.label;
-      if (config.entityType === type.value) option.selected = true;
-    });
-
-    select.addEventListener('change', () => {
-      options.onConfigChange({ entityType: select.value as EntityType });
-    });
   }
 
   /**
@@ -129,7 +89,7 @@ export class PropertyPanelController {
     const checkboxContainer = section.createDiv('pm-checkbox-group');
     checkboxContainer.style.cssText = 'display: flex; flex-direction: column; gap: 4px;';
 
-    const currentColumns = config.listColumns || ['name', 'status', 'priority', 'owner'];
+    let liveColumns = config.listColumns || ['name', 'status', 'priority', 'owner'];
 
     LIST_COLUMN_DEFINITIONS.forEach(field => {
       const label = checkboxContainer.createEl('label');
@@ -137,7 +97,7 @@ export class PropertyPanelController {
 
       const checkbox = label.createEl('input');
       checkbox.type = 'checkbox';
-      checkbox.checked = currentColumns.includes(field.key as ListColumnField);
+      checkbox.checked = liveColumns.includes(field.key as ListColumnField);
       checkbox.disabled = field.required;
 
       const text = label.createSpan();
@@ -145,16 +105,15 @@ export class PropertyPanelController {
       text.style.cssText = field.required ? 'color: var(--text-muted);' : '';
 
       checkbox.addEventListener('change', () => {
-        let newColumns = [...currentColumns];
         if (checkbox.checked) {
-          if (!newColumns.includes(field.key as ListColumnField)) {
-            newColumns.push(field.key as ListColumnField);
+          if (!liveColumns.includes(field.key as ListColumnField)) {
+            liveColumns = [...liveColumns, field.key as ListColumnField];
           }
         } else {
-          newColumns = newColumns.filter(k => k !== field.key);
+          liveColumns = liveColumns.filter(k => k !== field.key);
         }
-        options.debouncedSave({ listColumns: newColumns });
-        options.onConfigChange({ listColumns: newColumns });
+        options.debouncedSave({ listColumns: liveColumns });
+        options.onConfigChange({ listColumns: liveColumns });
       });
     });
   }
@@ -178,7 +137,7 @@ export class PropertyPanelController {
       required: ['name', 'priority'],
       optional: ['status', 'owner', 'progress']
     };
-    const currentOptional = currentCardFields.optional || [];
+    let liveOptional = currentCardFields.optional || [];
 
     const multiSelectContainer = section.createDiv('pm-multi-select');
     multiSelectContainer.style.cssText = `
@@ -214,20 +173,19 @@ export class PropertyPanelController {
 
       const checkbox = label.createEl('input');
       checkbox.type = 'checkbox';
-      checkbox.checked = currentOptional.includes(field.key);
+      checkbox.checked = liveOptional.includes(field.key);
 
       label.createSpan({ text: field.label });
 
       checkbox.addEventListener('change', () => {
-        let newOptional = [...currentOptional];
         if (checkbox.checked) {
-          if (!newOptional.includes(field.key)) {
-            newOptional.push(field.key);
+          if (!liveOptional.includes(field.key)) {
+            liveOptional = [...liveOptional, field.key];
           }
         } else {
-          newOptional = newOptional.filter(k => k !== field.key);
+          liveOptional = liveOptional.filter(k => k !== field.key);
         }
-        const newCardFields = { ...currentCardFields, optional: newOptional };
+        const newCardFields = { ...currentCardFields, optional: liveOptional };
         options.debouncedSave({ cardFields: newCardFields });
         options.onConfigChange({ cardFields: newCardFields });
       });
@@ -300,30 +258,4 @@ export class PropertyPanelController {
     });
   }
 
-  /**
-   * 渲染显示数量限制输入框
-   */
-  private renderLimitInput(
-    panel: HTMLElement,
-    config: ViewConfig,
-    options: PropertyPanelOptions
-  ): void {
-    const section = panel.createDiv('pm-property-section');
-    section.style.marginBottom = '12px';
-    section.createEl('label', {
-      text: '显示数量限制',
-      cls: 'pm-property-label'
-    }).style.cssText = 'display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;';
-
-    const input = section.createEl('input');
-    input.type = 'number';
-    input.placeholder = '无限制';
-    input.value = config.limit ? String(config.limit) : '';
-    input.style.cssText = 'width: 100%; padding: 4px 8px;';
-    input.addEventListener('change', () => {
-      const limit = input.value ? parseInt(input.value) : undefined;
-      options.debouncedSave({ limit });
-      options.onConfigChange({ limit });
-    });
-  }
 }

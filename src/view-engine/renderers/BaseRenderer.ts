@@ -53,7 +53,24 @@ export abstract class BaseRenderer {
       this.config.sortOrder
     );
 
+    // 4. 应用数量限制
+    if (this.config.limit && this.config.limit > 0) {
+      return sorted.slice(0, this.config.limit);
+    }
+
     return sorted;
+  }
+
+  /**
+   * 判断卡片字段是否应该显示
+   */
+  protected shouldShowCardField(fieldKey: string): boolean {
+    const cardFields = this.config.cardFields || {
+      required: ['name', 'priority'],
+      optional: ['status', 'owner', 'progress']
+    };
+    const allFields = [...(cardFields.required || []), ...(cardFields.optional || [])];
+    return allFields.includes(fieldKey);
   }
 
   /**
@@ -348,7 +365,8 @@ export abstract class BaseRenderer {
       }
     };
 
-    document.body.appendChild(menu);
+    const { getOverlayContainer } = require('../../utils');
+    getOverlayContainer().appendChild(menu);
 
     // 定位菜单
     const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;

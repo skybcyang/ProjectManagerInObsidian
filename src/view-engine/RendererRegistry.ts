@@ -2,7 +2,6 @@ import type { App } from 'obsidian';
 import type { EntityManager } from '../core';
 import type { DataService, ActionService } from './services';
 import type { ViewMode } from './types';
-import type { CodeBlockConfigService } from '../services';
 import { BaseRenderer } from './renderers/BaseRenderer';
 
 /**
@@ -27,17 +26,12 @@ export class RendererRegistry {
     app: App,
     entityManager: EntityManager,
     dataService: DataService,
-    actionService: ActionService,
-    configService?: CodeBlockConfigService
+    actionService: ActionService
   ): BaseRenderer | null {
     const Ctor = this.renderers.get(mode);
     if (!Ctor) return null;
 
-    // 检查构造函数是否需要 configService
-    if (Ctor.length >= 5 && configService) {
-      return new (Ctor as RendererConstructor5)(app, entityManager, dataService, actionService, configService);
-    }
-    return new (Ctor as RendererConstructor4)(app, entityManager, dataService, actionService);
+    return new (Ctor as RendererConstructor)(app, entityManager, dataService, actionService);
   }
 
   /**
@@ -56,27 +50,11 @@ export class RendererRegistry {
 }
 
 /**
- * 渲染器构造函数类型（4参数版本）
+ * 渲染器构造函数类型
  */
-type RendererConstructor4 = new (
+type RendererConstructor = new (
   app: App,
   entityManager: EntityManager,
   dataService: DataService,
   actionService: ActionService
 ) => BaseRenderer;
-
-/**
- * 渲染器构造函数类型（5参数版本）
- */
-type RendererConstructor5 = new (
-  app: App,
-  entityManager: EntityManager,
-  dataService: DataService,
-  actionService: ActionService,
-  configService: CodeBlockConfigService
-) => BaseRenderer;
-
-/**
- * 渲染器构造函数类型
- */
-type RendererConstructor = RendererConstructor4 | RendererConstructor5;

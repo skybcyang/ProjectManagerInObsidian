@@ -93,7 +93,8 @@ export class StatusPicker {
       };
     });
 
-    document.body.appendChild(this.menu);
+    const { getOverlayContainer } = require('../../utils');
+    getOverlayContainer().appendChild(this.menu);
 
     // 定位菜单
     this.positionMenu(triggerEl);

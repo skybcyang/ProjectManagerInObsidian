@@ -701,6 +701,9 @@ export class EntityTreeSelector {
         this.updateTriggerDisplay(triggerBtn as HTMLElement);
       }
     }
+
+    // 通知外部选择已清空
+    this.options.onSelect(null);
   }
 
   /**

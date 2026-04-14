@@ -1,11 +1,10 @@
 import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
-import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFields } from '../types';
+import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFields, LIST_COLUMN_DEFINITIONS } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
-import type { CodeBlockConfigService } from '../../services';
 
 /**
  * 列表渲染器 - 卡片列表风格
@@ -18,8 +17,7 @@ export class ListRenderer extends BaseRenderer {
     app: App,
     entityManager: EntityManager,
     dataService: DataService,
-    actionService: ActionService,
-    private configService: CodeBlockConfigService
+    actionService: ActionService
   ) {
     super(app, entityManager, dataService, actionService);
   }
@@ -58,52 +56,42 @@ export class ListRenderer extends BaseRenderer {
    */
   private renderListHeader(container: HTMLElement): void {
     const header = container.createDiv('pm-list-header');
-    
+    const currentColumns = this.config.listColumns || ['name', 'status', 'priority', 'owner'];
+
+    // 第一行：统计信息
     const info = header.createDiv('pm-list-info');
-    info.createSpan({ 
-      cls: 'pm-list-count', 
-      text: `共 ${this.entities.length} 个实体` 
+    info.createSpan({
+      cls: 'pm-list-count',
+      text: `共 ${this.entities.length} 个实体`
     });
 
-    // 排序控制
-    const sortControl = header.createDiv('pm-list-sort');
-    
-    const sortSelect = sortControl.createEl('select', { cls: 'pm-list-sort-select' });
-    const sortOptions = [
-      { value: 'name', label: '名称' },
-      { value: 'status', label: '状态' },
-      { value: 'priority', label: '优先级' },
-      { value: 'startDate', label: '开始日期' },
-      { value: 'endDate', label: '结束日期' },
-      { value: 'progress', label: '进度' },
-    ];
-    
-    sortOptions.forEach(opt => {
-      const option = sortSelect.createEl('option');
-      option.value = opt.value;
-      option.textContent = opt.label;
-      if (opt.value === (this.config.sortBy || 'name')) option.selected = true;
-    });
+    // 第二行：列标题（与卡片内容区域对齐）
+    const columnsRow = header.createDiv('pm-list-header-columns');
 
-    sortSelect.addEventListener('change', async () => {
-      const newConfig: ViewConfig = { ...this.config, sortBy: sortSelect.value as any };
-      await this.saveSortConfig(newConfig);
-      this.render(container.closest('.pm-list-view') as HTMLElement);
-    });
+    // 名称列（固定）
+    const mainCol = columnsRow.createDiv('pm-list-header-main');
+    mainCol.textContent = '名称';
 
-    // 排序方向按钮
-    const currentSortOrder = this.config.sortOrder || 'asc';
-    const orderBtn = sortControl.createEl('button', { 
-      cls: 'pm-list-sort-order',
-      attr: { title: currentSortOrder === 'asc' ? '升序' : '降序' }
-    });
-    orderBtn.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
-    orderBtn.addEventListener('click', async () => {
-      const newOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-      const newConfig: ViewConfig = { ...this.config, sortOrder: newOrder };
-      await this.saveSortConfig(newConfig);
-      this.render(container.closest('.pm-list-view') as HTMLElement);
-    });
+    // 元信息列（按卡片 meta 顺序）
+    const metaCol = columnsRow.createDiv('pm-list-header-meta');
+    const metaFields = ['status', 'priority', 'progress', 'owner', 'endDate', 'tags'];
+    const columnWidths: Record<string, string> = {
+      status: '60px',
+      priority: '50px',
+      progress: '80px',
+      owner: '60px',
+      endDate: '70px',
+      tags: '80px',
+    };
+
+    for (const fieldKey of metaFields) {
+      if (currentColumns.includes(fieldKey as any)) {
+        const cell = metaCol.createDiv('pm-list-header-cell');
+        cell.style.width = columnWidths[fieldKey] || 'auto';
+        const def = LIST_COLUMN_DEFINITIONS.find(d => d.key === fieldKey);
+        cell.textContent = def?.label || fieldKey;
+      }
+    }
   }
 
   /**
@@ -111,7 +99,8 @@ export class ListRenderer extends BaseRenderer {
    */
   private async renderListCard(container: HTMLElement, entity: Entity): Promise<void> {
     const entityType = getEntityType(entity);
-    
+    const currentColumns = this.config.listColumns || ['name', 'status', 'priority', 'owner'];
+
     const card = container.createDiv('pm-list-card');
     card.dataset.entityId = entity.id;
     card.dataset.entityType = entityType;
@@ -128,25 +117,26 @@ export class ListRenderer extends BaseRenderer {
 
     // 左侧：类型图标 + 标题
     const main = content.createDiv('pm-list-card-main');
-    
+
     const typeIcon = main.createDiv('pm-list-card-type-icon');
     typeIcon.textContent = this.getEntityTypeIcon(entityType);
 
     const titleSection = main.createDiv('pm-list-card-title-section');
     titleSection.createDiv({ cls: 'pm-list-card-title', text: entity.name });
-    
+
     // 父实体信息
-    if ('projectId' in entity && entity.projectId) {
+    if (currentColumns.includes('projectId') && 'projectId' in entity && entity.projectId) {
       const projectName = await this.getEntityName('projectId', entity.projectId);
-      titleSection.createDiv({ 
-        cls: 'pm-list-card-subtitle', 
-        text: `隶属于: ${projectName || entity.projectId}` 
+      titleSection.createDiv({
+        cls: 'pm-list-card-subtitle',
+        text: `隶属于: ${projectName || entity.projectId}`
       });
-    } else if ('versionId' in entity && entity.versionId) {
+    }
+    if (currentColumns.includes('versionId') && 'versionId' in entity && entity.versionId) {
       const versionName = await this.getEntityName('versionId', entity.versionId);
-      titleSection.createDiv({ 
-        cls: 'pm-list-card-subtitle', 
-        text: `版本: ${versionName || entity.versionId}` 
+      titleSection.createDiv({
+        cls: 'pm-list-card-subtitle',
+        text: `版本: ${versionName || entity.versionId}`
       });
     }
 
@@ -154,7 +144,7 @@ export class ListRenderer extends BaseRenderer {
     const meta = content.createDiv('pm-list-card-meta');
 
     // 状态
-    if ('status' in entity && entity.status) {
+    if ('status' in entity && entity.status && currentColumns.includes('status')) {
       meta.createSpan({
         cls: `pm-list-card-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status),
@@ -162,7 +152,7 @@ export class ListRenderer extends BaseRenderer {
     }
 
     // 进度
-    if ('progress' in entity && entity.progress !== undefined) {
+    if ('progress' in entity && entity.progress !== undefined && currentColumns.includes('progress')) {
       const progressEl = meta.createDiv('pm-list-card-progress');
       const progressBar = progressEl.createDiv('pm-list-card-progress-bar');
       progressBar.createDiv({
@@ -173,12 +163,12 @@ export class ListRenderer extends BaseRenderer {
     }
 
     // 负责人
-    if (entity.owner) {
+    if (entity.owner && currentColumns.includes('owner')) {
       meta.createSpan({ cls: 'pm-list-card-owner', text: `@${entity.owner}` });
     }
 
     // 结束日期
-    if ('endDate' in entity && entity.endDate) {
+    if ('endDate' in entity && entity.endDate && currentColumns.includes('endDate')) {
       const isOverdueDate = isOverdue(entity.endDate, entity.status as any);
       meta.createSpan({
         cls: `pm-list-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
@@ -187,7 +177,7 @@ export class ListRenderer extends BaseRenderer {
     }
 
     // 标签
-    if (entity.tags && entity.tags.length > 0) {
+    if (entity.tags && entity.tags.length > 0 && currentColumns.includes('tags')) {
       const tagsEl = meta.createDiv('pm-list-card-tags');
       entity.tags.slice(0, 2).forEach(tag => {
         tagsEl.createSpan({ cls: 'pm-list-card-tag', text: tag });
@@ -243,28 +233,6 @@ export class ListRenderer extends BaseRenderer {
     return null;
   }
 
-  /**
-   * 保存排序配置到代码块 - 使用 CodeBlockConfigService
-   */
-  private async saveSortConfig(newConfig: ViewConfig): Promise<void> {
-    if (!this.context.sourcePath || this.context.codeBlockIndex === undefined) return;
-
-    try {
-      await this.configService.saveConfig(
-        this.context.sourcePath,
-        this.context.codeBlockIndex,
-        {
-          sortBy: newConfig.sortBy,
-          sortOrder: newConfig.sortOrder
-        }
-      );
-
-      // 更新本地配置
-      this.config = newConfig;
-    } catch (error) {
-      console.error('保存排序配置失败:', error);
-    }
-  }
 }
 
 // 自注册到渲染器注册表

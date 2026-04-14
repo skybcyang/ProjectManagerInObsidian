@@ -1,8 +1,9 @@
 import { Plugin, TFile, MarkdownPostProcessorContext, parseYaml, MarkdownRenderChild, Notice } from 'obsidian';
 import { EntityManager } from './core';
 import { Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
-import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportICSModal } from './modals';
+import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportEmailModal } from './modals';
 import { ValidationError, needsStatusConfirmation, ErrorHandler } from './utils';
+import { EmailSummaryService } from './services';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
 import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature, ProjectManagerSettings } from './types';
 import { ViewEngine } from './view-engine';
@@ -18,6 +19,7 @@ export default class ProjectManagerPlugin extends Plugin {
   private progressInput: ProgressInput;
   private viewEngine: ViewEngine;
   private dataviewRegistry: DataviewFunctionRegistry;
+  private emailSummaryService: EmailSummaryService;
 
   async onload(): Promise<void> {
     // 加载设置
@@ -34,6 +36,9 @@ export default class ProjectManagerPlugin extends Plugin {
 
     // 初始化 Dataview 函数注册表
     this.dataviewRegistry = new DataviewFunctionRegistry(this.app, this);
+
+    // 初始化邮件摘要服务
+    this.emailSummaryService = new EmailSummaryService(this.app, this.entityManager);
 
     // 初始化缓存 - 等待 metadata cache 准备好
     await this.waitForMetadataCache();
@@ -95,11 +100,11 @@ export default class ProjectManagerPlugin extends Plugin {
       callback: () => this.openCreateFeatureModal(),
     });
 
-    // 命令：导出 ICS
+    // 命令：导出项目总结邮件
     this.addCommand({
-      id: 'export-ics',
-      name: '导出截止日期到日历',
-      callback: () => this.exportICS(),
+      id: 'export-email-summary',
+      name: '导出项目总结邮件',
+      callback: () => this.exportEmailSummary(),
     });
 
     // 命令：查看变更历史
@@ -127,6 +132,19 @@ export default class ProjectManagerPlugin extends Plugin {
         }
       })
     );
+
+    // 全局事件委托：捕获 Reading view 下的 pm-btn 点击
+    this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+      const target = evt.target as HTMLElement;
+      const btn = target.closest('.pm-btn[data-action]') as HTMLElement | null;
+      if (!btn) return;
+
+      // 如果按钮已经被 processButtons 处理过且事件正常触发，这里不应该重复执行
+      // 但在 Reading view 下 addEventListener 可能失效，所以用全局委托兜底
+      evt.preventDefault();
+      evt.stopPropagation();
+      this.button.handleButtonClick(btn);
+    });
 
     // 监听 layout-change 事件来处理按钮
     this.registerEvent(
@@ -192,11 +210,15 @@ export default class ProjectManagerPlugin extends Plugin {
   private async waitForMetadataCache(): Promise<void> {
     // 等待 vault 文件系统准备好
     return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 100; // 最多等待 5 秒 (100 * 50ms)
+
       const checkReady = () => {
+        attempts++;
         // 通过检查 vault 是否有文件来判断
         const files = this.app.vault.getMarkdownFiles();
-        // 如果有文件或者已经过了足够时间，认为准备好了
-        if (files.length > 0) {
+        // 如果有文件或者已经超时，认为准备好了
+        if (files.length > 0 || attempts >= maxAttempts) {
           // 再给一个短暂的延迟确保 metadata 被解析
           setTimeout(resolve, 100);
         } else {
@@ -629,10 +651,10 @@ export default class ProjectManagerPlugin extends Plugin {
   }
 
   /**
-   * 导出 ICS 文件
+   * 导出项目总结邮件
    */
-  private exportICS(): void {
-    new ExportICSModal(this.app, this.entityManager).open();
+  private exportEmailSummary(): void {
+    new ExportEmailModal(this.app, this.emailSummaryService).open();
   }
 
   /**

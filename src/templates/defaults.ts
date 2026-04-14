@@ -72,7 +72,7 @@ Border: off
 
 --- column-break ---
 
-<span class="pm-btn" data-action="export-ics">📅 导出ICS</span>
+<span class="pm-btn" data-action="export-email-summary">📧 导出邮件</span>
 
 --- end-multi-column
 

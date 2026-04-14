@@ -92,10 +92,8 @@ export class WorkloadRenderer extends BaseRenderer {
    * 加载数据
    */
   private async loadData(): Promise<WorkloadData[]> {
-    const versionId = this.config.version;
-
     if (this.groupBy === 'project') {
-      return this.reportService.calculateWorkloadByProject(versionId);
+      return this.reportService.calculateWorkloadByProject(this.config);
     } else {
       return this.reportService.calculateWorkloadByOwner(
         this.config.entityType || 'feature',

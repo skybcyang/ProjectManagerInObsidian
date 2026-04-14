@@ -6,14 +6,14 @@ import { VIEW_MODE_LABELS } from '../types';
  */
 export interface ToolbarOptions {
   onViewModeChange: (mode: ViewMode) => void;
-  onFilterToggle: () => void;
-  onSortClick: () => void;
   onPropertyClick: () => void;
+  onFullscreenClick?: () => void;
 }
 
 /**
  * 工具栏控制器
- * 负责渲染工具栏和处理工具栏交互
+ * 负责渲染工具栏基础骨架（视图模式 + 属性按钮）
+ * FilterBar 和排序 badge 由 ViewEngine 在外部组装
  */
 export class ToolbarController {
   /**
@@ -29,7 +29,7 @@ export class ToolbarController {
     // 左侧：视图模式切换下拉
     this.renderViewModeSelector(toolbar, config, options.onViewModeChange);
 
-    // 右侧：功能按钮组
+    // 右侧：功能按钮组（仅保留属性按钮，FilterBar 和排序 badge 由 ViewEngine 插入）
     this.renderActionButtons(toolbar, options);
 
     return toolbar;
@@ -72,34 +72,35 @@ export class ToolbarController {
   ): void {
     const buttonGroup = toolbar.createDiv('pm-toolbar-group pm-toolbar-right');
 
-    // 筛选按钮
-    const filterBtn = buttonGroup.createEl('button', {
-      cls: 'pm-toolbar-btn',
-      text: '筛选 ▼',
-    });
-    filterBtn.addEventListener('click', () => {
-      options.onFilterToggle();
-      // 切换按钮文字
-      const currentWrapper = filterBtn.closest('.pm-view-wrapper') as HTMLElement;
-      const filterBar = currentWrapper?.querySelector('.pm-filter-container') as HTMLElement;
-      if (filterBar) {
-        const isHidden = filterBar.style.display === 'none';
-        filterBtn.textContent = isHidden ? '筛选 ▲' : '筛选 ▼';
-      }
-    });
+    // 全屏按钮
+    if (options.onFullscreenClick) {
+      const fsBtn = buttonGroup.createEl('button', {
+        cls: 'pm-toolbar-btn pm-toolbar-btn-fullscreen',
+      });
+      const { setIcon } = require('obsidian');
+      setIcon(fsBtn, 'maximize');
+      fsBtn.addEventListener('click', options.onFullscreenClick);
+    }
 
-    // 排序按钮
-    const sortBtn = buttonGroup.createEl('button', {
-      cls: 'pm-toolbar-btn',
-      text: '排序 ▼',
-    });
-    sortBtn.addEventListener('click', options.onSortClick);
-
-    // 属性按钮
-    const propBtn = buttonGroup.createEl('button', {
-      cls: 'pm-toolbar-btn',
-      text: '属性 ▼',
-    });
+    // 属性按钮（SelectCell badge 风格）
+    const propBtn = buttonGroup.createDiv('pm-cell-badge pm-toolbar-prop-btn');
+    propBtn.textContent = '属性 ▼';
+    const propColor = '#f59e0b';
+    propBtn.style.cssText = `
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      background-color: rgba(245, 158, 11, 0.15);
+      color: ${propColor};
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      transition: all 0.2s ease;
+    `;
     propBtn.addEventListener('click', options.onPropertyClick);
   }
 }

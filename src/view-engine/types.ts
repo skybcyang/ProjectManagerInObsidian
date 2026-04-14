@@ -140,7 +140,7 @@ export interface ViewConfig {
   sorts?: SortConfig[];
 
   // 旧版排序（向后兼容）
-  sortBy?: 'name' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
+  sortBy?: 'name' | 'status' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
   sortOrder?: 'asc' | 'desc';
 
   // 显示列配置（列表/网格视图用）

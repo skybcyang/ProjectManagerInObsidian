@@ -30,25 +30,22 @@ export class GridRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-grid-view');
 
-    // 使用基类统一的数据准备方法
+    // 使用基类统一的数据准备方法（已包含 limit）
     let sorted = await this.prepareData();
     this.entities = sorted;
 
-    // 限制数量
-    const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
-
     // 创建网格容器
     const gridContainer = container.createDiv('pm-grid-container');
-    
+
     // 设置列数
     const cols = this.config.cols || 3;
     gridContainer.style.setProperty('--grid-cols', String(cols));
 
     // 渲染卡片
-    if (limited.length === 0) {
+    if (sorted.length === 0) {
       this.createEmptyState(gridContainer, '没有匹配的实体');
     } else {
-      for (const entity of limited) {
+      for (const entity of sorted) {
         await this.renderGridCard(gridContainer, entity);
       }
     }
@@ -105,15 +102,15 @@ export class GridRenderer extends BaseRenderer {
     body.createDiv({ cls: 'pm-grid-card-title', text: entity.name });
 
     // 描述（如果有）
-    if ('description' in entity && entity.description && typeof entity.description === 'string') {
-      body.createDiv({ 
-        cls: 'pm-grid-card-desc', 
-        text: entity.description 
+    if ('description' in entity && entity.description && typeof entity.description === 'string' && this.shouldShowCardField('description')) {
+      body.createDiv({
+        cls: 'pm-grid-card-desc',
+        text: entity.description
       });
     }
 
     // 状态标签
-    if ('status' in entity && entity.status) {
+    if ('status' in entity && entity.status && this.shouldShowCardField('status')) {
       body.createSpan({
         cls: `pm-grid-card-status pm-status-${entity.status}`,
         text: this.translateStatus(entity.status),
@@ -121,7 +118,7 @@ export class GridRenderer extends BaseRenderer {
     }
 
     // 标签
-    if (entity.tags && entity.tags.length > 0) {
+    if (entity.tags && entity.tags.length > 0 && this.shouldShowCardField('tags')) {
       const tagsContainer = body.createDiv('pm-grid-card-tags');
       entity.tags.slice(0, 4).forEach(tag => {
         tagsContainer.createSpan({ cls: 'pm-grid-card-tag', text: tag });
@@ -140,15 +137,23 @@ export class GridRenderer extends BaseRenderer {
     // 左侧信息
     const footerLeft = footer.createDiv('pm-grid-card-footer-left');
 
-    if (entity.owner) {
-      footerLeft.createSpan({ 
-        cls: 'pm-grid-card-owner', 
-        text: `@${entity.owner}` 
+    if (entity.owner && this.shouldShowCardField('owner')) {
+      footerLeft.createSpan({
+        cls: 'pm-grid-card-owner',
+        text: `@${entity.owner}`
+      });
+    }
+
+    // 开始日期
+    if ('startDate' in entity && entity.startDate && this.shouldShowCardField('startDate')) {
+      footerLeft.createSpan({
+        cls: 'pm-grid-card-start',
+        text: DateFormat.short(entity.startDate),
       });
     }
 
     // 结束日期
-    if ('endDate' in entity && entity.endDate) {
+    if ('endDate' in entity && entity.endDate && this.shouldShowCardField('endDate')) {
       const isOverdueDate = isOverdue(entity.endDate, entity.status as any);
       footerLeft.createSpan({
         cls: `pm-grid-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
@@ -157,7 +162,7 @@ export class GridRenderer extends BaseRenderer {
     }
 
     // 右侧：进度
-    if ('progress' in entity && entity.progress !== undefined) {
+    if ('progress' in entity && entity.progress !== undefined && this.shouldShowCardField('progress')) {
       const progressEl = footer.createDiv('pm-grid-card-progress');
       const progressBar = progressEl.createDiv('pm-grid-card-progress-bar');
       progressBar.createDiv({

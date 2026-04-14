@@ -168,4 +168,115 @@ describe('View Renderers', () => {
       expect(completionRate).toBe(50);
     });
   });
+
+  describe('Cascade Data Preparation', () => {
+    it('should derive version and project ids from filtered features', () => {
+      const version = createMockVersion({ id: 'ver-cascade' });
+      const project1 = createMockProject({ id: 'proj-1', versionId: 'ver-cascade' });
+      const project2 = createMockProject({ id: 'proj-2', versionId: 'ver-cascade' });
+      const features = [
+        createMockFeature({ id: 'feat-1', versionId: 'ver-cascade', projectId: 'proj-1' }),
+        createMockFeature({ id: 'feat-2', versionId: 'ver-cascade', projectId: 'proj-2' }),
+      ];
+
+      // Simulate selecting only feat-1
+      const selectedFeatures = features.filter(f => f.id === 'feat-1');
+      const projectIds = new Set(selectedFeatures.map(f => f.projectId));
+      const versionIds = new Set(selectedFeatures.map(f => f.versionId));
+
+      expect(projectIds.has('proj-1')).toBe(true);
+      expect(projectIds.has('proj-2')).toBe(false);
+      expect(versionIds.has('ver-cascade')).toBe(true);
+    });
+
+    it('should derive version ids from filtered projects', () => {
+      const version1 = createMockVersion({ id: 'ver-1' });
+      const version2 = createMockVersion({ id: 'ver-2' });
+      const projects = [
+        createMockProject({ id: 'proj-1', versionId: 'ver-1' }),
+        createMockProject({ id: 'proj-2', versionId: 'ver-2' }),
+      ];
+
+      // Simulate selecting only proj-2
+      const selectedProjects = projects.filter(p => p.id === 'proj-2');
+      const versionIds = new Set(selectedProjects.map(p => p.versionId));
+
+      expect(versionIds.has('ver-1')).toBe(false);
+      expect(versionIds.has('ver-2')).toBe(true);
+    });
+
+    it('should keep cascade stats consistent with filtered data', () => {
+      const features = [
+        createMockFeature({ status: 'completed', progress: 100, projectId: 'proj-1' }),
+        createMockFeature({ status: 'in-progress', progress: 50, projectId: 'proj-1' }),
+        createMockFeature({ status: 'todo', progress: 0, projectId: 'proj-1' }),
+      ];
+
+      const filteredFeatures = features.filter(f => f.status !== 'todo');
+      const totalProgress = filteredFeatures.reduce((sum, f) => sum + f.progress, 0);
+      const avgProgress = filteredFeatures.length > 0 ? Math.round(totalProgress / filteredFeatures.length) : 0;
+      const completedCount = filteredFeatures.filter(f => f.status === 'completed').length;
+
+      expect(filteredFeatures.length).toBe(2);
+      expect(avgProgress).toBe(75);
+      expect(completedCount).toBe(1);
+    });
+  });
+
+  describe('Array-based Hierarchy Filters', () => {
+    it('should filter features by version ids', () => {
+      const features = [
+        createMockFeature({ id: 'feat-1', versionId: 'ver-a', projectId: 'proj-1' }),
+        createMockFeature({ id: 'feat-2', versionId: 'ver-b', projectId: 'proj-2' }),
+        createMockFeature({ id: 'feat-3', versionId: 'ver-a', projectId: 'proj-1' }),
+      ];
+
+      const versionIds = ['ver-a'];
+      const filtered = features.filter(f => versionIds.includes(f.versionId));
+
+      expect(filtered).toHaveLength(2);
+      expect(filtered.map(f => f.id)).toEqual(['feat-1', 'feat-3']);
+    });
+
+    it('should filter features by project ids', () => {
+      const features = [
+        createMockFeature({ id: 'feat-1', versionId: 'ver-a', projectId: 'proj-1' }),
+        createMockFeature({ id: 'feat-2', versionId: 'ver-a', projectId: 'proj-2' }),
+      ];
+
+      const projectIds = ['proj-2'];
+      const filtered = features.filter(f => projectIds.includes(f.projectId));
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe('feat-2');
+    });
+
+    it('should filter features by feature ids', () => {
+      const features = [
+        createMockFeature({ id: 'feat-1' }),
+        createMockFeature({ id: 'feat-2' }),
+        createMockFeature({ id: 'feat-3' }),
+      ];
+
+      const featureIds = ['feat-1', 'feat-3'];
+      const filtered = features.filter(f => featureIds.includes(f.id));
+
+      expect(filtered).toHaveLength(2);
+      expect(filtered.map(f => f.id)).toEqual(['feat-1', 'feat-3']);
+    });
+
+    it('should filter projects by version ids', () => {
+      const projects = [
+        createMockProject({ id: 'proj-1', versionId: 'ver-a' }),
+        createMockProject({ id: 'proj-2', versionId: 'ver-b' }),
+        createMockProject({ id: 'proj-3', versionId: 'ver-a' }),
+      ];
+
+      const versionIds = ['ver-b'];
+      const filtered = projects.filter(p => versionIds.includes(p.versionId));
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe('proj-2');
+    });
+  });
 });

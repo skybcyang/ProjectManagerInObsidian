@@ -23,6 +23,12 @@ export class ViewEngine {
   private propertyPanelController: PropertyPanelController;
   // 使用 codeBlockIndex 作为 key，避免 DOM 引用导致的内存泄漏
   private filterBarMap: Map<string, FilterBar> = new Map();
+  // 保存每个代码块的最新配置，避免闭包陷阱
+  private currentConfigs: Map<string, ViewConfig> = new Map();
+  // 当前处于全屏模式的 wrapper
+  private fullscreenWrapper: HTMLElement | null = null;
+  // fullscreenchange 事件处理器
+  private fullscreenChangeHandler: (() => void) | null = null;
 
   constructor(
     private app: App,
@@ -34,6 +40,15 @@ export class ViewEngine {
     this.toolbarController = new ToolbarController();
     this.sortMenuController = new SortMenuController();
     this.propertyPanelController = new PropertyPanelController();
+
+    // 注册打开实体前自动退出全屏的回调
+    this.actionService.setBeforeOpenEntityCallback(() => {
+      if (this.fullscreenWrapper && document.fullscreenElement === this.fullscreenWrapper) {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    this.setupFullscreenHandler();
   }
 
   /**
@@ -46,8 +61,23 @@ export class ViewEngine {
     });
     this.filterBarMap.clear();
 
-    // 2. 清理 configService 中的防抖定时器
+    // 2. 清理 currentConfigs
+    this.currentConfigs.clear();
+
+    // 3. 清理 configService 中的防抖定时器
     this.configService.clearPendingSaves();
+
+    // 4. 如果当前本实例管理的视图处于全屏，退出全屏
+    if (this.fullscreenWrapper && document.fullscreenElement === this.fullscreenWrapper) {
+      document.exitFullscreen().catch(() => {});
+    }
+    this.fullscreenWrapper = null;
+
+    // 5. 移除 fullscreenchange 监听
+    if (this.fullscreenChangeHandler) {
+      document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+      this.fullscreenChangeHandler = null;
+    }
   }
 
   /**
@@ -63,7 +93,36 @@ export class ViewEngine {
   }
 
   /**
-   * 渲染视图 - 工具栏在上，筛选在中，视图在下
+   * 设置全屏状态变化监听器
+   */
+  private setupFullscreenHandler(): void {
+    this.fullscreenChangeHandler = () => {
+      const isFullscreen = !!document.fullscreenElement;
+      document.querySelectorAll('.pm-toolbar-btn-fullscreen').forEach((btn) => {
+        const { setIcon } = require('obsidian');
+        setIcon(btn as HTMLElement, isFullscreen ? 'minimize' : 'maximize');
+      });
+      if (!isFullscreen) {
+        this.fullscreenWrapper = null;
+      }
+    };
+    document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+  }
+
+  /**
+   * 切换全屏状态
+   */
+  private toggleFullscreen(wrapper: HTMLElement): void {
+    if (document.fullscreenElement === wrapper) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      this.fullscreenWrapper = wrapper;
+      wrapper.requestFullscreen().catch(() => {});
+    }
+  }
+
+  /**
+   * 渲染视图 - 工具栏（含筛选）在上，视图在下
    */
   async render(
     container: HTMLElement,
@@ -77,76 +136,100 @@ export class ViewEngine {
     // 创建视图包装器
     const wrapper = container.createDiv('pm-view-wrapper');
 
-    // 1. 渲染工具栏（视图切换、属性面板等）
-    this.renderToolbar(wrapper, config, context, codeBlockIndex);
-
-    // 2. 创建筛选器 - 先销毁当前代码块可能存在的旧 FilterBar
+    // 初始化 key 和配置
     const key = `${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`;
     const oldFilterBar = this.filterBarMap.get(key);
     if (oldFilterBar) {
       oldFilterBar.destroy();
     }
+    this.currentConfigs.set(key, config);
 
+    // 创建 FilterBar（稍后由 renderToolbar 嵌入到 toolbar 中）
     const filterBar = new FilterBar(
       this.app,
       this.entityManager,
       async (filters) => {
-        const finalConfig: ViewConfig = { ...config, ...filters };
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const finalConfig: ViewConfig = { ...currentConfig, ...filters };
+        this.currentConfigs.set(key, finalConfig);
         await this.renderContent(contentArea, finalConfig, context);
       },
       context.sourcePath,
       codeBlockIndex
     );
     await filterBar.loadOptions();
-    filterBar.render(wrapper, config);
-
-    // 保存 FilterBar 引用到 Map - 使用 codeBlockIndex 作为 key
     this.filterBarMap.set(key, filterBar);
 
-    // 3. 再创建内容区域（在下）
+    // 1. 渲染工具栏（内含视图模式、FilterBar、排序、属性按钮）
+    this.renderToolbar(wrapper, config, context, codeBlockIndex, filterBar);
+
+    // 2. 创建内容区域（在下）
     const contentArea = wrapper.createDiv('pm-view-content');
 
-    // 4. 渲染初始内容
-    // 将 codeBlockIndex 设置到 context 中供子组件使用
+    // 3. 渲染初始内容
     context.codeBlockIndex = codeBlockIndex;
     await this.renderContent(contentArea, config, context);
   }
 
   /**
-   * 渲染工具栏 - 委托给 ToolbarController
+   * 渲染工具栏 - 委托给 ToolbarController，并组装 FilterBar 与排序 badge
    */
   private renderToolbar(
     wrapper: HTMLElement,
     config: ViewConfig,
     context: ViewContext,
-    codeBlockIndex?: number
+    codeBlockIndex: number | undefined,
+    filterBar: FilterBar
   ): HTMLElement {
-    const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement
-      || wrapper; // 如果还没有 contentArea，使用 wrapper 作为后备
+    const key = `${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`;
 
-    return this.toolbarController.render(wrapper, config, {
+    const toolbar = this.toolbarController.render(wrapper, config, {
       onViewModeChange: async (newMode) => {
-        const newConfig: ViewConfig = { ...config, mode: newMode };
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig: ViewConfig = { ...currentConfig, mode: newMode };
+        this.currentConfigs.set(key, newConfig);
         await this.saveViewModeChange(context.sourcePath, codeBlockIndex, newMode);
         const targetContentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (targetContentArea) {
           await this.renderContent(targetContentArea, newConfig, context);
         }
       },
-      onFilterToggle: () => {
-        const filterBar = wrapper.querySelector('.pm-filter-container') as HTMLElement;
-        if (filterBar) {
-          const isHidden = filterBar.style.display === 'none';
-          filterBar.style.display = isHidden ? 'block' : 'none';
-        }
-      },
-      onSortClick: () => {
-        this.showSortMenu(wrapper, config, context, codeBlockIndex);
-      },
       onPropertyClick: () => {
-        this.showPropertyPanel(wrapper, config, context, codeBlockIndex);
+        this.showPropertyPanel(wrapper, this.currentConfigs.get(key) || config, context, codeBlockIndex);
+      },
+      onFullscreenClick: () => {
+        this.toggleFullscreen(wrapper);
       },
     });
+
+    // 在右侧区域嵌入 FilterBar、排序 badge，并调整属性按钮到全屏按钮之前
+    const rightGroup = toolbar.querySelector('.pm-toolbar-right') as HTMLElement;
+    if (rightGroup) {
+      filterBar.renderInto(rightGroup, config);
+      this.sortMenuController.renderBadge(rightGroup, this.currentConfigs.get(key) || config, async (sortBy, sortOrder) => {
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig: ViewConfig = { ...currentConfig, sortBy: sortBy as ViewConfig['sortBy'], sortOrder };
+        this.currentConfigs.set(key, newConfig);
+        await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
+        const targetContentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
+        if (targetContentArea) {
+          await this.renderContent(targetContentArea, newConfig, context);
+        }
+      });
+      // 调整顺序：FilterBar → 排序 badge → 属性按钮 → 全屏按钮
+      const propBtn = rightGroup.querySelector('.pm-toolbar-prop-btn') as HTMLElement;
+      const fsBtn = rightGroup.querySelector('.pm-toolbar-btn-fullscreen') as HTMLElement;
+      if (fsBtn) {
+        rightGroup.appendChild(fsBtn);
+      }
+      if (propBtn && fsBtn) {
+        rightGroup.insertBefore(propBtn, fsBtn);
+      } else if (propBtn) {
+        rightGroup.appendChild(propBtn);
+      }
+    }
+
+    return toolbar;
   }
 
   /**
@@ -195,6 +278,8 @@ export class ViewEngine {
     renderer.init(config, context);
 
     // 设置刷新回调 - 使用事件总线
+    // 先取消旧订阅，防止内存泄漏
+    (container as any)._unsubscribeRefresh?.();
     const unsubscribe = this.actionService.onRefresh(() => {
       this.renderContent(container, config, context);
     });
@@ -219,8 +304,7 @@ export class ViewEngine {
       this.app,
       this.entityManager,
       this.dataService,
-      this.actionService,
-      this.configService
+      this.actionService
     );
   }
 
@@ -272,28 +356,6 @@ export class ViewEngine {
   }
 
   /**
-   * 显示排序菜单 - 委托给 SortMenuController
-   */
-  private showSortMenu(
-    wrapper: HTMLElement,
-    config: ViewConfig,
-    context: ViewContext,
-    codeBlockIndex?: number
-  ): void {
-    const triggerBtn = wrapper.querySelector('.pm-toolbar-btn:nth-child(2)') as HTMLElement;
-    if (!triggerBtn) return;
-
-    this.sortMenuController.show(triggerBtn, config, async (sortBy, sortOrder) => {
-      const newConfig: ViewConfig = { ...config, sortBy: sortBy as ViewConfig['sortBy'], sortOrder };
-      await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
-      const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
-      if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
-      }
-    });
-  }
-
-  /**
    * 显示属性面板 - 委托给 PropertyPanelController
    */
   private showPropertyPanel(
@@ -302,16 +364,15 @@ export class ViewEngine {
     context: ViewContext,
     codeBlockIndex?: number
   ): void {
-    const triggerBtn = wrapper.querySelector('.pm-toolbar-btn:nth-child(3)') as HTMLElement;
+    const triggerBtn = wrapper.querySelector('.pm-toolbar-right .pm-toolbar-prop-btn') as HTMLElement;
     if (!triggerBtn) return;
 
+    const key = `${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`;
     this.propertyPanelController.show(triggerBtn, wrapper, config, {
       onConfigChange: async (updates) => {
-        const newConfig = { ...config, ...updates };
-        // 如果是 entityType 变更，需要保存
-        if ('entityType' in updates) {
-          await this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, updates.entityType!);
-        }
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig = { ...currentConfig, ...updates };
+        this.currentConfigs.set(key, newConfig);
         const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (contentArea) {
           await this.renderContent(contentArea, newConfig, context);
@@ -335,17 +396,6 @@ export class ViewEngine {
       sortBy: newConfig.sortBy,
       sortOrder: newConfig.sortOrder
     });
-  }
-
-  /**
-   * 保存实体类型配置 - 使用统一的 saveViewConfig
-   */
-  private async saveEntityTypeConfig(
-    sourcePath: string,
-    codeBlockIndex: number | undefined,
-    entityType: string
-  ): Promise<void> {
-    await this.saveViewConfig(sourcePath, codeBlockIndex, { entityType: entityType as 'version' | 'project' | 'feature' });
   }
 
   /**

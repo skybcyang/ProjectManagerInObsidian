@@ -6,6 +6,12 @@ import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
 
+interface CascadeData {
+  versions: Version[];
+  projects: Project[];
+  features: Feature[];
+}
+
 /**
  * 级联渲染器
  * 卡片式层级视图：版本 → 项目 → 特性
@@ -27,25 +33,78 @@ export class CascadeRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-cascade-container');
 
-    // 根据配置决定渲染方式
-    if ((this.config as any).id) {
-      await this.renderEntityTree(container, (this.config as any).id);
-    } else {
-      await this.renderAllVersions(container);
+    const data = await this.prepareCascadeData();
+
+    if (data.versions.length === 0) {
+      this.createEmptyState(container, '暂无数据');
+      return;
+    }
+
+    for (const version of data.versions) {
+      const versionProjects = data.projects.filter(p => p.versionId === version.id);
+      await this.renderVersionTree(container, version, versionProjects, data.features);
     }
   }
 
   /**
-   * 渲染单个实体的级联树
+   * 准备级联数据
+   * 1. 通过 DataService.loadEntities 应用树形筛选
+   * 2. 从筛选结果反推需要显示的版本和项目
+   * 3. 返回过滤后的三层数据
    */
-  private async renderEntityTree(container: HTMLElement, entityId: string): Promise<void> {
-    if (this.config.feature) {
-      await this.renderFeatureTree(container, entityId, 0);
-    } else if (this.config.project) {
-      await this.renderProjectTree(container, entityId, 0);
-    } else {
-      await this.renderVersionTree(container, entityId, 0);
+  private async prepareCascadeData(): Promise<CascadeData> {
+    const entityType = this.config.entityType || 'feature';
+
+    // 先获取按树形筛选过滤后的实体
+    const filteredEntities = await this.dataService.loadEntities(this.config);
+
+    let versionIds = new Set<string>();
+    let projectIds = new Set<string>();
+    let features: Feature[] = [];
+
+    if (entityType === 'feature') {
+      features = filteredEntities as Feature[];
+      features.forEach(f => {
+        projectIds.add(f.projectId);
+        versionIds.add(f.versionId);
+      });
+    } else if (entityType === 'project') {
+      const projects = filteredEntities as Project[];
+      projects.forEach(p => {
+        projectIds.add(p.id);
+        versionIds.add(p.versionId);
+      });
+      // 获取这些项目下的所有特性（再应用平面过滤）
+      const allFeatures = await this.entityManager.listFeatures();
+      features = allFeatures.filter(f => projectIds.has(f.projectId));
+      features = this.dataService.applyFilters(features as any, this.config) as any;
+    } else if (entityType === 'version') {
+      const versions = filteredEntities as Version[];
+      versions.forEach(v => versionIds.add(v.id));
+      // 获取这些版本下的所有项目
+      const allProjects = await this.entityManager.listProjects();
+      const relevantProjects = allProjects.filter(p => versionIds.has(p.versionId));
+      relevantProjects.forEach(p => projectIds.add(p.id));
+      // 获取这些项目下的所有特性（再应用平面过滤）
+      const allFeatures = await this.entityManager.listFeatures();
+      features = allFeatures.filter(f => projectIds.has(f.projectId));
+      features = this.dataService.applyFilters(features as any, this.config) as any;
     }
+
+    // 加载并过滤版本和项目
+    const allVersions = await this.entityManager.listVersions();
+    const versions = this.sortEntities(
+      allVersions.filter(v => versionIds.has(v.id))
+    ) as Version[];
+
+    const allProjects = await this.entityManager.listProjects();
+    const projects = this.sortEntities(
+      allProjects.filter(p => projectIds.has(p.id))
+    ) as Project[];
+
+    features = this.sortEntities(features) as Feature[];
+
+    return { versions, projects, features };
   }
 
   /**
@@ -53,100 +112,26 @@ export class CascadeRenderer extends BaseRenderer {
    */
   private async renderVersionTree(
     container: HTMLElement,
-    versionId: string,
-    level: number
+    version: Version,
+    projects: Project[],
+    allFeatures: Feature[]
   ): Promise<void> {
-    const version = await this.entityManager.getVersion(versionId);
-    if (!version) return;
-
     // 创建版本区块
     const versionSection = container.createDiv('pm-cascade-section');
-    
-    // 渲染版本头部（带头衔和统计）
-    await this.renderVersionHeader(versionSection, version);
 
-    // 加载项目
-    const projects = await this.entityManager.listProjects({ versionId });
+    // 渲染版本头部（带头衔和统计）
+    await this.renderVersionHeader(versionSection, version, projects, allFeatures);
 
     if (projects.length === 0) {
       versionSection.createDiv({ cls: 'pm-cascade-empty', text: '暂无项目' });
       return;
     }
 
-    // 应用排序
-    const sortedProjects = this.sortEntities(projects) as Project[];
-
     // 渲染项目列表
     const projectsContainer = versionSection.createDiv('pm-cascade__projects');
-    for (const project of sortedProjects) {
-      await this.renderProjectCard(projectsContainer, project);
-    }
-  }
-
-  /**
-   * 渲染项目树
-   */
-  private async renderProjectTree(
-    container: HTMLElement,
-    projectId: string,
-    level: number
-  ): Promise<void> {
-    const project = await this.entityManager.getProject(projectId);
-    if (!project) return;
-
-    // 单项目视图
-    const section = container.createDiv('pm-cascade-section');
-    await this.renderProjectCard(section, project, true);
-  }
-
-  /**
-   * 渲染特性树
-   */
-  private async renderFeatureTree(
-    container: HTMLElement,
-    featureId: string,
-    level: number
-  ): Promise<void> {
-    const feature = await this.entityManager.getFeature(featureId);
-    if (!feature) return;
-
-    // 加载项目和版本信息
-    const project = feature.projectId ? 
-      await this.entityManager.getProject(feature.projectId) : null;
-    const version = project?.versionId ? 
-      await this.entityManager.getVersion(project.versionId) : null;
-
-    // 创建层级结构
-    const section = container.createDiv('pm-cascade-section');
-    
-    if (version) {
-      await this.renderVersionHeader(section, version, true);
-    }
-    
-    if (project) {
-      await this.renderProjectCard(section, project, true, feature);
-    } else {
-      // 单独特性
-      this.renderFeatureRow(section.createDiv('pm-cascade__features'), feature);
-    }
-  }
-
-  /**
-   * 渲染所有版本
-   */
-  private async renderAllVersions(container: HTMLElement): Promise<void> {
-    const versions = await this.entityManager.listVersions();
-
-    if (versions.length === 0) {
-      container.createDiv({ cls: 'pm-cascade-empty', text: '暂无版本' });
-      return;
-    }
-
-    // 应用排序
-    const sortedVersions = this.sortEntities(versions) as Version[];
-
-    for (const version of sortedVersions) {
-      await this.renderVersionTree(container, version.id, 0);
+    for (const project of projects) {
+      const projectFeatures = allFeatures.filter(f => f.projectId === project.id);
+      await this.renderProjectCard(projectsContainer, project, projectFeatures);
     }
   }
 
@@ -154,23 +139,20 @@ export class CascadeRenderer extends BaseRenderer {
    * 渲染版本头部
    */
   private async renderVersionHeader(
-    container: HTMLElement, 
+    container: HTMLElement,
     version: Version,
-    isPlaceholder: boolean = false
+    projects: Project[],
+    allFeatures: Feature[]
   ): Promise<void> {
     const header = container.createDiv('pm-cascade__header');
-    if (!isPlaceholder) {
-      header.addClass('pm-cascade__header--clickable');
-      header.addEventListener('click', async () => {
-        await this.actionService.openEntity('version', version.id);
-      });
-    } else {
-      header.addClass('pm-cascade__header--placeholder');
-    }
+    header.addClass('pm-cascade__header--clickable');
+    header.addEventListener('click', async () => {
+      await this.actionService.openEntity('version', version.id);
+    });
 
     // 标题行
     const titleRow = header.createDiv('pm-cascade__title-row');
-    
+
     // 类型图标 + 名称
     const title = titleRow.createDiv('pm-cascade__title');
     title.createSpan({ cls: 'pm-cascade__icon', text: this.getEntityTypeIcon('version') });
@@ -184,33 +166,26 @@ export class CascadeRenderer extends BaseRenderer {
       });
     }
 
-    // 统计摘要
-    const projects = await this.entityManager.listProjects({ versionId: version.id });
-    const allFeatures: Feature[] = [];
-    let totalProgress = 0;
-    let completedCount = 0;
-
-    for (const project of projects) {
-      const features = await this.entityManager.listFeatures({ projectId: project.id });
-      allFeatures.push(...features);
-      for (const f of features) {
-        totalProgress += f.progress || 0;
-        if (f.status === 'completed') completedCount++;
-      }
-    }
-
-    const avgProgress = allFeatures.length > 0 ? Math.round(totalProgress / allFeatures.length) : 0;
+    // 统计摘要（从传入的过滤后数据计算）
+    const versionFeatures = allFeatures.filter(f =>
+      projects.some(p => p.id === f.projectId)
+    );
+    const totalProgress = versionFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
+    const avgProgress = versionFeatures.length > 0
+      ? Math.round(totalProgress / versionFeatures.length)
+      : 0;
+    const completedCount = versionFeatures.filter(f => f.status === 'completed').length;
 
     const summary = header.createDiv('pm-cascade__summary');
-    
+
     // 统计文本
     summary.createSpan({
       cls: 'pm-cascade__summary-text',
-      text: `${projects.length} 项目 · ${allFeatures.length} 特性 · ${completedCount} 已完成`,
+      text: `${projects.length} 项目 · ${versionFeatures.length} 特性 · ${completedCount} 已完成`,
     });
 
     // 整体进度条
-    if (allFeatures.length > 0) {
+    if (versionFeatures.length > 0) {
       const progressBar = summary.createDiv('pm-cascade__main-progress');
       progressBar.createDiv({
         cls: 'pm-cascade__main-progress-fill',
@@ -237,8 +212,7 @@ export class CascadeRenderer extends BaseRenderer {
   private async renderProjectCard(
     container: HTMLElement,
     project: Project,
-    isSingleView: boolean = false,
-    highlightFeature?: Feature
+    features: Feature[]
   ): Promise<void> {
     const card = container.createDiv('pm-cascade__project');
 
@@ -251,16 +225,7 @@ export class CascadeRenderer extends BaseRenderer {
     header.createSpan({ cls: 'pm-cascade__icon', text: this.getEntityTypeIcon('project') });
     header.createSpan({ cls: 'pm-cascade__project-name', text: project.name });
 
-    // 加载特性统计
-    let features = await this.entityManager.listFeatures({ projectId: project.id });
-    
-    // 应用筛选条件（owner等）
-    features = this.dataService.applyFilters(features as any, this.config) as any;
-    
-    // 应用排序
-    const sortedFeatures = this.sortEntities(features) as Feature[];
-    
-    const totalProgress = sortedFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
+    const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter(f => f.status === 'completed').length;
 
@@ -287,23 +252,22 @@ export class CascadeRenderer extends BaseRenderer {
     }
 
     // 特性列表
-    if (sortedFeatures.length > 0) {
+    if (features.length > 0) {
       const featuresContainer = card.createDiv('pm-cascade__features');
-      
+
       // 限制显示数量
-      const maxFeatures = isSingleView ? 50 : 5;
-      const displayFeatures = sortedFeatures.slice(0, maxFeatures);
-      
+      const maxFeatures = 5;
+      const displayFeatures = features.slice(0, maxFeatures);
+
       for (const feature of displayFeatures) {
-        const isHighlighted = highlightFeature && feature.id === highlightFeature.id;
-        this.renderFeatureRow(featuresContainer, feature, isHighlighted);
+        this.renderFeatureRow(featuresContainer, feature);
       }
 
       // 更多提示
-      if (sortedFeatures.length > maxFeatures) {
+      if (features.length > maxFeatures) {
         featuresContainer.createDiv({
           cls: 'pm-cascade__more-features',
-          text: `还有 ${sortedFeatures.length - maxFeatures} 个特性...`,
+          text: `还有 ${features.length - maxFeatures} 个特性...`,
         });
       }
     }

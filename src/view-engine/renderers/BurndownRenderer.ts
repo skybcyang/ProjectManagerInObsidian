@@ -30,9 +30,8 @@ export class BurndownRenderer extends BaseRenderer {
     container.empty();
     container.addClass('pm-burndown-view');
 
-    // 获取数据
-    const versionId = this.config.version;
-    const data = await this.reportService.calculateBurndownData(versionId);
+    // 获取数据（传入完整配置以支持层级筛选）
+    const data = await this.reportService.calculateBurndownData(undefined, undefined, this.config);
 
     if (data.length === 0) {
       this.createEmptyState(container, '暂无数据，请先创建特性并设置预估工时');

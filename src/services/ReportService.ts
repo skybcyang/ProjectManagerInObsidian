@@ -59,18 +59,39 @@ export class ReportService {
   ) {}
 
   /**
+   * 统一应用 ViewConfig 层级筛选到特性列表
+   */
+  private applyFeatureFilters(features: Feature[], filters?: ViewConfig): Feature[] {
+    if (!filters) return features;
+
+    return features.filter((f) => {
+      if (filters.features?.length && !filters.features.includes(f.id)) return false;
+      if (filters.projects?.length && !filters.projects.includes(f.projectId)) return false;
+      if (filters.versions?.length && !filters.versions.includes(f.versionId)) return false;
+      if (filters.version && f.versionId !== filters.version) return false;
+      if (filters.project && f.projectId !== filters.project) return false;
+      if (filters.status && f.status !== filters.status) return false;
+      return true;
+    });
+  }
+
+  /**
    * 计算燃尽图数据
-   * @param versionId 版本ID（可选，不传则统计所有特性）
+   * @param versionId 版本ID（可选，向后兼容）
    * @param dateRange 日期范围（可选，默认使用版本周期或最近30天）
+   * @param filters 视图配置筛选（可选）
    */
   async calculateBurndownData(
     versionId?: string,
-    dateRange?: DateRange
+    dateRange?: DateRange,
+    filters?: ViewConfig
   ): Promise<BurndownDataPoint[]> {
     // 获取特性列表
-    const features = await this.entityManager.listFeatures(
+    let features = await this.entityManager.listFeatures(
       versionId ? { versionId } : undefined
     );
+
+    features = this.applyFeatureFilters(features, filters);
 
     // 确定日期范围
     const range = dateRange || this.getDefaultDateRange(features);
@@ -147,18 +168,16 @@ export class ReportService {
 
     switch (entityType) {
       case 'feature': {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         for (const f of features) {
           addWorkload(f.owner || '未分配', f.estimatedHours || 0, f.actualHours || 0, 1);
         }
         break;
       }
       case 'project': {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         const projects = await this.entityManager.listProjects();
         const projectMap = new Map(projects.map(p => [p.id, p]));
         const projectGroups = new Map<string, Feature[]>();
@@ -175,9 +194,8 @@ export class ReportService {
         break;
       }
       case 'version': {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         const versions = await this.entityManager.listVersions();
         const versionMap = new Map(versions.map(v => [v.id, v]));
         const versionGroups = new Map<string, Feature[]>();
@@ -209,13 +227,26 @@ export class ReportService {
   /**
    * 按项目统计工作量
    */
-  async calculateWorkloadByProject(versionId?: string): Promise<WorkloadData[]> {
-    const projects = await this.entityManager.listProjects(
-      versionId ? { versionId } : undefined
-    );
-    const features = await this.entityManager.listFeatures(
-      versionId ? { versionId } : undefined
-    );
+  async calculateWorkloadByProject(filters?: ViewConfig): Promise<WorkloadData[]> {
+    let projects = await this.entityManager.listProjects();
+    let features = await this.entityManager.listFeatures();
+
+    features = this.applyFeatureFilters(features, filters);
+
+    // 根据过滤后的特性反推需要展示的项目
+    const relevantProjectIds = new Set(features.map((f) => f.projectId));
+    projects = projects.filter((p) => relevantProjectIds.has(p.id));
+
+    // 如果还有 versions/projects 数组限制，进一步过滤项目
+    if (filters?.projects?.length) {
+      projects = projects.filter((p) => filters.projects!.includes(p.id));
+    }
+    if (filters?.versions?.length) {
+      projects = projects.filter((p) => filters.versions!.includes(p.versionId));
+    }
+    if (filters?.version) {
+      projects = projects.filter((p) => p.versionId === filters.version);
+    }
 
     return projects.map((project) => {
       const projectFeatures = features.filter(

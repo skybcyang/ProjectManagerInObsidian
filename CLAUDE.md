@@ -211,7 +211,7 @@ const config = await configService.readConfig(sourcePath, codeBlockIndex);
 ### 内存管理
 
 - 必须在 `onunload()` 中调用 `ViewEngine.destroy()` 防止内存泄漏
-- 清理内容包括：事件监听器、全屏遮罩、FilterBar、待执行定时器
+- 清理内容包括：事件监听器、全屏遮罩、FilterBar、待执行定时器、`currentConfigs` 配置状态
 
 ### 文件命名
 
@@ -247,7 +247,14 @@ npm run test:coverage
 
 ## 版本与变更
 
-当前版本：**v0.7.5**（见 `manifest.json`）
+当前版本：**v0.7.6**（见 `manifest.json`）
+
+### v0.7.6 主要变更
+- **重构**: 删除 ListRenderer 内联排序 UI，统一使用工具栏排序
+- **修复**: ViewEngine `currentConfigs` 机制，消除闭包陷阱和内存泄漏
+- **修复**: EntityTreeSelector / FilterBar 切换实体类型时的状态同步
+- **修复**: 燃尽图/工作量统计视图支持 `ViewConfig` 树形筛选
+- **修复**: 级联视图支持树形筛选，保持三层 UI 结构不变
 
 ### v0.7.5 主要变更
 - **修复**: 树形筛选器级联勾选与半选状态（`indeterminate`）

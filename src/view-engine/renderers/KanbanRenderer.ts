@@ -279,7 +279,7 @@ export class KanbanRenderer extends BaseRenderer {
     const content = card.createDiv('pm-kanban-card-content');
 
     // 标签
-    if (entity.tags && entity.tags.length > 0) {
+    if (entity.tags && entity.tags.length > 0 && this.shouldShowCardField('tags')) {
       const tagsContainer = content.createDiv('pm-kanban-card-tags');
       entity.tags.slice(0, 3).forEach((tag: string) => {
         tagsContainer.createSpan({ cls: 'pm-kanban-card-tag', text: tag });
@@ -296,12 +296,20 @@ export class KanbanRenderer extends BaseRenderer {
     const footer = card.createDiv('pm-kanban-card-footer');
 
     // 左侧：负责人
-    if (entity.owner) {
+    if (entity.owner && this.shouldShowCardField('owner')) {
       footer.createSpan({ cls: 'pm-kanban-card-owner', text: `@${entity.owner}` });
     }
 
+    // 开始日期
+    if ('startDate' in entity && entity.startDate && this.shouldShowCardField('startDate')) {
+      footer.createSpan({
+        cls: 'pm-kanban-card-start',
+        text: DateFormat.short(entity.startDate),
+      });
+    }
+
     // 中间：进度
-    if ('progress' in entity && entity.progress !== undefined) {
+    if ('progress' in entity && entity.progress !== undefined && this.shouldShowCardField('progress')) {
       const progressEl = footer.createDiv('pm-kanban-card-progress');
       const progressBar = progressEl.createDiv('pm-kanban-card-progress-bar');
       progressBar.createDiv({
@@ -315,7 +323,7 @@ export class KanbanRenderer extends BaseRenderer {
     }
 
     // 右侧：结束日期
-    if ('endDate' in entity && entity.endDate) {
+    if ('endDate' in entity && entity.endDate && this.shouldShowCardField('endDate')) {
       const isOverdue = new Date(entity.endDate) < new Date() &&
                         'status' in entity &&
                         entity.status !== 'completed';

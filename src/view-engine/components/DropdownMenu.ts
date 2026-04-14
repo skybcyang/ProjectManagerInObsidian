@@ -95,8 +95,9 @@ export class DropdownMenu {
     // 定位菜单
     this.positionMenu(triggerEl, horizontalAlign, verticalOffset, boundaryCheck);
 
-    // 添加到文档
-    document.body.appendChild(this.element);
+    // 添加到文档（优先挂载到当前全屏容器内，保证全屏模式下可见）
+    const { getOverlayContainer } = require('../../utils');
+    getOverlayContainer().appendChild(this.element);
 
     // 设置关闭处理器
     if (closeOnOutsideClick) {

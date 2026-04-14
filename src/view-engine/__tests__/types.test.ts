@@ -52,4 +52,28 @@ describe('ViewConfig types', () => {
     expect(config.status).toBe('in-progress');
     expect(config.priority).toBe('high');
   });
+
+  it('should allow array-based hierarchy filters', () => {
+    const config: ViewConfig = {
+      mode: 'cascade',
+      entityType: 'feature',
+      versions: ['ver-001', 'ver-002'],
+      projects: ['proj-001'],
+      features: ['feat-001'],
+      status: 'in-progress',
+    };
+    expect(config.versions).toEqual(['ver-001', 'ver-002']);
+    expect(config.projects).toEqual(['proj-001']);
+    expect(config.features).toEqual(['feat-001']);
+  });
+
+  it('should allow sort configuration with status field', () => {
+    const config: ViewConfig = {
+      mode: 'list',
+      sortBy: 'status',
+      sortOrder: 'desc',
+    };
+    expect(config.sortBy).toBe('status');
+    expect(config.sortOrder).toBe('desc');
+  });
 });
