@@ -16,6 +16,8 @@ export interface Feature {
   isMilestone?: boolean;
   estimatedHours?: number;
   actualHours?: number;
+  requirementIds?: string[];
+  projectLink?: string;
 }
 
 export interface CreateFeatureData {
@@ -32,6 +34,8 @@ export interface CreateFeatureData {
   isMilestone?: boolean;
   estimatedHours?: number;
   actualHours?: number;
+  requirementIds?: string[];
+  projectLink?: string;
 }
 
 export interface UpdateFeatureData {
@@ -48,4 +52,6 @@ export interface UpdateFeatureData {
   isMilestone?: boolean;
   estimatedHours?: number;
   actualHours?: number;
+  requirementIds?: string[];
+  projectLink?: string;
 }

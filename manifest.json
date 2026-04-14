@@ -1,11 +1,19 @@
 {
 	"id": "project-manager",
 	"name": "Project Manager",
-	"version": "0.7.3",
+	"version": "0.7.5",
 	"minAppVersion": "0.15.0",
 	"description": "在 Obsidian 中进行项目管理，支持版本/项目/特性三层结构，提供看板、列表、级联、时间线等多种视图",
 	"author": "skybcyang",
 	"authorUrl": "",
 	"fundingUrl": "",
-	"isDesktopOnly": true
+	"isDesktopOnly": true,
+	"dependencies": {
+		"dataview": {
+			"id": "dataview",
+			"name": "Dataview",
+			"description": "可选依赖，安装后可使用 Dataview 查询加速和自定义函数功能",
+			"optional": true
+		}
+	}
 }

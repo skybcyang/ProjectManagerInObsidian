@@ -84,7 +84,7 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       endDate: project.endDate,
       tags: project.tags,
     });
-    
+
     await this.writeTemplate(path, content);
     return project;
   }
@@ -145,7 +145,7 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       endDate: updated.endDate,
       tags: updated.tags,
     });
-    
+
     await this.writeTemplate(path, content);
     return updated;
   }

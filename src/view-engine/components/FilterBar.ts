@@ -86,6 +86,13 @@ export class FilterBar {
     // 实体类型选择器 - SelectCell 风格
     this.createSelectCell(filterBar, '实体类型', this.entityTypeOptions, this.currentEntityType, (value) => {
       this.currentEntityType = value as EntityType;
+      this.filters.entityType = this.currentEntityType;
+
+      // 清空所有层级筛选字段，避免旧值污染新配置
+      this.filters.version = undefined;
+      this.filters.project = undefined;
+      this.filters.feature = undefined;
+
       this.treeSelector?.updateEntityType(this.currentEntityType);
       this.onFilterChange();
     });
@@ -310,45 +317,145 @@ export class FilterBar {
 
   /**
    * 构建初始选择状态
+   * 根据 entityType 和 filter 字段智能构建树选择状态（统一使用列表）
    */
   private buildInitialSelection(): TreeSelection | undefined {
-    if (!this.filters.version && !this.filters.project && !this.filters.feature) {
-      return undefined;
+    const selection: TreeSelection = { type: this.currentEntityType };
+    let hasSelection = false;
+
+    switch (this.currentEntityType) {
+      case 'version':
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
+      case 'project':
+        // 优先使用 projects，其次使用 versions
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          selection.projectIds = [...this.filters.projects];
+          hasSelection = true;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
+      case 'feature':
+        // 优先级：features > projects > versions
+        if (this.filters.features && this.filters.features.length > 0) {
+          selection.featureIds = [...this.filters.features];
+          hasSelection = true;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          selection.projectIds = [...this.filters.projects];
+          hasSelection = true;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
     }
 
-    const selection: TreeSelection = { type: this.currentEntityType };
-    if (this.filters.version) selection.versionIds = [this.filters.version];
-    if (this.filters.project) selection.projectIds = [this.filters.project];
-    if (this.filters.feature) selection.featureIds = [this.filters.feature];
-    return selection;
+    return hasSelection ? selection : undefined;
   }
 
   /**
    * 处理树形选择器的选择变化
+   * 树形选择器已处理级联勾选，这里直接使用勾选的节点ID
+   * - 关注 version：使用勾选的 versionIds
+   * - 关注 project：使用勾选的 projectIds
+   * - 关注 feature：使用勾选的 featureIds
    */
   private handleTreeSelection(selection: TreeSelection | null): void {
-    if (selection) {
-      this.filters.version = selection.versionIds?.[0];
-      this.filters.project = selection.projectIds?.[0];
-      this.filters.feature = selection.featureIds?.[0];
-    } else {
-      this.filters.version = undefined;
-      this.filters.project = undefined;
-      this.filters.feature = undefined;
+    // 清空列表字段
+    this.filters.versions = undefined;
+    this.filters.projects = undefined;
+    this.filters.features = undefined;
+
+    if (!selection) {
+      this.onFilterChange();
+      return;
     }
+
+    switch (this.currentEntityType) {
+      case 'version': {
+        // 关注版本：直接使用勾选的版本ID列表
+        if (selection.versionIds && selection.versionIds.length > 0) {
+          this.filters.versions = selection.versionIds;
+        }
+        break;
+      }
+      case 'project': {
+        // 关注项目：只使用直接勾选的项目ID（树形选择器已级联勾选子节点）
+        if (selection.projectIds && selection.projectIds.length > 0) {
+          this.filters.projects = selection.projectIds;
+        }
+        break;
+      }
+      case 'feature': {
+        // 关注特性：只使用直接勾选的特性ID（树形选择器已级联勾选子节点）
+        if (selection.featureIds && selection.featureIds.length > 0) {
+          this.filters.features = selection.featureIds;
+        }
+        break;
+      }
+    }
+
     this.onFilterChange();
   }
 
   /**
    * 筛选条件变化时的处理
+   * 统一使用列表形式传递层级筛选字段
    */
   private onFilterChange(): void {
-    this.onChange({ ...this.filters });
+    const cleanFilters: ViewConfig = {
+      mode: this.filters.mode,
+      entityType: this.filters.entityType,
+    };
+
+    // 显式清空旧的层级字段，避免 { ...config, ...cleanFilters } 时保留旧值
+    cleanFilters.versions = undefined;
+    cleanFilters.projects = undefined;
+    cleanFilters.features = undefined;
+
+    // 根据 entityType 添加层级字段（统一使用列表）
+    switch (this.currentEntityType) {
+      case 'version':
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+      case 'project':
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          cleanFilters.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+      case 'feature':
+        if (this.filters.features && this.filters.features.length > 0) {
+          cleanFilters.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          cleanFilters.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+    }
+
+    // 添加其他非层级字段
+    if (this.filters.status) cleanFilters.status = this.filters.status;
+    if (this.filters.priority) cleanFilters.priority = this.filters.priority;
+    if (this.filters.owner) cleanFilters.owner = this.filters.owner;
+    if (this.filters.tag) cleanFilters.tag = this.filters.tag;
+
+    this.onChange(cleanFilters);
     this.saveFiltersToCodeBlock();
   }
 
   /**
    * 保存筛选条件到代码块（使用 CodeBlockConfigService）
+   * 统一使用列表形式保存层级筛选字段
    */
   private async saveFiltersToCodeBlock(): Promise<void> {
     if (!this.sourcePath || this.codeBlockStart === undefined) return;
@@ -356,9 +463,38 @@ export class FilterBar {
     // 只保存筛选相关的字段，保留其他配置
     const filterUpdates: Record<string, unknown> = {};
 
-    if (this.filters.version) filterUpdates.version = this.filters.version;
-    if (this.filters.project) filterUpdates.project = this.filters.project;
-    if (this.filters.feature) filterUpdates.feature = this.filters.feature;
+    if (this.filters.entityType) filterUpdates.entityType = this.filters.entityType;
+
+    // 显式清空旧的层级字段，确保代码块中删除这些键
+    filterUpdates.versions = undefined;
+    filterUpdates.projects = undefined;
+    filterUpdates.features = undefined;
+
+    // 根据 entityType 保存层级字段（统一使用列表）
+    switch (this.currentEntityType) {
+      case 'version':
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+      case 'project':
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          filterUpdates.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+      case 'feature':
+        if (this.filters.features && this.filters.features.length > 0) {
+          filterUpdates.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          filterUpdates.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+    }
+
     if (this.filters.status) filterUpdates.status = this.filters.status;
     if (this.filters.priority) filterUpdates.priority = this.filters.priority;
     if (this.filters.owner) filterUpdates.owner = this.filters.owner;
@@ -395,7 +531,7 @@ export class FilterBar {
 
     // 清理树选择器
     if (this.treeSelector) {
-      // EntityTreeSelector 没有 destroy 方法，只需清理引用
+      this.treeSelector.destroy();
       this.treeSelector = undefined;
     }
   }

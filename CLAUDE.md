@@ -247,7 +247,19 @@ npm run test:coverage
 
 ## 版本与变更
 
-当前版本：**v0.7.3**（见 `manifest.json`）
+当前版本：**v0.7.5**（见 `manifest.json`）
+
+### v0.7.5 主要变更
+- **修复**: 树形筛选器级联勾选与半选状态（`indeterminate`）
+- **修复**: 树形下拉框点击不立即关闭，支持多选
+- **修复**: 清空树形筛选后视图正确恢复全部内容
+
+### v0.7.4 主要变更
+- **Dataview 集成**: 深度集成 Dataview 插件
+  - 新增 `DataviewService` 封装 Dataview API
+  - `EntityManager` 集成 Dataview 查询
+  - 注册 6 个自定义 Dataview 函数（`pmVersionProjects`、`pmProjectFeatures` 等）
+  - 支持降级方案（Dataview 未安装时使用手动遍历）
 
 ### v0.7.3 主要变更
 - **代码清理**: 移除所有调试日志，修复类型安全问题，统一版本号

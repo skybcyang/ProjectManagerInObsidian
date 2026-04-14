@@ -8,6 +8,7 @@ import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature, 
 import { ViewEngine } from './view-engine';
 import { TemplateSettingTab } from './settings';
 import { DEFAULT_SETTINGS } from './types/template';
+import { DataviewFunctionRegistry } from './services';
 
 export default class ProjectManagerPlugin extends Plugin {
   settings: ProjectManagerSettings;
@@ -16,25 +17,32 @@ export default class ProjectManagerPlugin extends Plugin {
   private button: Button;
   private progressInput: ProgressInput;
   private viewEngine: ViewEngine;
+  private dataviewRegistry: DataviewFunctionRegistry;
 
   async onload(): Promise<void> {
     // 加载设置
     await this.loadSettings();
-    
+
     // 初始化核心层
     this.entityManager = new EntityManager(this.app, this.settings);
-    
+
     // 初始化 UI 层
     this.breadcrumb = new Breadcrumb(this.app, this.entityManager);
     this.button = new Button(this.app, this.entityManager);
     this.progressInput = new ProgressInput(this.app);
     this.viewEngine = new ViewEngine(this.app, this.entityManager);
 
+    // 初始化 Dataview 函数注册表
+    this.dataviewRegistry = new DataviewFunctionRegistry(this.app, this);
+
     // 初始化缓存 - 等待 metadata cache 准备好
     await this.waitForMetadataCache();
     await this.entityManager.initialize();
     const stats = this.entityManager.cache.getStats();
     console.log('【ProjectManager】缓存初始化完成:', stats);
+
+    // 注册 Dataview 自定义函数
+    this.registerDataviewFunctions();
 
     // 注册代码块处理器：pm-view（唯一入口）
     this.registerMarkdownCodeBlockProcessor('pm-view', this.processViewBlock.bind(this));
@@ -146,6 +154,35 @@ export default class ProjectManagerPlugin extends Plugin {
   onunload(): void {
     // 清理视图引擎资源
     this.viewEngine.destroy();
+  }
+
+  /**
+   * 注册 Dataview 自定义函数
+   * 使用轮询等待 Dataview 插件加载
+   */
+  private registerDataviewFunctions(): void {
+    let attempts = 0;
+    const maxAttempts = 30; // 最多尝试30次（30秒）
+
+    const tryRegister = () => {
+      attempts++;
+
+      if (this.dataviewRegistry.isDataviewAvailable()) {
+        this.dataviewRegistry.registerFunctions();
+        console.log('【ProjectManager】Dataview 函数注册完成');
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        // 继续等待
+        setTimeout(tryRegister, 1000);
+      } else {
+        console.log('【ProjectManager】Dataview 插件未安装或加载超时，跳过函数注册');
+      }
+    };
+
+    // 延迟1秒后开始尝试
+    setTimeout(tryRegister, 1000);
   }
 
   /**

@@ -122,6 +122,11 @@ export interface ViewConfig {
   project?: string;      // 项目ID筛选
   feature?: string;      // 特性ID筛选（单卡片模式）
 
+  // 多实体筛选（支持列表）
+  versions?: string[];   // 版本ID列表筛选
+  projects?: string[];   // 项目ID列表筛选
+  features?: string[];   // 特性ID列表筛选
+
   // 筛选条件（新版组合筛选）
   filters?: FilterGroup[];
 
@@ -270,8 +275,6 @@ export const PROJECT_FIELDS: EntityField[] = [
   { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
   { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
-  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
-  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
 ];
@@ -283,8 +286,6 @@ export const VERSION_FIELDS: EntityField[] = [
   { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
   { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
-  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
-  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
 ];
 

@@ -4,3 +4,5 @@ export { TemplateService } from './TemplateService';
 export { CodeBlockConfigService } from './CodeBlockConfigService';
 export { ReportService, type BurndownDataPoint, type WorkloadData, type TrendDataPoint, type HealthMetrics } from './ReportService';
 export { ChangeLogService } from './ChangeLogService';
+export { DataviewService } from './DataviewService';
+export { DataviewFunctionRegistry } from './DataviewFunctionRegistry';

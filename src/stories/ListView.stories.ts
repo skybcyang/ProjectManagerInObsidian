@@ -273,7 +273,7 @@ export const Projects: Story = {
     entities: [
       createMockProject({ name: 'Web 应用重构', priority: 'high', status: 'in-progress', owner: '张三', endDate: '05-01' }),
       createMockProject({ name: '移动端 App', priority: 'critical', status: 'in-progress', owner: '李四', endDate: '05-15' }),
-      createMockProject({ name: '后台管理系统', priority: 'medium', status: 'planning', owner: '王五', endDate: '06-01' }),
+      createMockProject({ name: '后台管理系统', priority: 'medium', status: 'backlog', owner: '王五', endDate: '06-01' }),
     ],
   },
 };
@@ -282,7 +282,7 @@ export const Mixed: Story = {
   args: {
     title: '所有实体',
     entities: [
-      createMockVersion({ name: 'v2.0 大版本', status: 'planning', owner: '产品组' }),
+      createMockVersion({ name: 'v2.0 大版本', status: 'archived', owner: '产品组' }),
       createMockProject({ name: 'Web 应用', priority: 'high', status: 'in-progress', owner: '张三' }),
       createMockFeature({ name: '登录功能', priority: 'critical', status: 'in-progress', progress: 80, owner: '李四' }),
       createMockFeature({ name: '注册页面', priority: 'medium', status: 'todo', progress: 20, owner: '王五' }),

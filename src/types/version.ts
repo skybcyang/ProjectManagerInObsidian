@@ -8,8 +8,6 @@ export interface Version {
   startDate?: string;
   endDate?: string;
   tags: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }
 
 export interface CreateVersionData {
@@ -19,8 +17,6 @@ export interface CreateVersionData {
   startDate?: string;
   endDate?: string;
   tags?: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }
 
 export interface UpdateVersionData {
@@ -30,6 +26,4 @@ export interface UpdateVersionData {
   startDate?: string;
   endDate?: string;
   tags?: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }

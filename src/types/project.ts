@@ -11,8 +11,6 @@ export interface Project {
   startDate?: string;
   endDate?: string;
   tags: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }
 
 export interface CreateProjectData {
@@ -24,8 +22,6 @@ export interface CreateProjectData {
   startDate?: string;
   endDate?: string;
   tags?: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }
 
 export interface UpdateProjectData {
@@ -37,6 +33,4 @@ export interface UpdateProjectData {
   startDate?: string;
   endDate?: string;
   tags?: string[];
-  estimatedHours?: number;
-  actualHours?: number;
 }

@@ -291,7 +291,7 @@ export const Default: Story = {
             ],
           },
           {
-            project: createMockProject({ name: '支付模块', status: 'planning' }),
+            project: createMockProject({ name: '支付模块', status: 'backlog' }),
             features: [
               createMockFeature({ name: '支付宝集成', status: 'in-progress', priority: 'critical', progress: 60, owner: '赵六', endDate: '04-30' }),
               createMockFeature({ name: '微信支付', status: 'todo', priority: 'critical', progress: 0, owner: '钱七', endDate: '05-05' }),

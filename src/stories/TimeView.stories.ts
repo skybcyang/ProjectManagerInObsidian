@@ -6,8 +6,8 @@ interface TimeViewProps {
   mode: 'week' | 'month' | 'quarter';
   items: Array<{
     name: string;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
     priority?: string;
     progress?: number;
     isMilestone?: boolean;

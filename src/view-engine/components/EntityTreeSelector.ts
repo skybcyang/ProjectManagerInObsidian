@@ -4,12 +4,15 @@ import type { EntityType } from '../types';
 
 /**
  * 树节点选择 - 支持多选
+ * 记录实际勾选的节点类型，用于 FilterBar 智能解析
  */
 export interface TreeSelection {
   versionIds?: string[];
   projectIds?: string[];
   featureIds?: string[];
   type: EntityType;
+  /** 实际勾选的节点类型（用于 FilterBar 判断筛选逻辑） */
+  checkedTypes?: EntityType[];
 }
 
 /**
@@ -52,6 +55,8 @@ export class EntityTreeSelector {
   private treeData: TreeNode[] = [];
   private selectedIds: Set<string> = new Set();
   private dropdownEl?: HTMLElement;
+  private nodeMap: Map<string, TreeNode> = new Map();
+  private hasSelectionChanged = false;
 
   constructor(
     private app: App,
@@ -69,10 +74,13 @@ export class EntityTreeSelector {
 
   /**
    * 加载树形数据
+   * 始终加载完整的三级结构（版本 → 项目 → 特性）
+   * 根据 entityType 决定哪些节点可以被勾选
    */
   async loadTree(): Promise<TreeNode[]> {
     const versions = await this.entityManager.listVersions();
     const tree: TreeNode[] = [];
+    this.nodeMap.clear();
 
     for (const version of versions) {
       const versionNode: TreeNode = {
@@ -82,6 +90,7 @@ export class EntityTreeSelector {
         expanded: true,
         children: [],
       };
+      this.nodeMap.set(versionNode.id, versionNode);
 
       // 加载项目
       const projects = await this.entityManager.listProjects({ versionId: version.id });
@@ -94,16 +103,19 @@ export class EntityTreeSelector {
           parentId: version.id,
           children: [],
         };
+        this.nodeMap.set(projectNode.id, projectNode);
 
         // 加载特性
         const features = await this.entityManager.listFeatures({ projectId: project.id });
         for (const feature of features) {
-          projectNode.children!.push({
+          const featureNode: TreeNode = {
             id: feature.id,
             name: feature.name,
             type: 'feature',
             parentId: project.id,
-          });
+          };
+          this.nodeMap.set(featureNode.id, featureNode);
+          projectNode.children!.push(featureNode);
         }
 
         versionNode.children!.push(projectNode);
@@ -238,11 +250,23 @@ export class EntityTreeSelector {
     const headerEl = this.dropdownEl.createDiv('pm-tree-dropdown-header pm-cell-dropdown-item');
     const allCheckbox = headerEl.createEl('input', { type: 'checkbox' });
     allCheckbox.className = 'pm-tree-checkbox';
-    allCheckbox.checked = this.selectedIds.size === 0;
+
+    const treeState = this.getTreeSelectionState();
+    allCheckbox.checked = treeState === 'checked';
+    allCheckbox.indeterminate = treeState === 'indeterminate';
     allCheckbox.addEventListener('change', () => {
-      this.selectedIds.clear();
+      if (allCheckbox.checked) {
+        // 全选所有节点
+        for (const node of this.treeData) {
+          this.selectedIds.add(node.id);
+          this.selectAllChildren(node);
+        }
+      } else {
+        // 清空所有选择
+        this.selectedIds.clear();
+      }
+      this.hasSelectionChanged = true;
       this.refreshCheckboxes();
-      this.updateSelection();
     });
 
     // 添加颜色圆点（与 SelectCell 一致的风格）
@@ -258,8 +282,8 @@ export class EntityTreeSelector {
 
     headerEl.createSpan({ text: this.getPlaceholder() });
 
-    // 选中标记（当全部未选时显示 ✓）
-    if (this.selectedIds.size === 0) {
+    // 选中标记（当全部选中时显示 ✓）
+    if (treeState === 'checked') {
       headerEl.createSpan({
         text: '✓',
         cls: 'pm-cell-dropdown-check',
@@ -305,8 +329,14 @@ export class EntityTreeSelector {
 
   /**
    * 关闭下拉
+   * 关闭时才触发 onSelect 回调，避免多选时频繁重绘导致下拉框消失
    */
-  private closeDropdown(): void {
+  private closeDropdown(skipCallback = false): void {
+    if (!skipCallback && this.hasSelectionChanged) {
+      this.updateSelection();
+      this.hasSelectionChanged = false;
+    }
+
     if (this.dropdownEl) {
       if ((this.dropdownEl as any)._cleanup) {
         (this.dropdownEl as any)._cleanup();
@@ -321,7 +351,8 @@ export class EntityTreeSelector {
    * 采用 SelectCell 的 dropdown-item 风格
    */
   private renderNode(container: HTMLElement, node: TreeNode, depth: number): void {
-    const isSelected = this.isNodeSelected(node);
+    const state = this.getNodeState(node);
+    const isChecked = state === 'checked';
     const hasChildren = node.children && node.children.length > 0;
 
     const nodeEl = container.createDiv('pm-tree-node');
@@ -359,7 +390,8 @@ export class EntityTreeSelector {
       margin: 0 4px 0 2px;
       cursor: pointer;
     `;
-    checkbox.checked = isSelected;
+    checkbox.checked = isChecked;
+    checkbox.indeterminate = state === 'indeterminate';
     checkbox.dataset.nodeId = node.id;
     checkbox.addEventListener('change', (e) => {
       const checked = (e.target as HTMLInputElement).checked;
@@ -382,8 +414,8 @@ export class EntityTreeSelector {
     const nameEl = contentRow.createSpan('pm-tree-name');
     nameEl.textContent = node.name;
 
-    // 选中标记（如果选中）
-    if (isSelected) {
+    // 选中标记（仅全选时显示）
+    if (isChecked) {
       contentRow.createSpan({
         text: '✓',
         cls: 'pm-cell-dropdown-check',
@@ -404,41 +436,104 @@ export class EntityTreeSelector {
   }
 
   /**
-   * 判断节点是否被选中（递归检查自身和子节点）
+   * 查找树节点
    */
-  private isNodeSelected(node: TreeNode): boolean {
-    // 如果当前节点被选中，返回 true
-    if (this.selectedIds.has(node.id)) {
-      return true;
+  private findNode(id: string): TreeNode | undefined {
+    return this.nodeMap.get(id);
+  }
+
+  /**
+   * 获取节点 checkbox 状态（三态）
+   */
+  private getNodeState(node: TreeNode): 'checked' | 'indeterminate' | 'unchecked' {
+    const directlySelected = this.selectedIds.has(node.id);
+
+    if (!node.children || node.children.length === 0) {
+      return directlySelected ? 'checked' : 'unchecked';
     }
-    // 如果子节点中有被选中的，也视为选中（半选状态）
-    if (node.children) {
-      return node.children.some(child => this.isNodeSelected(child));
+
+    const childStates = node.children.map(child => this.getNodeState(child));
+    const allChecked = childStates.every(s => s === 'checked');
+    const someSelected = childStates.some(s => s === 'checked' || s === 'indeterminate');
+
+    if (directlySelected || allChecked) {
+      return 'checked';
     }
-    return false;
+    if (someSelected) {
+      return 'indeterminate';
+    }
+    return 'unchecked';
+  }
+
+  /**
+   * 获取整棵树的聚合选择状态
+   */
+  private getTreeSelectionState(): 'checked' | 'indeterminate' | 'unchecked' {
+    if (this.treeData.length === 0) return 'unchecked';
+    const rootStates = this.treeData.map(node => this.getNodeState(node));
+    const allChecked = rootStates.every(s => s === 'checked');
+    const someSelected = rootStates.some(s => s === 'checked' || s === 'indeterminate');
+    if (allChecked) return 'checked';
+    if (someSelected) return 'indeterminate';
+    return 'unchecked';
   }
 
   /**
    * 切换节点及子节点的选择状态
+   * 标准级联树行为：勾选时向下级联并向上检查；取消时只向下级联
    */
   private toggleNodeSelection(node: TreeNode, checked: boolean): void {
     if (checked) {
       this.selectedIds.add(node.id);
+      this.selectAllChildren(node);
+      this.checkAncestors(node);
     } else {
       this.selectedIds.delete(node.id);
+      this.deselectAllChildren(node);
     }
 
-    // 递归勾选/取消所有子节点
-    if (node.children) {
-      for (const child of node.children) {
-        this.toggleNodeSelection(child, checked);
-      }
-    }
-
-    // 更新显示
+    this.hasSelectionChanged = true;
     this.refreshCheckboxes();
     this.updateTriggerDisplay(this.container!.querySelector('.pm-entity-tree-trigger') as HTMLElement);
-    this.updateSelection();
+  }
+
+  /**
+   * 递归勾选所有子节点
+   */
+  private selectAllChildren(node: TreeNode): void {
+    if (node.children) {
+      for (const child of node.children) {
+        this.selectedIds.add(child.id);
+        this.selectAllChildren(child);
+      }
+    }
+  }
+
+  /**
+   * 递归取消所有子节点
+   */
+  private deselectAllChildren(node: TreeNode): void {
+    if (node.children) {
+      for (const child of node.children) {
+        this.selectedIds.delete(child.id);
+        this.deselectAllChildren(child);
+      }
+    }
+  }
+
+  /**
+   * 向上检查并自动勾选父节点（当所有兄弟节点都被勾选时）
+   */
+  private checkAncestors(node: TreeNode): void {
+    if (!node.parentId) return;
+    const parent = this.findNode(node.parentId);
+    if (!parent || !parent.children) return;
+
+    const allSiblingsSelected = parent.children.every(child => this.selectedIds.has(child.id));
+    if (allSiblingsSelected && !this.selectedIds.has(parent.id)) {
+      this.selectedIds.add(parent.id);
+      this.checkAncestors(parent);
+    }
   }
 
   /**
@@ -459,28 +554,6 @@ export class EntityTreeSelector {
   }
 
   /**
-   * 切换选择状态
-   */
-  private toggleSelection(nodeId: string, checked: boolean): void {
-    if (checked) {
-      this.selectedIds.add(nodeId);
-    } else {
-      this.selectedIds.delete(nodeId);
-    }
-
-    // 更新触发按钮
-    if (this.container) {
-      const triggerBtn = this.container.querySelector('.pm-entity-tree-trigger');
-      if (triggerBtn) {
-        this.updateTriggerDisplay(triggerBtn as HTMLElement);
-      }
-    }
-
-    // 触发回调
-    this.updateSelection();
-  }
-
-  /**
    * 刷新所有 checkbox 状态和选中标记
    * 与 SelectCell 风格一致：选中项显示 ✓ 标记
    */
@@ -495,12 +568,17 @@ export class EntityTreeSelector {
 
       const nodeId = checkbox.dataset.nodeId;
       if (nodeId) {
-        const isSelected = this.selectedIds.has(nodeId);
-        checkbox.checked = isSelected;
+        const node = this.findNode(nodeId);
+        if (!node) return;
 
-        // 更新或移除 ✓ 标记
+        const state = this.getNodeState(node);
+        const isChecked = state === 'checked';
+        checkbox.checked = isChecked;
+        checkbox.indeterminate = state === 'indeterminate';
+
+        // 更新或移除 ✓ 标记（仅全选时显示）
         let checkMark = row.querySelector('.pm-cell-dropdown-check');
-        if (isSelected) {
+        if (isChecked) {
           if (!checkMark) {
             checkMark = row.createSpan({
               text: '✓',
@@ -518,13 +596,15 @@ export class EntityTreeSelector {
     const headerRow = this.dropdownEl.querySelector('.pm-tree-dropdown-header');
     if (headerRow) {
       const headerCheckbox = headerRow.querySelector('input') as HTMLInputElement;
+      const headerTreeState = this.getTreeSelectionState();
       if (headerCheckbox) {
-        headerCheckbox.checked = this.selectedIds.size === 0;
+        headerCheckbox.checked = headerTreeState === 'checked';
+        headerCheckbox.indeterminate = headerTreeState === 'indeterminate';
       }
 
-      // 更新头部 ✓ 标记
+      // 更新头部 ✓ 标记（仅全部选中时显示）
       let headerCheckMark = headerRow.querySelector('.pm-cell-dropdown-check');
-      if (this.selectedIds.size === 0) {
+      if (headerTreeState === 'checked') {
         if (!headerCheckMark) {
           headerCheckMark = headerRow.createSpan({
             text: '✓',
@@ -548,27 +628,47 @@ export class EntityTreeSelector {
 
   /**
    * 更新选择并触发回调
+   * 按实际节点类型分类返回选中的ID
    */
   private updateSelection(): void {
     const selection: TreeSelection = {
       type: this.options.entityType,
+      versionIds: [],
+      projectIds: [],
+      featureIds: [],
     };
 
-    // 根据 entityType 收集选中 ID
-    const ids = Array.from(this.selectedIds);
-    switch (this.options.entityType) {
-      case 'version':
-        selection.versionIds = ids;
-        break;
-      case 'project':
-        selection.projectIds = ids;
-        break;
-      case 'feature':
-        selection.featureIds = ids;
-        break;
-    }
+    // 遍历树，按实际类型分类选中的ID
+    const categorizeSelection = (nodes: TreeNode[]) => {
+      for (const node of nodes) {
+        if (this.selectedIds.has(node.id)) {
+          switch (node.type) {
+            case 'version':
+              selection.versionIds!.push(node.id);
+              break;
+            case 'project':
+              selection.projectIds!.push(node.id);
+              break;
+            case 'feature':
+              selection.featureIds!.push(node.id);
+              break;
+          }
+        }
+        if (node.children) {
+          categorizeSelection(node.children);
+        }
+      }
+    };
 
-    this.options.onSelect(ids.length > 0 ? selection : null);
+    categorizeSelection(this.treeData);
+
+    // 清理空数组
+    if (selection.versionIds!.length === 0) delete selection.versionIds;
+    if (selection.projectIds!.length === 0) delete selection.projectIds;
+    if (selection.featureIds!.length === 0) delete selection.featureIds;
+
+    const hasSelection = selection.versionIds || selection.projectIds || selection.featureIds;
+    this.options.onSelect(hasSelection ? selection : null);
   }
 
   /**
@@ -590,6 +690,10 @@ export class EntityTreeSelector {
     this.options.entityType = entityType;
     this.selectedIds.clear();
     this.treeData = [];
+    this.nodeMap.clear();
+
+    // 关闭下拉框（如果打开）
+    this.closeDropdown();
 
     if (this.container) {
       const triggerBtn = this.container.querySelector('.pm-entity-tree-trigger');
@@ -597,6 +701,19 @@ export class EntityTreeSelector {
         this.updateTriggerDisplay(triggerBtn as HTMLElement);
       }
     }
+  }
+
+  /**
+   * 销毁选择器，清理事件监听器和 DOM
+   */
+  destroy(): void {
+    this.closeDropdown(true);
+    this.container?.empty();
+    this.container = undefined;
+    this.treeData = [];
+    this.selectedIds.clear();
+    this.nodeMap.clear();
+    this.hasSelectionChanged = false;
   }
 
   /**

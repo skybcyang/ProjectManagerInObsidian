@@ -1,5 +1,68 @@
 # 版本迭代记录
 
+## v0.7.5 (2026-04-14)
+
+### 修复
+
+- **树形筛选器级联行为修复** - 重构 `EntityTreeSelector` 三态级联逻辑
+  - 新增 `getNodeState()` 替代旧 `isNodeSelected()`，支持 `checked`/`indeterminate`/`unchecked` 三态
+  - 勾选子节点时父节点正确显示**半选横杠**（`indeterminate`）
+  - 勾选父节点时向下级联勾选所有子节点
+  - 当所有兄弟节点都被勾选时，自动向上级联勾选父节点
+  - "全部" 头部复选框支持三态显示与全选/清空操作
+
+- **树形下拉框多选保持开启** - 优化多选交互体验
+  - 勾选树形节点时**不再立即关闭下拉框**
+  - 选择状态仅在关闭下拉框时统一触发并保存到代码块
+  - 避免频繁 `app.vault.modify()` 导致 Obsidian 重新渲染代码块、下拉框强制关闭
+
+- **筛选清空失效修复** - 修复树形选择器全部清空后视图不更新的问题
+  - `FilterBar.onFilterChange()` 中显式将 `versions`/`projects`/`features` 设为 `undefined`
+  - `saveFiltersToCodeBlock()` 同步显式删除旧层级字段，确保 YAML 中残留键被清除
+
+### 优化
+
+- **内存管理** - `EntityTreeSelector` 新增 `destroy()` 方法，清理 dropdown DOM 和事件监听
+  - `FilterBar.destroy()` 中调用 `treeSelector?.destroy()`，防止内存泄漏
+
+---
+
+## v0.7.4 (2026-04-13)
+
+### Dataview 集成
+
+- **新增 DataviewService** - 封装 Dataview API 调用
+  - `src/services/DataviewService.ts`：提供查询版本/项目/特性的统一接口
+  - 自动检测 Dataview 插件是否安装
+  - 提供降级方案：当 Dataview 未安装时使用手动遍历
+
+- **EntityManager 集成 Dataview**
+  - 添加 `dataview` 成员变量
+  - `getVersionProjects()`：使用 Dataview 查询版本下的项目
+  - `getProjectFeatures()`：使用 Dataview 查询项目下的特性
+  - 新增便捷方法：`getVersionProgress()`、`getProjectProgress()`、`getOverdueItems()`
+
+- **注册自定义 Dataview 函数**
+  - `src/services/DataviewFunctionRegistry.ts`：注册以下函数
+    - `pmVersionProjects(versionId)` - 获取版本下的项目
+    - `pmProjectFeatures(projectId)` - 获取项目下的特性
+    - `pmVersionProgress(versionId)` - 计算版本进度
+    - `pmProjectProgress(projectId)` - 计算项目进度
+    - `pmEntityStatus(id)` - 获取实体状态
+    - `pmOverdueItems(type?)` - 获取逾期项
+
+- **manifest.json 更新**
+  - 添加 Dataview 作为可选依赖
+
+### 修复
+
+- **修复 stories 文件类型错误**
+  - 修复 `'planning'` 状态类型错误（改为 `'backlog'` 或 `'archived'`）
+  - 移除不存在的 `description` 属性
+  - 修复 `TimeViewProps.items` 类型定义
+
+---
+
 ## v0.7.3 (2026-04-13)
 
 ### 代码清理与优化

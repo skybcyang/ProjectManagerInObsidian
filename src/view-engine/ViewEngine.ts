@@ -226,12 +226,27 @@ export class ViewEngine {
 
   /**
    * 解析配置 - 支持新版和旧版格式
+   * 向后兼容：将单个 feature/project/version 转换为列表形式
    */
   parseConfig(source: string): ViewConfig {
     const { parseYaml } = require('obsidian');
 
     try {
       const parsed = parseYaml(source) || {};
+
+      // 向后兼容：单个 ID 转换为列表
+      if (parsed.feature && !parsed.features) {
+        parsed.features = [parsed.feature];
+        delete parsed.feature;
+      }
+      if (parsed.project && !parsed.projects) {
+        parsed.projects = [parsed.project];
+        delete parsed.project;
+      }
+      if (parsed.version && !parsed.versions) {
+        parsed.versions = [parsed.version];
+        delete parsed.version;
+      }
 
       // 使用 ConfigValidator 验证配置
       const validation = ConfigValidator.validate(parsed);

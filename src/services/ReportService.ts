@@ -125,30 +125,9 @@ export class ReportService {
     entityType: 'version' | 'project' | 'feature' = 'feature',
     filters?: ViewConfig
   ): Promise<WorkloadData[]> {
-    let entities: Array<Feature | Project | Version> = [];
-
-    switch (entityType) {
-      case 'feature':
-        entities = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
-        );
-        break;
-      case 'project':
-        entities = await this.entityManager.listProjects(
-          filters ? { versionId: filters.version } : undefined
-        );
-        break;
-      case 'version':
-        entities = await this.entityManager.listVersions();
-        break;
-    }
-
-    // 按负责人分组
     const ownerMap = new Map<string, WorkloadData>();
 
-    for (const entity of entities) {
-      const owner = entity.owner || '未分配';
-
+    const addWorkload = (owner: string, estimated: number, actual: number, count: number) => {
       if (!ownerMap.has(owner)) {
         ownerMap.set(owner, {
           name: owner,
@@ -159,15 +138,61 @@ export class ReportService {
           efficiency: 0,
         });
       }
-
       const data = ownerMap.get(owner)!;
-      const estimated = (entity as Feature).estimatedHours || 0;
-      const actual = (entity as Feature).actualHours || 0;
-
       data.estimated += estimated;
       data.actual += actual;
       data.remaining += Math.max(0, estimated - actual);
-      data.taskCount += 1;
+      data.taskCount += count;
+    };
+
+    switch (entityType) {
+      case 'feature': {
+        const features = await this.entityManager.listFeatures(
+          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
+        );
+        for (const f of features) {
+          addWorkload(f.owner || '未分配', f.estimatedHours || 0, f.actualHours || 0, 1);
+        }
+        break;
+      }
+      case 'project': {
+        const features = await this.entityManager.listFeatures(
+          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
+        );
+        const projects = await this.entityManager.listProjects();
+        const projectMap = new Map(projects.map(p => [p.id, p]));
+        const projectGroups = new Map<string, Feature[]>();
+        for (const f of features) {
+          if (!projectGroups.has(f.projectId)) projectGroups.set(f.projectId, []);
+          projectGroups.get(f.projectId)!.push(f);
+        }
+        for (const [projectId, pfs] of projectGroups) {
+          const project = projectMap.get(projectId);
+          const estimated = pfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
+          const actual = pfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          addWorkload(project?.owner || '未分配', estimated, actual, pfs.length);
+        }
+        break;
+      }
+      case 'version': {
+        const features = await this.entityManager.listFeatures(
+          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status as any } : undefined
+        );
+        const versions = await this.entityManager.listVersions();
+        const versionMap = new Map(versions.map(v => [v.id, v]));
+        const versionGroups = new Map<string, Feature[]>();
+        for (const f of features) {
+          if (!versionGroups.has(f.versionId)) versionGroups.set(f.versionId, []);
+          versionGroups.get(f.versionId)!.push(f);
+        }
+        for (const [versionId, vfs] of versionGroups) {
+          const version = versionMap.get(versionId);
+          const estimated = vfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
+          const actual = vfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          addWorkload(version?.owner || '未分配', estimated, actual, vfs.length);
+        }
+        break;
+      }
     }
 
     // 计算效率

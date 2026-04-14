@@ -253,7 +253,7 @@ export const Features: Story = {
     title: '特性网格',
     cols: 3,
     entities: [
-      createMockFeature({ name: '用户认证模块', priority: 'critical', status: 'in-progress', progress: 75, owner: '张三', endDate: '04-20', tags: ['后端', '安全'], description: '实现 JWT 认证系统' }),
+      createMockFeature({ name: '用户认证模块', priority: 'critical', status: 'in-progress', progress: 75, owner: '张三', endDate: '04-20', tags: ['后端', '安全'] }),
       createMockFeature({ name: '前端页面开发', priority: 'high', status: 'todo', progress: 30, owner: '李四', endDate: '04-25', tags: ['前端', 'UI'] }),
       createMockFeature({ name: 'API 接口设计', priority: 'medium', status: 'completed', progress: 100, owner: '王五', endDate: '04-15', tags: ['后端'] }),
       createMockFeature({ name: '数据库优化', priority: 'high', status: 'in-progress', progress: 60, owner: '张三', endDate: '04-22', tags: ['后端', '性能'] }),
@@ -268,9 +268,9 @@ export const Projects: Story = {
     title: '项目网格',
     cols: 2,
     entities: [
-      createMockProject({ name: 'Web 应用重构', priority: 'high', status: 'in-progress', owner: '张三', endDate: '05-01', tags: ['重构', 'Web'], description: '全面升级前端架构' }),
-      createMockProject({ name: '移动端 App', priority: 'critical', status: 'in-progress', owner: '李四', endDate: '05-15', tags: ['iOS', 'Android'], description: '跨平台移动应用开发' }),
-      createMockProject({ name: '后台管理系统', priority: 'medium', status: 'planning', owner: '王五', endDate: '06-01', tags: ['后台'] }),
+      createMockProject({ name: 'Web 应用重构', priority: 'high', status: 'in-progress', owner: '张三', endDate: '05-01', tags: ['重构', 'Web'] }),
+      createMockProject({ name: '移动端 App', priority: 'critical', status: 'in-progress', owner: '李四', endDate: '05-15', tags: ['iOS', 'Android'] }),
+      createMockProject({ name: '后台管理系统', priority: 'medium', status: 'backlog', owner: '王五', endDate: '06-01', tags: ['后台'] }),
       createMockProject({ name: '数据分析平台', priority: 'high', status: 'backlog', owner: '赵六', tags: ['数据'] }),
     ],
   },
@@ -281,7 +281,7 @@ export const Mixed: Story = {
     title: '所有实体',
     cols: 4,
     entities: [
-      createMockVersion({ name: 'v2.0 大版本', status: 'planning', owner: '产品组', tags: ['大版本'] }),
+      createMockVersion({ name: 'v2.0 大版本', status: 'archived', owner: '产品组', tags: ['大版本'] }),
       createMockProject({ name: 'Web 应用', priority: 'high', status: 'in-progress', owner: '张三' }),
       createMockFeature({ name: '登录功能', priority: 'critical', status: 'in-progress', progress: 80, owner: '李四' }),
       createMockFeature({ name: '注册页面', priority: 'medium', status: 'todo', progress: 20, owner: '王五' }),

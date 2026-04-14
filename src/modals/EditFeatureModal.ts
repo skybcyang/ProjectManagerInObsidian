@@ -41,6 +41,10 @@ export class EditFeatureModal extends Modal {
       owner: feature.owner,
       tags: [...feature.tags],
       isMilestone: feature.isMilestone,
+      estimatedHours: feature.estimatedHours,
+      actualHours: feature.actualHours,
+      requirementIds: feature.requirementIds ? [...feature.requirementIds] : [],
+      projectLink: feature.projectLink,
     };
   }
 
@@ -187,6 +191,34 @@ export class EditFeatureModal extends Modal {
           this.result.owner = value || undefined;
         }));
 
+    // 预估工时
+    new Setting(contentEl)
+      .setName('预估工时')
+      .setDesc('小时（可选）')
+      .addText(text => {
+        text.inputEl.type = 'number';
+        text.inputEl.placeholder = '例如：40';
+        text.setValue(this.result.estimatedHours !== undefined ? String(this.result.estimatedHours) : '')
+          .onChange(value => {
+            const num = value ? parseFloat(value) : undefined;
+            this.result.estimatedHours = num !== undefined && !isNaN(num) ? num : undefined;
+          });
+      });
+
+    // 实际工时
+    new Setting(contentEl)
+      .setName('实际工时')
+      .setDesc('小时（可选）')
+      .addText(text => {
+        text.inputEl.type = 'number';
+        text.inputEl.placeholder = '例如：32';
+        text.setValue(this.result.actualHours !== undefined ? String(this.result.actualHours) : '')
+          .onChange(value => {
+            const num = value ? parseFloat(value) : undefined;
+            this.result.actualHours = num !== undefined && !isNaN(num) ? num : undefined;
+          });
+      });
+
     // 标签
     new Setting(contentEl)
       .setName('标签')
@@ -197,6 +229,30 @@ export class EditFeatureModal extends Modal {
           this.result.tags = value
             ? value.split(',').map(t => t.trim()).filter(t => t.length > 0)
             : [];
+        }));
+
+    // 需求编号
+    new Setting(contentEl)
+      .setName('需求编号')
+      .setDesc('用逗号分隔多个需求编号')
+      .addText(text => text
+        .setPlaceholder('例如：REQ-001, REQ-002')
+        .setValue(this.result.requirementIds?.join(', ') || '')
+        .onChange(value => {
+          this.result.requirementIds = value
+            ? value.split(',').map(t => t.trim()).filter(t => t.length > 0)
+            : [];
+        }));
+
+    // 项目链接
+    new Setting(contentEl)
+      .setName('项目链接')
+      .setDesc('HiALM 或其他项目管理平台链接')
+      .addText(text => text
+        .setPlaceholder('例如：https://hialm.example.com/project/123')
+        .setValue(this.result.projectLink || '')
+        .onChange(value => {
+          this.result.projectLink = value || undefined;
         }));
 
     // 按钮

@@ -159,7 +159,6 @@ export const Feature: Story = {
       progress: 65,
       endDate: '2024-04-20',
       tags: ['前端', '认证'],
-      description: '实现基于 JWT 的用户认证系统',
     }),
     options: {
       showTypeIcon: true,
@@ -169,7 +168,6 @@ export const Feature: Story = {
       showProgress: true,
       showDueDate: true,
       showTags: true,
-      showDescription: true,
     },
   },
 };
@@ -183,7 +181,6 @@ export const Project: Story = {
       owner: '李四',
       endDate: '2024-05-01',
       tags: ['Web', '管理后台'],
-      description: '企业内部后台管理系统',
     }),
     options: {
       showTypeIcon: true,
@@ -192,7 +189,6 @@ export const Project: Story = {
       showOwner: true,
       showDueDate: true,
       showTags: true,
-      showDescription: true,
     },
   },
 };
@@ -205,7 +201,6 @@ export const Version: Story = {
       owner: '产品组',
       endDate: '2024-06-01',
       tags: ['大版本', '里程碑'],
-      description: '包含核心功能重构的 major 版本',
     }),
     options: {
       showTypeIcon: true,
@@ -213,7 +208,6 @@ export const Version: Story = {
       showOwner: true,
       showDueDate: true,
       showTags: true,
-      showDescription: true,
     },
   },
 };

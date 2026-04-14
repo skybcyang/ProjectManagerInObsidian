@@ -6,7 +6,7 @@ import type { Version, Project, Feature, ProjectManagerSettings } from '../types
 import type { CreateVersionData, UpdateVersionData } from '../types';
 import type { CreateProjectData, UpdateProjectData } from '../types';
 import type { CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../types';
-import { ChangeLogService } from '../services/ChangeLogService';
+import { ChangeLogService, DataviewService } from '../services';
 
 /**
  * 实体管理器
@@ -17,6 +17,7 @@ export class EntityManager {
   readonly project: ProjectStore;
   readonly feature: FeatureStore;
   readonly cache: EntityCache;
+  readonly dataview: DataviewService;
   private changeLogService: ChangeLogService;
 
   constructor(app: App, settings?: ProjectManagerSettings) {
@@ -26,6 +27,7 @@ export class EntityManager {
     this.project = new ProjectStore(fs, app, this.cache, settings);
     this.feature = new FeatureStore(fs, app, this.cache, settings);
     this.changeLogService = new ChangeLogService(app);
+    this.dataview = new DataviewService(app);
   }
 
   /**
@@ -85,10 +87,11 @@ export class EntityManager {
 
   /**
    * 获取版本的关联项目
+   * 优先使用 Dataview 查询（如果可用）
    */
   async getVersionProjects(versionId: string): Promise<Project[]> {
-    const allProjects = await this.listProjects();
-    return allProjects.filter(p => p.versionId === versionId);
+    // 使用 Dataview 查询
+    return this.dataview.queryProjects({ versionId });
   }
 
   async getVersion(id: string): Promise<Version | null> {
@@ -153,10 +156,11 @@ export class EntityManager {
 
   /**
    * 获取项目的关联特性
+   * 优先使用 Dataview 查询（如果可用）
    */
   async getProjectFeatures(projectId: string): Promise<Feature[]> {
-    const allFeatures = await this.listFeatures();
-    return allFeatures.filter(f => f.projectId === projectId);
+    // 使用 Dataview 查询
+    return this.dataview.queryFeatures({ projectId });
   }
 
   async getProject(id: string): Promise<Project | null> {
@@ -255,5 +259,41 @@ export class EntityManager {
    */
   getOwners(): string[] {
     return this.cache.getOwners();
+  }
+
+  // ==================== Dataview 集成方法 ====================
+
+  /**
+   * 检查 Dataview 插件是否可用
+   */
+  isDataviewAvailable(): boolean {
+    return this.dataview.isAvailable();
+  }
+
+  /**
+   * 获取版本进度（根据特性完成情况计算）
+   * @param versionId 版本 ID
+   * @returns 进度百分比 0-100
+   */
+  async getVersionProgress(versionId: string): Promise<number> {
+    return this.dataview.getVersionProgress(versionId);
+  }
+
+  /**
+   * 获取项目进度（根据特性完成情况计算）
+   * @param projectId 项目 ID
+   * @returns 进度百分比 0-100
+   */
+  async getProjectProgress(projectId: string): Promise<number> {
+    return this.dataview.getProjectProgress(projectId);
+  }
+
+  /**
+   * 获取逾期项目/特性
+   * @param type 实体类型，不提供则返回所有类型
+   * @returns 逾期实体列表
+   */
+  async getOverdueItems(type?: 'version' | 'project' | 'feature'): Promise<Array<Version | Project | Feature>> {
+    return this.dataview.getOverdueItems(type);
   }
 }

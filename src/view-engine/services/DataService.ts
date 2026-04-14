@@ -65,42 +65,54 @@ export class DataService {
 
   /**
    * 加载实体数据 - 使用策略模式
+   * 统一使用列表形式筛选（单ID在parseConfig层已转换为列表）
    */
   async loadEntities(config: ViewConfig): Promise<Entity[]> {
-    // 如果指定了特性ID，加载特定特性
-    if (config.feature) {
-      const feature = await this.entityManager.getFeature(config.feature);
-      return feature ? [feature as Entity] : [];
-    }
-
-    // 根据 entityType 获取对应策略
     const entityType = config.entityType || 'feature';
-    const strategy = this.strategyRegistry.get(entityType);
 
-    if (!strategy) {
-      return [];
-    }
-
-    // 使用策略加载数据
-    const entities = await strategy.list();
-
-    // 如果指定了特定ID，进行过滤
-    if (config.project && entityType === 'project') {
-      return entities.filter(e => e.id === config.project) as Entity[];
-    }
-    if (config.version && entityType === 'version') {
-      return entities.filter(e => e.id === config.version) as Entity[];
-    }
-
-    // 特性可以根据项目ID或版本ID筛选
+    // 特性筛选
     if (entityType === 'feature') {
-      return this.entityManager.listFeatures({
-        projectId: config.project,
-        versionId: config.version,
-      }) as Promise<Entity[]>;
+      let features = await this.entityManager.listFeatures();
+
+      if (config.features && config.features.length > 0) {
+        features = features.filter(f => config.features!.includes(f.id));
+      }
+      if (config.projects && config.projects.length > 0) {
+        features = features.filter(f => config.projects!.includes(f.projectId));
+      }
+      if (config.versions && config.versions.length > 0) {
+        features = features.filter(f => config.versions!.includes(f.versionId));
+      }
+
+      return features as Entity[];
     }
 
-    return entities as Entity[];
+    // 项目筛选
+    if (entityType === 'project') {
+      let projects = await this.entityManager.listProjects();
+
+      if (config.projects && config.projects.length > 0) {
+        projects = projects.filter(p => config.projects!.includes(p.id));
+      }
+      if (config.versions && config.versions.length > 0) {
+        projects = projects.filter(p => config.versions!.includes(p.versionId));
+      }
+
+      return projects as Entity[];
+    }
+
+    // 版本筛选
+    if (entityType === 'version') {
+      let versions = await this.entityManager.listVersions();
+
+      if (config.versions && config.versions.length > 0) {
+        versions = versions.filter(v => config.versions!.includes(v.id));
+      }
+
+      return versions as Entity[];
+    }
+
+    return [];
   }
 
   /**

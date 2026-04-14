@@ -16,6 +16,41 @@ pm-dashboard: true
 
 ---
 
+## 📈 统计概览
+
+\`\`\`dataviewjs
+// 统计卡片数据 - 实时计算
+const versions = dv.pages('"ProjectManager/Versions"');
+const projects = dv.pages('"ProjectManager/Projects"');
+const features = dv.pages('"ProjectManager/Features"');
+
+const vCompleted = versions.filter(v => v.status === 'completed').length;
+const vTotal = versions.length;
+const vInProgress = versions.filter(v => v.status === 'in-progress').length;
+const vBacklog = versions.filter(v => v.status === 'backlog').length;
+
+const pCompleted = projects.filter(p => p.status === 'completed').length;
+const pTotal = projects.length;
+const pInProgress = projects.filter(p => p.status === 'in-progress').length;
+const pBacklog = projects.filter(p => p.status === 'backlog').length;
+
+const fCompleted = features.filter(f => f.status === 'completed').length;
+const fTotal = features.length;
+const fInProgress = features.filter(f => f.status === 'in-progress').length;
+const fBacklog = features.filter(f => f.status === 'backlog').length;
+
+dv.table(
+  ["类型", "已完成", "进行中", "待开始", "总计"],
+  [
+    ["📦 版本", vCompleted, vInProgress, vBacklog, vTotal],
+    ["📁 项目", pCompleted, pInProgress, pBacklog, pTotal],
+    ["✨ 特性", fCompleted, fInProgress, fBacklog, fTotal]
+  ]
+);
+\`\`\`
+
+---
+
 ## 🚀 快速操作
 
 --- start-multi-column: ID_quick_actions
@@ -83,19 +118,35 @@ status: {{status}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
-{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
-{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
 
 # 📦 {{name}}
 
-> **状态**: {{status}} | **ID**: {{id}}
-{{#if owner}}> **负责人**: @{{owner}}
-{{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
-{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
-{{/if}}
+---
+
+## 📊 工时统计
+
+| 类型 | 预估工时 | 实际工时 | 偏差 |
+|------|---------|---------|------|
+| 版本总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+
+> 💡 **统计说明**: 自动汇总该版本下所有项目和特性的工时数据
+
+---
+
+## 📅 里程碑计划
+
+| 里程碑 | 计划日期 | 实际日期 | 状态 | 备注 |
+|--------|----------|----------|------|------|
+| 需求冻结 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 设计评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 开发启动 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 开发完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 联调完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 测试完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | |
+| 版本发布 | {{#if endDate}}{{endDate}}{{/if}} | <!-- YYYY-MM-DD --> | ⬜ | |
 
 ---
 
@@ -148,7 +199,7 @@ groupBy: status
 
 ---
 
-## 📝 版本备注
+## 📝 其他备注
 
 <!-- 记录版本相关的重要信息 -->
 `;
@@ -164,19 +215,79 @@ priority: {{priority}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
-{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
-{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
 {{/if}}tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
 
 # {{priorityEmoji}} {{name}}
 
-> **状态**: {{status}} | **优先级**: {{priority}} | **ID**: {{id}}
-{{#if owner}}> **负责人**: @{{owner}}
-{{/if}}{{#if startDate}}> **开始日期**: {{startDate}}
-{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
-{{/if}}
+---
+
+## 📊 工时统计
+
+| 类型 | 预估工时 | 实际工时 | 偏差 |
+|------|---------|---------|------|
+| 项目总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+
+> 💡 **统计说明**: 自动汇总该项目下所有特性的工时数据
+
+---
+
+## 🔗 HiALM 项目链接
+
+- **HiALM 项目主页**: <!-- 填写 HiALM 项目链接 -->
+- **需求跟踪**: <!-- 填写需求跟踪链接 -->
+- **缺陷跟踪**: <!-- 填写缺陷跟踪链接 -->
+- **项目 Wiki**: <!-- 填写项目 Wiki 链接 -->
+
+---
+
+## 📅 里程碑计划
+
+| 里程碑 | 计划日期 | 实际日期 | 状态 | 负责人 |
+|--------|----------|----------|------|--------|
+| 需求评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+| 设计评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+| 开发完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+| 联调完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+| 测试完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+| 上线发布 | {{#if endDate}}{{endDate}}{{/if}} | <!-- YYYY-MM-DD --> | ⬜ | <!-- @姓名 --> |
+
+---
+
+## 👥 相关人员
+
+| 角色 | 姓名 | 工号 | 联系方式 |
+|------|------|------|----------|
+| 项目经理 | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+| 系统工程师(SE) | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+| 开发负责人 | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+| 测试负责人 | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+| 算法接口人 | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+| 产品经理 | <!-- 姓名 --> | <!-- xxxxx --> | <!-- 邮箱/IM --> |
+
+---
+
+## 🧪 测试报告
+
+### 测试概况
+- **测试负责人**: <!-- @姓名 -->
+- **测试时间**: <!-- YYYY-MM-DD ~ YYYY-MM-DD -->
+- **测试结论**: ⬜ 通过 / ⬜ 有条件通过 / ⬜ 不通过
+
+### Bug 统计
+| 级别 | 阻塞数 | 已修复 | 遗留 |
+|------|--------|--------|------|
+| P0 阻塞 | 0 | 0 | 0 |
+| P1 严重 | 0 | 0 | 0 |
+| P2 一般 | 0 | 0 | 0 |
+| P3 轻微 | 0 | 0 | 0 |
+
+### 测试报告链接
+- [功能测试报告]()
+- [性能测试报告]()
+- [安全测试报告]()
+- [兼容性测试报告]()
 
 ---
 
@@ -192,20 +303,6 @@ Border: off
 <span class="pm-btn pm-btn--primary" data-action="create-feature" data-project-id="{{id}}" data-version-id="{{versionId}}">✨ 创建特性</span>
 
 --- end-multi-column
-
----
-
-## 📋 项目概览
-
-<!-- 在此描述项目的背景、目标和范围 -->
-
-### 目标描述
-
-<!-- 项目的核心目标 -->
-
-### 范围边界
-
-<!-- 项目的范围边界，包含什么和不包含什么 -->
 
 ---
 
@@ -230,7 +327,7 @@ groupBy: status
 
 ---
 
-## 📝 项目备注
+## 📝 其他备注
 
 <!-- 记录项目相关的重要信息、决策、会议纪要等 -->
 `;
@@ -250,33 +347,145 @@ progress: {{progress}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
 {{/if}}{{#if actualHours}}actualHours: {{actualHours}}
+{{/if}}{{#if requirementIds}}requirementIds:
+{{#each requirementIds}}  - {{this}}
+{{/each}}{{/if}}{{#if projectLink}}projectLink: {{projectLink}}
 {{/if}}isMilestone: {{isMilestone}}
 tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
 
-# {{priorityEmoji}} {{statusEmoji}} {{name}}
+# {{priorityEmoji}} {{name}}
 
-> **状态**: {{status}} | **优先级**: {{priority}} | **进度**: {{progress}}%
-> **ID**: {{id}}
-{{#if owner}}> **负责人**: @{{owner}}
-{{/if}}{{#if endDate}}> **结束日期**: {{endDate}}
-{{/if}}
+<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="输入当前进展，按 Enter 保存...">
+
 ---
 
-## 📋 需求描述
+## 1️⃣ 需求背景和来源
 
-<!-- 详细描述本特性的需求背景、用户故事、验收标准 -->
+### 需求提出方
+<!-- 填写需求提出方，如：产品团队、业务部门、客户等 -->
 
-### 用户故事
+### 背景
+<!-- 描述需求产生的背景和业务痛点 -->
 
-作为 [角色]，我希望 [功能]，以便 [价值]
+### 目标产品范围
+<!-- 明确本次需求覆盖的产品范围和边界 -->
 
-### 验收标准
+---
 
-- [ ] 验收标准1
-- [ ] 验收标准2
-- [ ] 验收标准3
+## 2️⃣ 相关人员
+
+### 系统工程师（SE）
+- **姓名**: <!-- 张三 -->
+- **工号**: <!-- xxxxx -->
+
+### 开发接口人
+- **姓名**: <!-- 李四 -->
+- **工号**: <!-- xxxxx -->
+
+### 测试接口人
+- **姓名**: <!-- 王五 -->
+- **工号**: <!-- xxxxx -->
+
+### 算法接口人
+- **姓名**: <!-- 赵六 -->
+- **工号**: <!-- xxxxx -->
+
+### 其他相关人员
+- **角色**: <!-- 产品经理/项目经理等 -->
+- **姓名**: <!-- 姓名 -->
+- **工号**: <!-- xxxxx -->
+
+---
+
+## 3️⃣ 项目链接
+
+### 需求链接
+- [需求文档1]() <!-- 填写需求文档链接 -->
+- [需求文档2]() <!-- 填写需求文档链接 -->
+
+### DBox 归档路径
+\`\`\`
+<!-- 填写 DBox 归档路径，如：/产品/2024/Q1/需求文档/ -->
+\`\`\`
+
+### 其他链接
+- [PRD 文档]()
+- [原型图]()
+- [UI 设计稿]()
+
+---
+
+## 4️⃣ 联调问题记录
+
+### 问题1
+- **描述**: <!-- 联调中遇到的问题 -->
+- **影响范围**: <!-- 影响的功能/模块 -->
+- **解决方案**: <!-- 解决方案 -->
+- **状态**: ⬜ 待解决 / 🟡 处理中 / 🟢 已解决
+- **负责人**: <!-- @负责人 -->
+
+### 问题2
+- **描述**:
+- **影响范围**:
+- **解决方案**:
+- **状态**:
+- **负责人**:
+
+---
+
+## 5️⃣ 测试报告红线报告
+
+### 测试概况
+- **测试负责人**: <!-- @测试人员 -->
+- **测试时间**: <!-- YYYY-MM-DD ~ YYYY-MM-DD -->
+- **测试结论**: ⬜ 通过 / ⬜ 有条件通过 / ⬜ 不通过
+
+### Bug 统计
+| 级别 | 阻塞数 | 已修复 | 遗留 |
+|------|--------|--------|------|
+| P0 阻塞 | 0 | 0 | 0 |
+| P1 严重 | 0 | 0 | 0 |
+| P2 一般 | 0 | 0 | 0 |
+| P3 轻微 | 0 | 0 | 0 |
+
+### 红线问题
+- [ ] 红线1: <!-- 描述红线问题 -->
+- [ ] 红线2: <!-- 描述红线问题 -->
+
+### 测试报告链接
+- [测试报告]()
+- [性能测试报告]()
+- [安全测试报告]()
+
+---
+
+## 6️⃣ 合入链接
+
+### HiCamera 分支
+- **开发分支**: \`feature/{{id}}\`
+- **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
+- **MR 链接**: <!-- 填写 MR 链接 -->
+- **合入 Commit**: <!-- 填写 Commit ID -->
+
+### 主干分支
+- **目标分支**: \`master/main\`
+- **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
+- **MR 链接**:
+- **合入 Commit**:
+
+### 商用分支
+- **目标分支**: \`release/xxx\`
+- **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
+- **MR 链接**:
+- **合入 Commit**:
+- **版本号**: <!-- v.x.x.x -->
+
+### 商分材料
+- [商分文档]()
+- [上线检查清单]()
+- [回滚方案]()
 
 ---
 
@@ -288,104 +497,18 @@ tags:
 ### 最新进展
 <!-- 记录最新进展 -->
 
-### 添加新进展
-<input class="pm-progress-input" data-feature-id="{{id}}" placeholder="输入当前进展，按 Enter 保存...">
-
 ---
 
 ## 📅 里程碑计划
 
-- [ ] **需求评审** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-- [ ] **设计评审** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-- [ ] **开发完成** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-- [ ] **联调完成** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-- [ ] **测试完成** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-- [ ] **上线发布** - 计划: <!-- YYYY-MM-DD --> / 实际: <!-- YYYY-MM-DD -->
-
----
-
-## 👥 团队与协作
-
-### 核心团队
-
-- **产品经理**: <!-- @姓名 -->
-- **开发负责人**: <!-- @姓名 -->
-- **测试负责人**: <!-- @姓名 -->
-
-### 依赖协作
-
-- [ ] 协作方1 - <!-- 协作事项 -->
-- [ ] 协作方2 - <!-- 协作事项 -->
-
----
-
-## 💻 开发状态
-
-### 代码信息
-
-- **Change ID**: <!-- 代码变更ID -->
-- **开发分支**: \`feature/{{id}}\`
-- **MR/PR 链接**: <!-- 填入 Merge Request 或 Pull Request 链接 -->
-
-### 各阶段状态
-
-#### 🔨 开发阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **负责人**: <!-- @开发人员 -->
-- **完成度**: {{progress}}%
-- **备注**: <!-- 开发备注 -->
-
-#### 🔗 联调阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **负责人**: <!-- @联调负责人 -->
-- **阻塞问题**: <!-- 记录联调阻塞问题 -->
-- **依赖服务**: <!-- 列出依赖的其他服务/接口 -->
-
-#### 🧪 转测阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成 / 🔴 有阻塞
-- **测试负责人**: <!-- @测试人员 -->
-- **Bug 统计**:
-  - 🔴 P0 阻塞: 0
-  - 🟠 P1 严重: 0
-  - 🟡 P2 一般: 0
-  - 🟢 P3 轻微: 0
-- **测试报告**: <!-- 链接到测试报告 -->
-
-#### 📖 文档阶段
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已完成
-- **文档清单**:
-  - [ ] API 接口文档
-  - [ ] 使用手册
-  - [ ] 部署文档
-  - [ ] 变更日志
-
-#### 👀 代码检视
-- **状态**: ⬜ 未开始 / 🟡 进行中 / 🟢 已通过 / 🔴 需修改
-- **检视人**: <!-- @检视人 -->
-- **检视意见**: <!-- 记录检视意见 -->
-- **检视链接**: <!-- 代码检视工具链接 -->
-
-#### 🔀 合入分支
-- **状态**: ⬜ 未合并 / 🟡 合并中 / 🟢 已合并 / 🔴 冲突
-- **MR/PR 状态**: <!-- 开启/已合并/已关闭 -->
-- **合并冲突**: <!-- 有则记录冲突详情 -->
-- **回滚方案**: <!-- 记录回滚方案 -->
-
----
-
-## 🐛 问题记录
-
-### 问题1
-- **描述**: <!-- 问题描述 -->
-- **优先级**: P0/P1/P2
-- **状态**: 待处理/处理中/已解决
-- **备注**: 
-
-### 问题2
-- **描述**: 
-- **优先级**: 
-- **状态**: 
-- **备注**: 
+| 里程碑 | 计划日期 | 实际日期 | 状态 |
+|--------|----------|----------|------|
+| 需求评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
+| 设计评审 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
+| 开发完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
+| 联调完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
+| 测试完成 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
+| 上线发布 | <!-- YYYY-MM-DD --> | <!-- YYYY-MM-DD --> | ⬜ |
 
 ---
 
