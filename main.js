@@ -7691,14 +7691,10 @@ var FilterBar = class {
         }
         break;
     }
-    if (this.filters.status)
-      filterUpdates.status = this.filters.status;
-    if (this.filters.priority)
-      filterUpdates.priority = this.filters.priority;
-    if (this.filters.owner)
-      filterUpdates.owner = this.filters.owner;
-    if (this.filters.tag)
-      filterUpdates.tag = this.filters.tag;
+    filterUpdates.status = this.filters.status || void 0;
+    filterUpdates.priority = this.filters.priority || void 0;
+    filterUpdates.owner = this.filters.owner || void 0;
+    filterUpdates.tag = this.filters.tag || void 0;
     await this.configService.saveConfig(
       this.sourcePath,
       this.codeBlockStart,

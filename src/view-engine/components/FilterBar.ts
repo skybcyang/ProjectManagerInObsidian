@@ -495,10 +495,10 @@ export class FilterBar {
         break;
     }
 
-    if (this.filters.status) filterUpdates.status = this.filters.status;
-    if (this.filters.priority) filterUpdates.priority = this.filters.priority;
-    if (this.filters.owner) filterUpdates.owner = this.filters.owner;
-    if (this.filters.tag) filterUpdates.tag = this.filters.tag;
+    filterUpdates.status = this.filters.status || undefined;
+    filterUpdates.priority = this.filters.priority || undefined;
+    filterUpdates.owner = this.filters.owner || undefined;
+    filterUpdates.tag = this.filters.tag || undefined;
 
     await this.configService.saveConfig(
       this.sourcePath,
