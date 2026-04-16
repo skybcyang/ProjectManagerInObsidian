@@ -1,5 +1,7 @@
 import { App, TFile } from 'obsidian';
 import type { Version, Project, Feature } from '../../types';
+import type { EntityLogSummary } from '../../types';
+import { RiskParser } from '../../services/RiskParser';
 
 /**
  * 实体缓存管理器
@@ -9,8 +11,10 @@ export class EntityCache {
   private versionCache = new Map<string, Version>();
   private projectCache = new Map<string, Project>();
   private featureCache = new Map<string, Feature>();
+  private logSummaryCache = new Map<string, EntityLogSummary>();
   private ownerIndex = new Set<string>();
   private initialized = false;
+  private riskParser = new RiskParser();
 
   constructor(private app: App) {}
 
@@ -73,6 +77,13 @@ export class EntityCache {
   }
 
   /**
+   * 获取日志摘要
+   */
+  getLogSummary(id: string): EntityLogSummary | undefined {
+    return this.logSummaryCache.get(id);
+  }
+
+  /**
    * 设置缓存
    */
   setVersion(version: Version): void {
@@ -109,6 +120,7 @@ export class EntityCache {
     this.versionCache.clear();
     this.projectCache.clear();
     this.featureCache.clear();
+    this.logSummaryCache.clear();
     this.ownerIndex.clear();
     this.initialized = false;
   }
@@ -222,14 +234,15 @@ export class EntityCache {
     let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
 
     // 如果 metadata 还没准备好，直接从文件读取
+    let content = '';
     if (!frontmatter?.id) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!parsed?.id) return null;
       frontmatter = parsed;
     }
 
-    return {
+    const version = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       status: String(frontmatter.status || 'planning'),
@@ -238,6 +251,13 @@ export class EntityCache {
       endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     } as Version;
+
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(version.id, this.riskParser.parseLogSummary(content));
+
+    return version;
   }
 
   /**
@@ -264,7 +284,12 @@ export class EntityCache {
       } else if (value === 'false') {
         frontmatter[key] = false;
       } else if (/^\d+$/.test(value)) {
-        frontmatter[key] = parseInt(value, 10);
+        // 保留日期字段为字符串，避免被解析成数字后 TimelineRenderer 无法识别
+        if (key === 'startDate' || key === 'endDate') {
+          frontmatter[key] = value;
+        } else {
+          frontmatter[key] = parseInt(value, 10);
+        }
       } else {
         frontmatter[key] = value;
       }
@@ -281,14 +306,15 @@ export class EntityCache {
     let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
 
     // 如果 metadata 还没准备好，直接从文件读取
+    let content = '';
     if (!frontmatter?.id) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!parsed?.id) return null;
       frontmatter = parsed;
     }
 
-    return {
+    const project = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       versionId: frontmatter.versionId ? String(frontmatter.versionId) : undefined,
@@ -300,6 +326,13 @@ export class EntityCache {
       priority: frontmatter.priority ? String(frontmatter.priority) : undefined,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     } as Project;
+
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(project.id, this.riskParser.parseLogSummary(content));
+
+    return project;
   }
 
   /**
@@ -310,14 +343,15 @@ export class EntityCache {
     let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
 
     // 如果 metadata 还没准备好，直接从文件读取
+    let content = '';
     if (!frontmatter?.id) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!parsed?.id) return null;
       frontmatter = parsed;
     }
 
-    return {
+    const feature = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       projectId: frontmatter.projectId ? String(frontmatter.projectId) : undefined,
@@ -334,6 +368,13 @@ export class EntityCache {
       estimatedHours: typeof frontmatter.estimatedHours === 'number' ? frontmatter.estimatedHours : undefined,
       actualHours: typeof frontmatter.actualHours === 'number' ? frontmatter.actualHours : undefined,
     } as Feature;
+
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(feature.id, this.riskParser.parseLogSummary(content));
+
+    return feature;
   }
 
   /**

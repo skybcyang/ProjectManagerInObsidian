@@ -1,4 +1,5 @@
 import { FEATURE_STATUS_OPTIONS, getStatusColor } from '../design-tokens';
+import { getOverlayContainer } from '../../utils/getOverlayContainer';
 
 /**
  * 状态选择器组件
@@ -93,7 +94,6 @@ export class StatusPicker {
       };
     });
 
-    const { getOverlayContainer } = require('../../utils');
     getOverlayContainer().appendChild(this.menu);
 
     // 定位菜单

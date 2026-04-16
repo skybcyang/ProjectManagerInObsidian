@@ -48,6 +48,10 @@ export class SelectCell extends BaseCell<string> {
       badge.style.backgroundColor = this.hexToRgba(option.color, 0.15);
       badge.style.color = option.color;
       badge.style.border = `1px solid ${this.hexToRgba(option.color, 0.3)}`;
+    } else if (!this.value) {
+      // 空值：使用占位样式，避免完全透明
+      badge.style.color = 'var(--text-muted)';
+      badge.style.border = '1px solid var(--background-modifier-border-hover)';
     }
 
     badge.textContent = option?.label || this.value || '-';

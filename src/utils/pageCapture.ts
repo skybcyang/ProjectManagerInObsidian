@@ -219,7 +219,7 @@ async function fetchPluginStyles(): Promise<string> {
     const styleTags = Array.from(document.querySelectorAll('style'));
     for (const tag of styleTags) {
       const text = tag.textContent || '';
-      if (text.includes('.pm-view') || text.includes('pm-kanban') || text.includes('pm-list') || text.includes('pm-grid')) {
+      if (text.includes('.pm-view') || text.includes('pm-kanban') || text.includes('pm-list')) {
         return text;
       }
     }

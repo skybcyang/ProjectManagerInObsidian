@@ -6,7 +6,7 @@ export { formatDateDisplay, getRelativeDateDesc } from './components/DatePicker'
 
 // 旧代码块配置类型（兼容层，内部映射到 ViewEngine）
 export interface KanbanConfig {
-  view?: 'all' | 'by-version' | 'by-project' | 'grid';
+  view?: 'all' | 'by-version' | 'by-project';
   version?: string;
   project?: string;
   owner?: string;
@@ -25,20 +25,4 @@ export interface SingleCardConfig {
 export interface EntitySelectorConfig {
   type: 'version' | 'project';
   defaultId?: string;
-}
-
-export interface GridConfig {
-  type?: 'version' | 'project' | 'feature';
-  cols?: 1 | 2 | 3 | 4;
-  filter?: {
-    status?: string;
-    priority?: string;
-    versionId?: string;
-    projectId?: string;
-    owner?: string;
-    tag?: string;
-  };
-  sortBy?: 'name' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
-  sortOrder?: 'asc' | 'desc';
-  limit?: number;
 }

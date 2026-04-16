@@ -16,26 +16,6 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
     this.templateService = new TemplateService(app, settings);
   }
 
-  private async writeTemplate(path: string, template: string): Promise<void> {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split('\n');
-      const frontmatter: Record<string, unknown> = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith('[') && value.endsWith(']')) {
-            frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
-
   async create(data: CreateFeatureData): Promise<Feature> {
     const id = this.generateId('feat');
     const feature: Feature = {
@@ -52,6 +32,7 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       endDate: data.endDate,
       estimatedHours: data.estimatedHours,
       actualHours: data.actualHours,
+      projectLink: data.projectLink,
     };
 
     // 获取版本名称和项目名称
@@ -109,9 +90,10 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       tags: feature.tags,
       estimatedHours: feature.estimatedHours,
       actualHours: feature.actualHours,
+      projectLink: feature.projectLink,
     });
-    
-    await this.writeTemplate(path, content);
+
+    await this.fs.writeRawFile(path, content);
     return feature;
   }
 
@@ -127,17 +109,22 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
     };
 
     // 查找现有文件路径
-    let path = await this.findFilePathById(id);
-    
-    // 如果名称、版本或项目变更，生成新文件名
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`找不到特性 ${id} 的文件`);
+    }
+
+    let path = oldPath;
+
+    // 如果名称、版本或项目变更，移动文件
     const versionChanged = data.versionId && data.versionId !== existing.versionId;
     const projectChanged = data.projectId && data.projectId !== existing.projectId;
     const nameChanged = data.name && data.name !== existing.name;
-    
+
     if (versionChanged || projectChanged || nameChanged) {
       let versionName = '';
       let projectName = '';
-      
+
       try {
         // 扫描版本文件夹
         const versionFiles = this.app.vault.getMarkdownFiles()
@@ -149,7 +136,7 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
             break;
           }
         }
-        
+
         // 扫描项目文件夹
         const projectFiles = this.app.vault.getMarkdownFiles()
           .filter(f => f.path.startsWith('ProjectManager/Projects/'));
@@ -161,39 +148,20 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
           }
         }
       } catch {}
-      
+
       const parts = [
         versionName,
         projectName,
         updated.name
       ].filter(Boolean);
-      
+
       const fileName = parts.map(p => this.sanitizeFileName(p)).join('-');
       path = `${this.FOLDER}/${fileName}.md`;
+      await this.fs.moveFile(oldPath, path);
     }
-    
-    if (!path) {
-      throw new Error(`找不到特性 ${id} 的文件`);
-    }
-    
-    // 使用模板服务渲染内容
-    const content = await this.templateService.renderFeatureTemplate({
-      id: updated.id,
-      name: updated.name,
-      versionId: updated.versionId,
-      projectId: updated.projectId,
-      status: updated.status,
-      owner: updated.owner,
-      priority: updated.priority,
-      progress: updated.progress,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags,
-      estimatedHours: updated.estimatedHours,
-      actualHours: updated.actualHours,
-    });
 
-    await this.writeTemplate(path, content);
+    // 只更新 frontmatter，保留用户手动编辑的正文
+    await this.fs.updateFile(path, data as Record<string, unknown>);
     return updated;
   }
 

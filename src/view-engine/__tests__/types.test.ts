@@ -41,7 +41,7 @@ describe('ViewConfig types', () => {
 
   it('should allow filter configuration', () => {
     const config: ViewConfig = {
-      mode: 'grid',
+      mode: 'list',
       version: 'ver-001',
       project: 'proj-001',
       status: 'in-progress',

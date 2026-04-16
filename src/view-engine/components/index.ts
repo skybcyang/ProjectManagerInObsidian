@@ -1,6 +1,3 @@
-// 筛选栏组件
-export { FilterBar } from './FilterBar';
-
 // 树形选择器组件
 export { EntityTreeSelector } from './EntityTreeSelector';
 export type { TreeSelection, EntityTreeSelectorOptions } from './EntityTreeSelector';

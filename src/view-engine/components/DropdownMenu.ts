@@ -1,3 +1,5 @@
+import { getOverlayContainer } from '../../utils/getOverlayContainer';
+
 /**
  * 下拉菜单位置选项
  */
@@ -20,6 +22,8 @@ export interface DropdownOptions {
   minWidth?: number;
   /** 最大高度 */
   maxHeight?: number;
+  /** 内边距（像素） */
+  padding?: number;
   /** 位置选项 */
   position?: DropdownPosition;
   /** 点击外部时关闭 */
@@ -58,6 +62,7 @@ export class DropdownMenu {
       className = 'pm-dropdown-menu',
       minWidth = 180,
       maxHeight,
+      padding,
       position = {},
       closeOnOutsideClick = true,
       closeOnEscape = true,
@@ -77,10 +82,10 @@ export class DropdownMenu {
       position: absolute;
       background: var(--background-primary);
       border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 8px;
+      border-radius: 8px;
+      ${padding !== undefined ? `padding: ${padding}px;` : 'padding: 8px;'}
       z-index: var(--pm-z-dropdown, 1000);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       min-width: ${minWidth}px;
       ${maxHeight ? `max-height: ${maxHeight}px; overflow-y: auto;` : ''}
     `;
@@ -96,7 +101,6 @@ export class DropdownMenu {
     this.positionMenu(triggerEl, horizontalAlign, verticalOffset, boundaryCheck);
 
     // 添加到文档（优先挂载到当前全屏容器内，保证全屏模式下可见）
-    const { getOverlayContainer } = require('../../utils');
     getOverlayContainer().appendChild(this.element);
 
     // 设置关闭处理器

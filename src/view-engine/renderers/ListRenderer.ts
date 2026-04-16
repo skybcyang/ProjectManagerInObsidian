@@ -5,10 +5,11 @@ import { ViewConfig, Entity, EntityType, getEntityType, EntityField, getEntityFi
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
+import { TextCell, SelectCell, DateCell, ProgressCell, MultiSelectCell } from '../cells';
 
 /**
  * 列表渲染器 - 卡片列表风格
- * 卡片式列表视图，支持列排序和筛选
+ * 卡片式列表视图，支持行内编辑
  */
 export class ListRenderer extends BaseRenderer {
   private entities: Entity[] = [];
@@ -35,7 +36,7 @@ export class ListRenderer extends BaseRenderer {
 
     // 创建列表容器
     const listContainer = container.createDiv('pm-list-container');
-    
+
     if (sorted.length === 0) {
       this.createEmptyState(listContainer, '没有符合条件的实体');
       return;
@@ -74,20 +75,13 @@ export class ListRenderer extends BaseRenderer {
 
     // 元信息列（按卡片 meta 顺序）
     const metaCol = columnsRow.createDiv('pm-list-header-meta');
-    const metaFields = ['status', 'priority', 'progress', 'owner', 'endDate', 'tags'];
-    const columnWidths: Record<string, string> = {
-      status: '60px',
-      priority: '50px',
-      progress: '80px',
-      owner: '60px',
-      endDate: '70px',
-      tags: '80px',
-    };
+    const metaFields = ['status', 'priority', 'progress', 'risk', 'latestProgress', 'owner', 'endDate', 'tags'];
 
     for (const fieldKey of metaFields) {
       if (currentColumns.includes(fieldKey as any)) {
         const cell = metaCol.createDiv('pm-list-header-cell');
-        cell.style.width = columnWidths[fieldKey] || 'auto';
+        cell.style.width = this.getColumnWidth(fieldKey);
+        cell.style.minWidth = this.getColumnWidth(fieldKey);
         const def = LIST_COLUMN_DEFINITIONS.find(d => d.key === fieldKey);
         cell.textContent = def?.label || fieldKey;
       }
@@ -140,64 +134,55 @@ export class ListRenderer extends BaseRenderer {
       });
     }
 
-    // 中间：元信息
+    // 点击标题区域打开实体（避免与行内编辑冲突）
+    main.addEventListener('click', async () => {
+      await this.actionService.openEntity(entityType, entity.id);
+    });
+
+    // 中间：元信息（使用行内编辑单元格）
     const meta = content.createDiv('pm-list-card-meta');
 
-    // 状态
-    if ('status' in entity && entity.status && currentColumns.includes('status')) {
-      meta.createSpan({
-        cls: `pm-list-card-status pm-status-${entity.status}`,
-        text: this.translateStatus(entity.status),
-      });
-    }
+    const metaFields = ['status', 'priority', 'progress', 'risk', 'latestProgress', 'owner', 'endDate', 'tags'];
+    for (const fieldKey of metaFields) {
+      if (!currentColumns.includes(fieldKey as any)) continue;
 
-    // 进度
-    if ('progress' in entity && entity.progress !== undefined && currentColumns.includes('progress')) {
-      const progressEl = meta.createDiv('pm-list-card-progress');
-      const progressBar = progressEl.createDiv('pm-list-card-progress-bar');
-      progressBar.createDiv({
-        cls: 'pm-list-card-progress-fill',
-        attr: { style: `width: ${entity.progress}%` }
-      });
-      progressEl.createSpan({ text: `${entity.progress}%` });
-    }
+      const cellContainer = meta.createDiv('pm-list-card-cell');
+      cellContainer.style.width = this.getColumnWidth(fieldKey);
+      cellContainer.style.minWidth = this.getColumnWidth(fieldKey);
 
-    // 负责人
-    if (entity.owner && currentColumns.includes('owner')) {
-      meta.createSpan({ cls: 'pm-list-card-owner', text: `@${entity.owner}` });
-    }
-
-    // 结束日期
-    if ('endDate' in entity && entity.endDate && currentColumns.includes('endDate')) {
-      const isOverdueDate = isOverdue(entity.endDate, entity.status as any);
-      meta.createSpan({
-        cls: `pm-list-card-due${isOverdueDate ? ' pm-overdue' : ''}`,
-        text: DateFormat.short(entity.endDate),
-      });
-    }
-
-    // 标签
-    if (entity.tags && entity.tags.length > 0 && currentColumns.includes('tags')) {
-      const tagsEl = meta.createDiv('pm-list-card-tags');
-      entity.tags.slice(0, 2).forEach(tag => {
-        tagsEl.createSpan({ cls: 'pm-list-card-tag', text: tag });
-      });
+      if (fieldKey === 'risk') {
+        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+        if (logSummary && logSummary.riskSummary.total > 0) {
+          const summary = logSummary.riskSummary;
+          const riskEl = cellContainer.createSpan('pm-list-card-risk');
+          let badgeText = `⚠️ ${summary.open}`;
+          if (summary.high > 0) {
+            riskEl.addClass('pm-list-card-risk--high');
+            badgeText += ` 🔴${summary.high}`;
+          } else if (summary.medium > 0) {
+            riskEl.addClass('pm-list-card-risk--medium');
+            badgeText += ` 🟡${summary.medium}`;
+          }
+          riskEl.textContent = badgeText;
+          riskEl.title = `总风险: ${summary.total} | 未关闭: ${summary.open} | 高: ${summary.high} 中: ${summary.medium} 低: ${summary.low}`;
+        }
+      } else if (fieldKey === 'latestProgress') {
+        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+        if (logSummary?.latestProgress) {
+          const progressText = logSummary.latestProgress.length > 10
+            ? logSummary.latestProgress.substring(0, 10) + '...'
+            : logSummary.latestProgress;
+          const progressEl = cellContainer.createSpan('pm-list-card-latest-progress');
+          progressEl.textContent = `📝 ${progressText}`;
+          progressEl.title = logSummary.latestProgress;
+        }
+      } else {
+        this.renderCellForField(cellContainer, entity, fieldKey);
+      }
     }
 
     // 右侧：操作按钮
     const actions = content.createDiv('pm-list-card-actions');
-    
-    if ('status' in entity) {
-      const statusBtn = actions.createEl('button', {
-        cls: 'pm-list-action-btn',
-        attr: { title: '变更状态' }
-      });
-      statusBtn.textContent = '⚡';
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity as Entity & { status: string }, statusBtn);
-      };
-    }
 
     const openBtn = actions.createEl('button', {
       cls: 'pm-list-action-btn',
@@ -208,11 +193,86 @@ export class ListRenderer extends BaseRenderer {
       e.stopPropagation();
       this.actionService.openEntity(entityType, entity.id);
     };
+  }
 
-    // 点击卡片打开
-    card.addEventListener('click', async () => {
-      await this.actionService.openEntity(entityType, entity.id);
-    });
+  /**
+   * 为指定字段渲染行内编辑单元格
+   */
+  private renderCellForField(
+    container: HTMLElement,
+    entity: Entity,
+    field: string
+  ): void {
+    const entityType = getEntityType(entity);
+    const fields = getEntityFields(entityType);
+    const fieldDef = fields.find(f => f.name === field);
+    const value = (entity as any)[field];
+
+    if (!fieldDef) {
+      // 实体类型不支持该字段：有值则显示原始文本，否则留空占位
+      if (value !== undefined && value !== null && value !== '') {
+        container.createSpan({ cls: 'pm-cell-readonly', text: String(value) });
+      }
+      return;
+    }
+
+    if (!fieldDef.editable) {
+      container.createSpan({
+        cls: 'pm-cell-readonly',
+        text: Array.isArray(value) && value.length === 0 ? '' : String(value ?? '')
+      });
+      return;
+    }
+
+    const cellValue = value ?? (fieldDef.type === 'multi-select' ? [] : '');
+
+    const onChange = async (newValue: any) => {
+      if (field === 'progress' && entityType === 'feature') {
+        await this.actionService.updateProgress(entityType, entity.id, newValue);
+      } else {
+        await this.actionService.updateField(entityType, entity.id, field, newValue);
+      }
+    };
+
+    let cell;
+    switch (fieldDef.type) {
+      case 'text':
+        cell = new TextCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case 'select':
+        cell = new SelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
+        break;
+      case 'date':
+        cell = new DateCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case 'progress':
+        cell = new ProgressCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case 'multi-select':
+        cell = new MultiSelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
+        break;
+      default:
+        return;
+    }
+
+    cell.render(container);
+  }
+
+  /**
+   * 获取列宽
+   */
+  private getColumnWidth(field: string): string {
+    const widths: Record<string, string> = {
+      status: '72px',
+      priority: '60px',
+      progress: '90px',
+      risk: '90px',
+      latestProgress: '100px',
+      owner: '80px',
+      endDate: '80px',
+      tags: '100px',
+    };
+    return widths[field] || 'auto';
   }
 
   /**
@@ -232,7 +292,6 @@ export class ListRenderer extends BaseRenderer {
     }
     return null;
   }
-
 }
 
 // 自注册到渲染器注册表

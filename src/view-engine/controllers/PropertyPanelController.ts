@@ -64,10 +64,6 @@ export class PropertyPanelController {
       this.renderGroupBySelector(panel, config, options);
     }
 
-    if (config.mode === 'grid') {
-      this.renderColsSelector(panel, config, options);
-    }
-
     return panel;
   }
 
@@ -224,37 +220,6 @@ export class PropertyPanelController {
       const groupByValue = select.value as ViewConfig['groupBy'];
       options.debouncedSave({ groupBy: groupByValue });
       options.onConfigChange({ groupBy: groupByValue });
-    });
-  }
-
-  /**
-   * 渲染网格列数选择器
-   */
-  private renderColsSelector(
-    panel: HTMLElement,
-    config: ViewConfig,
-    options: PropertyPanelOptions
-  ): void {
-    const section = panel.createDiv('pm-property-section');
-    section.style.marginBottom = '12px';
-    section.createEl('label', {
-      text: '列数',
-      cls: 'pm-property-label'
-    }).style.cssText = 'display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;';
-
-    const select = section.createEl('select', { cls: 'pm-property-select' });
-    select.style.cssText = 'width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;';
-    [2, 3, 4, 5].forEach(num => {
-      const option = select.createEl('option');
-      option.value = String(num);
-      option.textContent = `${num} 列`;
-      if ((config.cols || 3) === num) option.selected = true;
-    });
-
-    select.addEventListener('change', () => {
-      const newCols = parseInt(select.value) as 1 | 2 | 3 | 4;
-      options.debouncedSave({ cols: newCols });
-      options.onConfigChange({ cols: newCols });
     });
   }
 

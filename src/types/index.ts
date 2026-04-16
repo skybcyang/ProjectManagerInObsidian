@@ -2,6 +2,7 @@ export type { Version, VersionStatus, CreateVersionData, UpdateVersionData } fro
 export type { Project, ProjectStatus, CreateProjectData, UpdateProjectData } from './project';
 export type { Feature, FeatureStatus, CreateFeatureData, UpdateFeatureData } from './feature';
 export type { Priority } from './feature';
+export type { RiskLevel, RiskItem, ProgressLogItem, RiskSummary, EntityLogSummary } from './risk';
 
 /**
  * 通用实体基础接口

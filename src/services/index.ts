@@ -7,3 +7,6 @@ export { EmailSummaryService, type PageType } from './EmailSummaryService';
 export { ChangeLogService } from './ChangeLogService';
 export { DataviewService } from './DataviewService';
 export { DataviewFunctionRegistry } from './DataviewFunctionRegistry';
+export { RiskParser } from './RiskParser';
+export { RiskService } from './RiskService';
+export { LogWriterService } from './LogWriterService';

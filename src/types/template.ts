@@ -56,6 +56,7 @@ export interface FeatureTemplateContext {
   tags: string[];
   estimatedHours?: number;
   actualHours?: number;
+  projectLink?: string;
 }
 
 /** 模板变量上下文 - 总览 */

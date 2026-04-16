@@ -1,9 +1,11 @@
 import type { App } from 'obsidian';
 import type { Entity, EntityType } from '../types';
 import { getEntityType } from '../types';
+import type { EntityLogSummary } from '../../types';
 import {
   getPriorityColor,
   getStatusColor,
+  getRiskColor,
   getEntityIcon,
   getEntityLabel,
   translateStatus,
@@ -26,6 +28,8 @@ export interface EntityCardOptions {
   showPriority?: boolean;
   /** 显示负责人 */
   showOwner?: boolean;
+  /** 显示开始日期 */
+  showStartDate?: boolean;
   /** 显示截止日期 */
   showDueDate?: boolean;
   /** 显示标签 */
@@ -34,6 +38,10 @@ export interface EntityCardOptions {
   showParent?: boolean;
   /** 显示描述 */
   showDescription?: boolean;
+  /** 显示风险徽章 */
+  showRisk?: boolean;
+  /** 显示最新进展 */
+  showLatestProgress?: boolean;
   /** 显示类型图标 */
   showTypeIcon?: boolean;
   /** 标题使用小字体（类似 compact 模式） */
@@ -58,6 +66,10 @@ export interface EntityCardCallbacks {
   onProgressChange?: (entity: Entity, progress: number) => void;
   /** 添加进展反馈 */
   onAddNote?: (entity: Entity) => void;
+  /** 添加风险 */
+  onAddRisk?: (entity: Entity) => void;
+  /** 添加进展 */
+  onAddProgress?: (entity: Entity) => void;
   /** 拖拽开始 */
   onDragStart?: (entity: Entity, e: DragEvent) => void;
   /** 拖拽结束 */
@@ -81,13 +93,15 @@ export class EntityCard {
     container: HTMLElement,
     entity: Entity,
     options: EntityCardOptions,
-    callbacks?: EntityCardCallbacks
+    callbacks?: EntityCardCallbacks,
+    logSummary?: EntityLogSummary
   ): HTMLElement {
     const entityType = getEntityType(entity);
     const card = container.createDiv('pm-entity-card');
 
-    // 应用实体类型类
+    // 应用实体类型类 + 默认变体
     card.addClass(`pm-entity-card--${entityType}`);
+    card.addClass('pm-entity-card--default');
 
     // 选中状态
     if (options.selected) {
@@ -104,11 +118,16 @@ export class EntityCard {
     // 渲染卡片内容
     this.renderHeader(card, entity, options);
     this.renderBody(card, entity, options);
-    this.renderFooter(card, entity, options);
+    this.renderFooter(card, entity, options, logSummary);
 
     // 操作按钮
     if (options.showActions) {
       this.renderActions(card, entity, options, callbacks);
+    }
+
+    // 缓存 logSummary 到 DOM 以便 tooltip 使用
+    if (logSummary) {
+      (card as any)._logSummary = logSummary;
     }
 
     // 点击事件
@@ -212,7 +231,8 @@ export class EntityCard {
   private renderFooter(
     card: HTMLElement,
     entity: Entity,
-    options: EntityCardOptions
+    options: EntityCardOptions,
+    logSummary?: EntityLogSummary
   ): void {
     const footer = card.createDiv('pm-entity-card__footer');
     const entityType = getEntityType(entity);
@@ -226,6 +246,12 @@ export class EntityCard {
       ownerEl.textContent = entity.owner;
     }
 
+    // 开始日期
+    if (options.showStartDate && 'startDate' in entity && entity.startDate) {
+      const startEl = metaLeft.createDiv('pm-entity-card__start-date');
+      startEl.textContent = DateFormat.medium(entity.startDate);
+    }
+
     // 结束日期
     if (options.showDueDate && 'endDate' in entity && entity.endDate) {
       const overdue = isOverdue(entity.endDate, 'status' in entity ? entity.status : undefined);
@@ -236,11 +262,21 @@ export class EntityCard {
       }
     }
 
-    // 右侧元信息
+    // 中间/右侧元信息
     const metaRight = footer.createDiv('pm-entity-card__meta-right');
 
-    // 进度条（仅特性）
-    if (options.showProgress && entityType === 'feature' && 'progress' in entity) {
+    // 最新进展摘要
+    if (options.showLatestProgress && logSummary?.latestProgress) {
+      const progressText = logSummary.latestProgress.length > 12
+        ? logSummary.latestProgress.substring(0, 12) + '...'
+        : logSummary.latestProgress;
+      const progressEl = metaRight.createDiv('pm-entity-card__latest-progress');
+      progressEl.textContent = `📝 ${progressText}`;
+      progressEl.title = logSummary.latestProgress;
+    }
+
+    // 进度条
+    if (options.showProgress && 'progress' in entity) {
       const progress = entity.progress || 0;
       const progressEl = metaRight.createDiv('pm-entity-card__progress');
 
@@ -252,6 +288,24 @@ export class EntityCard {
         cls: 'pm-entity-card__progress-text',
         text: `${progress}%`
       });
+    }
+
+    // 风险徽章
+    if (options.showRisk && logSummary && logSummary.riskSummary.total > 0) {
+      const riskEl = metaRight.createDiv('pm-entity-card__risk');
+      const summary = logSummary.riskSummary;
+      let badgeText = `⚠️ ${summary.open}`;
+      if (summary.high > 0) {
+        riskEl.addClass('pm-entity-card__risk--high');
+        badgeText += ` 🔴${summary.high}`;
+      } else if (summary.medium > 0) {
+        riskEl.addClass('pm-entity-card__risk--medium');
+        badgeText += ` 🟡${summary.medium}`;
+      } else {
+        riskEl.addClass('pm-entity-card__risk--low');
+      }
+      riskEl.textContent = badgeText;
+      riskEl.title = `总风险: ${summary.total} | 未关闭: ${summary.open} | 高: ${summary.high} 中: ${summary.medium} 低: ${summary.low}`;
     }
 
     // 统计信息（版本/项目）
@@ -299,8 +353,8 @@ export class EntityCard {
       };
     }
 
-    // 进度编辑按钮（仅特性）
-    if (getEntityType(entity) === 'feature' && options.showProgress) {
+    // 进度编辑按钮
+    if (options.showProgress && 'progress' in entity) {
       const progressBtn = actions.createEl('button', {
         cls: 'pm-entity-card__action-btn',
         attr: { title: '更新进度' },
@@ -312,18 +366,27 @@ export class EntityCard {
       };
     }
 
-    // 进展反馈按钮（仅特性）
-    if (getEntityType(entity) === 'feature') {
-      const noteBtn = actions.createEl('button', {
-        cls: 'pm-entity-card__action-btn',
-        attr: { title: '添加进展反馈' },
-      });
-      noteBtn.textContent = '📝';
-      noteBtn.onclick = (e) => {
-        e.stopPropagation();
-        callbacks?.onAddNote?.(entity);
-      };
-    }
+    // 进展反馈按钮
+    const noteBtn = actions.createEl('button', {
+      cls: 'pm-entity-card__action-btn',
+      attr: { title: '添加进展反馈' },
+    });
+    noteBtn.textContent = '📝';
+    noteBtn.onclick = (e) => {
+      e.stopPropagation();
+      callbacks?.onAddProgress?.(entity);
+    };
+
+    // 添加风险按钮
+    const riskBtn = actions.createEl('button', {
+      cls: 'pm-entity-card__action-btn',
+      attr: { title: '添加风险' },
+    });
+    riskBtn.textContent = '⚠️';
+    riskBtn.onclick = (e) => {
+      e.stopPropagation();
+      callbacks?.onAddRisk?.(entity);
+    };
 
     // 打开按钮
     const openBtn = actions.createEl('button', {
@@ -411,8 +474,9 @@ export function renderEntityCard(
   container: HTMLElement,
   entity: Entity,
   options: EntityCardOptions,
-  callbacks?: EntityCardCallbacks
+  callbacks?: EntityCardCallbacks,
+  logSummary?: EntityLogSummary
 ): HTMLElement {
   const card = new EntityCard(app);
-  return card.render(container, entity, options, callbacks);
+  return card.render(container, entity, options, callbacks, logSummary);
 }

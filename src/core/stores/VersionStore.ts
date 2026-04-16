@@ -16,26 +16,6 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
     this.templateService = new TemplateService(app, settings);
   }
 
-  private async writeTemplate(path: string, template: string): Promise<void> {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split('\n');
-      const frontmatter: Record<string, unknown> = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith('[') && value.endsWith(']')) {
-            frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
-
   async create(data: CreateVersionData): Promise<Version> {
     const id = this.generateId('ver');
 
@@ -64,7 +44,7 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
       tags: version.tags,
     });
 
-    await this.writeTemplate(path, content);
+    await this.fs.writeRawFile(path, content);
     return version;
   }
 
@@ -80,30 +60,22 @@ export class VersionStore extends BaseStore<Version, CreateVersionData, UpdateVe
     };
 
     // 查找现有文件路径
-    let path = await this.findFilePathById(id);
-
-    // 如果名称变更，生成新文件名
-    if (data.name && data.name !== existing.name) {
-      const newFileName = this.sanitizeFileName(data.name);
-      path = `${this.FOLDER}/${newFileName}.md`;
-    }
-
-    if (!path) {
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
       throw new Error(`找不到版本 ${id} 的文件`);
     }
 
-    // 使用模板服务渲染内容
-    const content = await this.templateService.renderVersionTemplate({
-      id: updated.id,
-      name: updated.name,
-      status: updated.status,
-      owner: updated.owner,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags,
-    });
+    let path = oldPath;
 
-    await this.writeTemplate(path, content);
+    // 如果名称变更，移动文件
+    if (data.name && data.name !== existing.name) {
+      const newFileName = this.sanitizeFileName(data.name);
+      path = `${this.FOLDER}/${newFileName}.md`;
+      await this.fs.moveFile(oldPath, path);
+    }
+
+    // 只更新 frontmatter，保留用户手动编辑的正文
+    await this.fs.updateFile(path, data as Record<string, unknown>);
     return updated;
   }
 

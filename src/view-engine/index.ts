@@ -18,7 +18,6 @@ export {
   BaseRenderer,
   KanbanRenderer,
   ListRenderer,
-  GridRenderer,
   CascadeRenderer,
   TimelineRenderer,
   TimeViewRenderer,
@@ -43,7 +42,6 @@ export { ViewEngine } from './ViewEngine';
 
 // 组件导出
 export {
-  FilterBar,
   StatusPicker,
   ProgressPicker,
   showStatusPicker,

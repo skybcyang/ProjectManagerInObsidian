@@ -5,6 +5,8 @@ import { ViewConfig, Entity, EntityType, Version, Project, Feature, getEntityTyp
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
+import { EntityCard } from '../components';
+import type { EntityCardOptions } from '../components';
 
 interface CascadeData {
   versions: Version[];
@@ -24,6 +26,44 @@ export class CascadeRenderer extends BaseRenderer {
     actionService: ActionService
   ) {
     super(app, entityManager, dataService, actionService);
+  }
+
+  /**
+   * 级联视图字段显示控制
+   * 未配置 cardFields 时默认显示所有字段，保持向后兼容
+   */
+  protected shouldShowCardField(fieldKey: string): boolean {
+    if (!this.config.cardFields) {
+      return true;
+    }
+    return super.shouldShowCardField(fieldKey);
+  }
+
+  /**
+   * 构建 EntityCard 选项
+   * 级联视图未配置 cardFields 时默认显示所有字段
+   */
+  protected buildCardOptions(overrides?: Partial<EntityCardOptions>): EntityCardOptions {
+    if (!this.config.cardFields) {
+      return {
+        showPriority: true,
+        showStatus: true,
+        showOwner: true,
+        showStartDate: true,
+        showDueDate: true,
+        showProgress: true,
+        showRisk: true,
+        showLatestProgress: true,
+        showTags: true,
+        showDescription: true,
+        showParent: true,
+        showTypeIcon: true,
+        showStats: true,
+        showActions: true,
+        ...overrides
+      };
+    }
+    return super.buildCardOptions(overrides);
   }
 
   /**
@@ -159,7 +199,7 @@ export class CascadeRenderer extends BaseRenderer {
     title.createSpan({ text: version.name });
 
     // 状态标签
-    if (version.status) {
+    if (version.status && this.shouldShowCardField('status')) {
       titleRow.createSpan({
         cls: `pm-cascade__status pm-cascade__status--${version.status}`,
         text: this.translateStatus(version.status),
@@ -179,13 +219,15 @@ export class CascadeRenderer extends BaseRenderer {
     const summary = header.createDiv('pm-cascade__summary');
 
     // 统计文本
-    summary.createSpan({
-      cls: 'pm-cascade__summary-text',
-      text: `${projects.length} 项目 · ${versionFeatures.length} 特性 · ${completedCount} 已完成`,
-    });
+    if (this.shouldShowCardField('stats')) {
+      summary.createSpan({
+        cls: 'pm-cascade__summary-text',
+        text: `${projects.length} 项目 · ${versionFeatures.length} 特性 · ${completedCount} 已完成`,
+      });
+    }
 
     // 整体进度条
-    if (versionFeatures.length > 0) {
+    if (versionFeatures.length > 0 && this.shouldShowCardField('progress')) {
       const progressBar = summary.createDiv('pm-cascade__main-progress');
       progressBar.createDiv({
         cls: 'pm-cascade__main-progress-fill',
@@ -197,8 +239,22 @@ export class CascadeRenderer extends BaseRenderer {
       });
     }
 
+    // 风险徽章
+    if (this.shouldShowCardField('risk')) {
+      const logSummary = this.entityManager.cache.getLogSummary(version.id);
+      if (logSummary && logSummary.riskSummary.total > 0) {
+        const rs = logSummary.riskSummary;
+        const riskEl = summary.createSpan('pm-cascade__risk-badge');
+        let badgeText = `⚠️ ${rs.open}`;
+        if (rs.high > 0) badgeText += ` 🔴${rs.high}`;
+        else if (rs.medium > 0) badgeText += ` 🟡${rs.medium}`;
+        riskEl.textContent = badgeText;
+        riskEl.title = `总风险: ${rs.total} | 未关闭: ${rs.open}`;
+      }
+    }
+
     // 日期
-    if (version.endDate) {
+    if (version.endDate && this.shouldShowCardField('endDate')) {
       summary.createSpan({
         cls: 'pm-cascade__summary-date',
         text: DateFormat.medium(version.endDate),
@@ -214,46 +270,31 @@ export class CascadeRenderer extends BaseRenderer {
     project: Project,
     features: Feature[]
   ): Promise<void> {
-    const card = container.createDiv('pm-cascade__project');
-
-    // 项目头部
-    const header = card.createDiv('pm-cascade__project-header');
-    header.addEventListener('click', async () => {
-      await this.actionService.openEntity('project', project.id);
-    });
-
-    header.createSpan({ cls: 'pm-cascade__icon', text: this.getEntityTypeIcon('project') });
-    header.createSpan({ cls: 'pm-cascade__project-name', text: project.name });
-
     const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter(f => f.status === 'completed').length;
 
-    // 迷你进度条
-    if (features.length > 0) {
-      const progressContainer = header.createDiv('pm-cascade__project-progress');
-      const progressBar = progressContainer.createDiv('pm-cascade__mini-progress');
-      progressBar.createDiv({
-        cls: 'pm-cascade__mini-progress-fill',
-        attr: { style: `width: ${avgProgress}%` },
-      });
-      progressContainer.createSpan({
-        cls: 'pm-cascade__progress-text',
-        text: `${avgProgress}%`,
-      });
-    }
+    const wrapper = container.createDiv('pm-cascade__project');
+    const card = new EntityCard(this.app);
 
-    // 统计文本
-    if (features.length > 0) {
-      card.createDiv({
-        cls: 'pm-cascade__project-stats',
-        text: `${features.length} 特性 · ${completedCount} 已完成`,
-      });
-    }
+    const projectWithStats = {
+      ...project,
+      stats: { total: features.length, completed: completedCount },
+      progress: avgProgress,
+    };
 
-    // 特性列表
+    const cardOptions = this.buildCardOptions({
+      showStats: this.shouldShowCardField('stats'),
+      showProgress: this.shouldShowCardField('progress'),
+    });
+
+    const cardEl = card.render(wrapper, projectWithStats as any, cardOptions, {
+      onOpen: () => this.actionService.openEntity('project', project.id),
+    });
+
+    // 特性列表挂载在卡片底部
     if (features.length > 0) {
-      const featuresContainer = card.createDiv('pm-cascade__features');
+      const featuresContainer = cardEl.createDiv('pm-cascade__features');
 
       // 限制显示数量
       const maxFeatures = 5;
@@ -290,8 +331,10 @@ export class CascadeRenderer extends BaseRenderer {
       await this.actionService.openEntity('feature', feature.id);
     });
 
+    const opts = this.buildCardOptions();
+
     // 优先级标记
-    if (feature.priority) {
+    if (feature.priority && opts.showPriority) {
       const priorityColors: Record<string, string> = {
         critical: '#ef4444',
         high: '#f97316',
@@ -306,14 +349,16 @@ export class CascadeRenderer extends BaseRenderer {
     }
 
     // 类型图标
-    row.createSpan({ cls: 'pm-cascade__feature-icon', text: '☰' });
+    if (opts.showTypeIcon) {
+      row.createSpan({ cls: 'pm-cascade__feature-icon', text: '☰' });
+    }
 
     // 名称容器
     const nameContainer = row.createDiv('pm-cascade__feature-name-container');
     nameContainer.createSpan({ cls: 'pm-cascade__feature-name', text: feature.name });
 
     // 进度
-    if (feature.progress !== undefined) {
+    if (feature.progress !== undefined && opts.showProgress) {
       row.createSpan({
         cls: 'pm-cascade__feature-progress',
         text: `${feature.progress}%`,
@@ -321,7 +366,7 @@ export class CascadeRenderer extends BaseRenderer {
     }
 
     // 结束日期
-    if (feature.endDate) {
+    if (feature.endDate && opts.showDueDate) {
       const isOverdueDate = isOverdue(feature.endDate, feature.status);
       const isUpcoming = !isOverdueDate && new Date(feature.endDate).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000;
 
@@ -336,9 +381,38 @@ export class CascadeRenderer extends BaseRenderer {
       });
     }
 
+    // 开始日期
+    if (feature.startDate && opts.showStartDate) {
+      row.createSpan({
+        cls: 'pm-cascade__feature-start',
+        text: DateFormat.short(feature.startDate),
+      });
+    }
+
     // 负责人
-    if (feature.owner) {
+    if (feature.owner && opts.showOwner) {
       row.createSpan({ cls: 'pm-cascade__feature-owner', text: `@${feature.owner}` });
+    }
+
+    // 状态
+    if (feature.status && opts.showStatus) {
+      row.createSpan({
+        cls: `pm-cascade__feature-status pm-cascade__feature-status--${feature.status}`,
+        text: this.translateStatus(feature.status),
+      });
+    }
+
+    // 风险徽章
+    if (opts.showRisk) {
+      const logSummary = this.entityManager.cache.getLogSummary(feature.id);
+      if (logSummary && logSummary.riskSummary.total > 0) {
+        const rs = logSummary.riskSummary;
+        row.createSpan({
+          cls: 'pm-cascade__feature-risk',
+          text: `⚠️ ${rs.open}`,
+          attr: { title: `总风险: ${rs.total} | 未关闭: ${rs.open}` },
+        });
+      }
     }
 
     return row;

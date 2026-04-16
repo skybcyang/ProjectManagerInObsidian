@@ -16,26 +16,6 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
     this.templateService = new TemplateService(app, settings);
   }
 
-  private async writeTemplate(path: string, template: string): Promise<void> {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split('\n');
-      const frontmatter: Record<string, unknown> = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith('[') && value.endsWith(']')) {
-            frontmatter[key] = value.slice(1, -1).split(',').map(v => v.trim()).filter(v => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
-
   async create(data: CreateProjectData): Promise<Project> {
     const id = this.generateId('proj');
     const project: Project = {
@@ -85,7 +65,7 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
       tags: project.tags,
     });
 
-    await this.writeTemplate(path, content);
+    await this.fs.writeRawFile(path, content);
     return project;
   }
 
@@ -101,16 +81,21 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
     };
 
     // 查找现有文件路径
-    let path = await this.findFilePathById(id);
-    
-    // 如果名称或版本变更，生成新文件名
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`找不到项目 ${id} 的文件`);
+    }
+
+    let path = oldPath;
+
+    // 如果名称或版本变更，移动文件
     const versionChanged = data.versionId && data.versionId !== existing.versionId;
     const nameChanged = data.name && data.name !== existing.name;
-    
+
     if (versionChanged || nameChanged) {
       const versionId = updated.versionId;
       let versionName = '';
-      
+
       try {
         const versionFiles = this.app.vault.getMarkdownFiles()
           .filter(f => f.path.startsWith('ProjectManager/Versions/'));
@@ -122,31 +107,16 @@ export class ProjectStore extends BaseStore<Project, CreateProjectData, UpdatePr
           }
         }
       } catch {}
-      
-      const fileName = versionName 
+
+      const fileName = versionName
         ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(updated.name)}`
         : this.sanitizeFileName(updated.name);
       path = `${this.FOLDER}/${fileName}.md`;
+      await this.fs.moveFile(oldPath, path);
     }
-    
-    if (!path) {
-      throw new Error(`找不到项目 ${id} 的文件`);
-    }
-    
-    // 使用模板服务渲染内容
-    const content = await this.templateService.renderProjectTemplate({
-      id: updated.id,
-      name: updated.name,
-      versionId: updated.versionId,
-      status: updated.status,
-      owner: updated.owner,
-      priority: updated.priority,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags,
-    });
 
-    await this.writeTemplate(path, content);
+    // 只更新 frontmatter，保留用户手动编辑的正文
+    await this.fs.updateFile(path, data as Record<string, unknown>);
     return updated;
   }
 

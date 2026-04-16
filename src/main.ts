@@ -3,9 +3,10 @@ import { EntityManager } from './core';
 import { Breadcrumb, Button, ButtonContainer, ProgressInput, ProgressInputContainer } from './ui';
 import { CreateVersionModal, CreateProjectModal, CreateFeatureModal, EditFeatureModal, ConfirmModal, ExportEmailModal } from './modals';
 import { ValidationError, needsStatusConfirmation, ErrorHandler } from './utils';
-import { EmailSummaryService } from './services';
+import { EmailSummaryService, RiskService } from './services';
 import { getStatusLabel, VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES } from './constants';
 import type { CreateVersionData, CreateProjectData, CreateFeatureData, Feature, ProjectManagerSettings } from './types';
+import type { EntityType } from './view-engine/types';
 import { ViewEngine } from './view-engine';
 import { TemplateSettingTab } from './settings';
 import { DEFAULT_SETTINGS } from './types/template';
@@ -20,6 +21,7 @@ export default class ProjectManagerPlugin extends Plugin {
   private viewEngine: ViewEngine;
   private dataviewRegistry: DataviewFunctionRegistry;
   private emailSummaryService: EmailSummaryService;
+  private riskService: RiskService;
 
   async onload(): Promise<void> {
     // 加载设置
@@ -40,11 +42,21 @@ export default class ProjectManagerPlugin extends Plugin {
     // 初始化邮件摘要服务
     this.emailSummaryService = new EmailSummaryService(this.app, this.entityManager);
 
+    // 初始化风险服务
+    this.riskService = new RiskService(this.app, this.entityManager);
+
     // 初始化缓存 - 等待 metadata cache 准备好
     await this.waitForMetadataCache();
     await this.entityManager.initialize();
     const stats = this.entityManager.cache.getStats();
     console.log('【ProjectManager】缓存初始化完成:', stats);
+
+    // 暴露公共 API（供 DataviewJS 等外部调用）
+    (this as any).api = {
+      getRisksByVersion: (id: string) => this.riskService.getRisksByVersion(id),
+      getRisksByProject: (id: string) => this.riskService.getRisksByProject(id),
+      getAllRisks: () => this.riskService.getAllRisks(),
+    };
 
     // 注册 Dataview 自定义函数
     this.registerDataviewFunctions();
@@ -143,6 +155,21 @@ export default class ProjectManagerPlugin extends Plugin {
       // 但在 Reading view 下 addEventListener 可能失效，所以用全局委托兜底
       evt.preventDefault();
       evt.stopPropagation();
+
+      const action = btn.dataset.action;
+      if (action === 'add-progress' || action === 'add-risk') {
+        const entityType = btn.dataset.entityType as EntityType;
+        const entityId = btn.dataset.entityId;
+        if (entityType && entityId) {
+          if (action === 'add-progress') {
+            this.openAddProgressModal(entityType, entityId);
+          } else {
+            this.openAddRiskModal(entityType, entityId);
+          }
+        }
+        return;
+      }
+
       this.button.handleButtonClick(btn);
     });
 
@@ -624,6 +651,26 @@ export default class ProjectManagerPlugin extends Plugin {
         }
       }
     ).open();
+  }
+
+  /**
+   * 打开添加进展模态框
+   */
+  private openAddProgressModal(type: EntityType, id: string): void {
+    const { AddProgressModal } = require('./modals');
+    new AddProgressModal(this.app, async (log: import('./types').ProgressLogItem) => {
+      await this.viewEngine.getActionService().addProgressLog(type, id, log);
+    }).open();
+  }
+
+  /**
+   * 打开添加风险模态框
+   */
+  private openAddRiskModal(type: EntityType, id: string): void {
+    const { AddRiskModal } = require('./modals');
+    new AddRiskModal(this.app, async (risk: Omit<import('./types').RiskItem, 'sourceName' | 'sourceType'>) => {
+      await this.viewEngine.getActionService().addRisk(type, id, risk);
+    }).open();
   }
 
   /**

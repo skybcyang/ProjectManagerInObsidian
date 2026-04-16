@@ -42,9 +42,26 @@ export function getStatusColor(status: string): ColorToken {
   return STATUS_COLORS[status] || { bg: '#9ca3af', text: '#ffffff', label: status };
 }
 
+/** 风险颜色 */
+export const RISK_COLORS: Record<string, ColorToken> = {
+  high:   { bg: '#ef4444', text: '#ffffff', label: '高' },
+  medium: { bg: '#f59e0b', text: '#ffffff', label: '中' },
+  low:    { bg: '#22c55e', text: '#ffffff', label: '低' },
+};
+
 /** 获取优先级颜色 */
 export function getPriorityColor(priority: string): ColorToken {
   return PRIORITY_COLORS[priority] || { bg: '#9ca3af', text: '#ffffff', label: priority };
+}
+
+/** 获取风险颜色 */
+export function getRiskColor(risk: string): ColorToken {
+  return RISK_COLORS[risk] || { bg: '#9ca3af', text: '#ffffff', label: risk };
+}
+
+/** 翻译风险等级 */
+export function translateRisk(risk: string): string {
+  return RISK_COLORS[risk]?.label || risk;
 }
 
 /** 实体类型图标 */

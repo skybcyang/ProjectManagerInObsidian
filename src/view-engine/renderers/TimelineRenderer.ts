@@ -66,11 +66,11 @@ export class TimelineRenderer extends BaseRenderer {
     // 计算时间范围
     const allDates: number[] = [];
     entitiesWithDates.forEach((e) => {
-      const endTime = new Date((e as any).endDate).getTime();
-      if (!isNaN(endTime)) allDates.push(endTime);
+      const endTime = this.parseDateValue((e as any).endDate);
+      if (endTime !== null) allDates.push(endTime);
       if ((e as any).startDate) {
-        const startTime = new Date((e as any).startDate).getTime();
-        if (!isNaN(startTime)) allDates.push(startTime);
+        const startTime = this.parseDateValue((e as any).startDate);
+        if (startTime !== null) allDates.push(startTime);
       }
     });
 
@@ -235,15 +235,21 @@ export class TimelineRenderer extends BaseRenderer {
     timelineCol.style.cssText = `
       flex: 1;
       position: relative;
+      height: 100%;
+      min-height: 44px;
     `;
 
     // 计算位置
-    const entityStart = (entity as any).startDate
-      ? new Date((entity as any).startDate).getTime()
-      : new Date((entity as any).endDate).getTime();
-    const entityEnd = new Date((entity as any).endDate).getTime();
+    const entityStart = this.parseDateValue((entity as any).startDate)
+      ?? this.parseDateValue((entity as any).endDate);
+    const entityEnd = this.parseDateValue((entity as any).endDate);
 
-    if (isNaN(entityStart) || isNaN(entityEnd)) return;
+    if (entityStart === null || entityEnd === null) {
+      const err = timelineCol.createDiv('pm-gantt-bar-error');
+      err.textContent = `日期格式错误: ${String((entity as any).startDate)} ~ ${String((entity as any).endDate)}`;
+      err.style.cssText = 'color: #ef4444; font-size: 10px; padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+      return;
+    }
 
     const startPercent = ((entityStart - chartStart) / chartRange) * 100;
     const endPercent = ((entityEnd - chartStart) / chartRange) * 100;
@@ -263,18 +269,23 @@ export class TimelineRenderer extends BaseRenderer {
 
     // 创建条形
     const bar = timelineCol.createDiv('pm-gantt-bar');
+    const safeLeft = Math.max(0, Math.min(99, startPercent));
+    const safeWidth = Math.max(2, Math.min(100, widthPercent));
     bar.style.cssText = `
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      left: ${Math.max(0, startPercent)}%;
-      width: ${Math.min(100, widthPercent)}%;
-      height: 20px;
-      border-radius: 4px;
-      background: ${barColor};
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      min-width: 2px;
+      position: absolute !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      left: ${safeLeft}% !important;
+      width: ${safeWidth}% !important;
+      height: 20px !important;
+      border-radius: 4px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+      min-width: 2px !important;
+      z-index: 2;
     `;
+    // 使用 setProperty 设置背景色，避免被外部 CSS 覆盖
+    bar.style.setProperty('background-color', barColor, 'important');
+    bar.style.setProperty('background-image', 'none', 'important');
 
     // 进度
     const progress = (entity as any).progress || 0;
@@ -378,6 +389,36 @@ export class TimelineRenderer extends BaseRenderer {
       `;
       owner.textContent = `负责人: ${entity.owner}`;
     }
+  }
+
+  /**
+   * 安全解析日期值
+   * 处理字符串、数字时间戳、Date 对象、Luxon DateTime 等多种格式
+   */
+  private parseDateValue(val: unknown): number | null {
+    if (val === undefined || val === null || val === '') return null;
+    if (val instanceof Date) return val.getTime();
+    if (typeof val === 'number') {
+      // 毫秒时间戳（2001年以后）
+      if (val > 1_000_000_000_000) return val;
+      const str = String(val);
+      // YYYYMMDD 格式
+      if (str.length === 8) {
+        const d = new Date(`${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`);
+        if (!isNaN(d.getTime())) return d.getTime();
+      }
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) return d.getTime();
+      return null;
+    }
+    const str = String(val).trim();
+    if (!str) return null;
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d.getTime();
+    // 尝试替换斜杠为横线
+    const d2 = new Date(str.replace(/\//g, '-'));
+    if (!isNaN(d2.getTime())) return d2.getTime();
+    return null;
   }
 }
 

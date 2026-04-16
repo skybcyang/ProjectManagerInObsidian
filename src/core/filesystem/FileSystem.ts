@@ -45,6 +45,31 @@ export class FileSystem {
   }
 
   /**
+   * 只更新 Markdown 文件的 frontmatter，保留正文内容
+   */
+  async updateFile(path: string, frontmatterUpdates: Record<string, unknown>): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      throw new Error(`文件不存在: ${path}`);
+    }
+    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      Object.assign(frontmatter, frontmatterUpdates);
+    });
+  }
+
+  /**
+   * 直接写入原始 Markdown 内容
+   */
+  async writeRawFile(path: string, content: string): Promise<void> {
+    const existingFile = this.app.vault.getAbstractFileByPath(path);
+    if (existingFile instanceof TFile) {
+      await this.app.vault.modify(existingFile, content);
+    } else {
+      await this.app.vault.create(path, content);
+    }
+  }
+
+  /**
    * 删除文件
    */
   async deleteFile(path: string): Promise<void> {

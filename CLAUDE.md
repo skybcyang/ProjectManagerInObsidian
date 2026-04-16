@@ -106,13 +106,12 @@ src/
 
 ## 视图模式
 
-插件通过 `pm-view` 代码块支持 8 种视图模式：
+插件通过 `pm-view` 代码块支持 7 种视图模式：
 
 | 模式 | 渲染器 | 说明 |
 |------|--------|------|
 | `kanban` | KanbanRenderer | 类 Trello 看板，按状态/优先级分组 |
-| `list` | ListRenderer | 表格视图，支持行内编辑 |
-| `grid` | GridRenderer | 卡片网格布局 |
+| `list` | ListRenderer | 列表视图，支持行内编辑 |
 | `cascade` | CascadeRenderer | 层级展示 版本→项目→特性 |
 | `timeline` | TimelineRenderer | 水平/垂直时间轴 |
 | `timeview` | TimeViewRenderer | 日历视图 |

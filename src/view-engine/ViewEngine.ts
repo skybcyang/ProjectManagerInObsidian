@@ -3,7 +3,6 @@ import type { EntityManager } from '../core';
 import type { ViewConfig, ViewContext, ViewMode } from './types';
 import { VIEW_MODE_LABELS } from './types';
 import { DataService, ActionService } from './services';
-import { FilterBar } from './components/FilterBar';
 import { CodeBlockConfigService } from '../services';
 import { ConfigValidator, ErrorHandler } from '../utils';
 import { RendererRegistry } from './RendererRegistry';
@@ -18,11 +17,10 @@ export class ViewEngine {
   private dataService: DataService;
   private actionService: ActionService;
   private configService: CodeBlockConfigService;
-  private toolbarController: ToolbarController;
   private sortMenuController: SortMenuController;
   private propertyPanelController: PropertyPanelController;
-  // 使用 codeBlockIndex 作为 key，避免 DOM 引用导致的内存泄漏
-  private filterBarMap: Map<string, FilterBar> = new Map();
+  // 保存每个代码块的工具栏控制器，避免 DOM 引用导致的内存泄漏
+  private toolbarMap: Map<string, ToolbarController> = new Map();
   // 保存每个代码块的最新配置，避免闭包陷阱
   private currentConfigs: Map<string, ViewConfig> = new Map();
   // 当前处于全屏模式的 wrapper
@@ -37,7 +35,6 @@ export class ViewEngine {
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
     this.configService = new CodeBlockConfigService(app);
-    this.toolbarController = new ToolbarController();
     this.sortMenuController = new SortMenuController();
     this.propertyPanelController = new PropertyPanelController();
 
@@ -55,11 +52,11 @@ export class ViewEngine {
    * 销毁视图引擎，清理所有资源
    */
   destroy(): void {
-    // 1. 清理所有 FilterBar
-    this.filterBarMap.forEach((filterBar) => {
-      filterBar.destroy();
+    // 1. 清理所有 ToolbarController
+    this.toolbarMap.forEach((toolbar) => {
+      toolbar.destroy();
     });
-    this.filterBarMap.clear();
+    this.toolbarMap.clear();
 
     // 2. 清理 currentConfigs
     this.currentConfigs.clear();
@@ -122,6 +119,13 @@ export class ViewEngine {
   }
 
   /**
+   * 获取 ActionService 实例
+   */
+  getActionService(): ActionService {
+    return this.actionService;
+  }
+
+  /**
    * 渲染视图 - 工具栏（含筛选）在上，视图在下
    */
   async render(
@@ -138,14 +142,14 @@ export class ViewEngine {
 
     // 初始化 key 和配置
     const key = `${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`;
-    const oldFilterBar = this.filterBarMap.get(key);
-    if (oldFilterBar) {
-      oldFilterBar.destroy();
+    const oldToolbar = this.toolbarMap.get(key);
+    if (oldToolbar) {
+      oldToolbar.destroy();
     }
     this.currentConfigs.set(key, config);
 
-    // 创建 FilterBar（稍后由 renderToolbar 嵌入到 toolbar 中）
-    const filterBar = new FilterBar(
+    // 创建 ToolbarController（包含筛选器、排序、属性、全屏按钮）
+    const toolbarController = new ToolbarController(
       this.app,
       this.entityManager,
       async (filters) => {
@@ -154,14 +158,17 @@ export class ViewEngine {
         this.currentConfigs.set(key, finalConfig);
         await this.renderContent(contentArea, finalConfig, context);
       },
+      (filterUpdates) => {
+        this.debouncedSave(context.sourcePath, codeBlockIndex, filterUpdates as Partial<ViewConfig>);
+      },
       context.sourcePath,
       codeBlockIndex
     );
-    await filterBar.loadOptions();
-    this.filterBarMap.set(key, filterBar);
+    await toolbarController.loadOptions();
+    this.toolbarMap.set(key, toolbarController);
 
-    // 1. 渲染工具栏（内含视图模式、FilterBar、排序、属性按钮）
-    this.renderToolbar(wrapper, config, context, codeBlockIndex, filterBar);
+    // 1. 渲染工具栏（在上）
+    this.renderToolbar(wrapper, config, context, codeBlockIndex, toolbarController);
 
     // 2. 创建内容区域（在下）
     const contentArea = wrapper.createDiv('pm-view-content');
@@ -172,18 +179,18 @@ export class ViewEngine {
   }
 
   /**
-   * 渲染工具栏 - 委托给 ToolbarController，并组装 FilterBar 与排序 badge
+   * 渲染工具栏 - 委托给 ToolbarController 完整渲染
    */
   private renderToolbar(
     wrapper: HTMLElement,
     config: ViewConfig,
     context: ViewContext,
     codeBlockIndex: number | undefined,
-    filterBar: FilterBar
+    toolbarController: ToolbarController
   ): HTMLElement {
     const key = `${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`;
 
-    const toolbar = this.toolbarController.render(wrapper, config, {
+    return toolbarController.render(wrapper, config, {
       onViewModeChange: async (newMode) => {
         const currentConfig = this.currentConfigs.get(key) || config;
         const newConfig: ViewConfig = { ...currentConfig, mode: newMode };
@@ -200,13 +207,9 @@ export class ViewEngine {
       onFullscreenClick: () => {
         this.toggleFullscreen(wrapper);
       },
-    });
-
-    // 在右侧区域嵌入 FilterBar、排序 badge，并调整属性按钮到全屏按钮之前
-    const rightGroup = toolbar.querySelector('.pm-toolbar-right') as HTMLElement;
-    if (rightGroup) {
-      filterBar.renderInto(rightGroup, config);
-      this.sortMenuController.renderBadge(rightGroup, this.currentConfigs.get(key) || config, async (sortBy, sortOrder) => {
+      sortMenuController: this.sortMenuController,
+      sortConfig: this.currentConfigs.get(key) || config,
+      onSortChange: async (sortBy, sortOrder) => {
         const currentConfig = this.currentConfigs.get(key) || config;
         const newConfig: ViewConfig = { ...currentConfig, sortBy: sortBy as ViewConfig['sortBy'], sortOrder };
         this.currentConfigs.set(key, newConfig);
@@ -215,21 +218,8 @@ export class ViewEngine {
         if (targetContentArea) {
           await this.renderContent(targetContentArea, newConfig, context);
         }
-      });
-      // 调整顺序：FilterBar → 排序 badge → 属性按钮 → 全屏按钮
-      const propBtn = rightGroup.querySelector('.pm-toolbar-prop-btn') as HTMLElement;
-      const fsBtn = rightGroup.querySelector('.pm-toolbar-btn-fullscreen') as HTMLElement;
-      if (fsBtn) {
-        rightGroup.appendChild(fsBtn);
-      }
-      if (propBtn && fsBtn) {
-        rightGroup.insertBefore(propBtn, fsBtn);
-      } else if (propBtn) {
-        rightGroup.appendChild(propBtn);
-      }
-    }
-
-    return toolbar;
+      },
+    });
   }
 
   /**
@@ -265,7 +255,7 @@ export class ViewEngine {
   ): Promise<void> {
     container.empty();
 
-    const mode = config.mode || 'kanban';
+    const mode = config.mode || 'cascade';
 
     // 创建渲染器
     const renderer = this.createRenderer(mode);
@@ -351,7 +341,7 @@ export class ViewEngine {
       return validation.config;
     } catch (error) {
       ErrorHandler.handle(error, '配置解析失败', { category: 'user' });
-      return { mode: 'kanban' };
+      return { mode: 'cascade' };
     }
   }
 

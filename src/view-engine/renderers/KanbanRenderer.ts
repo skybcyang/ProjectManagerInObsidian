@@ -12,6 +12,7 @@ import {
   getNextStatus,
   DateFormat,
 } from '../design-tokens';
+import { EntityCard } from '../components';
 
 /**
  * 看板渲染器 - 卡片式风格
@@ -202,46 +203,40 @@ export class KanbanRenderer extends BaseRenderer {
   }
 
   /**
-   * 渲染看板卡片 - 卡片式风格
+   * 渲染看板卡片 - 使用 EntityCard 组件
    */
   private renderKanbanCard(
     container: HTMLElement,
     entity: Entity
   ): void {
     const entityType = getEntityType(entity);
+    const wrapper = container.createDiv('pm-kanban-card-wrapper');
+    const logSummary = this.entityManager.cache.getLogSummary(entity.id);
 
-    // 创建卡片
-    const card = container.createDiv('pm-kanban-card');
-    card.draggable = entityType === 'feature' && 'status' in entity;
-    
-    card.addEventListener('dragstart', (e) => {
-      e.dataTransfer?.setData('text/plain', entity.id);
-      e.dataTransfer?.setData('entity-type', entityType);
-      card.addClass('pm-kanban-card-dragging');
-    });
-    
-    card.addEventListener('dragend', () => {
-      card.removeClass('pm-kanban-card-dragging');
-    });
+    const card = new EntityCard(this.app);
+    card.render(
+      wrapper,
+      entity,
+      {
+        ...this.buildCardOptions(),
+        draggable: entityType === 'feature' && 'status' in entity,
+        smallTitle: true,
+      },
+      {
+        onOpen: () => this.actionService.openEntity(entityType, entity.id),
+        onStatusChange: (e, status) => this.actionService.changeStatus(entityType, e.id, status),
+        onProgressChange: (e, progress) => this.actionService.updateProgress(entityType, e.id, progress),
+        onAddProgress: (e) => this.showProgressNoteInput(e, wrapper),
+        onAddRisk: (e) => this.showRiskInput(e, wrapper),
+        onDragStart: () => wrapper.addClass('pm-kanban-card-dragging'),
+        onDragEnd: () => wrapper.removeClass('pm-kanban-card-dragging'),
+      },
+      logSummary || undefined
+    );
 
-    // 优先级标记条
-    if ('priority' in entity && entity.priority) {
-      const priorityColor = getPriorityColor(entity.priority);
-      const priorityBar = card.createDiv('pm-kanban-card-priority-bar');
-      priorityBar.style.background = priorityColor.bg;
-    }
+    // 保留看板特有的快速流转悬浮操作
+    const actions = wrapper.createDiv('pm-kanban-card-actions');
 
-    // 卡片头部
-    const header = card.createDiv('pm-kanban-card-header');
-    
-    // 标题
-    const titleEl = header.createDiv('pm-kanban-card-title');
-    titleEl.textContent = entity.name;
-
-    // 悬停操作按钮
-    const actions = header.createDiv('pm-kanban-card-actions');
-    
-    // 状态快速流转按钮
     if ('status' in entity) {
       const nextStatus = this.getNextStatus(entity.status);
       if (nextStatus) {
@@ -255,18 +250,16 @@ export class KanbanRenderer extends BaseRenderer {
       }
     }
 
-    // 添加进展按钮
     if (entityType === 'feature') {
       const noteBtn = actions.createEl('button', { cls: 'pm-kanban-action-btn' });
       noteBtn.textContent = '📝';
       noteBtn.title = '添加进展反馈';
       noteBtn.onclick = (e) => {
         e.stopPropagation();
-        this.showProgressNoteInput(entity, card);
+        this.showProgressNoteInput(entity, wrapper);
       };
     }
 
-    // 打开文件按钮
     const openBtn = actions.createEl('button', { cls: 'pm-kanban-action-btn' });
     openBtn.textContent = '↗';
     openBtn.title = '打开文件';
@@ -274,71 +267,6 @@ export class KanbanRenderer extends BaseRenderer {
       e.stopPropagation();
       this.actionService.openEntity(entityType, entity.id);
     };
-
-    // 卡片内容区
-    const content = card.createDiv('pm-kanban-card-content');
-
-    // 标签
-    if (entity.tags && entity.tags.length > 0 && this.shouldShowCardField('tags')) {
-      const tagsContainer = content.createDiv('pm-kanban-card-tags');
-      entity.tags.slice(0, 3).forEach((tag: string) => {
-        tagsContainer.createSpan({ cls: 'pm-kanban-card-tag', text: tag });
-      });
-      if (entity.tags.length > 3) {
-        tagsContainer.createSpan({
-          cls: 'pm-kanban-card-tag-more',
-          text: `+${entity.tags.length - 3}`
-        });
-      }
-    }
-
-    // 卡片底部信息
-    const footer = card.createDiv('pm-kanban-card-footer');
-
-    // 左侧：负责人
-    if (entity.owner && this.shouldShowCardField('owner')) {
-      footer.createSpan({ cls: 'pm-kanban-card-owner', text: `@${entity.owner}` });
-    }
-
-    // 开始日期
-    if ('startDate' in entity && entity.startDate && this.shouldShowCardField('startDate')) {
-      footer.createSpan({
-        cls: 'pm-kanban-card-start',
-        text: DateFormat.short(entity.startDate),
-      });
-    }
-
-    // 中间：进度
-    if ('progress' in entity && entity.progress !== undefined && this.shouldShowCardField('progress')) {
-      const progressEl = footer.createDiv('pm-kanban-card-progress');
-      const progressBar = progressEl.createDiv('pm-kanban-card-progress-bar');
-      progressBar.createDiv({
-        cls: 'pm-kanban-card-progress-fill',
-        attr: { style: `width: ${entity.progress}%` }
-      });
-      progressEl.createSpan({
-        cls: 'pm-kanban-card-progress-text',
-        text: `${entity.progress}%`
-      });
-    }
-
-    // 右侧：结束日期
-    if ('endDate' in entity && entity.endDate && this.shouldShowCardField('endDate')) {
-      const isOverdue = new Date(entity.endDate) < new Date() &&
-                        'status' in entity &&
-                        entity.status !== 'completed';
-      footer.createSpan({
-        cls: `pm-kanban-card-due${isOverdue ? ' pm-overdue' : ''}`,
-        text: DateFormat.short(entity.endDate),
-      });
-    }
-
-    // 点击卡片打开
-    card.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      console.log('[KanbanRenderer] Card clicked:', entity.name, entityType, entity.id);
-      await this.actionService.openEntity(entityType, entity.id);
-    });
   }
 
   /**

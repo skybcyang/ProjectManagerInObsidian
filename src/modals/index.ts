@@ -6,3 +6,5 @@ export { DeleteConfirmModal, showDeleteConfirm } from './DeleteConfirmModal';
 export { EditFeatureModal } from './EditFeatureModal';
 export { ConfirmModal } from './ConfirmModal';
 export { ExportEmailModal } from './ExportEmailModal';
+export { AddRiskModal } from './AddRiskModal';
+export { AddProgressModal } from './AddProgressModal';

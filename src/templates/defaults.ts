@@ -78,6 +78,51 @@ Border: off
 
 ---
 
+## ⚠️ 风险总览
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+if (pm && pm.api) {
+  const risks = await pm.api.getAllRisks();
+  const openRisks = risks.filter(r => r.status !== '已闭环');
+  const highRisks = risks.filter(r => r.level === 'high');
+  dv.paragraph(\`⚠️ 总风险: \${risks.length} | 未关闭: \${openRisks.length} | 高风险: \${highRisks.length}\`);
+  if (highRisks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["来源实体", "风险类型", "风险描述", "等级", "责任人", "状态"];
+    const rows = highRisks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  }
+} else {
+  dv.paragraph("⏳ 插件 API 加载中...");
+}
+\`\`\`
+
+---
+
 ## 📦 版本管理
 
 \`\`\`pm-view
@@ -90,7 +135,7 @@ entityType: version
 ## 📁 项目管理
 
 \`\`\`pm-view
-mode: grid
+mode: list
 entityType: project
 \`\`\`
 
@@ -130,7 +175,7 @@ status: {{status}}
 
 | 类型 | 预估工时 | 实际工时 | 偏差 |
 |------|---------|---------|------|
-| 版本总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+| 版本总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
 > 💡 **统计说明**: 自动汇总该版本下所有项目和特性的工时数据
 
@@ -169,6 +214,39 @@ Border: off
 
 ---
 
+## 📈 进展反馈
+
+| 时间 | 反馈内容 | 记录人 |
+|------|---------|--------|
+
+---
+
+## ⚠️ 风险跟踪
+
+| 风险类型 | 风险描述 | 风险等级 | 责任人 | 发现时间 | 闭环时间 | 状态 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## 🚀 快速操作
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="version" data-entity-id="{{id}}">📝 添加进展</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="version" data-entity-id="{{id}}">⚠️ 添加风险</span>
+
+--- end-multi-column
+
+---
+
 ## 📊 进度概览
 
 \`\`\`pm-view
@@ -181,7 +259,7 @@ versionId: {{id}}
 ## 📁 关联项目
 
 \`\`\`pm-view
-mode: grid
+mode: cascade
 entityType: project
 versionId: {{id}}
 \`\`\`
@@ -195,6 +273,51 @@ mode: kanban
 entityType: feature
 versionId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## ⚠️ 版本风险汇总
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+const versionId = dv.current().id;
+if (pm && pm.api) {
+  const risks = await pm.api.getRisksByVersion(versionId);
+  if (risks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["来源实体", "风险类型", "风险描述", "等级", "责任人", "状态"];
+    const rows = risks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  } else {
+    dv.paragraph("✅ 当前版本下暂无风险记录");
+  }
+} else {
+  dv.paragraph("⏳ 插件 API 加载中...");
+}
 \`\`\`
 
 ---
@@ -227,7 +350,7 @@ priority: {{priority}}
 
 | 类型 | 预估工时 | 实际工时 | 偏差 |
 |------|---------|---------|------|
-| 项目总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+| 项目总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
 > 💡 **统计说明**: 自动汇总该项目下所有特性的工时数据
 
@@ -306,6 +429,39 @@ Border: off
 
 ---
 
+## 📈 进展反馈
+
+| 时间 | 反馈内容 | 记录人 |
+|------|---------|--------|
+
+---
+
+## ⚠️ 风险跟踪
+
+| 风险类型 | 风险描述 | 风险等级 | 责任人 | 发现时间 | 闭环时间 | 状态 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## 🚀 快速操作
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="project" data-entity-id="{{id}}">📝 添加进展</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="project" data-entity-id="{{id}}">⚠️ 添加风险</span>
+
+--- end-multi-column
+
+---
+
 ## 📊 进度统计
 
 \`\`\`pm-view
@@ -323,6 +479,51 @@ mode: kanban
 entityType: feature
 projectId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## ⚠️ 项目风险汇总
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+const projectId = dv.current().id;
+if (pm && pm.api) {
+  const risks = await pm.api.getRisksByProject(projectId);
+  if (risks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["来源实体", "风险类型", "风险描述", "等级", "责任人", "状态"];
+    const rows = risks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  } else {
+    dv.paragraph("✅ 当前项目下暂无风险记录");
+  }
+} else {
+  dv.paragraph("⏳ 插件 API 加载中...");
+}
 \`\`\`
 
 ---
@@ -358,6 +559,40 @@ tags:
 # {{priorityEmoji}} {{name}}
 
 <input class="pm-progress-input" data-feature-id="{{id}}" placeholder="输入当前进展，按 Enter 保存...">
+
+---
+
+## 📈 进展反馈
+
+| 时间 | 反馈内容 | 记录人 |
+|------|---------|--------|
+| {{createTime}} | 特性创建 | |
+
+---
+
+## ⚠️ 风险跟踪
+
+| 风险类型 | 风险描述 | 风险等级 | 责任人 | 发现时间 | 闭环时间 | 状态 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## 🚀 快速操作
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="{{id}}">📝 添加进展</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="{{id}}">⚠️ 添加风险</span>
+
+--- end-multi-column
 
 ---
 
@@ -489,15 +724,7 @@ tags:
 
 ---
 
-## 📝 进展记录
 
-### 历史记录
-- [{{createTime}}] 特性创建
-
-### 最新进展
-<!-- 记录最新进展 -->
-
----
 
 ## 📅 里程碑计划
 

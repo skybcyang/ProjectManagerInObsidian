@@ -208,157 +208,6 @@
   gap: 10px;
 }
 
-/* 看板卡片 */
-.pm-kanban-card {
-  position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.pm-kanban-card:hover {
-  border-color: var(--card-border-hover);
-  box-shadow: var(--card-shadow-hover);
-  transform: translateY(-2px);
-}
-
-.pm-kanban-card-dragging {
-  opacity: 0.5;
-}
-
-.pm-kanban-card-priority-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-}
-
-.pm-kanban-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 12px 8px 16px;
-}
-
-.pm-kanban-card-title {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  flex: 1;
-  color: var(--text-normal);
-}
-
-.pm-kanban-card-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.pm-kanban-card:hover .pm-kanban-card-actions {
-  opacity: 1;
-}
-
-.pm-kanban-action-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: var(--background-secondary);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.pm-kanban-action-btn:hover {
-  background: var(--interactive-accent);
-  color: white;
-}
-
-.pm-kanban-card-content {
-  padding: 0 12px 8px 16px;
-}
-
-.pm-kanban-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.pm-kanban-card-tag {
-  font-size: 10px;
-  padding: 2px 8px;
-  background: var(--background-secondary);
-  border-radius: 10px;
-  color: var(--text-muted);
-}
-
-.pm-kanban-card-tag-more {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.pm-kanban-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 12px 16px;
-  border-top: 1px solid var(--background-modifier-border-hover);
-  font-size: 11px;
-}
-
-.pm-kanban-card-owner {
-  color: var(--text-accent);
-  font-weight: 500;
-}
-
-.pm-kanban-card-due {
-  color: var(--text-muted);
-  font-family: var(--font-monospace);
-}
-
-.pm-kanban-card-due.pm-overdue {
-  color: var(--text-error);
-  font-weight: 600;
-}
-
-.pm-kanban-card-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 70px;
-}
-
-.pm-kanban-card-progress-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--background-modifier-border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.pm-kanban-card-progress-fill {
-  height: 100%;
-  background: var(--interactive-accent);
-  border-radius: 2px;
-}
-
-.pm-kanban-card-progress-text {
-  font-size: 10px;
-  color: var(--text-muted);
-  min-width: 26px;
-  text-align: right;
-}
-
 .pm-kanban-quick-add {
   margin: 8px 12px 12px;
   padding: 8px;
@@ -379,209 +228,6 @@
 .pm-kanban-drag-over {
   background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
   border: 2px dashed var(--interactive-accent);
-}
-
-/* ========================================
-   Grid View - 卡片式网格
-   ======================================== */
-
-.pm-grid-container {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 1200px) {
-  .pm-grid-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .pm-grid-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-.pm-grid-card {
-  position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.pm-grid-card:hover {
-  border-color: var(--card-border-hover);
-  box-shadow: var(--card-shadow-hover);
-  transform: translateY(-2px);
-}
-
-.pm-grid-card-priority-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-}
-
-.pm-grid-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--card-border);
-}
-
-.pm-grid-card-type {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.pm-grid-card-header-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.pm-grid-card:hover .pm-grid-card-header-actions {
-  opacity: 1;
-}
-
-.pm-grid-action-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: var(--background-primary);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.pm-grid-action-btn:hover {
-  background: var(--interactive-accent);
-  color: white;
-}
-
-.pm-grid-card-body {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pm-grid-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-normal);
-  line-height: 1.3;
-}
-
-.pm-grid-card-desc {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.pm-grid-card-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--background-secondary);
-  color: var(--text-muted);
-  width: fit-content;
-}
-
-.pm-grid-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pm-grid-card-tag {
-  font-size: 11px;
-  padding: 3px 10px;
-  background: var(--background-secondary);
-  border-radius: 12px;
-  color: var(--text-muted);
-}
-
-.pm-grid-card-tag-more {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.pm-grid-card-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--card-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.pm-grid-card-footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-}
-
-.pm-grid-card-owner {
-  color: var(--text-accent);
-}
-
-.pm-grid-card-due {
-  color: var(--text-muted);
-  font-family: var(--font-monospace);
-}
-
-.pm-grid-card-due.pm-overdue {
-  color: var(--text-error);
-  font-weight: 600;
-}
-
-.pm-grid-card-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 70px;
-}
-
-.pm-grid-card-progress-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--background-modifier-border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.pm-grid-card-progress-fill {
-  height: 100%;
-  background: var(--interactive-accent);
-  border-radius: 2px;
 }
 
 /* ========================================
@@ -619,7 +265,9 @@
 .pm-list-header-columns {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
+  row-gap: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--background-modifier-border-hover);
 }
@@ -681,7 +329,9 @@
 .pm-list-card-content {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
+  row-gap: 8px;
   padding: 12px 16px;
 }
 
@@ -1213,10 +863,6 @@
     max-height: none;
   }
   
-  .pm-grid-container {
-    grid-template-columns: 1fr !important;
-  }
-  
   .pm-timeline-group {
     flex-direction: column;
   }
@@ -1241,22 +887,6 @@
    看板拖拽样式
    Kanban Drag & Drop Styles
    ======================================== */
-
-/* 可拖拽卡片 */
-.pm-kanban-card-draggable {
-  cursor: grab;
-}
-
-.pm-kanban-card-draggable:active {
-  cursor: grabbing;
-}
-
-/* 拖拽中的卡片 */
-.pm-kanban-card-dragging {
-  opacity: 0.5;
-  transform: rotate(2deg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
 
 /* 拖放区域高亮 */
 .pm-kanban-drag-over {
@@ -1748,13 +1378,14 @@
 .pm-cell-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 5px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
   border: 1px solid transparent;
+  gap: 6px;
 }
 
 .pm-cell-badge:hover {
@@ -1845,23 +1476,9 @@
    FilterBar - Badge 风格筛选器样式
    ======================================== */
 
-/* FilterBar 中的 badge 触发器 */
+/* FilterBar 中的 badge 触发器 - 复用 .pm-cell-badge，仅追加特有属性 */
 .pm-filter-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  gap: 6px;
   white-space: nowrap;
-}
-
-.pm-filter-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* FilterBar 下拉菜单特殊样式 */
@@ -1927,24 +1544,6 @@
   margin-left: auto;
   font-weight: bold;
   color: var(--interactive-accent);
-}
-
-/* FilterBar 中 EntityTreeSelector 的触发按钮样式 */
-.pm-entity-tree-trigger.pm-cell-badge {
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pm-entity-tree-trigger.pm-cell-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .pm-entity-tree-trigger-text {
@@ -2974,7 +2573,9 @@
 .pm-cascade__feature {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  row-gap: 4px;
   padding: 6px 10px;
   border-radius: var(--pm-radius-sm);
   font-size: 13px;
@@ -3961,16 +3562,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding-top: var(--pm-space-3);
   border-top: 1px solid var(--pm-border);
-  gap: var(--pm-space-3);
+  gap: var(--pm-space-2) var(--pm-space-3);
 }
 
 .pm-entity-card--default .pm-entity-card__meta-left,
 .pm-entity-card--default .pm-entity-card__meta-right {
   display: flex;
   align-items: center;
-  gap: var(--pm-space-3);
+  flex-wrap: wrap;
+  gap: var(--pm-space-2) var(--pm-space-3);
 }
 
 .pm-entity-card--default .pm-entity-card__owner {
@@ -4047,6 +3650,71 @@
   color: var(--pm-text-secondary);
   min-width: 32px;
   text-align: right;
+}
+
+/* 开始日期 */
+.pm-entity-card--default .pm-entity-card__start-date {
+  font-size: 12px;
+  color: var(--pm-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--pm-space-1);
+}
+
+/* 风险徽章 */
+.pm-entity-card--default .pm-entity-card__risk {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  background: var(--pm-bg-2);
+  color: var(--pm-text-secondary);
+  border: 1px solid var(--pm-border);
+}
+
+.pm-entity-card--default .pm-entity-card__risk--high {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.pm-entity-card--default .pm-entity-card__risk--medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.pm-entity-card--default .pm-entity-card__risk--low {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+/* 统计信息 */
+.pm-entity-card--default .pm-entity-card__stats {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--pm-radius-sm);
+  background: var(--pm-bg-2);
+  color: var(--pm-text-secondary);
+}
+
+/* 最新进展 */
+.pm-entity-card--default .pm-entity-card__latest-progress {
+  font-size: 11px;
+  color: var(--pm-text-secondary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 标签更多 */
+.pm-entity-card--default .pm-entity-card__tag-more {
+  font-size: 11px;
+  color: var(--pm-text-tertiary);
+  padding: 3px 6px;
 }
 
 /* ---------- Detailed 变体 ---------- */
@@ -4300,35 +3968,6 @@
   background: rgba(var(--pm-primary-rgb), 0.05);
   border: 2px dashed var(--pm-primary);
   border-radius: var(--pm-radius-md);
-}
-
-/* ========================================
-   Grid View - 网格视图
-   ======================================== */
-
-.pm-grid-view {
-  padding: var(--pm-space-2);
-}
-
-.pm-grid-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--pm-space-4);
-}
-
-.pm-grid-card-wrapper {
-  position: relative;
-  height: 100%;
-}
-
-.pm-grid-card-wrapper .pm-entity-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.pm-grid-card-wrapper .pm-entity-card__body {
-  flex: 1;
 }
 
 /* ========================================
@@ -5244,10 +4883,6 @@
     max-height: none;
   }
 
-  .pm-grid-container {
-    grid-template-columns: 1fr;
-  }
-
   .pm-filter-row {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -6043,11 +5678,11 @@
   border-color: var(--interactive-accent);
 }
 
-/* SelectCell 风格的触发按钮 - 覆盖基础样式 */
+/* SelectCell 风格的触发按钮 - 覆盖基础样式，与 .pm-cell-badge 统一尺寸 */
 .pm-entity-tree-trigger.pm-cell-badge {
   width: auto;
   min-width: 80px;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -6971,7 +6606,6 @@
   height: 24px;
   border-radius: 4px;
   min-width: 4px;
-  background: #3b82f6;
 }
 
 /* 表头 */
@@ -7085,7 +6719,6 @@
   height: 22px;
   border-radius: 4px;
   min-width: 4px;
-  background: #3b82f6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
@@ -7112,67 +6745,6 @@
 
 .pm-gantt-row:hover .pm-gantt-hover-card {
   display: block;
-}
-
-/* ========================================
-   Gantt Bar Force Display
-   ======================================== */
-
-/* 强制显示甘特条形 */
-.pm-timeline-view .pm-gantt-timeline-col {
-  position: relative !important;
-  flex: 1 !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  background: transparent !important;
-}
-
-.pm-timeline-view .pm-gantt-bar {
-  position: absolute !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  height: 20px !important;
-  border-radius: 4px !important;
-  min-width: 2px !important;
-  background: #3b82f6 !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  z-index: 10 !important;
-}
-
-/* 优先级颜色 */
-.pm-timeline-view .pm-gantt-bar[style*="background: rgb(239, 68, 68)"],
-.pm-timeline-view .pm-gantt-bar[style*="#ef4444"] {
-  background: #ef4444 !important;
-}
-
-.pm-timeline-view .pm-gantt-bar[style*="background: rgb(249, 115, 22)"],
-.pm-timeline-view .pm-gantt-bar[style*="#f97316"] {
-  background: #f97316 !important;
-}
-
-.pm-timeline-view .pm-gantt-bar[style*="background: rgb(245, 158, 11)"],
-.pm-timeline-view .pm-gantt-bar[style*="#f59e0b"] {
-  background: #f59e0b !important;
-}
-
-.pm-timeline-view .pm-gantt-bar[style*="background: rgb(34, 197, 94)"],
-.pm-timeline-view .pm-gantt-bar[style*="#22c55e"] {
-  background: #22c55e !important;
-}
-
-/* 进度填充 */
-.pm-timeline-view .pm-gantt-progress-fill {
-  height: 100% !important;
-  background: rgba(255, 255, 255, 0.35) !important;
-  border-radius: 4px 0 0 4px !important;
-}
-
-/* 行hover效果 */
-.pm-timeline-view .pm-gantt-row:hover .pm-gantt-bar {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-  filter: brightness(1.1) !important;
 }
 
 /* ========================================
@@ -7246,6 +6818,8 @@
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
 }
 
 /* 行 */
@@ -7273,74 +6847,6 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-}
-
-/* ========================================
-   Gantt Bar DEBUG - Force Red
-   ======================================== */
-
-/* 强制所有甘特条形为红色 */
-div.pm-gantt-bar {
-  background: #ff0000 !important;
-  background-color: #ff0000 !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  height: 20px !important;
-  min-height: 20px !important;
-  border: 2px solid #ffffff !important;
-}
-
-/* ========================================
-   Gantt Bar FINAL FIX
-   ======================================== */
-
-/* 使用!important和更高优先级 */
-.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-timeline-col .pm-gantt-bar {
-  position: absolute !important;
-  top: 50% !important;
-  left: 0 !important;
-  transform: translateY(-50%) !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  border-radius: 4px !important;
-  background: #ef4444 !important;
-  background-color: #ef4444 !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  z-index: 100 !important;
-  box-sizing: border-box !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* 时间轴列必须有相对定位 */
-.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-timeline-col {
-  position: relative !important;
-  flex: 1 !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  display: block !important;
-}
-
-/* 行必须有flex布局 */
-.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  min-height: 44px !important;
-  width: 100% !important;
-}
-
-/* 行内的名称列 */
-.pm-timeline-view .pm-gantt-wrapper .pm-gantt-body .pm-gantt-row .pm-gantt-name-col {
-  width: 150px !important;
-  min-width: 150px !important;
-  display: flex !important;
-  align-items: center !important;
 }
 
 /* ========================================

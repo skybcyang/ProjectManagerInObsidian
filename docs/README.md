@@ -37,13 +37,12 @@ ProjectManager/
 └── Features/            # 特性文件
 ```
 
-### 支持的视图模式 (v0.7.2)
+### 支持的视图模式 (v0.7.6)
 
 | 模式 | 说明 | 配置示例 |
 |------|------|----------|
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
 | `list` | 列表视图 | `mode: list`<br>`type: feature` |
-| `grid` | 网格视图 | `mode: grid`<br>`type: project` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version` |
 | `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
 | `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
@@ -64,13 +63,6 @@ groupBy: status
 ```pm-view
 mode: list
 type: feature
-```
-
-# 网格视图
-```pm-view
-mode: grid
-type: project
-cols: 3
 ```
 
 # 级联视图

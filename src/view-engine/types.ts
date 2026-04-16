@@ -6,13 +6,12 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'grid' | 'cascade' | 'timeline' | 'timeview' | 'burndown' | 'workload';
+export type ViewMode = 'kanban' | 'list' | 'cascade' | 'timeline' | 'timeview' | 'burndown' | 'workload';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'kanban': '📊 看板视图',
   'list': '📋 列表视图',
-  'grid': '▦ 网格视图',
   'cascade': '🌲 级联视图',
   'timeline': '⏱️ 时间线视图',
   'timeview': '🗓️ 时间视图',
@@ -60,7 +59,6 @@ export interface SortConfig {
 
 // 视图选项
 export interface ViewOptions {
-  cols?: 1 | 2 | 3 | 4;           // 网格列数
   expanded?: boolean;              // 级联视图展开
   maxProjects?: number;            // 级联视图最大项目数
   maxFeaturesPerProject?: number;  // 级联视图每个项目最大特性数
@@ -73,7 +71,7 @@ export interface CardFieldsConfig {
 }
 
 // 列表视图列配置
-export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'versionId' | 'projectId';
+export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'versionId' | 'projectId' | 'risk' | 'latestProgress';
 
 // EntityCard 可配置字段定义
 export const ENTITY_CARD_FIELD_DEFINITIONS = [
@@ -84,6 +82,8 @@ export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'startDate', label: '开始日期', required: false },
   { key: 'endDate', label: '结束日期', required: false },
   { key: 'progress', label: '进度条', required: false },
+  { key: 'risk', label: '风险徽章', required: false },
+  { key: 'latestProgress', label: '最新进展', required: false },
   { key: 'tags', label: '标签', required: false },
   { key: 'description', label: '描述', required: false },
   { key: 'parent', label: '父级信息', required: false },
@@ -101,6 +101,8 @@ export const LIST_COLUMN_DEFINITIONS = [
   { key: 'startDate', label: '开始日期', required: false },
   { key: 'endDate', label: '结束日期', required: false },
   { key: 'progress', label: '进度', required: false },
+  { key: 'risk', label: '风险', required: false },
+  { key: 'latestProgress', label: '最新进展', required: false },
   { key: 'tags', label: '标签', required: false },
   { key: 'versionId', label: '版本', required: false },
   { key: 'projectId', label: '项目', required: false },
@@ -161,8 +163,7 @@ export interface ViewConfig {
   // EntityCard 显示字段配置
   cardFields?: CardFieldsConfig;
 
-  // 旧版网格/级联配置（向后兼容）
-  cols?: 1 | 2 | 3 | 4;
+  // 级联配置
   expanded?: boolean;
   maxProjects?: number;
   maxFeaturesPerProject?: number;

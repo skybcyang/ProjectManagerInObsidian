@@ -11,6 +11,8 @@ import {
   translatePriority,
 } from '../design-tokens';
 import { StatusPicker, ProgressPicker } from '../components';
+import type { EntityCardOptions } from '../components';
+import { getOverlayContainer } from '../../utils/getOverlayContainer';
 
 /**
  * 渲染器基类
@@ -71,6 +73,39 @@ export abstract class BaseRenderer {
     };
     const allFields = [...(cardFields.required || []), ...(cardFields.optional || [])];
     return allFields.includes(fieldKey);
+  }
+
+  /**
+   * 构建 EntityCard 选项
+   * 将 cardFields 配置映射为 EntityCardOptions
+   */
+  protected buildCardOptions(overrides?: Partial<EntityCardOptions>): EntityCardOptions {
+    const cardFields = this.config.cardFields || {
+      required: ['name', 'priority'],
+      optional: ['status', 'owner', 'progress']
+    };
+    const allFields = new Set([
+      ...(cardFields.required || []),
+      ...(cardFields.optional || [])
+    ]);
+
+    return {
+      showPriority: allFields.has('priority'),
+      showStatus: allFields.has('status'),
+      showOwner: allFields.has('owner'),
+      showStartDate: allFields.has('startDate'),
+      showDueDate: allFields.has('endDate'),
+      showProgress: allFields.has('progress'),
+      showRisk: allFields.has('risk'),
+      showLatestProgress: allFields.has('latestProgress'),
+      showTags: allFields.has('tags'),
+      showDescription: allFields.has('description'),
+      showParent: allFields.has('parent'),
+      showTypeIcon: allFields.has('typeIcon'),
+      showStats: allFields.has('stats'),
+      showActions: allFields.has('actions'),
+      ...overrides
+    };
   }
 
   /**
@@ -149,81 +184,6 @@ export abstract class BaseRenderer {
   }
 
   /**
-   * 渲染实体卡片
-   */
-  protected async renderEntityCard(
-    container: HTMLElement,
-    entity: Entity,
-    options?: { compact?: boolean; showActions?: boolean }
-  ): Promise<void> {
-    const cardEl = container.createDiv('pm-card');
-    cardEl.classList.add(`pm-card-${getEntityType(entity)}`);
-
-    // 卡片内容区域
-    const content = cardEl.createDiv('pm-card-content');
-
-    // 实体类型图标
-    const typeIcon = this.getEntityTypeIcon(getEntityType(entity));
-    content.createEl('span', { cls: 'pm-card-type-icon', text: typeIcon });
-
-    // 实体名称
-    content.createEl('span', { cls: 'pm-card-name', text: entity.name });
-
-    // 状态徽章（如果有）
-    if ('status' in entity && entity.status) {
-      const statusBadge = content.createSpan('pm-card-status');
-      statusBadge.textContent = this.translateStatus(entity.status);
-      statusBadge.dataset.status = entity.status;
-    }
-
-    // 操作按钮（如果启用）
-    if (options?.showActions !== false) {
-      await this.renderCardActions(cardEl, entity);
-    }
-
-    // 点击打开文件
-    cardEl.addEventListener('click', () => {
-      this.actionService.openEntity(getEntityType(entity), entity.id);
-    });
-  }
-
-  /**
-   * 渲染卡片操作按钮
-   */
-  protected async renderCardActions(cardEl: HTMLElement, entity: Entity): Promise<void> {
-    const actions = cardEl.createDiv('pm-card-actions');
-    actions.style.display = 'none';
-
-    // 快速状态变更按钮
-    if ('status' in entity) {
-      const statusBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-      statusBtn.textContent = '状态';
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity);
-      };
-    }
-
-    // 进展反馈按钮（仅特性）
-    if (getEntityType(entity) === 'feature') {
-      const noteBtn = actions.createEl('button', { cls: 'pm-action-btn' });
-      noteBtn.textContent = '进展';
-      noteBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressNoteInput(entity);
-      };
-    }
-
-    // 鼠标悬停显示操作
-    cardEl.addEventListener('mouseenter', () => {
-      actions.style.display = 'flex';
-    });
-    cardEl.addEventListener('mouseleave', () => {
-      actions.style.display = 'none';
-    });
-  }
-
-  /**
    * 状态选择器实例（延迟创建）
    */
   private statusPicker?: StatusPicker;
@@ -275,6 +235,100 @@ export abstract class BaseRenderer {
         this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
       }
     );
+  }
+
+  /**
+   * 显示添加风险输入框（简化版：直接打开模态框通过事件总线）
+   */
+  protected showRiskInput(entity: Entity, triggerEl?: HTMLElement): void {
+    // 通过事件总线通知外部打开 AddRiskModal
+    // 这里创建一个简单的输入菜单作为 fallback
+    const menu = document.createElement('div');
+    menu.className = 'pm-risk-note-input';
+    menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 280px;
+    `;
+
+    menu.createEl('div', {
+      text: '添加风险',
+      cls: 'pm-picker-title',
+    }).style.cssText = 'font-size: 13px; font-weight: 500; margin-bottom: 8px;';
+
+    const textarea = menu.createEl('textarea');
+    textarea.placeholder = '输入风险描述（类型 | 描述 | 等级 | 责任人）';
+    textarea.style.cssText = `
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      background: var(--background-primary);
+      color: var(--text-normal);
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+    `;
+
+    const btnContainer = menu.createDiv();
+    btnContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;';
+
+    const cancelBtn = btnContainer.createEl('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.onclick = () => menu.remove();
+
+    const confirmBtn = btnContainer.createEl('button');
+    confirmBtn.textContent = '保存';
+    confirmBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: none;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    confirmBtn.onclick = () => {
+      const content = textarea.value.trim();
+      if (content) {
+        const parts = content.split(/\||\t/).map(s => s.trim());
+        const type = parts[0] || '其他';
+        const desc = parts[1] || content;
+        const level = (parts[2] || 'medium').toLowerCase() as import('../../types').RiskLevel;
+        const owner = parts[3] || '';
+        this.actionService.addRisk(
+          getEntityType(entity),
+          entity.id,
+          { type, description: desc, level, owner, foundDate: new Date().toISOString().split('T')[0], status: '未关闭' }
+        );
+      }
+      menu.remove();
+    };
+
+    getOverlayContainer().appendChild(menu);
+
+    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 4}px`;
+    }
+
+    textarea.focus();
+
+    const closeMenu = (e: MouseEvent) => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
   /**
@@ -365,7 +419,6 @@ export abstract class BaseRenderer {
       }
     };
 
-    const { getOverlayContainer } = require('../../utils');
     getOverlayContainer().appendChild(menu);
 
     // 定位菜单

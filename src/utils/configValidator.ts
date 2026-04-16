@@ -13,7 +13,7 @@ export interface ValidationResult {
 /**
  * 有效的视图模式
  */
-const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'list', 'grid', 'cascade', 'timeline', 'timeview', 'burndown', 'workload'];
+const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'list', 'cascade', 'timeline', 'timeview', 'burndown', 'workload'];
 
 /**
  * 有效的实体类型
@@ -38,13 +38,12 @@ const VALID_GROUP_BY = ['status', 'priority', 'version', 'project', 'startDate',
 /**
  * 有效的网格列数
  */
-const VALID_COLS = [1, 2, 3, 4] as const;
 
 /**
  * 有效的列表列字段
  */
 const VALID_LIST_COLUMNS: ListColumnField[] = [
-  'name', 'status', 'priority', 'owner', 'startDate', 'endDate', 'progress', 'tags', 'versionId', 'projectId'
+  'name', 'status', 'priority', 'owner', 'startDate', 'endDate', 'progress', 'risk', 'latestProgress', 'tags', 'versionId', 'projectId'
 ];
 
 /**
@@ -62,7 +61,7 @@ export class ConfigValidator {
     // 确保是对象
     if (!config || typeof config !== 'object') {
       errors.push('配置必须是一个对象');
-      return { valid: false, errors, warnings, config: { mode: 'kanban' } };
+      return { valid: false, errors, warnings, config: { mode: 'cascade' } };
     }
 
     const input = config as Partial<ViewConfig>;
@@ -72,7 +71,7 @@ export class ConfigValidator {
     const modeValidation = this.validateMode(input.mode);
     if (modeValidation.error) {
       errors.push(modeValidation.error);
-      result.mode = 'kanban';
+      result.mode = 'cascade';
     } else {
       result.mode = modeValidation.value!;
     }
@@ -199,16 +198,6 @@ export class ConfigValidator {
       }
     }
 
-    // 验证 cols
-    if (input.cols !== undefined) {
-      const colsValidation = this.validateCols(input.cols);
-      if (colsValidation.error) {
-        warnings.push(colsValidation.error);
-      } else {
-        result.cols = colsValidation.value;
-      }
-    }
-
     // 验证 expanded
     if (input.expanded !== undefined) {
       if (typeof input.expanded === 'boolean') {
@@ -262,13 +251,13 @@ export class ConfigValidator {
    */
   private static validateMode(mode: unknown): { value?: ViewMode; error?: string } {
     if (!mode) {
-      return { error: 'mode 是必填项，使用默认 kanban' };
+      return { error: 'mode 是必填项，使用默认 cascade' };
     }
 
     const modeStr = String(mode);
     if (!VALID_VIEW_MODES.includes(modeStr as ViewMode)) {
       return {
-        error: `无效的视图模式: "${modeStr}"，有效值: ${VALID_VIEW_MODES.join(', ')}，使用默认 kanban`
+        error: `无效的视图模式: "${modeStr}"，有效值: ${VALID_VIEW_MODES.join(', ')}，使用默认 cascade`
       };
     }
 
@@ -340,21 +329,6 @@ export class ConfigValidator {
       };
     }
     return { value: groupByStr as typeof VALID_GROUP_BY[number] };
-  }
-
-  /**
-   * 验证网格列数
-   */
-  private static validateCols(cols: unknown): { value?: 1 | 2 | 3 | 4; error?: string } {
-    const colsNum = typeof cols === 'string' ? parseInt(cols, 10) : Number(cols);
-
-    if (!VALID_COLS.includes(colsNum as typeof VALID_COLS[number])) {
-      return {
-        error: `cols 必须是 ${VALID_COLS.join(', ')} 之一，当前: ${cols}`
-      };
-    }
-
-    return { value: colsNum as 1 | 2 | 3 | 4 };
   }
 
   /**

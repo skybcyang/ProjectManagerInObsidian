@@ -2,6 +2,8 @@ import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { EntityType } from '../types';
 import type { EntityBase, Version, Project, Feature } from '../../types';
+import { LogWriterService } from '../../services/LogWriterService';
+import type { RiskItem, ProgressLogItem } from '../../types';
 
 /**
  * 实体策略接口
@@ -80,12 +82,15 @@ export class ActionService {
   // 打开实体前的回调（用于退出全屏等）
   private beforeOpenEntityCallback?: () => void;
 
+  private logWriter: LogWriterService;
+
   constructor(
     private app: App,
     private entityManager: EntityManager
   ) {
     this.strategyRegistry = new EntityStrategyRegistry(entityManager);
     this.eventBus = new EventBus();
+    this.logWriter = new LogWriterService(app);
   }
 
   /**
@@ -173,13 +178,22 @@ export class ActionService {
     progress: number
   ): Promise<boolean> {
     try {
-      if (type !== 'feature') return false;
+      const strategy = this.getStrategy(type);
+      if (!strategy) return false;
 
       // 更新进度字段
-      await this.entityManager.updateFeature(id, { progress });
+      await strategy.update(id, { progress } as any);
 
       // 添加进展记录到文件
-      await this.addProgressLog(id, progress);
+      const path = await this.entityManager.getEntityPath(type, id);
+      if (path) {
+        const now = new Date();
+        const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        await this.logWriter.appendProgressLog(path, {
+          time: timeStr,
+          content: `进度更新至 ${progress}%`,
+        });
+      }
 
       // 触发刷新
       this.triggerRefresh();
@@ -192,83 +206,58 @@ export class ActionService {
   }
 
   /**
-   * 添加进展记录到特性文件
+   * 添加进展反馈到任意实体文件
    */
-  private async addProgressLog(featureId: string, progress: number): Promise<void> {
-    const path = await this.entityManager.getFeaturePath(featureId);
-    if (!path) return;
-
-    const obsidian = require('obsidian');
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof obsidian.TFile)) return;
-
-    const content = await this.app.vault.read(file as TFile);
-    const now = new Date();
-    const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const progressEntry = `- [${timeStr}] 进度更新至 ${progress}%\n`;
-
-    // 在进展反馈历史记录部分添加
-    const progressSection = '## 📈 进展反馈历史记录\n\n';
-    if (content.includes(progressSection)) {
-      const newContent = content.replace(
-        progressSection,
-        progressSection + progressEntry
-      );
-      await this.app.vault.modify(file as TFile, newContent);
-    }
-  }
-
-  /**
-   * 添加进展反馈笔记到文件
-   */
-  async addProgressNote(
+  async addProgressLog(
     type: EntityType,
     id: string,
-    note: string
+    log: ProgressLogItem
   ): Promise<boolean> {
     try {
-      if (type !== 'feature') return false;
-
-      const path = await this.entityManager.getFeaturePath(id);
+      const path = await this.entityManager.getEntityPath(type, id);
       if (!path) return false;
 
-      const obsidian = require('obsidian');
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (!(file instanceof obsidian.TFile)) return false;
-
-      const content = await this.app.vault.read(file as TFile);
-      const now = new Date();
-      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      const noteEntry = `- [${timeStr}] ${note}\n`;
-
-      // 查找历史记录部分并添加
-      const historySection = '### 历史记录\n';
-      const historyIndex = content.indexOf(historySection);
-
-      if (historyIndex !== -1) {
-        // 在历史记录部分后插入
-        const insertIndex = historyIndex + historySection.length;
-        const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
-        await this.app.vault.modify(file as TFile, newContent);
-      } else {
-        // 查找旧的进展反馈格式
-        const oldSection = '## 📝 进展反馈\n\n### 历史记录\n';
-        const oldIndex = content.indexOf(oldSection);
-        if (oldIndex !== -1) {
-          const insertIndex = oldIndex + oldSection.length;
-          const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
-          await this.app.vault.modify(file as TFile, newContent);
-        }
-      }
-
+      await this.logWriter.appendProgressLog(path, log);
       this.triggerRefresh();
       return true;
     } catch (error) {
       console.error('添加进展反馈失败:', error);
       return false;
     }
+  }
+
+  /**
+   * 添加风险到任意实体文件
+   */
+  async addRisk(
+    type: EntityType,
+    id: string,
+    risk: Omit<RiskItem, 'sourceName' | 'sourceType'>
+  ): Promise<boolean> {
+    try {
+      const path = await this.entityManager.getEntityPath(type, id);
+      if (!path) return false;
+
+      await this.logWriter.appendRisk(path, risk);
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error('添加风险失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 添加进展反馈笔记到文件（兼容旧接口）
+   */
+  async addProgressNote(
+    type: EntityType,
+    id: string,
+    note: string
+  ): Promise<boolean> {
+    const now = new Date();
+    const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    return this.addProgressLog(type, id, { time: timeStr, content: note });
   }
 
   /**

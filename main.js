@@ -94,9 +94,54 @@ Border: off
 
 --- column-break ---
 
-<span class="pm-btn" data-action="export-ics">\u{1F4C5} \u5BFC\u51FAICS</span>
+<span class="pm-btn" data-action="export-email-summary">\u{1F4E7} \u5BFC\u51FA\u90AE\u4EF6</span>
 
 --- end-multi-column
+
+---
+
+## \u26A0\uFE0F \u98CE\u9669\u603B\u89C8
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+if (pm && pm.api) {
+  const risks = await pm.api.getAllRisks();
+  const openRisks = risks.filter(r => r.status !== '\u5DF2\u95ED\u73AF');
+  const highRisks = risks.filter(r => r.level === 'high');
+  dv.paragraph(\`\u26A0\uFE0F \u603B\u98CE\u9669: \${risks.length} | \u672A\u5173\u95ED: \${openRisks.length} | \u9AD8\u98CE\u9669: \${highRisks.length}\`);
+  if (highRisks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["\u6765\u6E90\u5B9E\u4F53", "\u98CE\u9669\u7C7B\u578B", "\u98CE\u9669\u63CF\u8FF0", "\u7B49\u7EA7", "\u8D23\u4EFB\u4EBA", "\u72B6\u6001"];
+    const rows = highRisks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  }
+} else {
+  dv.paragraph("\u23F3 \u63D2\u4EF6 API \u52A0\u8F7D\u4E2D...");
+}
+\`\`\`
 
 ---
 
@@ -112,7 +157,7 @@ entityType: version
 ## \u{1F4C1} \u9879\u76EE\u7BA1\u7406
 
 \`\`\`pm-view
-mode: grid
+mode: list
 entityType: project
 \`\`\`
 
@@ -150,7 +195,7 @@ status: {{status}}
 
 | \u7C7B\u578B | \u9884\u4F30\u5DE5\u65F6 | \u5B9E\u9645\u5DE5\u65F6 | \u504F\u5DEE |
 |------|---------|---------|------|
-| \u7248\u672C\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+| \u7248\u672C\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
 > \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u7248\u672C\u4E0B\u6240\u6709\u9879\u76EE\u548C\u7279\u6027\u7684\u5DE5\u65F6\u6570\u636E
 
@@ -189,6 +234,39 @@ Border: off
 
 ---
 
+## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988
+
+| \u65F6\u95F4 | \u53CD\u9988\u5185\u5BB9 | \u8BB0\u5F55\u4EBA |
+|------|---------|--------|
+
+---
+
+## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A
+
+| \u98CE\u9669\u7C7B\u578B | \u98CE\u9669\u63CF\u8FF0 | \u98CE\u9669\u7B49\u7EA7 | \u8D23\u4EFB\u4EBA | \u53D1\u73B0\u65F6\u95F4 | \u95ED\u73AF\u65F6\u95F4 | \u72B6\u6001 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="version" data-entity-id="{{id}}">\u{1F4DD} \u6DFB\u52A0\u8FDB\u5C55</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="version" data-entity-id="{{id}}">\u26A0\uFE0F \u6DFB\u52A0\u98CE\u9669</span>
+
+--- end-multi-column
+
+---
+
 ## \u{1F4CA} \u8FDB\u5EA6\u6982\u89C8
 
 \`\`\`pm-view
@@ -201,7 +279,7 @@ versionId: {{id}}
 ## \u{1F4C1} \u5173\u8054\u9879\u76EE
 
 \`\`\`pm-view
-mode: grid
+mode: cascade
 entityType: project
 versionId: {{id}}
 \`\`\`
@@ -215,6 +293,51 @@ mode: kanban
 entityType: feature
 versionId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## \u26A0\uFE0F \u7248\u672C\u98CE\u9669\u6C47\u603B
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+const versionId = dv.current().id;
+if (pm && pm.api) {
+  const risks = await pm.api.getRisksByVersion(versionId);
+  if (risks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["\u6765\u6E90\u5B9E\u4F53", "\u98CE\u9669\u7C7B\u578B", "\u98CE\u9669\u63CF\u8FF0", "\u7B49\u7EA7", "\u8D23\u4EFB\u4EBA", "\u72B6\u6001"];
+    const rows = risks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  } else {
+    dv.paragraph("\u2705 \u5F53\u524D\u7248\u672C\u4E0B\u6682\u65E0\u98CE\u9669\u8BB0\u5F55");
+  }
+} else {
+  dv.paragraph("\u23F3 \u63D2\u4EF6 API \u52A0\u8F7D\u4E2D...");
+}
 \`\`\`
 
 ---
@@ -245,7 +368,7 @@ priority: {{priority}}
 
 | \u7C7B\u578B | \u9884\u4F30\u5DE5\u65F6 | \u5B9E\u9645\u5DE5\u65F6 | \u504F\u5DEE |
 |------|---------|---------|------|
-| \u9879\u76EE\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{calc actualHours "-" estimatedHours}}h{{else}}-{{/if}}{{else}}-{{/if}} |
+| \u9879\u76EE\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
 > \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u9879\u76EE\u4E0B\u6240\u6709\u7279\u6027\u7684\u5DE5\u65F6\u6570\u636E
 
@@ -324,6 +447,39 @@ Border: off
 
 ---
 
+## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988
+
+| \u65F6\u95F4 | \u53CD\u9988\u5185\u5BB9 | \u8BB0\u5F55\u4EBA |
+|------|---------|--------|
+
+---
+
+## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A
+
+| \u98CE\u9669\u7C7B\u578B | \u98CE\u9669\u63CF\u8FF0 | \u98CE\u9669\u7B49\u7EA7 | \u8D23\u4EFB\u4EBA | \u53D1\u73B0\u65F6\u95F4 | \u95ED\u73AF\u65F6\u95F4 | \u72B6\u6001 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="project" data-entity-id="{{id}}">\u{1F4DD} \u6DFB\u52A0\u8FDB\u5C55</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="project" data-entity-id="{{id}}">\u26A0\uFE0F \u6DFB\u52A0\u98CE\u9669</span>
+
+--- end-multi-column
+
+---
+
 ## \u{1F4CA} \u8FDB\u5EA6\u7EDF\u8BA1
 
 \`\`\`pm-view
@@ -341,6 +497,51 @@ mode: kanban
 entityType: feature
 projectId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## \u26A0\uFE0F \u9879\u76EE\u98CE\u9669\u6C47\u603B
+
+\`\`\`dataviewjs
+const pm = app.plugins.plugins["project-manager"];
+const projectId = dv.current().id;
+if (pm && pm.api) {
+  const risks = await pm.api.getRisksByProject(projectId);
+  if (risks.length > 0) {
+    const container = this.container;
+    const mkTable = function(headers, rows) {
+      const table = container.createEl("table", { cls: "dataview table-view-table" });
+      const thead = table.createEl("thead");
+      const hr = thead.createEl("tr");
+      headers.forEach(function(h) { hr.createEl("th", { text: h, cls: "table-view-th" }); });
+      const tbody = table.createEl("tbody");
+      rows.forEach(function(row) {
+        const tr = tbody.createEl("tr", { cls: "table-view-tr" });
+        row.forEach(function(cell, idx) {
+          const td = tr.createEl("td", { cls: "table-view-td" });
+          if (idx === 0 && cell && cell.path) {
+            const p = cell.path.replace(/\\.md$/, "");
+            const a = td.createEl("a", { text: cell.name, cls: "internal-link" });
+            a.setAttribute("data-href", p);
+            a.onclick = function(e) { e.preventDefault(); app.workspace.openLinkText(p, "", false); };
+          } else {
+            td.setText(String(cell));
+          }
+        });
+      });
+    };
+    const headers = ["\u6765\u6E90\u5B9E\u4F53", "\u98CE\u9669\u7C7B\u578B", "\u98CE\u9669\u63CF\u8FF0", "\u7B49\u7EA7", "\u8D23\u4EFB\u4EBA", "\u72B6\u6001"];
+    const rows = risks.map(function(r) {
+      return [r.sourcePath ? { path: r.sourcePath, name: r.sourceName } : r.sourceName, r.type, r.description, r.level, r.owner, r.status];
+    });
+    mkTable(headers, rows);
+  } else {
+    dv.paragraph("\u2705 \u5F53\u524D\u9879\u76EE\u4E0B\u6682\u65E0\u98CE\u9669\u8BB0\u5F55");
+  }
+} else {
+  dv.paragraph("\u23F3 \u63D2\u4EF6 API \u52A0\u8F7D\u4E2D...");
+}
 \`\`\`
 
 ---
@@ -374,6 +575,40 @@ tags:
 # {{priorityEmoji}} {{name}}
 
 <input class="pm-progress-input" data-feature-id="{{id}}" placeholder="\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\uFF0C\u6309 Enter \u4FDD\u5B58...">
+
+---
+
+## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988
+
+| \u65F6\u95F4 | \u53CD\u9988\u5185\u5BB9 | \u8BB0\u5F55\u4EBA |
+|------|---------|--------|
+| {{createTime}} | \u7279\u6027\u521B\u5EFA | |
+
+---
+
+## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A
+
+| \u98CE\u9669\u7C7B\u578B | \u98CE\u9669\u63CF\u8FF0 | \u98CE\u9669\u7B49\u7EA7 | \u8D23\u4EFB\u4EBA | \u53D1\u73B0\u65F6\u95F4 | \u95ED\u73AF\u65F6\u95F4 | \u72B6\u6001 |
+|---------|---------|---------|--------|----------|----------|------|
+
+---
+
+## \u{1F680} \u5FEB\u901F\u64CD\u4F5C
+
+--- start-multi-column: ID_quick_actions
+\`\`\`column-settings
+Number of Columns: 2
+Largest Column: standard
+Border: off
+\`\`\`
+
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="{{id}}">\u{1F4DD} \u6DFB\u52A0\u8FDB\u5C55</span>
+
+--- column-break ---
+
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="{{id}}">\u26A0\uFE0F \u6DFB\u52A0\u98CE\u9669</span>
+
+--- end-multi-column
 
 ---
 
@@ -505,15 +740,7 @@ tags:
 
 ---
 
-## \u{1F4DD} \u8FDB\u5C55\u8BB0\u5F55
 
-### \u5386\u53F2\u8BB0\u5F55
-- [{{createTime}}] \u7279\u6027\u521B\u5EFA
-
-### \u6700\u65B0\u8FDB\u5C55
-<!-- \u8BB0\u5F55\u6700\u65B0\u8FDB\u5C55 -->
-
----
 
 ## \u{1F4C5} \u91CC\u7A0B\u7891\u8BA1\u5212
 
@@ -712,18 +939,32 @@ var init_TemplateService = __esm({
           hour: "2-digit",
           minute: "2-digit"
         });
+        if ("estimatedHours" in context || "actualHours" in context) {
+          const est = Number(context.estimatedHours) || 0;
+          const act = Number(context.actualHours) || 0;
+          enriched.hoursDeviation = act - est;
+          enriched.hoursDeviationText = act >= est ? `+${act - est}h` : `${act - est}h`;
+        }
         return enriched;
       }
       /**
-       * 处理 {{#if}} 块
+       * 处理 {{#if}} 块，支持嵌套
        */
       processIfBlocks(template, context) {
-        const ifRegex = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
-        return template.replace(ifRegex, (match, variable, content) => {
-          const value = context[variable];
-          const hasValue = value !== void 0 && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
-          return hasValue ? content : "";
-        });
+        let result = template;
+        let prev;
+        let depth = 0;
+        const maxDepth = 10;
+        do {
+          prev = result;
+          result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, variable, content) => {
+            const value = context[variable];
+            const hasValue = value !== void 0 && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
+            return hasValue ? content : "";
+          });
+          depth++;
+        } while (prev !== result && depth < maxDepth);
+        return result;
       }
       /**
        * 处理简单变量（支持嵌套属性，如 tr3.status）
@@ -840,6 +1081,20 @@ var init_InitService = __esm({
   }
 });
 
+// src/utils/fileManager.ts
+var import_obsidian6;
+var init_fileManager = __esm({
+  "src/utils/fileManager.ts"() {
+    import_obsidian6 = require("obsidian");
+  }
+});
+
+// src/utils/idGenerator.ts
+var init_idGenerator = __esm({
+  "src/utils/idGenerator.ts"() {
+  }
+});
+
 // src/constants/statuses.ts
 function getStatusLabel(status, type = "feature") {
   var _a;
@@ -886,6 +1141,11 @@ var init_statuses = __esm({
 });
 
 // src/constants/priorities.ts
+function getPriorityLabel(priority) {
+  var _a;
+  const found = PRIORITIES.find((p) => p.value === priority);
+  return (_a = found == null ? void 0 : found.label) != null ? _a : priority;
+}
 var PRIORITIES;
 var init_priorities = __esm({
   "src/constants/priorities.ts"() {
@@ -906,17 +1166,1586 @@ var init_constants = __esm({
   }
 });
 
+// src/utils/validator.ts
+function needsStatusConfirmation(currentStatus, newStatus) {
+  return currentStatus === "completed" && newStatus !== "completed";
+}
+var ValidationError;
+var init_validator = __esm({
+  "src/utils/validator.ts"() {
+    init_constants();
+    ValidationError = class extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "ValidationError";
+      }
+    };
+  }
+});
+
+// src/utils/emlGenerator.ts
+var emlGenerator_exports = {};
+__export(emlGenerator_exports, {
+  downloadEML: () => downloadEML,
+  generateEML: () => generateEML
+});
+function encodeBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+function chunkBase64(base64, chunkSize = 76) {
+  const chunks = [];
+  for (let i = 0; i < base64.length; i += chunkSize) {
+    chunks.push(base64.slice(i, i + chunkSize));
+  }
+  return chunks.join("\r\n");
+}
+function encodeHeaderValue(value) {
+  if (/^[\x00-\x7F]*$/.test(value)) {
+    return value;
+  }
+  const encoded = encodeBase64(value);
+  const chunks = [];
+  for (let i = 0; i < encoded.length; i += 36) {
+    chunks.push("=?UTF-8?B?" + encoded.slice(i, i + 36) + "?=");
+  }
+  return chunks.join(" ");
+}
+function formatRFC2822Date(date) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${days[date.getDay()]}, ${pad(date.getDate())} ${months[date.getMonth()]} ${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} +0000`;
+}
+function generateEML(payload) {
+  const boundary = `----=_Part_Boundary_${Date.now()}`;
+  const date = formatRFC2822Date(/* @__PURE__ */ new Date());
+  const htmlEncoded = chunkBase64(encodeBase64(payload.htmlBody));
+  const plainEncoded = chunkBase64(encodeBase64(payload.plainBody));
+  return [
+    `MIME-Version: 1.0`,
+    `Subject: ${encodeHeaderValue(payload.subject)}`,
+    `From: ${encodeHeaderValue(payload.from)}`,
+    `To: ${encodeHeaderValue(payload.to)}`,
+    `Date: ${date}`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    plainEncoded,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    htmlEncoded,
+    ``,
+    `--${boundary}--`
+  ].join("\r\n");
+}
+function downloadEML(content, filename) {
+  const blob = new Blob([content], { type: "message/rfc822" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".eml") ? filename : `${filename}.eml`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+var init_emlGenerator = __esm({
+  "src/utils/emlGenerator.ts"() {
+  }
+});
+
+// src/utils/pageCapture.ts
+async function captureRenderedPage(app) {
+  var _a, _b, _c;
+  try {
+    const view = app.workspace.getActiveViewOfType(import_obsidian7.MarkdownView);
+    if (!view) {
+      new import_obsidian7.Notice("\u8BF7\u5148\u5728 Markdown \u9884\u89C8\u6A21\u5F0F\u4E0B\u6253\u5F00\u4E00\u4E2A\u9875\u9762");
+      return null;
+    }
+    if (view.getMode() !== "preview") {
+      new import_obsidian7.Notice("\u8BF7\u5207\u6362\u5230\u9605\u8BFB\u89C6\u56FE\uFF08Reading view\uFF09\u540E\u518D\u5BFC\u51FA\u90AE\u4EF6");
+      return null;
+    }
+    let previewEl = null;
+    try {
+      previewEl = (_a = view.previewMode) == null ? void 0 : _a.containerEl;
+    } catch (e) {
+      previewEl = null;
+    }
+    if (!previewEl || isEmptyPreview(previewEl)) {
+      previewEl = view.containerEl.querySelector(".markdown-preview-view, .markdown-reading-view");
+    }
+    if (!previewEl || isEmptyPreview(previewEl)) {
+      new import_obsidian7.Notice("\u5F53\u524D\u9875\u9762\u5185\u5BB9\u4E3A\u7A7A\u6216\u5C1A\u672A\u6E32\u67D3\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5");
+      return null;
+    }
+    const clone = previewEl.cloneNode(true);
+    const pmViewRoots = clone.querySelectorAll(".pm-view");
+    const originalPmViewRoots = previewEl.querySelectorAll(".pm-view");
+    pmViewRoots.forEach((clonedRoot, index) => {
+      const originalRoot = originalPmViewRoots[index];
+      if (originalRoot) {
+        inlineStyles(clonedRoot, originalRoot);
+      }
+    });
+    clone.querySelectorAll(INTERACTIVE_SELECTORS).forEach((el) => el.remove());
+    cleanMultiColumnArtifacts(clone);
+    const textContent = ((_b = clone.textContent) == null ? void 0 : _b.trim()) || "";
+    if (textContent.length < 10) {
+      new import_obsidian7.Notice("\u5F53\u524D\u9875\u9762\u5185\u5BB9\u4E3A\u7A7A\u6216\u5C1A\u672A\u6E32\u67D3\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5");
+      return null;
+    }
+    const [pluginStyles, cssVars] = await Promise.all([
+      fetchPluginStyles(),
+      captureCssVariables()
+    ]);
+    const title = ((_c = view.file) == null ? void 0 : _c.basename) || "\u5BFC\u51FA\u90AE\u4EF6";
+    const html = buildHtmlDocument(title, clone.innerHTML, pluginStyles, cssVars);
+    const plain = domToPlainText(clone);
+    return { html, plain, title };
+  } catch (error) {
+    console.error("captureRenderedPage error:", error);
+    new import_obsidian7.Notice("\u9875\u9762\u6355\u83B7\u5931\u8D25: " + error.message);
+    return null;
+  }
+}
+function isEmptyPreview(el) {
+  const text = (el.textContent || "").trim();
+  return text.length < 10;
+}
+function inlineStyles(cloned, original) {
+  const clonedNodes = cloned.querySelectorAll("*");
+  const originalNodes = original.querySelectorAll("*");
+  const pairs = [[cloned, original]];
+  clonedNodes.forEach((c, i) => {
+    const o = originalNodes[i];
+    if (o && c instanceof HTMLElement && o instanceof HTMLElement) {
+      pairs.push([c, o]);
+    }
+  });
+  pairs.forEach(([c, o]) => {
+    const computed = window.getComputedStyle(o);
+    const inline = [];
+    const existingStyle = c.getAttribute("style") || "";
+    for (const prop of EMAIL_RELEVANT_STYLES) {
+      const value = computed.getPropertyValue(prop);
+      if (!value)
+        continue;
+      if (["initial", "normal", "auto", "0px", "rgba(0, 0, 0, 0)", "transparent"].includes(value))
+        continue;
+      if (existingStyle.toLowerCase().includes(prop.toLowerCase() + ":"))
+        continue;
+      inline.push(`${prop}: ${value}`);
+    }
+    if (inline.length > 0) {
+      c.setAttribute("style", existingStyle ? `${existingStyle}; ${inline.join("; ")}` : inline.join("; "));
+    }
+  });
+}
+function cleanMultiColumnArtifacts(root) {
+  const toRemove = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while (node = walker.nextNode()) {
+    if (/---\s*(start-multi-column|column-break|end-multi-column)/.test(node.textContent || "")) {
+      let el = node.parentElement;
+      while (el && !["DIV", "P", "PRE", "LI", "BLOCKQUOTE", "SECTION"].includes(el.tagName)) {
+        el = el.parentElement;
+      }
+      if (el)
+        toRemove.push(el);
+    }
+  }
+  root.querySelectorAll("*").forEach((el) => {
+    if (el.children.length === 0) {
+      const text = el.textContent || "";
+      if (/^(Number of Columns|Largest Column|Border):\s*/m.test(text)) {
+        let parent = el;
+        while (parent && !["DIV", "P", "LI", "BLOCKQUOTE", "SECTION"].includes(parent.tagName)) {
+          parent = parent.parentElement;
+        }
+        if (parent)
+          toRemove.push(parent);
+      }
+    }
+  });
+  toRemove.forEach((el) => {
+    if (el.isConnected)
+      el.remove();
+  });
+}
+async function fetchPluginStyles() {
+  try {
+    const styleTags = Array.from(document.querySelectorAll("style"));
+    for (const tag of styleTags) {
+      const text = tag.textContent || "";
+      if (text.includes(".pm-view") || text.includes("pm-kanban") || text.includes("pm-list")) {
+        return text;
+      }
+    }
+    const link = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find((l) => {
+      var _a, _b;
+      return ((_a = l.href) == null ? void 0 : _a.includes("styles.css")) || ((_b = l.href) == null ? void 0 : _b.includes("project-manager"));
+    });
+    if (link && link.href) {
+      const res = await fetch(link.href);
+      if (res.ok)
+        return await res.text();
+    }
+  } catch (e) {
+  }
+  return "";
+}
+function captureCssVariables() {
+  var _a;
+  const vars = /* @__PURE__ */ new Map();
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      for (const rule of Array.from(sheet.cssRules)) {
+        if (rule instanceof CSSStyleRule) {
+          const selectors = ((_a = rule.selectorText) == null ? void 0 : _a.split(",").map((s) => s.trim())) || [];
+          if (selectors.some((s) => s === ":root" || s === "html" || s.includes(".pm-view"))) {
+            for (let i = 0; i < rule.style.length; i++) {
+              const prop = rule.style[i];
+              if (prop.startsWith("--")) {
+                vars.set(prop, rule.style.getPropertyValue(prop).trim());
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+    }
+  }
+  const inline = document.documentElement.style;
+  for (let i = 0; i < inline.length; i++) {
+    const prop = inline[i];
+    if (prop.startsWith("--")) {
+      vars.set(prop, inline.getPropertyValue(prop).trim());
+    }
+  }
+  const computed = getComputedStyle(document.documentElement);
+  for (let i = 0; i < computed.length; i++) {
+    const prop = computed[i];
+    if (prop.startsWith("--")) {
+      vars.set(prop, computed.getPropertyValue(prop).trim());
+    }
+  }
+  const entries = Array.from(vars.entries()).filter(([, v]) => v);
+  if (entries.length === 0)
+    return "";
+  return `:root {
+${entries.map(([k, v]) => `  ${k}: ${v};`).join("\n")}
+}`;
+}
+function buildHtmlDocument(title, body, pluginStyles, cssVars) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>
+/* CSS \u53D8\u91CF\u5FEB\u7167 */
+${cssVars}
+
+/* \u63D2\u4EF6\u6837\u5F0F */
+${pluginStyles}
+
+/* \u90AE\u4EF6\u517C\u5BB9\u6027\u4FEE\u590D */
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; line-height: 1.6; color: #333; }
+table { border-collapse: collapse; width: 100%; }
+td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
+img { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+}
+function domToPlainText(element) {
+  let text = "";
+  for (const node of element.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node;
+      const tag = el.tagName.toLowerCase();
+      if (["script", "style", "button", "input", "select", "textarea", "noscript"].includes(tag))
+        continue;
+      const isBlock = BLOCK_TAGS.has(el.tagName);
+      if (isBlock && text && !text.endsWith("\n"))
+        text += "\n";
+      text += domToPlainText(el);
+      if (isBlock && !text.endsWith("\n"))
+        text += "\n";
+      if (tag === "td" || tag === "th")
+        text += "	";
+      if (tag === "br")
+        text += "\n";
+    }
+  }
+  return text;
+}
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+var import_obsidian7, INTERACTIVE_SELECTORS, BLOCK_TAGS, EMAIL_RELEVANT_STYLES;
+var init_pageCapture = __esm({
+  "src/utils/pageCapture.ts"() {
+    import_obsidian7 = require("obsidian");
+    INTERACTIVE_SELECTORS = [
+      ".pm-btn",
+      ".pm-progress-input",
+      ".pm-filter-container",
+      ".copy-code-button",
+      ".edit-block-button",
+      ".metadata-container",
+      ".metadata-properties-heading",
+      ".metadata-add-button",
+      ".metadata-properties",
+      ".inline-title",
+      ".outline",
+      ".embedded-backlinks",
+      ".collapse-icon",
+      ".collapse-indicator",
+      ".heading-collapse-indicator",
+      "button",
+      "input",
+      "select",
+      "textarea",
+      "script",
+      "style"
+    ].join(", ");
+    BLOCK_TAGS = /* @__PURE__ */ new Set([
+      "DIV",
+      "P",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "LI",
+      "TR",
+      "SECTION",
+      "ARTICLE",
+      "BLOCKQUOTE",
+      "PRE"
+    ]);
+    EMAIL_RELEVANT_STYLES = [
+      "color",
+      "background-color",
+      "background",
+      "font-family",
+      "font-size",
+      "font-weight",
+      "line-height",
+      "text-align",
+      "border",
+      "border-radius",
+      "padding",
+      "margin",
+      "display",
+      "flex-direction",
+      "align-items",
+      "justify-content",
+      "gap",
+      "width",
+      "height",
+      "min-width",
+      "min-height",
+      "box-shadow",
+      "position",
+      "top",
+      "left",
+      "right",
+      "bottom",
+      "overflow",
+      "white-space",
+      "text-decoration",
+      "vertical-align"
+    ];
+  }
+});
+
+// src/utils/avatar.ts
+var init_avatar = __esm({
+  "src/utils/avatar.ts"() {
+  }
+});
+
+// src/utils/errorHandler.ts
+var import_obsidian8, ErrorHandler;
+var init_errorHandler = __esm({
+  "src/utils/errorHandler.ts"() {
+    import_obsidian8 = require("obsidian");
+    ErrorHandler = class {
+      /**
+       * 处理错误
+       */
+      static handle(error, context, options = {}) {
+        const { showNotice = true, silent = false, category = "system", message } = options;
+        const errorMessage = message || this.extractErrorMessage(error);
+        const fullMessage = `[${this.PLUGIN_NAME}] ${context}: ${errorMessage}`;
+        if (category === "expected") {
+          console.warn(fullMessage, error);
+        } else {
+          console.error(fullMessage, error);
+        }
+        if (silent)
+          return;
+        let noticeMessage;
+        let noticeDuration;
+        switch (category) {
+          case "user":
+            noticeMessage = `\u26A0\uFE0F ${context}: ${errorMessage}`;
+            noticeDuration = 5e3;
+            break;
+          case "system":
+            noticeMessage = `\u274C ${context}: ${errorMessage}`;
+            noticeDuration = 8e3;
+            break;
+          case "expected":
+            noticeMessage = `\u2139\uFE0F ${errorMessage}`;
+            noticeDuration = 3e3;
+            break;
+          default:
+            noticeMessage = `\u274C ${context}: ${errorMessage}`;
+            noticeDuration = 5e3;
+        }
+        if (showNotice) {
+          new import_obsidian8.Notice(noticeMessage, noticeDuration);
+        }
+      }
+      /**
+       * 处理成功操作
+       */
+      static handleSuccess(message, duration = 3e3) {
+        new import_obsidian8.Notice(`\u2705 ${message}`, duration);
+      }
+      /**
+       * 处理用户输入错误
+       */
+      static handleUserError(message, context) {
+        const fullMessage = context ? `${context}: ${message}` : message;
+        new import_obsidian8.Notice(`\u26A0\uFE0F ${fullMessage}`, 5e3);
+        console.warn(`[${this.PLUGIN_NAME}] \u7528\u6237\u9519\u8BEF:`, fullMessage);
+      }
+      /**
+       * 处理系统错误（带详细日志）
+       */
+      static handleSystemError(error, context) {
+        this.handle(error, context, { category: "system", showNotice: true });
+      }
+      /**
+       * 静默处理错误（仅记录日志）
+       */
+      static handleSilent(error, context) {
+        console.error(`[${this.PLUGIN_NAME}] ${context}:`, error);
+      }
+      /**
+       * 提取错误消息
+       */
+      static extractErrorMessage(error) {
+        if (error instanceof Error) {
+          return error.message;
+        }
+        if (typeof error === "string") {
+          return error;
+        }
+        if (error && typeof error === "object" && "message" in error) {
+          return String(error.message);
+        }
+        return "\u53D1\u751F\u672A\u77E5\u9519\u8BEF";
+      }
+    };
+    ErrorHandler.PLUGIN_NAME = "ProjectManager";
+  }
+});
+
+// src/utils/configValidator.ts
+var VALID_VIEW_MODES, VALID_ENTITY_TYPES, VALID_SORT_FIELDS, VALID_SORT_ORDERS, VALID_GROUP_BY, VALID_LIST_COLUMNS, ConfigValidator;
+var init_configValidator = __esm({
+  "src/utils/configValidator.ts"() {
+    VALID_VIEW_MODES = ["kanban", "list", "cascade", "timeline", "timeview", "burndown", "workload"];
+    VALID_ENTITY_TYPES = ["version", "project", "feature"];
+    VALID_SORT_FIELDS = ["name", "startDate", "endDate", "priority", "progress", "created"];
+    VALID_SORT_ORDERS = ["asc", "desc"];
+    VALID_GROUP_BY = ["status", "priority", "version", "project", "startDate", "endDate"];
+    VALID_LIST_COLUMNS = [
+      "name",
+      "status",
+      "priority",
+      "owner",
+      "startDate",
+      "endDate",
+      "progress",
+      "risk",
+      "latestProgress",
+      "tags",
+      "versionId",
+      "projectId"
+    ];
+    ConfigValidator = class {
+      /**
+       * 验证配置
+       */
+      static validate(config) {
+        const errors = [];
+        const warnings = [];
+        if (!config || typeof config !== "object") {
+          errors.push("\u914D\u7F6E\u5FC5\u987B\u662F\u4E00\u4E2A\u5BF9\u8C61");
+          return { valid: false, errors, warnings, config: { mode: "cascade" } };
+        }
+        const input = config;
+        const result = {};
+        const modeValidation = this.validateMode(input.mode);
+        if (modeValidation.error) {
+          errors.push(modeValidation.error);
+          result.mode = "cascade";
+        } else {
+          result.mode = modeValidation.value;
+        }
+        if (input.entityType !== void 0) {
+          const entityTypeValidation = this.validateEntityType(input.entityType);
+          if (entityTypeValidation.error) {
+            warnings.push(entityTypeValidation.error);
+          } else {
+            result.entityType = entityTypeValidation.value;
+          }
+        }
+        if (input.title !== void 0) {
+          if (typeof input.title === "string" && input.title.length > 0) {
+            result.title = input.title;
+          } else if (input.title !== "") {
+            warnings.push("title \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.version !== void 0) {
+          if (typeof input.version === "string" && input.version.length > 0) {
+            result.version = input.version;
+          } else {
+            warnings.push("version \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.project !== void 0) {
+          if (typeof input.project === "string" && input.project.length > 0) {
+            result.project = input.project;
+          } else {
+            warnings.push("project \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.feature !== void 0) {
+          if (typeof input.feature === "string" && input.feature.length > 0) {
+            result.feature = input.feature;
+          } else {
+            warnings.push("feature \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.status !== void 0) {
+          if (typeof input.status === "string") {
+            result.status = input.status;
+          } else {
+            warnings.push("status \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.priority !== void 0) {
+          if (typeof input.priority === "string") {
+            result.priority = input.priority;
+          } else {
+            warnings.push("priority \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.owner !== void 0) {
+          if (typeof input.owner === "string") {
+            result.owner = input.owner;
+          } else {
+            warnings.push("owner \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.tag !== void 0) {
+          if (typeof input.tag === "string") {
+            result.tag = input.tag;
+          } else {
+            warnings.push("tag \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.sortBy !== void 0) {
+          const sortByValidation = this.validateSortBy(input.sortBy);
+          if (sortByValidation.error) {
+            warnings.push(sortByValidation.error);
+          } else {
+            result.sortBy = sortByValidation.value;
+          }
+        }
+        if (input.sortOrder !== void 0) {
+          const sortOrderValidation = this.validateSortOrder(input.sortOrder);
+          if (sortOrderValidation.error) {
+            warnings.push(sortOrderValidation.error);
+          } else {
+            result.sortOrder = sortOrderValidation.value;
+          }
+        }
+        if (input.limit !== void 0) {
+          const limitValidation = this.validateLimit(input.limit);
+          if (limitValidation.error) {
+            warnings.push(limitValidation.error);
+          } else {
+            result.limit = limitValidation.value;
+          }
+        }
+        if (input.groupBy !== void 0) {
+          const groupByValidation = this.validateGroupBy(input.groupBy);
+          if (groupByValidation.error) {
+            warnings.push(groupByValidation.error);
+          } else {
+            result.groupBy = groupByValidation.value;
+          }
+        }
+        if (input.expanded !== void 0) {
+          if (typeof input.expanded === "boolean") {
+            result.expanded = input.expanded;
+          } else if (input.expanded === "true") {
+            result.expanded = true;
+          } else if (input.expanded === "false") {
+            result.expanded = false;
+          } else {
+            warnings.push("expanded \u5FC5\u987B\u662F\u5E03\u5C14\u503C");
+          }
+        }
+        if (input.listColumns !== void 0) {
+          const listColumnsValidation = this.validateListColumns(input.listColumns);
+          if (listColumnsValidation.error) {
+            warnings.push(listColumnsValidation.error);
+          } else {
+            result.listColumns = listColumnsValidation.value;
+          }
+        }
+        if (input.cardFields !== void 0) {
+          if (typeof input.cardFields === "object" && input.cardFields !== null) {
+            result.cardFields = input.cardFields;
+          } else {
+            warnings.push("cardFields \u5FC5\u987B\u662F\u5BF9\u8C61");
+          }
+        }
+        const validatedKeys = Object.keys(result);
+        Object.keys(input).forEach((key) => {
+          if (!validatedKeys.includes(key)) {
+            result[key] = input[key];
+          }
+        });
+        return {
+          valid: errors.length === 0,
+          errors,
+          warnings,
+          config: result
+        };
+      }
+      /**
+       * 验证视图模式
+       */
+      static validateMode(mode) {
+        if (!mode) {
+          return { error: "mode \u662F\u5FC5\u586B\u9879\uFF0C\u4F7F\u7528\u9ED8\u8BA4 cascade" };
+        }
+        const modeStr = String(mode);
+        if (!VALID_VIEW_MODES.includes(modeStr)) {
+          return {
+            error: `\u65E0\u6548\u7684\u89C6\u56FE\u6A21\u5F0F: "${modeStr}"\uFF0C\u6709\u6548\u503C: ${VALID_VIEW_MODES.join(", ")}\uFF0C\u4F7F\u7528\u9ED8\u8BA4 cascade`
+          };
+        }
+        return { value: modeStr };
+      }
+      /**
+       * 验证实体类型
+       */
+      static validateEntityType(entityType) {
+        const entityTypeStr = String(entityType);
+        if (!VALID_ENTITY_TYPES.includes(entityTypeStr)) {
+          return {
+            error: `\u65E0\u6548\u7684\u5B9E\u4F53\u7C7B\u578B: "${entityTypeStr}"\uFF0C\u6709\u6548\u503C: ${VALID_ENTITY_TYPES.join(", ")}`
+          };
+        }
+        return { value: entityTypeStr };
+      }
+      /**
+       * 验证排序字段
+       */
+      static validateSortBy(sortBy) {
+        const sortByStr = String(sortBy);
+        if (!VALID_SORT_FIELDS.includes(sortByStr)) {
+          return {
+            error: `\u65E0\u6548\u7684\u6392\u5E8F\u5B57\u6BB5: "${sortByStr}"\uFF0C\u6709\u6548\u503C: ${VALID_SORT_FIELDS.join(", ")}`
+          };
+        }
+        return { value: sortByStr };
+      }
+      /**
+       * 验证排序方向
+       */
+      static validateSortOrder(sortOrder) {
+        const sortOrderStr = String(sortOrder);
+        if (!VALID_SORT_ORDERS.includes(sortOrderStr)) {
+          return {
+            error: `\u65E0\u6548\u7684\u6392\u5E8F\u65B9\u5411: "${sortOrderStr}"\uFF0C\u6709\u6548\u503C: ${VALID_SORT_ORDERS.join(", ")}`
+          };
+        }
+        return { value: sortOrderStr };
+      }
+      /**
+       * 验证限制数量
+       */
+      static validateLimit(limit) {
+        const limitNum = typeof limit === "string" ? parseInt(limit, 10) : Number(limit);
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 1e3) {
+          return {
+            error: `limit \u5FC5\u987B\u662F 1-1000 \u4E4B\u95F4\u7684\u6570\u5B57\uFF0C\u5F53\u524D: ${limit}`
+          };
+        }
+        return { value: limitNum };
+      }
+      /**
+       * 验证分组方式
+       */
+      static validateGroupBy(groupBy) {
+        const groupByStr = String(groupBy);
+        if (!VALID_GROUP_BY.includes(groupByStr)) {
+          return {
+            error: `\u65E0\u6548\u7684\u5206\u7EC4\u65B9\u5F0F: "${groupByStr}"\uFF0C\u6709\u6548\u503C: ${VALID_GROUP_BY.join(", ")}`
+          };
+        }
+        return { value: groupByStr };
+      }
+      /**
+       * 验证列表列配置
+       */
+      static validateListColumns(columns) {
+        if (!Array.isArray(columns)) {
+          return { error: "listColumns \u5FC5\u987B\u662F\u6570\u7EC4" };
+        }
+        const validColumns = [];
+        const invalidColumns = [];
+        for (const col of columns) {
+          const colStr = String(col);
+          if (VALID_LIST_COLUMNS.includes(colStr)) {
+            validColumns.push(colStr);
+          } else {
+            invalidColumns.push(colStr);
+          }
+        }
+        if (invalidColumns.length > 0) {
+          return {
+            value: validColumns,
+            error: `\u5FFD\u7565\u65E0\u6548\u7684\u5217\u8868\u5217: ${invalidColumns.join(", ")}`
+          };
+        }
+        return { value: validColumns };
+      }
+      /**
+       * 类型守卫：检查是否是有效的视图模式
+       */
+      static isViewMode(value) {
+        return VALID_VIEW_MODES.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的实体类型
+       */
+      static isEntityType(value) {
+        return VALID_ENTITY_TYPES.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的排序字段
+       */
+      static isSortField(value) {
+        return VALID_SORT_FIELDS.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的排序方向
+       */
+      static isSortOrder(value) {
+        return VALID_SORT_ORDERS.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的分组方式
+       */
+      static isGroupBy(value) {
+        return VALID_GROUP_BY.includes(value);
+      }
+    };
+  }
+});
+
+// src/utils/getOverlayContainer.ts
+function getOverlayContainer() {
+  const fullscreenEl = document.fullscreenElement;
+  return fullscreenEl || document.body;
+}
+var init_getOverlayContainer = __esm({
+  "src/utils/getOverlayContainer.ts"() {
+  }
+});
+
+// src/utils/color.ts
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+var init_color = __esm({
+  "src/utils/color.ts"() {
+  }
+});
+
+// src/utils/index.ts
+var init_utils = __esm({
+  "src/utils/index.ts"() {
+    init_fileManager();
+    init_idGenerator();
+    init_validator();
+    init_emlGenerator();
+    init_pageCapture();
+    init_avatar();
+    init_errorHandler();
+    init_configValidator();
+    init_getOverlayContainer();
+    init_color();
+  }
+});
+
+// src/ui/components/DatePicker.ts
+function formatDateDisplay(dateStr) {
+  if (!dateStr)
+    return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime()))
+    return dateStr;
+  const today = /* @__PURE__ */ new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((targetDate.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
+  if (diffDays === 0)
+    return `${dateStr} (\u4ECA\u5929)`;
+  if (diffDays === 1)
+    return `${dateStr} (\u660E\u5929)`;
+  if (diffDays === -1)
+    return `${dateStr} (\u6628\u5929)`;
+  if (diffDays > 0 && diffDays <= 7)
+    return `${dateStr} (${diffDays}\u5929\u540E)`;
+  if (diffDays < 0 && diffDays >= -7)
+    return `${dateStr} (${Math.abs(diffDays)}\u5929\u524D)`;
+  return dateStr;
+}
+var init_DatePicker = __esm({
+  "src/ui/components/DatePicker.ts"() {
+  }
+});
+
+// src/modals/CreateVersionModal.ts
+var import_obsidian14, CreateVersionModal;
+var init_CreateVersionModal = __esm({
+  "src/modals/CreateVersionModal.ts"() {
+    import_obsidian14 = require("obsidian");
+    init_constants();
+    init_DatePicker();
+    CreateVersionModal = class extends import_obsidian14.Modal {
+      constructor(app, onSubmit) {
+        super(app);
+        this.result = {
+          name: "",
+          status: "planning",
+          tags: []
+        };
+        // 用于存储输入元素引用以便更新值
+        this.startDateInput = null;
+        this.endDateInput = null;
+        this.onSubmit = onSubmit;
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        contentEl.createEl("h2", { text: "\u521B\u5EFA\u7248\u672C" });
+        new import_obsidian14.Setting(contentEl).setName("\u7248\u672C\u540D\u79F0").setDesc("\u8F93\u5165\u7248\u672C\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Av1.0 \u7B2C\u4E00\u5B63\u5EA6").setValue(this.result.name).onChange((value) => {
+          this.result.name = value;
+        }));
+        new import_obsidian14.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          VERSION_STATUSES.forEach((status) => {
+            dropdown.addOption(status.value, status.label);
+          });
+          dropdown.setValue(this.result.status);
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        const startDateSetting = new import_obsidian14.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+        startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.startDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.startDateInput.value = this.result.startDate || "";
+          this.startDateInput.addEventListener("change", (e) => {
+            const value = e.target.value;
+            this.result.startDate = value || void 0;
+            startDateSetting.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            this.result.startDate = date;
+            if (this.startDateInput) {
+              this.startDateInput.value = date;
+            }
+            startDateSetting.setDesc(formatDateDisplay(date));
+          });
+        });
+        const endDateSetting = new import_obsidian14.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.endDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.endDateInput.value = this.result.endDate || "";
+          this.endDateInput.addEventListener("change", (e) => {
+            const value = e.target.value;
+            this.result.endDate = value || void 0;
+            endDateSetting.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            this.result.endDate = date;
+            if (this.endDateInput) {
+              this.endDateInput.value = date;
+            }
+            endDateSetting.setDesc(formatDateDisplay(date));
+          });
+        });
+        new import_obsidian14.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+          this.result.owner = value || void 0;
+        }));
+        new import_obsidian14.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1AQ1, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const exampleButton = buttonContainer.createEl("button", {
+          text: "\u586B\u5165\u793A\u4F8B",
+          cls: "pm-btn--secondary"
+        });
+        exampleButton.style.marginRight = "auto";
+        exampleButton.addEventListener("click", () => this.fillExample());
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const submitButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        submitButton.addEventListener("click", () => {
+          if (!this.result.name.trim()) {
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      /**
+       * 填入示例数据
+       */
+      fillExample() {
+        const today = /* @__PURE__ */ new Date();
+        const nextQuarter = new Date(today);
+        nextQuarter.setMonth(nextQuarter.getMonth() + 3);
+        this.result = {
+          name: "v1.0.0 \u6625\u5B63\u8FED\u4EE3",
+          status: "planning",
+          owner: "\u5F20\u4E09",
+          startDate: today.toISOString().split("T")[0],
+          endDate: nextQuarter.toISOString().split("T")[0],
+          tags: ["Q2", "\u91CD\u8981"]
+        };
+        this.onOpen();
+      }
+      /**
+       * 创建快捷日期按钮
+       */
+      createQuickDateButtons(container, onSelect) {
+        const quickContainer = container.createDiv({ cls: "pm-date-quick" });
+        const today = /* @__PURE__ */ new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const formatDate2 = (date) => {
+          return date.toISOString().split("T")[0];
+        };
+        const buttons = [
+          { label: "\u4ECA\u5929", date: formatDate2(today) },
+          { label: "\u660E\u5929", date: formatDate2(tomorrow) },
+          { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
+          { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
+        ];
+        buttons.forEach(({ label, date }) => {
+          const btn = quickContainer.createEl("button", {
+            text: label,
+            cls: "pm-date-quick__btn"
+          });
+          btn.addEventListener("click", () => onSelect(date));
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/CreateProjectModal.ts
+var import_obsidian15, formatDate, CreateProjectModal;
+var init_CreateProjectModal = __esm({
+  "src/modals/CreateProjectModal.ts"() {
+    import_obsidian15 = require("obsidian");
+    init_constants();
+    init_DatePicker();
+    formatDate = (date) => date.toISOString().split("T")[0];
+    CreateProjectModal = class extends import_obsidian15.Modal {
+      constructor(app, entityManager, defaultVersionId, onSubmit) {
+        super(app);
+        this.result = {
+          name: "",
+          versionId: "",
+          status: "backlog",
+          priority: "medium",
+          tags: []
+        };
+        this.versions = [];
+        this.startDateInput = null;
+        this.endDateInput = null;
+        this.entityManager = entityManager;
+        this.onSubmit = onSubmit;
+        if (defaultVersionId) {
+          this.result.versionId = defaultVersionId;
+        }
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        this.versions = await this.entityManager.listVersions();
+        if (this.versions.length === 0) {
+          contentEl.createEl("h2", { text: "\u521B\u5EFA\u9879\u76EE" });
+          contentEl.createEl("p", {
+            text: "\u6682\u65E0\u7248\u672C\uFF0C\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u9879\u76EE\u3002",
+            cls: "pm-modal__warning"
+          });
+          const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
+          const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
+          okButton.addEventListener("click", () => this.close());
+          return;
+        }
+        contentEl.createEl("h2", { text: "\u521B\u5EFA\u9879\u76EE" });
+        new import_obsidian15.Setting(contentEl).setName("\u9879\u76EE\u540D\u79F0").setDesc("\u8F93\u5165\u9879\u76EE\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5B98\u7F51\u91CD\u6784").setValue(this.result.name).onChange((value) => {
+          this.result.name = value;
+        }));
+        new import_obsidian15.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u9879\u76EE\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+          dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
+          this.versions.forEach((version) => {
+            dropdown.addOption(version.id, version.name);
+          });
+          dropdown.setValue(this.result.versionId);
+          dropdown.onChange((value) => {
+            this.result.versionId = value;
+          });
+        });
+        new import_obsidian15.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          PROJECT_STATUSES.forEach((status) => {
+            dropdown.addOption(status.value, status.label);
+          });
+          dropdown.setValue(this.result.status);
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        new import_obsidian15.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((priority) => {
+            dropdown.addOption(priority.value, priority.label);
+          });
+          dropdown.setValue(this.result.priority);
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        new import_obsidian15.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+          this.result.owner = value || void 0;
+        }));
+        const startDateSetting = new import_obsidian15.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+        startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.startDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.startDateInput.value = this.result.startDate || "";
+          this.startDateInput.addEventListener("change", (e) => {
+            const value = e.target.value;
+            this.result.startDate = value || void 0;
+            startDateSetting.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          const quickContainer = div.createDiv({ cls: "pm-date-quick" });
+          const today = /* @__PURE__ */ new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const nextWeek = new Date(today);
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          const nextMonth = new Date(today);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          [
+            { label: "\u4ECA\u5929", date: formatDate(today) },
+            { label: "\u660E\u5929", date: formatDate(tomorrow) },
+            { label: "\u4E00\u5468\u540E", date: formatDate(nextWeek) },
+            { label: "\u4E00\u6708\u540E", date: formatDate(nextMonth) }
+          ].forEach(({ label, date }) => {
+            const btn = quickContainer.createEl("button", {
+              text: label,
+              cls: "pm-date-quick-btn"
+            });
+            btn.addEventListener("click", () => {
+              this.result.startDate = date;
+              if (this.startDateInput) {
+                this.startDateInput.value = date;
+              }
+              startDateSetting.setDesc(formatDateDisplay(date));
+            });
+          });
+        });
+        const endDateSetting = new import_obsidian15.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.endDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.endDateInput.value = this.result.endDate || "";
+          this.endDateInput.addEventListener("change", (e) => {
+            const value = e.target.value;
+            this.result.endDate = value || void 0;
+            endDateSetting.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          const quickContainer = div.createDiv({ cls: "pm-date-quick" });
+          const today = /* @__PURE__ */ new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const nextWeek = new Date(today);
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          const nextMonth = new Date(today);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          [
+            { label: "\u4ECA\u5929", date: formatDate(today) },
+            { label: "\u660E\u5929", date: formatDate(tomorrow) },
+            { label: "\u4E00\u5468\u540E", date: formatDate(nextWeek) },
+            { label: "\u4E00\u6708\u540E", date: formatDate(nextMonth) }
+          ].forEach(({ label, date }) => {
+            const btn = quickContainer.createEl("button", {
+              text: label,
+              cls: "pm-date-quick-btn"
+            });
+            btn.addEventListener("click", () => {
+              this.result.endDate = date;
+              if (this.endDateInput) {
+                this.endDateInput.value = date;
+              }
+              endDateSetting.setDesc(formatDateDisplay(date));
+            });
+          });
+        });
+        new import_obsidian15.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const exampleButton = buttonContainer.createEl("button", {
+          text: "\u586B\u5165\u793A\u4F8B",
+          cls: "pm-btn--secondary"
+        });
+        exampleButton.style.marginRight = "auto";
+        exampleButton.addEventListener("click", () => this.fillExample());
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const submitButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        submitButton.addEventListener("click", () => {
+          if (!this.result.name.trim()) {
+            new import_obsidian15.Notice("\u9879\u76EE\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
+            return;
+          }
+          if (!this.result.versionId) {
+            new import_obsidian15.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      /**
+       * 填入示例数据
+       */
+      fillExample() {
+        const today = /* @__PURE__ */ new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        this.result = {
+          name: "\u5B98\u7F51\u91CD\u6784\u9879\u76EE",
+          versionId: this.versions.length > 0 ? this.versions[0].id : "",
+          status: "backlog",
+          priority: "high",
+          owner: "\u674E\u56DB",
+          startDate: formatDate(today),
+          endDate: formatDate(nextMonth),
+          tags: ["\u524D\u7AEF", "\u8BBE\u8BA1", "\u5B98\u7F51"]
+        };
+        this.onOpen();
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/CreateFeatureModal.ts
+var import_obsidian16, CreateFeatureModal;
+var init_CreateFeatureModal = __esm({
+  "src/modals/CreateFeatureModal.ts"() {
+    import_obsidian16 = require("obsidian");
+    init_constants();
+    init_DatePicker();
+    CreateFeatureModal = class extends import_obsidian16.Modal {
+      constructor(app, entityManager, defaultVersionId, defaultProjectId, onSubmit) {
+        super(app);
+        this.result = {
+          name: "",
+          versionId: "",
+          projectId: "",
+          status: "backlog",
+          priority: "medium",
+          progress: 0,
+          tags: [],
+          estimatedHours: void 0,
+          actualHours: void 0,
+          requirementIds: [],
+          projectLink: void 0
+        };
+        this.versions = [];
+        this.projects = [];
+        this.filteredProjects = [];
+        // 用于存储输入元素引用
+        this.endDateInput = null;
+        this.endDateSetting = null;
+        this.startDateInput = null;
+        this.startDateSetting = null;
+        this.entityManager = entityManager;
+        this.onSubmit = onSubmit;
+        if (defaultVersionId) {
+          this.result.versionId = defaultVersionId;
+        }
+        if (defaultProjectId) {
+          this.result.projectId = defaultProjectId;
+        }
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        this.versions = await this.entityManager.listVersions();
+        this.projects = await this.entityManager.listProjects();
+        if (this.versions.length === 0) {
+          contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
+          contentEl.createEl("p", {
+            text: "\u6682\u65E0\u7248\u672C\uFF0C\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u7279\u6027\u3002",
+            cls: "pm-modal__warning"
+          });
+          const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
+          const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
+          okButton.addEventListener("click", () => this.close());
+          return;
+        }
+        if (this.projects.length === 0) {
+          contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
+          contentEl.createEl("p", {
+            text: "\u6682\u65E0\u9879\u76EE\uFF0C\u8BF7\u5148\u521B\u5EFA\u9879\u76EE\u540E\u518D\u521B\u5EFA\u7279\u6027\u3002",
+            cls: "pm-modal__warning"
+          });
+          const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
+          const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
+          okButton.addEventListener("click", () => this.close());
+          return;
+        }
+        contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
+        new import_obsidian16.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").setDesc("\u8F93\u5165\u7279\u6027\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u767B\u5F55\u9875\u9762\u5F00\u53D1").setValue(this.result.name).onChange((value) => {
+          this.result.name = value;
+        }));
+        const versionSetting = new import_obsidian16.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+          dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
+          this.versions.forEach((version) => {
+            dropdown.addOption(version.id, version.name);
+          });
+          dropdown.setValue(this.result.versionId);
+          dropdown.onChange((value) => {
+            this.result.versionId = value;
+            this.updateProjectDropdown();
+          });
+        });
+        const projectSetting = new import_obsidian16.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u9879\u76EE\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+          this.projectDropdown = dropdown;
+          this.updateProjectDropdown();
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          FEATURE_STATUSES.forEach((status) => {
+            dropdown.addOption(status.value, status.label);
+          });
+          dropdown.setValue(this.result.status);
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((priority) => {
+            dropdown.addOption(priority.value, priority.label);
+          });
+          dropdown.setValue(this.result.priority);
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+          this.result.progress = value;
+        }));
+        this.startDateSetting = new import_obsidian16.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
+        this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.startDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.startDateInput.value = this.result.startDate || "";
+          this.startDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.startDate = value || void 0;
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.startDate = date;
+            if (this.startDateInput) {
+              this.startDateInput.value = date;
+            }
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        this.endDateSetting = new import_obsidian16.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.endDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.endDateInput.value = this.result.endDate || "";
+          this.endDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.endDate = value || void 0;
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.endDate = date;
+            if (this.endDateInput) {
+              this.endDateInput.value = date;
+            }
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
+          toggle.setValue(this.result.isMilestone || false);
+          toggle.onChange((value) => {
+            this.result.isMilestone = value;
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+          this.result.owner = value || void 0;
+        }));
+        new import_obsidian16.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
+          text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
+          text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, API").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1AREQ-001, REQ-002").setValue(((_a = this.result.requirementIds) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.requirementIds = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        new import_obsidian16.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
+          this.result.projectLink = value || void 0;
+        }));
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const exampleButton = buttonContainer.createEl("button", {
+          text: "\u586B\u5165\u793A\u4F8B",
+          cls: "pm-btn--secondary"
+        });
+        exampleButton.style.marginRight = "auto";
+        exampleButton.addEventListener("click", () => this.fillExample());
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const submitButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        submitButton.addEventListener("click", () => {
+          if (!this.result.name.trim()) {
+            new import_obsidian16.Notice("\u7279\u6027\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
+            return;
+          }
+          if (!this.result.versionId) {
+            new import_obsidian16.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
+            return;
+          }
+          if (!this.result.projectId) {
+            new import_obsidian16.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u9879\u76EE");
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      /**
+       * 填入示例数据
+       */
+      fillExample() {
+        const today = /* @__PURE__ */ new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        this.result = {
+          name: "\u9996\u9875\u8BBE\u8BA1\u5F00\u53D1",
+          versionId: this.result.versionId || (this.versions.length > 0 ? this.versions[0].id : ""),
+          projectId: this.result.projectId || (this.projects.length > 0 ? this.projects[0].id : ""),
+          status: "todo",
+          priority: "high",
+          progress: 0,
+          startDate: today.toISOString().split("T")[0],
+          endDate: nextWeek.toISOString().split("T")[0],
+          owner: "\u8BBE\u8BA1\u5E08\u5C0F\u738B",
+          tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"],
+          isMilestone: false,
+          estimatedHours: 40,
+          actualHours: 0,
+          requirementIds: ["REQ-001", "REQ-002"],
+          projectLink: "https://hialm.example.com/project/123"
+        };
+        this.onOpen();
+      }
+      /**
+       * 创建快捷日期按钮
+       */
+      createQuickDateButtons(container, onSelect) {
+        const quickContainer = container.createDiv({ cls: "pm-date-quick" });
+        const today = /* @__PURE__ */ new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const formatDate2 = (date) => {
+          return date.toISOString().split("T")[0];
+        };
+        const buttons = [
+          { label: "\u4ECA\u5929", date: formatDate2(today) },
+          { label: "\u660E\u5929", date: formatDate2(tomorrow) },
+          { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
+          { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
+        ];
+        buttons.forEach(({ label, date }) => {
+          const btn = quickContainer.createEl("button", {
+            text: label,
+            cls: "pm-date-quick__btn"
+          });
+          btn.addEventListener("click", () => onSelect(date));
+        });
+      }
+      updateProjectDropdown() {
+        if (!this.projectDropdown)
+          return;
+        this.projectDropdown.selectEl.innerHTML = "";
+        this.projectDropdown.addOption("", "\u8BF7\u9009\u62E9\u9879\u76EE");
+        this.filteredProjects = this.result.versionId ? this.projects.filter((p) => p.versionId === this.result.versionId) : this.projects;
+        this.filteredProjects.forEach((project) => {
+          this.projectDropdown.addOption(project.id, project.name);
+        });
+        if (this.result.projectId && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
+          this.result.projectId = "";
+          this.projectDropdown.setValue("");
+        } else {
+          this.projectDropdown.setValue(this.result.projectId);
+        }
+        this.projectDropdown.onChange((value) => {
+          this.result.projectId = value;
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
 // src/modals/QuickCreateModal.ts
 var QuickCreateModal_exports = {};
 __export(QuickCreateModal_exports, {
   QuickCreateModal: () => QuickCreateModal
 });
-var import_obsidian13, QuickCreateModal;
+var import_obsidian17, QuickCreateModal;
 var init_QuickCreateModal = __esm({
   "src/modals/QuickCreateModal.ts"() {
-    import_obsidian13 = require("obsidian");
+    import_obsidian17 = require("obsidian");
     init_constants();
-    QuickCreateModal = class extends import_obsidian13.Modal {
+    QuickCreateModal = class extends import_obsidian17.Modal {
       constructor(app, entityManager, defaultDate, onSubmit) {
         super(app);
         this.entityManager = entityManager;
@@ -959,14 +2788,14 @@ var init_QuickCreateModal = __esm({
         this.result.startDate = start.toISOString().split("T")[0];
         this.updateFilteredProjects();
         contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
-        new import_obsidian13.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
+        new import_obsidian17.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
           text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
           text.onChange((value) => {
             this.result.name = value;
           });
           setTimeout(() => text.inputEl.focus(), 0);
         });
-        new import_obsidian13.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
+        new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
           this.versions.forEach((v) => {
             dropdown.addOption(v.id, v.name);
           });
@@ -977,7 +2806,7 @@ var init_QuickCreateModal = __esm({
             this.renderProjectDropdown();
           });
         });
-        const projectSetting = new import_obsidian13.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
+        const projectSetting = new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
         this.projectDropdown = projectSetting.addDropdown((dropdown) => {
           this.filteredProjects.forEach((p) => {
             dropdown.addOption(p.id, p.name);
@@ -987,7 +2816,7 @@ var init_QuickCreateModal = __esm({
             this.result.projectId = value;
           });
         });
-        new import_obsidian13.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+        new import_obsidian17.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
           FEATURE_STATUSES.forEach((s) => {
             dropdown.addOption(s.value, s.label);
           });
@@ -996,7 +2825,7 @@ var init_QuickCreateModal = __esm({
             this.result.status = value;
           });
         });
-        new import_obsidian13.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+        new import_obsidian17.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
           PRIORITIES.forEach((p) => {
             dropdown.addOption(p.value, p.label);
           });
@@ -1014,7 +2843,7 @@ var init_QuickCreateModal = __esm({
         });
         createButton.addEventListener("click", async () => {
           if (!this.result.name.trim()) {
-            new import_obsidian13.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
+            new import_obsidian17.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
             return;
           }
           this.onSubmit(this.result);
@@ -1045,13 +2874,582 @@ var init_QuickCreateModal = __esm({
   }
 });
 
+// src/modals/DeleteConfirmModal.ts
+async function showDeleteConfirm(app, entityManager, type, id, name) {
+  return new Promise((resolve) => {
+    let impact = { type, name };
+    const loadImpact = async () => {
+      if (type === "version") {
+        const projects = await entityManager.getVersionProjects(id);
+        let totalFeatures = 0;
+        for (const project of projects) {
+          const features = await entityManager.getProjectFeatures(project.id);
+          totalFeatures += features.length;
+        }
+        impact.relatedProjects = projects.length;
+        impact.relatedFeatures = totalFeatures;
+      } else {
+        const features = await entityManager.getProjectFeatures(id);
+        impact.relatedFeatures = features.length;
+      }
+      if (!impact.relatedProjects && !impact.relatedFeatures) {
+        resolve(true);
+        return;
+      }
+      new DeleteConfirmModal(
+        app,
+        impact,
+        () => resolve(true),
+        () => resolve(false)
+      ).open();
+    };
+    loadImpact();
+  });
+}
+var import_obsidian18, DeleteConfirmModal;
+var init_DeleteConfirmModal = __esm({
+  "src/modals/DeleteConfirmModal.ts"() {
+    import_obsidian18 = require("obsidian");
+    DeleteConfirmModal = class extends import_obsidian18.Modal {
+      constructor(app, impact, onConfirm, onCancel) {
+        super(app);
+        this.impact = impact;
+        this.onConfirm = onConfirm;
+        this.onCancel = onCancel || (() => {
+        });
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        contentEl.createEl("h2", {
+          text: `\u5220\u9664${this.impact.type === "version" ? "\u7248\u672C" : "\u9879\u76EE"}`,
+          cls: "pm-modal__title pm-modal__title--danger"
+        });
+        const warningEl = contentEl.createDiv("pm-modal__warning");
+        warningEl.createSpan({ text: "\u26A0\uFE0F " });
+        warningEl.createSpan({
+          text: `\u786E\u5B9A\u8981\u5220\u9664 "${this.impact.name}" \u5417\uFF1F`
+        });
+        const impactEl = contentEl.createDiv("pm-modal__impact");
+        impactEl.createEl("h3", { text: "\u5220\u9664\u5F71\u54CD\uFF1A" });
+        const listEl = impactEl.createEl("ul");
+        if (this.impact.type === "version" && this.impact.relatedProjects) {
+          listEl.createEl("li", {
+            text: `\u5C06\u5220\u9664 ${this.impact.relatedProjects} \u4E2A\u5173\u8054\u9879\u76EE`
+          });
+        }
+        if (this.impact.relatedFeatures) {
+          listEl.createEl("li", {
+            text: `\u5C06\u5220\u9664 ${this.impact.relatedFeatures} \u4E2A\u5173\u8054\u7279\u6027`
+          });
+        }
+        const buttonContainer = contentEl.createDiv("pm-modal__buttons");
+        const cancelBtn = new import_obsidian18.ButtonComponent(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
+          this.onCancel();
+          this.close();
+        });
+        const confirmBtn = new import_obsidian18.ButtonComponent(buttonContainer).setButtonText("\u786E\u8BA4\u5220\u9664").setWarning().onClick(() => {
+          this.onConfirm();
+          this.close();
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/ConfirmModal.ts
+var import_obsidian19, ConfirmModal;
+var init_ConfirmModal = __esm({
+  "src/modals/ConfirmModal.ts"() {
+    import_obsidian19 = require("obsidian");
+    ConfirmModal = class extends import_obsidian19.Modal {
+      constructor(app, title, message, onConfirm, onCancel) {
+        super(app);
+        this.title = title;
+        this.message = message;
+        this.onConfirm = onConfirm;
+        this.onCancel = onCancel;
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        contentEl.createEl("h2", { text: this.title });
+        const messageEl = contentEl.createEl("p", { text: this.message });
+        messageEl.style.marginBottom = "20px";
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => {
+          if (this.onCancel) {
+            this.onCancel();
+          }
+          this.close();
+        });
+        const confirmButton = buttonContainer.createEl("button", {
+          text: "\u786E\u8BA4",
+          cls: "mod-warning"
+        });
+        confirmButton.addEventListener("click", () => {
+          this.onConfirm();
+          this.close();
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/EditFeatureModal.ts
+var import_obsidian20, EditFeatureModal;
+var init_EditFeatureModal = __esm({
+  "src/modals/EditFeatureModal.ts"() {
+    import_obsidian20 = require("obsidian");
+    init_constants();
+    init_DatePicker();
+    init_ConfirmModal();
+    init_utils();
+    EditFeatureModal = class extends import_obsidian20.Modal {
+      constructor(app, entityManager, feature, onSubmit, onDelete) {
+        super(app);
+        // 用于存储输入元素引用
+        this.endDateInput = null;
+        this.endDateSetting = null;
+        this.startDateInput = null;
+        this.startDateSetting = null;
+        this.entityManager = entityManager;
+        this.feature = feature;
+        this.onSubmit = onSubmit;
+        this.onDelete = onDelete;
+        this.result = {
+          name: feature.name,
+          status: feature.status,
+          priority: feature.priority,
+          progress: feature.progress,
+          startDate: feature.startDate,
+          endDate: feature.endDate,
+          owner: feature.owner,
+          tags: [...feature.tags],
+          isMilestone: feature.isMilestone,
+          estimatedHours: feature.estimatedHours,
+          actualHours: feature.actualHours,
+          requirementIds: feature.requirementIds ? [...feature.requirementIds] : [],
+          projectLink: feature.projectLink
+        };
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
+        new import_obsidian20.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
+          this.result.name = value;
+        }));
+        new import_obsidian20.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          FEATURE_STATUSES.forEach((status) => {
+            dropdown.addOption(status.value, status.label);
+          });
+          dropdown.setValue(this.result.status);
+          dropdown.onChange((value) => {
+            const newStatus = value;
+            if (needsStatusConfirmation(this.result.status, newStatus)) {
+              new ConfirmModal(
+                this.app,
+                "\u786E\u8BA4\u72B6\u6001\u53D8\u66F4",
+                `\u786E\u5B9A\u8981\u5C06\u72B6\u6001\u4ECE "${getStatusLabel(this.result.status)}" \u53D8\u66F4\u4E3A "${getStatusLabel(newStatus)}" \u5417\uFF1F`,
+                () => {
+                  this.result.status = newStatus;
+                },
+                () => {
+                  dropdown.setValue(this.result.status);
+                }
+              ).open();
+            } else {
+              this.result.status = newStatus;
+            }
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((priority) => {
+            dropdown.addOption(priority.value, priority.label);
+          });
+          dropdown.setValue(this.result.priority);
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+          this.result.progress = value;
+        }));
+        this.startDateSetting = new import_obsidian20.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
+        this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.startDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.startDateInput.value = this.result.startDate || "";
+          this.startDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.startDate = value || void 0;
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.startDate = date;
+            if (this.startDateInput) {
+              this.startDateInput.value = date;
+            }
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        this.endDateSetting = new import_obsidian20.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.endDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.endDateInput.value = this.result.endDate || "";
+          this.endDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.endDate = value || void 0;
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.endDate = date;
+            if (this.endDateInput) {
+              this.endDateInput.value = date;
+            }
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
+          toggle.setValue(this.result.isMilestone || false);
+          toggle.onChange((value) => {
+            this.result.isMilestone = value;
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
+          this.result.owner = value || void 0;
+        }));
+        new import_obsidian20.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
+          text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
+          text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
+          var _a;
+          return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1AREQ-001, REQ-002").setValue(((_a = this.result.requirementIds) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.requirementIds = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        new import_obsidian20.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
+          this.result.projectLink = value || void 0;
+        }));
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        if (this.onDelete) {
+          const deleteButton = buttonContainer.createEl("button", {
+            text: "\u5220\u9664",
+            cls: "mod-warning"
+          });
+          deleteButton.style.marginRight = "auto";
+          deleteButton.addEventListener("click", () => {
+            new ConfirmModal(
+              this.app,
+              "\u786E\u8BA4\u5220\u9664",
+              `\u786E\u5B9A\u8981\u5220\u9664\u7279\u6027 "${this.feature.name}" \u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\u3002`,
+              () => {
+                this.onDelete();
+                this.close();
+              }
+            ).open();
+          });
+        }
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const submitButton = buttonContainer.createEl("button", {
+          text: "\u4FDD\u5B58",
+          cls: "mod-cta"
+        });
+        submitButton.addEventListener("click", () => {
+          var _a;
+          if (!((_a = this.result.name) == null ? void 0 : _a.trim())) {
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      /**
+       * 创建快捷日期按钮
+       */
+      createQuickDateButtons(container, onSelect) {
+        const quickContainer = container.createDiv({ cls: "pm-date-quick" });
+        const today = /* @__PURE__ */ new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const formatDate2 = (date) => {
+          return date.toISOString().split("T")[0];
+        };
+        const buttons = [
+          { label: "\u4ECA\u5929", date: formatDate2(today) },
+          { label: "\u660E\u5929", date: formatDate2(tomorrow) },
+          { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
+          { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
+        ];
+        buttons.forEach(({ label, date }) => {
+          const btn = quickContainer.createEl("button", {
+            text: label,
+            cls: "pm-date-quick__btn"
+          });
+          btn.addEventListener("click", () => onSelect(date));
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/ExportEmailModal.ts
+var import_obsidian21, ExportEmailModal;
+var init_ExportEmailModal = __esm({
+  "src/modals/ExportEmailModal.ts"() {
+    import_obsidian21 = require("obsidian");
+    ExportEmailModal = class extends import_obsidian21.Modal {
+      constructor(app, emailSummaryService) {
+        super(app);
+        this.emailSummaryService = emailSummaryService;
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        contentEl.createEl("h2", { text: "\u5BFC\u51FA\u9879\u76EE\u603B\u7ED3\u90AE\u4EF6" });
+        contentEl.createEl("p", {
+          text: "\u9009\u62E9\u5BFC\u51FA\u65B9\u5F0F\uFF1A",
+          cls: "pm-modal__info"
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const renderedButton = buttonContainer.createEl("button", {
+          text: "\u5BFC\u51FA\u5F53\u524D\u9875\u9762\u6E32\u67D3\u90AE\u4EF6",
+          cls: "mod-cta"
+        });
+        renderedButton.addEventListener("click", () => this.handleExportRendered());
+        const summaryButton = buttonContainer.createEl("button", {
+          text: "\u5BFC\u51FA\u7ED3\u6784\u5316\u603B\u7ED3\u90AE\u4EF6"
+        });
+        summaryButton.addEventListener("click", () => this.handleExportSummary());
+      }
+      async handleExportRendered() {
+        const result = await this.emailSummaryService.buildEmailFromRenderedPage();
+        if (result) {
+          const { downloadEML: downloadEML3 } = await Promise.resolve().then(() => (init_emlGenerator(), emlGenerator_exports));
+          downloadEML3(result.emlContent, result.filename);
+          new import_obsidian21.Notice("\u9875\u9762\u6E32\u67D3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
+          this.close();
+        }
+      }
+      async handleExportSummary() {
+        const result = await this.emailSummaryService.buildEmailForActiveFile();
+        if (result) {
+          const { downloadEML: downloadEML3 } = await Promise.resolve().then(() => (init_emlGenerator(), emlGenerator_exports));
+          downloadEML3(result.emlContent, result.filename);
+          new import_obsidian21.Notice("\u7ED3\u6784\u5316\u603B\u7ED3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
+          this.close();
+        }
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/AddRiskModal.ts
+var import_obsidian22, AddRiskModal;
+var init_AddRiskModal = __esm({
+  "src/modals/AddRiskModal.ts"() {
+    import_obsidian22 = require("obsidian");
+    AddRiskModal = class extends import_obsidian22.Modal {
+      constructor(app, onSubmit) {
+        super(app);
+        this.onSubmit = onSubmit;
+        this.risk = {
+          level: "medium",
+          status: "\u672A\u5173\u95ED",
+          foundDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
+        };
+        this.titleEl.setText("\u6DFB\u52A0\u98CE\u9669");
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u7C7B\u578B").addText((text) => text.setPlaceholder("\u5982\uFF1A\u6280\u672F\u98CE\u9669\u3001\u8D44\u6E90\u98CE\u9669").onChange((value) => this.risk.type = value));
+        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u63CF\u8FF0").addTextArea((text) => text.setPlaceholder("\u63CF\u8FF0\u98CE\u9669\u8BE6\u60C5...").onChange((value) => this.risk.description = value));
+        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u7B49\u7EA7").addDropdown((drop) => drop.addOption("low", "\u4F4E").addOption("medium", "\u4E2D").addOption("high", "\u9AD8").setValue("medium").onChange((value) => this.risk.level = value));
+        new import_obsidian22.Setting(contentEl).setName("\u8D23\u4EFB\u4EBA").addText((text) => text.setPlaceholder("@\u59D3\u540D").onChange((value) => this.risk.owner = value));
+        new import_obsidian22.Setting(contentEl).setName("\u53D1\u73B0\u65F6\u95F4").addText((text) => text.setValue(this.risk.foundDate || "").onChange((value) => this.risk.foundDate = value));
+        new import_obsidian22.Setting(contentEl).setName("\u95ED\u73AF\u65F6\u95F4").addText((text) => text.setPlaceholder("YYYY-MM-DD").onChange((value) => this.risk.closeDate = value || void 0));
+        new import_obsidian22.Setting(contentEl).setName("\u72B6\u6001").addDropdown((drop) => drop.addOption("\u672A\u5173\u95ED", "\u672A\u5173\u95ED").addOption("\u8DDF\u8E2A\u4E2D", "\u8DDF\u8E2A\u4E2D").addOption("\u5DF2\u95ED\u73AF", "\u5DF2\u95ED\u73AF").setValue("\u672A\u5173\u95ED").onChange((value) => this.risk.status = value));
+        const btnContainer = contentEl.createDiv();
+        btnContainer.style.display = "flex";
+        btnContainer.style.justifyContent = "flex-end";
+        btnContainer.style.gap = "10px";
+        btnContainer.style.marginTop = "20px";
+        const cancelBtn = btnContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelBtn.onclick = () => this.close();
+        const submitBtn = btnContainer.createEl("button", { text: "\u4FDD\u5B58" });
+        submitBtn.classList.add("mod-cta");
+        submitBtn.onclick = () => {
+          if (!this.risk.type || !this.risk.description) {
+            new import_obsidian22.Notice("\u8BF7\u586B\u5199\u98CE\u9669\u7C7B\u578B\u548C\u63CF\u8FF0");
+            return;
+          }
+          this.onSubmit({
+            type: this.risk.type,
+            description: this.risk.description,
+            level: this.risk.level || "medium",
+            owner: this.risk.owner || "",
+            foundDate: this.risk.foundDate || "",
+            closeDate: this.risk.closeDate,
+            status: this.risk.status || "\u672A\u5173\u95ED"
+          });
+          this.close();
+        };
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/AddProgressModal.ts
+var import_obsidian23, AddProgressModal;
+var init_AddProgressModal = __esm({
+  "src/modals/AddProgressModal.ts"() {
+    import_obsidian23 = require("obsidian");
+    AddProgressModal = class extends import_obsidian23.Modal {
+      constructor(app, onSubmit) {
+        super(app);
+        this.onSubmit = onSubmit;
+        this.log = {
+          time: (/* @__PURE__ */ new Date()).toLocaleString("zh-CN", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        };
+        this.titleEl.setText("\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988");
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        new import_obsidian23.Setting(contentEl).setName("\u53CD\u9988\u5185\u5BB9").addTextArea((text) => text.setPlaceholder("\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\u3001\u963B\u585E\u6216\u4E0B\u4E00\u6B65\u8BA1\u5212...").onChange((value) => this.log.content = value));
+        new import_obsidian23.Setting(contentEl).setName("\u8BB0\u5F55\u4EBA").addText((text) => text.setPlaceholder("\u53EF\u9009").onChange((value) => this.log.author = value || void 0));
+        const btnContainer = contentEl.createDiv();
+        btnContainer.style.display = "flex";
+        btnContainer.style.justifyContent = "flex-end";
+        btnContainer.style.gap = "10px";
+        btnContainer.style.marginTop = "20px";
+        const cancelBtn = btnContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelBtn.onclick = () => this.close();
+        const submitBtn = btnContainer.createEl("button", { text: "\u4FDD\u5B58" });
+        submitBtn.classList.add("mod-cta");
+        submitBtn.onclick = () => {
+          if (!this.log.content || !this.log.content.trim()) {
+            new import_obsidian23.Notice("\u8BF7\u586B\u5199\u53CD\u9988\u5185\u5BB9");
+            return;
+          }
+          this.onSubmit({
+            time: this.log.time || (/* @__PURE__ */ new Date()).toLocaleString("zh-CN"),
+            content: this.log.content.trim(),
+            author: this.log.author
+          });
+          this.close();
+        };
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/index.ts
+var modals_exports = {};
+__export(modals_exports, {
+  AddProgressModal: () => AddProgressModal,
+  AddRiskModal: () => AddRiskModal,
+  ConfirmModal: () => ConfirmModal,
+  CreateFeatureModal: () => CreateFeatureModal,
+  CreateProjectModal: () => CreateProjectModal,
+  CreateVersionModal: () => CreateVersionModal,
+  DeleteConfirmModal: () => DeleteConfirmModal,
+  EditFeatureModal: () => EditFeatureModal,
+  ExportEmailModal: () => ExportEmailModal,
+  QuickCreateModal: () => QuickCreateModal,
+  showDeleteConfirm: () => showDeleteConfirm
+});
+var init_modals = __esm({
+  "src/modals/index.ts"() {
+    init_CreateVersionModal();
+    init_CreateProjectModal();
+    init_CreateFeatureModal();
+    init_QuickCreateModal();
+    init_DeleteConfirmModal();
+    init_EditFeatureModal();
+    init_ConfirmModal();
+    init_ExportEmailModal();
+    init_AddRiskModal();
+    init_AddProgressModal();
+  }
+});
+
 // src/main.ts
 var main_exports = {};
 __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian21 = require("obsidian");
+var import_obsidian27 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -1088,6 +3486,29 @@ ${content}`;
       await this.app.vault.modify(existingFile, fullContent);
     } else {
       await this.app.vault.create(path, fullContent);
+    }
+  }
+  /**
+   * 只更新 Markdown 文件的 frontmatter，保留正文内容
+   */
+  async updateFile(path, frontmatterUpdates) {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof import_obsidian.TFile)) {
+      throw new Error(`\u6587\u4EF6\u4E0D\u5B58\u5728: ${path}`);
+    }
+    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      Object.assign(frontmatter, frontmatterUpdates);
+    });
+  }
+  /**
+   * 直接写入原始 Markdown 内容
+   */
+  async writeRawFile(path, content) {
+    const existingFile = this.app.vault.getAbstractFileByPath(path);
+    if (existingFile instanceof import_obsidian.TFile) {
+      await this.app.vault.modify(existingFile, content);
+    } else {
+      await this.app.vault.create(path, content);
     }
   }
   /**
@@ -1238,25 +3659,6 @@ var VersionStore = class extends BaseStore {
     this.cache = cache;
     this.templateService = new TemplateService(app, settings);
   }
-  async writeTemplate(path, template) {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split("\n");
-      const frontmatter = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith("[") && value.endsWith("]")) {
-            frontmatter[key] = value.slice(1, -1).split(",").map((v) => v.trim()).filter((v) => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
   async create(data) {
     const id = this.generateId("ver");
     const version = {
@@ -1279,7 +3681,7 @@ var VersionStore = class extends BaseStore {
       endDate: version.endDate,
       tags: version.tags
     });
-    await this.writeTemplate(path, content);
+    await this.fs.writeRawFile(path, content);
     return version;
   }
   async update(id, data) {
@@ -1291,24 +3693,17 @@ var VersionStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    let path = await this.findFilePathById(id);
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`\u627E\u4E0D\u5230\u7248\u672C ${id} \u7684\u6587\u4EF6`);
+    }
+    let path = oldPath;
     if (data.name && data.name !== existing.name) {
       const newFileName = this.sanitizeFileName(data.name);
       path = `${this.FOLDER}/${newFileName}.md`;
+      await this.fs.moveFile(oldPath, path);
     }
-    if (!path) {
-      throw new Error(`\u627E\u4E0D\u5230\u7248\u672C ${id} \u7684\u6587\u4EF6`);
-    }
-    const content = await this.templateService.renderVersionTemplate({
-      id: updated.id,
-      name: updated.name,
-      status: updated.status,
-      owner: updated.owner,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags
-    });
-    await this.writeTemplate(path, content);
+    await this.fs.updateFile(path, data);
     return updated;
   }
   async delete(id) {
@@ -1396,25 +3791,6 @@ var ProjectStore = class extends BaseStore {
     this.cache = cache;
     this.templateService = new TemplateService(app, settings);
   }
-  async writeTemplate(path, template) {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split("\n");
-      const frontmatter = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith("[") && value.endsWith("]")) {
-            frontmatter[key] = value.slice(1, -1).split(",").map((v) => v.trim()).filter((v) => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
   async create(data) {
     var _a;
     const id = this.generateId("proj");
@@ -1454,7 +3830,7 @@ var ProjectStore = class extends BaseStore {
       endDate: project.endDate,
       tags: project.tags
     });
-    await this.writeTemplate(path, content);
+    await this.fs.writeRawFile(path, content);
     return project;
   }
   async update(id, data) {
@@ -1467,7 +3843,11 @@ var ProjectStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    let path = await this.findFilePathById(id);
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`\u627E\u4E0D\u5230\u9879\u76EE ${id} \u7684\u6587\u4EF6`);
+    }
+    let path = oldPath;
     const versionChanged = data.versionId && data.versionId !== existing.versionId;
     const nameChanged = data.name && data.name !== existing.name;
     if (versionChanged || nameChanged) {
@@ -1486,22 +3866,9 @@ var ProjectStore = class extends BaseStore {
       }
       const fileName = versionName ? `${this.sanitizeFileName(versionName)}-${this.sanitizeFileName(updated.name)}` : this.sanitizeFileName(updated.name);
       path = `${this.FOLDER}/${fileName}.md`;
+      await this.fs.moveFile(oldPath, path);
     }
-    if (!path) {
-      throw new Error(`\u627E\u4E0D\u5230\u9879\u76EE ${id} \u7684\u6587\u4EF6`);
-    }
-    const content = await this.templateService.renderProjectTemplate({
-      id: updated.id,
-      name: updated.name,
-      versionId: updated.versionId,
-      status: updated.status,
-      owner: updated.owner,
-      priority: updated.priority,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags
-    });
-    await this.writeTemplate(path, content);
+    await this.fs.updateFile(path, data);
     return updated;
   }
   async delete(id) {
@@ -1607,25 +3974,6 @@ var FeatureStore = class extends BaseStore {
     this.cache = cache;
     this.templateService = new TemplateService(app, settings);
   }
-  async writeTemplate(path, template) {
-    const yamlMatch = template.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/);
-    if (yamlMatch) {
-      const yamlLines = yamlMatch[1].split("\n");
-      const frontmatter = {};
-      for (const line of yamlLines) {
-        const match = line.match(/^([^:]+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value.startsWith("[") && value.endsWith("]")) {
-            frontmatter[key] = value.slice(1, -1).split(",").map((v) => v.trim()).filter((v) => v);
-          } else {
-            frontmatter[key] = value;
-          }
-        }
-      }
-      await this.fs.writeFile(path, frontmatter, yamlMatch[2]);
-    }
-  }
   async create(data) {
     var _a, _b;
     const id = this.generateId("feat");
@@ -1642,7 +3990,8 @@ var FeatureStore = class extends BaseStore {
       startDate: data.startDate,
       endDate: data.endDate,
       estimatedHours: data.estimatedHours,
-      actualHours: data.actualHours
+      actualHours: data.actualHours,
+      projectLink: data.projectLink
     };
     let versionName = "";
     let projectName = "";
@@ -1685,9 +4034,10 @@ var FeatureStore = class extends BaseStore {
       endDate: feature.endDate,
       tags: feature.tags,
       estimatedHours: feature.estimatedHours,
-      actualHours: feature.actualHours
+      actualHours: feature.actualHours,
+      projectLink: feature.projectLink
     });
-    await this.writeTemplate(path, content);
+    await this.fs.writeRawFile(path, content);
     return feature;
   }
   async update(id, data) {
@@ -1700,7 +4050,11 @@ var FeatureStore = class extends BaseStore {
       ...existing,
       ...data
     };
-    let path = await this.findFilePathById(id);
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`\u627E\u4E0D\u5230\u7279\u6027 ${id} \u7684\u6587\u4EF6`);
+    }
+    let path = oldPath;
     const versionChanged = data.versionId && data.versionId !== existing.versionId;
     const projectChanged = data.projectId && data.projectId !== existing.projectId;
     const nameChanged = data.name && data.name !== existing.name;
@@ -1733,26 +4087,9 @@ var FeatureStore = class extends BaseStore {
       ].filter(Boolean);
       const fileName = parts.map((p) => this.sanitizeFileName(p)).join("-");
       path = `${this.FOLDER}/${fileName}.md`;
+      await this.fs.moveFile(oldPath, path);
     }
-    if (!path) {
-      throw new Error(`\u627E\u4E0D\u5230\u7279\u6027 ${id} \u7684\u6587\u4EF6`);
-    }
-    const content = await this.templateService.renderFeatureTemplate({
-      id: updated.id,
-      name: updated.name,
-      versionId: updated.versionId,
-      projectId: updated.projectId,
-      status: updated.status,
-      owner: updated.owner,
-      priority: updated.priority,
-      progress: updated.progress,
-      startDate: updated.startDate,
-      endDate: updated.endDate,
-      tags: updated.tags,
-      estimatedHours: updated.estimatedHours,
-      actualHours: updated.actualHours
-    });
-    await this.writeTemplate(path, content);
+    await this.fs.updateFile(path, data);
     return updated;
   }
   async delete(id) {
@@ -1831,14 +4168,124 @@ var FeatureStore = class extends BaseStore {
 
 // src/core/cache/EntityCache.ts
 var import_obsidian3 = require("obsidian");
+
+// src/services/RiskParser.ts
+var RiskParser = class {
+  /**
+   * 从文件内容中解析风险表格
+   */
+  parseRisks(content) {
+    const section = this.extractSection(content, "## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A");
+    if (!section)
+      return [];
+    const rows = this.parseTableRows(section).filter(
+      (cells) => cells[0] !== "\u98CE\u9669\u7C7B\u578B"
+    );
+    return rows.map((cells) => ({
+      sourceName: "",
+      sourceType: "feature",
+      type: cells[0] || "",
+      description: cells[1] || "",
+      level: this.parseRiskLevel(cells[2]),
+      owner: cells[3] || "",
+      foundDate: cells[4] || "",
+      closeDate: cells[5] || void 0,
+      status: cells[6] || ""
+    }));
+  }
+  /**
+   * 从文件内容中解析进展反馈表格
+   */
+  parseProgressLogs(content) {
+    const section = this.extractSection(content, "## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988");
+    if (!section)
+      return [];
+    const rows = this.parseTableRows(section).filter(
+      (cells) => cells[0] !== "\u65F6\u95F4"
+    );
+    return rows.map((cells) => ({
+      time: cells[0] || "",
+      content: cells[1] || "",
+      author: cells[2] || void 0
+    }));
+  }
+  /**
+   * 计算风险摘要
+   */
+  calculateRiskSummary(risks) {
+    const summary = { total: 0, open: 0, high: 0, medium: 0, low: 0 };
+    for (const risk of risks) {
+      summary.total++;
+      if (risk.status !== "\u5DF2\u95ED\u73AF")
+        summary.open++;
+      if (risk.level === "high")
+        summary.high++;
+      else if (risk.level === "medium")
+        summary.medium++;
+      else if (risk.level === "low")
+        summary.low++;
+    }
+    return summary;
+  }
+  /**
+   * 解析单个文件的日志摘要
+   */
+  parseLogSummary(content) {
+    const progressLogs = this.parseProgressLogs(content);
+    const risks = this.parseRisks(content);
+    return {
+      latestProgress: progressLogs.length > 0 ? progressLogs[progressLogs.length - 1].content : void 0,
+      riskSummary: this.calculateRiskSummary(risks)
+    };
+  }
+  /**
+   * 提取指定章节内容
+   */
+  extractSection(content, header) {
+    const index = content.indexOf(header);
+    if (index === -1)
+      return null;
+    const afterHeader = content.slice(index + header.length);
+    const nextHeaderIndex = afterHeader.search(/\n## /);
+    return nextHeaderIndex === -1 ? afterHeader : afterHeader.slice(0, nextHeaderIndex);
+  }
+  /**
+   * 解析 Markdown 表格行
+   */
+  parseTableRows(section) {
+    const lines = section.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("|"));
+    const rows = [];
+    for (const line of lines) {
+      if (line.replace(/\|/g, "").replace(/[-:\s]/g, "") === "")
+        continue;
+      const cells = line.split("|").slice(1, -1).map((cell) => cell.trim()).filter((_, i, arr) => i < arr.length);
+      if (cells.length >= 3) {
+        rows.push(cells);
+      }
+    }
+    return rows;
+  }
+  parseRiskLevel(level) {
+    const normalized = level.trim().toLowerCase();
+    if (normalized === "\u9AD8" || normalized === "high")
+      return "high";
+    if (normalized === "\u4E2D" || normalized === "medium")
+      return "medium";
+    return "low";
+  }
+};
+
+// src/core/cache/EntityCache.ts
 var EntityCache = class {
   constructor(app) {
     this.app = app;
     this.versionCache = /* @__PURE__ */ new Map();
     this.projectCache = /* @__PURE__ */ new Map();
     this.featureCache = /* @__PURE__ */ new Map();
+    this.logSummaryCache = /* @__PURE__ */ new Map();
     this.ownerIndex = /* @__PURE__ */ new Set();
     this.initialized = false;
+    this.riskParser = new RiskParser();
   }
   /**
    * 初始化缓存（启动时调用）
@@ -1891,6 +4338,12 @@ var EntityCache = class {
     return Array.from(this.featureCache.values());
   }
   /**
+   * 获取日志摘要
+   */
+  getLogSummary(id) {
+    return this.logSummaryCache.get(id);
+  }
+  /**
    * 设置缓存
    */
   setVersion(version) {
@@ -1921,6 +4374,7 @@ var EntityCache = class {
     this.versionCache.clear();
     this.projectCache.clear();
     this.featureCache.clear();
+    this.logSummaryCache.clear();
     this.ownerIndex.clear();
     this.initialized = false;
   }
@@ -2013,14 +4467,15 @@ var EntityCache = class {
   async parseVersionFile(file) {
     const cache = this.app.metadataCache.getFileCache(file);
     let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    let content = "";
     if (!(frontmatter == null ? void 0 : frontmatter.id)) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!(parsed == null ? void 0 : parsed.id))
         return null;
       frontmatter = parsed;
     }
-    return {
+    const version = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       status: String(frontmatter.status || "planning"),
@@ -2029,6 +4484,11 @@ var EntityCache = class {
       endDate: frontmatter.endDate ? String(frontmatter.endDate) : void 0,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : []
     };
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(version.id, this.riskParser.parseLogSummary(content));
+    return version;
   }
   /**
    * 从文件内容解析 frontmatter
@@ -2052,7 +4512,11 @@ var EntityCache = class {
       } else if (value === "false") {
         frontmatter[key] = false;
       } else if (/^\d+$/.test(value)) {
-        frontmatter[key] = parseInt(value, 10);
+        if (key === "startDate" || key === "endDate") {
+          frontmatter[key] = value;
+        } else {
+          frontmatter[key] = parseInt(value, 10);
+        }
       } else {
         frontmatter[key] = value;
       }
@@ -2065,14 +4529,15 @@ var EntityCache = class {
   async parseProjectFile(file) {
     const cache = this.app.metadataCache.getFileCache(file);
     let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    let content = "";
     if (!(frontmatter == null ? void 0 : frontmatter.id)) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!(parsed == null ? void 0 : parsed.id))
         return null;
       frontmatter = parsed;
     }
-    return {
+    const project = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       versionId: frontmatter.versionId ? String(frontmatter.versionId) : void 0,
@@ -2084,6 +4549,11 @@ var EntityCache = class {
       priority: frontmatter.priority ? String(frontmatter.priority) : void 0,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : []
     };
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(project.id, this.riskParser.parseLogSummary(content));
+    return project;
   }
   /**
    * 解析特性文件
@@ -2091,14 +4561,15 @@ var EntityCache = class {
   async parseFeatureFile(file) {
     const cache = this.app.metadataCache.getFileCache(file);
     let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    let content = "";
     if (!(frontmatter == null ? void 0 : frontmatter.id)) {
-      const content = await this.app.vault.cachedRead(file);
+      content = await this.app.vault.cachedRead(file);
       const parsed = this.parseFrontmatterFromContent(content);
       if (!(parsed == null ? void 0 : parsed.id))
         return null;
       frontmatter = parsed;
     }
-    return {
+    const feature = {
       id: String(frontmatter.id),
       name: String(frontmatter.name || file.basename),
       projectId: frontmatter.projectId ? String(frontmatter.projectId) : void 0,
@@ -2115,6 +4586,11 @@ var EntityCache = class {
       estimatedHours: typeof frontmatter.estimatedHours === "number" ? frontmatter.estimatedHours : void 0,
       actualHours: typeof frontmatter.actualHours === "number" ? frontmatter.actualHours : void 0
     };
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(feature.id, this.riskParser.parseLogSummary(content));
+    return feature;
   }
   /**
    * 设置文件监听器
@@ -2240,507 +4716,8 @@ var import_obsidian5 = require("obsidian");
 // src/services/index.ts
 init_TemplateService();
 
-// src/utils/fileManager.ts
-var import_obsidian6 = require("obsidian");
-
-// src/utils/validator.ts
-init_constants();
-var ValidationError = class extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "ValidationError";
-  }
-};
-function needsStatusConfirmation(currentStatus, newStatus) {
-  return currentStatus === "completed" && newStatus !== "completed";
-}
-
-// src/utils/icsGenerator.ts
-function generateICS(features, projectName) {
-  const now = /* @__PURE__ */ new Date();
-  const timestamp = formatDateTime(now);
-  const uid = generateUID();
-  const events = [];
-  for (const feature of features) {
-    if (feature.endDate) {
-      events.push(generateEvent(feature, timestamp, uid));
-    }
-  }
-  const calendarName = projectName ? `${projectName} - \u9879\u76EE\u7BA1\u7406` : "\u9879\u76EE\u7BA1\u7406";
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Obsidian Project Manager//EN",
-    `X-WR-CALNAME:${escapeICS(calendarName)}`,
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    ...events,
-    "END:VCALENDAR"
-  ].join("\r\n");
-}
-function generateEvent(feature, timestamp, uid) {
-  const eventEndDate = new Date(feature.endDate);
-  const icsEndDate = new Date(eventEndDate);
-  icsEndDate.setDate(icsEndDate.getDate() + 1);
-  const lines = [
-    "BEGIN:VEVENT",
-    `UID:${feature.id}@${uid}`,
-    `DTSTAMP:${timestamp}`,
-    `DTSTART;VALUE=DATE:${formatDate(eventEndDate)}`,
-    `DTEND;VALUE=DATE:${formatDate(icsEndDate)}`,
-    `SUMMARY:${escapeICS(feature.name)}`
-  ];
-  if (feature.owner) {
-    lines.push(`DESCRIPTION:${escapeICS(`\u8D1F\u8D23\u4EBA: ${feature.owner}`)}`);
-  }
-  lines.push("STATUS:CONFIRMED");
-  lines.push("END:VEVENT");
-  return lines.join("\r\n");
-}
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}${month}${day}`;
-}
-function formatDateTime(date) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const hours = String(date.getUTCHours()).padStart(2, "0");
-  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
-}
-function generateUID() {
-  return `obsidian-pm-${Date.now()}`;
-}
-function escapeICS(str) {
-  return str.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-}
-function downloadICS(content, filename) {
-  const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename.endsWith(".ics") ? filename : `${filename}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// src/utils/errorHandler.ts
-var import_obsidian7 = require("obsidian");
-var ErrorHandler = class {
-  /**
-   * 处理错误
-   */
-  static handle(error, context, options = {}) {
-    const { showNotice = true, silent = false, category = "system", message } = options;
-    const errorMessage = message || this.extractErrorMessage(error);
-    const fullMessage = `[${this.PLUGIN_NAME}] ${context}: ${errorMessage}`;
-    if (category === "expected") {
-      console.warn(fullMessage, error);
-    } else {
-      console.error(fullMessage, error);
-    }
-    if (silent)
-      return;
-    let noticeMessage;
-    let noticeDuration;
-    switch (category) {
-      case "user":
-        noticeMessage = `\u26A0\uFE0F ${context}: ${errorMessage}`;
-        noticeDuration = 5e3;
-        break;
-      case "system":
-        noticeMessage = `\u274C ${context}: ${errorMessage}`;
-        noticeDuration = 8e3;
-        break;
-      case "expected":
-        noticeMessage = `\u2139\uFE0F ${errorMessage}`;
-        noticeDuration = 3e3;
-        break;
-      default:
-        noticeMessage = `\u274C ${context}: ${errorMessage}`;
-        noticeDuration = 5e3;
-    }
-    if (showNotice) {
-      new import_obsidian7.Notice(noticeMessage, noticeDuration);
-    }
-  }
-  /**
-   * 处理成功操作
-   */
-  static handleSuccess(message, duration = 3e3) {
-    new import_obsidian7.Notice(`\u2705 ${message}`, duration);
-  }
-  /**
-   * 处理用户输入错误
-   */
-  static handleUserError(message, context) {
-    const fullMessage = context ? `${context}: ${message}` : message;
-    new import_obsidian7.Notice(`\u26A0\uFE0F ${fullMessage}`, 5e3);
-    console.warn(`[${this.PLUGIN_NAME}] \u7528\u6237\u9519\u8BEF:`, fullMessage);
-  }
-  /**
-   * 处理系统错误（带详细日志）
-   */
-  static handleSystemError(error, context) {
-    this.handle(error, context, { category: "system", showNotice: true });
-  }
-  /**
-   * 静默处理错误（仅记录日志）
-   */
-  static handleSilent(error, context) {
-    console.error(`[${this.PLUGIN_NAME}] ${context}:`, error);
-  }
-  /**
-   * 提取错误消息
-   */
-  static extractErrorMessage(error) {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    if (typeof error === "string") {
-      return error;
-    }
-    if (error && typeof error === "object" && "message" in error) {
-      return String(error.message);
-    }
-    return "\u53D1\u751F\u672A\u77E5\u9519\u8BEF";
-  }
-};
-ErrorHandler.PLUGIN_NAME = "ProjectManager";
-
-// src/utils/configValidator.ts
-var VALID_VIEW_MODES = ["kanban", "list", "grid", "cascade", "timeline", "timeview", "burndown", "workload"];
-var VALID_ENTITY_TYPES = ["version", "project", "feature"];
-var VALID_SORT_FIELDS = ["name", "startDate", "endDate", "priority", "progress", "created"];
-var VALID_SORT_ORDERS = ["asc", "desc"];
-var VALID_GROUP_BY = ["status", "priority", "version", "project", "startDate", "endDate"];
-var VALID_COLS = [1, 2, 3, 4];
-var VALID_LIST_COLUMNS = [
-  "name",
-  "status",
-  "priority",
-  "owner",
-  "startDate",
-  "endDate",
-  "progress",
-  "tags",
-  "versionId",
-  "projectId"
-];
-var ConfigValidator = class {
-  /**
-   * 验证配置
-   */
-  static validate(config) {
-    const errors = [];
-    const warnings = [];
-    if (!config || typeof config !== "object") {
-      errors.push("\u914D\u7F6E\u5FC5\u987B\u662F\u4E00\u4E2A\u5BF9\u8C61");
-      return { valid: false, errors, warnings, config: { mode: "kanban" } };
-    }
-    const input = config;
-    const result = {};
-    const modeValidation = this.validateMode(input.mode);
-    if (modeValidation.error) {
-      errors.push(modeValidation.error);
-      result.mode = "kanban";
-    } else {
-      result.mode = modeValidation.value;
-    }
-    if (input.entityType !== void 0) {
-      const entityTypeValidation = this.validateEntityType(input.entityType);
-      if (entityTypeValidation.error) {
-        warnings.push(entityTypeValidation.error);
-      } else {
-        result.entityType = entityTypeValidation.value;
-      }
-    }
-    if (input.title !== void 0) {
-      if (typeof input.title === "string" && input.title.length > 0) {
-        result.title = input.title;
-      } else if (input.title !== "") {
-        warnings.push("title \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.version !== void 0) {
-      if (typeof input.version === "string" && input.version.length > 0) {
-        result.version = input.version;
-      } else {
-        warnings.push("version \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.project !== void 0) {
-      if (typeof input.project === "string" && input.project.length > 0) {
-        result.project = input.project;
-      } else {
-        warnings.push("project \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.feature !== void 0) {
-      if (typeof input.feature === "string" && input.feature.length > 0) {
-        result.feature = input.feature;
-      } else {
-        warnings.push("feature \u5FC5\u987B\u662F\u6709\u6548\u7684 ID \u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.status !== void 0) {
-      if (typeof input.status === "string") {
-        result.status = input.status;
-      } else {
-        warnings.push("status \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.priority !== void 0) {
-      if (typeof input.priority === "string") {
-        result.priority = input.priority;
-      } else {
-        warnings.push("priority \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.owner !== void 0) {
-      if (typeof input.owner === "string") {
-        result.owner = input.owner;
-      } else {
-        warnings.push("owner \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.tag !== void 0) {
-      if (typeof input.tag === "string") {
-        result.tag = input.tag;
-      } else {
-        warnings.push("tag \u5FC5\u987B\u662F\u5B57\u7B26\u4E32");
-      }
-    }
-    if (input.sortBy !== void 0) {
-      const sortByValidation = this.validateSortBy(input.sortBy);
-      if (sortByValidation.error) {
-        warnings.push(sortByValidation.error);
-      } else {
-        result.sortBy = sortByValidation.value;
-      }
-    }
-    if (input.sortOrder !== void 0) {
-      const sortOrderValidation = this.validateSortOrder(input.sortOrder);
-      if (sortOrderValidation.error) {
-        warnings.push(sortOrderValidation.error);
-      } else {
-        result.sortOrder = sortOrderValidation.value;
-      }
-    }
-    if (input.limit !== void 0) {
-      const limitValidation = this.validateLimit(input.limit);
-      if (limitValidation.error) {
-        warnings.push(limitValidation.error);
-      } else {
-        result.limit = limitValidation.value;
-      }
-    }
-    if (input.groupBy !== void 0) {
-      const groupByValidation = this.validateGroupBy(input.groupBy);
-      if (groupByValidation.error) {
-        warnings.push(groupByValidation.error);
-      } else {
-        result.groupBy = groupByValidation.value;
-      }
-    }
-    if (input.cols !== void 0) {
-      const colsValidation = this.validateCols(input.cols);
-      if (colsValidation.error) {
-        warnings.push(colsValidation.error);
-      } else {
-        result.cols = colsValidation.value;
-      }
-    }
-    if (input.expanded !== void 0) {
-      if (typeof input.expanded === "boolean") {
-        result.expanded = input.expanded;
-      } else if (input.expanded === "true") {
-        result.expanded = true;
-      } else if (input.expanded === "false") {
-        result.expanded = false;
-      } else {
-        warnings.push("expanded \u5FC5\u987B\u662F\u5E03\u5C14\u503C");
-      }
-    }
-    if (input.listColumns !== void 0) {
-      const listColumnsValidation = this.validateListColumns(input.listColumns);
-      if (listColumnsValidation.error) {
-        warnings.push(listColumnsValidation.error);
-      } else {
-        result.listColumns = listColumnsValidation.value;
-      }
-    }
-    if (input.cardFields !== void 0) {
-      if (typeof input.cardFields === "object" && input.cardFields !== null) {
-        result.cardFields = input.cardFields;
-      } else {
-        warnings.push("cardFields \u5FC5\u987B\u662F\u5BF9\u8C61");
-      }
-    }
-    const validatedKeys = Object.keys(result);
-    Object.keys(input).forEach((key) => {
-      if (!validatedKeys.includes(key)) {
-        result[key] = input[key];
-      }
-    });
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      config: result
-    };
-  }
-  /**
-   * 验证视图模式
-   */
-  static validateMode(mode) {
-    if (!mode) {
-      return { error: "mode \u662F\u5FC5\u586B\u9879\uFF0C\u4F7F\u7528\u9ED8\u8BA4 kanban" };
-    }
-    const modeStr = String(mode);
-    if (!VALID_VIEW_MODES.includes(modeStr)) {
-      return {
-        error: `\u65E0\u6548\u7684\u89C6\u56FE\u6A21\u5F0F: "${modeStr}"\uFF0C\u6709\u6548\u503C: ${VALID_VIEW_MODES.join(", ")}\uFF0C\u4F7F\u7528\u9ED8\u8BA4 kanban`
-      };
-    }
-    return { value: modeStr };
-  }
-  /**
-   * 验证实体类型
-   */
-  static validateEntityType(entityType) {
-    const entityTypeStr = String(entityType);
-    if (!VALID_ENTITY_TYPES.includes(entityTypeStr)) {
-      return {
-        error: `\u65E0\u6548\u7684\u5B9E\u4F53\u7C7B\u578B: "${entityTypeStr}"\uFF0C\u6709\u6548\u503C: ${VALID_ENTITY_TYPES.join(", ")}`
-      };
-    }
-    return { value: entityTypeStr };
-  }
-  /**
-   * 验证排序字段
-   */
-  static validateSortBy(sortBy) {
-    const sortByStr = String(sortBy);
-    if (!VALID_SORT_FIELDS.includes(sortByStr)) {
-      return {
-        error: `\u65E0\u6548\u7684\u6392\u5E8F\u5B57\u6BB5: "${sortByStr}"\uFF0C\u6709\u6548\u503C: ${VALID_SORT_FIELDS.join(", ")}`
-      };
-    }
-    return { value: sortByStr };
-  }
-  /**
-   * 验证排序方向
-   */
-  static validateSortOrder(sortOrder) {
-    const sortOrderStr = String(sortOrder);
-    if (!VALID_SORT_ORDERS.includes(sortOrderStr)) {
-      return {
-        error: `\u65E0\u6548\u7684\u6392\u5E8F\u65B9\u5411: "${sortOrderStr}"\uFF0C\u6709\u6548\u503C: ${VALID_SORT_ORDERS.join(", ")}`
-      };
-    }
-    return { value: sortOrderStr };
-  }
-  /**
-   * 验证限制数量
-   */
-  static validateLimit(limit) {
-    const limitNum = typeof limit === "string" ? parseInt(limit, 10) : Number(limit);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1e3) {
-      return {
-        error: `limit \u5FC5\u987B\u662F 1-1000 \u4E4B\u95F4\u7684\u6570\u5B57\uFF0C\u5F53\u524D: ${limit}`
-      };
-    }
-    return { value: limitNum };
-  }
-  /**
-   * 验证分组方式
-   */
-  static validateGroupBy(groupBy) {
-    const groupByStr = String(groupBy);
-    if (!VALID_GROUP_BY.includes(groupByStr)) {
-      return {
-        error: `\u65E0\u6548\u7684\u5206\u7EC4\u65B9\u5F0F: "${groupByStr}"\uFF0C\u6709\u6548\u503C: ${VALID_GROUP_BY.join(", ")}`
-      };
-    }
-    return { value: groupByStr };
-  }
-  /**
-   * 验证网格列数
-   */
-  static validateCols(cols) {
-    const colsNum = typeof cols === "string" ? parseInt(cols, 10) : Number(cols);
-    if (!VALID_COLS.includes(colsNum)) {
-      return {
-        error: `cols \u5FC5\u987B\u662F ${VALID_COLS.join(", ")} \u4E4B\u4E00\uFF0C\u5F53\u524D: ${cols}`
-      };
-    }
-    return { value: colsNum };
-  }
-  /**
-   * 验证列表列配置
-   */
-  static validateListColumns(columns) {
-    if (!Array.isArray(columns)) {
-      return { error: "listColumns \u5FC5\u987B\u662F\u6570\u7EC4" };
-    }
-    const validColumns = [];
-    const invalidColumns = [];
-    for (const col of columns) {
-      const colStr = String(col);
-      if (VALID_LIST_COLUMNS.includes(colStr)) {
-        validColumns.push(colStr);
-      } else {
-        invalidColumns.push(colStr);
-      }
-    }
-    if (invalidColumns.length > 0) {
-      return {
-        value: validColumns,
-        error: `\u5FFD\u7565\u65E0\u6548\u7684\u5217\u8868\u5217: ${invalidColumns.join(", ")}`
-      };
-    }
-    return { value: validColumns };
-  }
-  /**
-   * 类型守卫：检查是否是有效的视图模式
-   */
-  static isViewMode(value) {
-    return VALID_VIEW_MODES.includes(value);
-  }
-  /**
-   * 类型守卫：检查是否是有效的实体类型
-   */
-  static isEntityType(value) {
-    return VALID_ENTITY_TYPES.includes(value);
-  }
-  /**
-   * 类型守卫：检查是否是有效的排序字段
-   */
-  static isSortField(value) {
-    return VALID_SORT_FIELDS.includes(value);
-  }
-  /**
-   * 类型守卫：检查是否是有效的排序方向
-   */
-  static isSortOrder(value) {
-    return VALID_SORT_ORDERS.includes(value);
-  }
-  /**
-   * 类型守卫：检查是否是有效的分组方式
-   */
-  static isGroupBy(value) {
-    return VALID_GROUP_BY.includes(value);
-  }
-};
-
 // src/services/CodeBlockConfigService.ts
+init_utils();
 var CodeBlockConfigService = class {
   constructor(app) {
     this.app = app;
@@ -2787,9 +4764,9 @@ var CodeBlockConfigService = class {
   async saveConfig(sourcePath, codeBlockIndex, updates, options) {
     if (!sourcePath || codeBlockIndex < 0)
       return;
-    const { TFile: TFile11 } = require("obsidian");
+    const { TFile: TFile14 } = require("obsidian");
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile11))
+    if (!(file instanceof TFile14))
       return;
     try {
       const content = await this.app.vault.read(file);
@@ -2810,9 +4787,9 @@ var CodeBlockConfigService = class {
   async readConfig(sourcePath, codeBlockIndex) {
     if (!sourcePath || codeBlockIndex < 0)
       return null;
-    const { TFile: TFile11 } = require("obsidian");
+    const { TFile: TFile14 } = require("obsidian");
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile11))
+    if (!(file instanceof TFile14))
       return null;
     try {
       const content = await this.app.vault.read(file);
@@ -2835,9 +4812,9 @@ var CodeBlockConfigService = class {
   async getCodeBlockCount(sourcePath) {
     if (!sourcePath)
       return 0;
-    const { TFile: TFile11 } = require("obsidian");
+    const { TFile: TFile14 } = require("obsidian");
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof TFile11))
+    if (!(file instanceof TFile14))
       return 0;
     try {
       const content = await this.app.vault.read(file);
@@ -2974,14 +4951,39 @@ var ReportService = class {
     this.entityManager = entityManager;
   }
   /**
-   * 计算燃尽图数据
-   * @param versionId 版本ID（可选，不传则统计所有特性）
-   * @param dateRange 日期范围（可选，默认使用版本周期或最近30天）
+   * 统一应用 ViewConfig 层级筛选到特性列表
    */
-  async calculateBurndownData(versionId, dateRange) {
-    const features = await this.entityManager.listFeatures(
+  applyFeatureFilters(features, filters) {
+    if (!filters)
+      return features;
+    return features.filter((f) => {
+      var _a, _b, _c;
+      if (((_a = filters.features) == null ? void 0 : _a.length) && !filters.features.includes(f.id))
+        return false;
+      if (((_b = filters.projects) == null ? void 0 : _b.length) && !filters.projects.includes(f.projectId))
+        return false;
+      if (((_c = filters.versions) == null ? void 0 : _c.length) && !filters.versions.includes(f.versionId))
+        return false;
+      if (filters.version && f.versionId !== filters.version)
+        return false;
+      if (filters.project && f.projectId !== filters.project)
+        return false;
+      if (filters.status && f.status !== filters.status)
+        return false;
+      return true;
+    });
+  }
+  /**
+   * 计算燃尽图数据
+   * @param versionId 版本ID（可选，向后兼容）
+   * @param dateRange 日期范围（可选，默认使用版本周期或最近30天）
+   * @param filters 视图配置筛选（可选）
+   */
+  async calculateBurndownData(versionId, dateRange, filters) {
+    let features = await this.entityManager.listFeatures(
       versionId ? { versionId } : void 0
     );
+    features = this.applyFeatureFilters(features, filters);
     const range = dateRange || this.getDefaultDateRange(features);
     const dates = this.generateDateRange(range.start, range.end);
     const totalEstimated = features.reduce(
@@ -3039,18 +5041,16 @@ var ReportService = class {
     };
     switch (entityType) {
       case "feature": {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status } : void 0
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         for (const f of features) {
           addWorkload(f.owner || "\u672A\u5206\u914D", f.estimatedHours || 0, f.actualHours || 0, 1);
         }
         break;
       }
       case "project": {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status } : void 0
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         const projects = await this.entityManager.listProjects();
         const projectMap = new Map(projects.map((p) => [p.id, p]));
         const projectGroups = /* @__PURE__ */ new Map();
@@ -3068,9 +5068,8 @@ var ReportService = class {
         break;
       }
       case "version": {
-        const features = await this.entityManager.listFeatures(
-          filters ? { versionId: filters.version, projectId: filters.project, status: filters.status } : void 0
-        );
+        let features = await this.entityManager.listFeatures();
+        features = this.applyFeatureFilters(features, filters);
         const versions = await this.entityManager.listVersions();
         const versionMap = new Map(versions.map((v) => [v.id, v]));
         const versionGroups = /* @__PURE__ */ new Map();
@@ -3097,13 +5096,22 @@ var ReportService = class {
   /**
    * 按项目统计工作量
    */
-  async calculateWorkloadByProject(versionId) {
-    const projects = await this.entityManager.listProjects(
-      versionId ? { versionId } : void 0
-    );
-    const features = await this.entityManager.listFeatures(
-      versionId ? { versionId } : void 0
-    );
+  async calculateWorkloadByProject(filters) {
+    var _a, _b;
+    let projects = await this.entityManager.listProjects();
+    let features = await this.entityManager.listFeatures();
+    features = this.applyFeatureFilters(features, filters);
+    const relevantProjectIds = new Set(features.map((f) => f.projectId));
+    projects = projects.filter((p) => relevantProjectIds.has(p.id));
+    if ((_a = filters == null ? void 0 : filters.projects) == null ? void 0 : _a.length) {
+      projects = projects.filter((p) => filters.projects.includes(p.id));
+    }
+    if ((_b = filters == null ? void 0 : filters.versions) == null ? void 0 : _b.length) {
+      projects = projects.filter((p) => filters.versions.includes(p.versionId));
+    }
+    if (filters == null ? void 0 : filters.version) {
+      projects = projects.filter((p) => p.versionId === filters.version);
+    }
     return projects.map((project) => {
       const projectFeatures = features.filter(
         (f) => f.projectId === project.id
@@ -3228,8 +5236,449 @@ var ReportService = class {
   }
 };
 
+// src/services/EmailSummaryService.ts
+var import_obsidian9 = require("obsidian");
+init_utils();
+init_constants();
+var EmailSummaryService = class {
+  constructor(app, entityManager) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.reportService = new ReportService(app, entityManager);
+  }
+  async buildEmailForActiveFile() {
+    const context = await this.detectPageContext();
+    if (!context) {
+      new import_obsidian9.Notice("\u8BF7\u5148\u6253\u5F00\u4E00\u4E2A\u9879\u76EE\u7BA1\u7406\u9875\u9762");
+      return null;
+    }
+    let result = null;
+    switch (context.type) {
+      case "overview":
+        result = await this.buildOverviewEmail();
+        break;
+      case "version":
+        if (context.entityId) {
+          result = await this.buildVersionEmail(context.entityId, context.entityName || "\u7248\u672C");
+        }
+        break;
+      case "project":
+        if (context.entityId) {
+          result = await this.buildProjectEmail(context.entityId, context.entityName || "\u9879\u76EE");
+        }
+        break;
+      case "feature":
+        if (context.entityId) {
+          result = await this.buildFeatureEmail(context.entityId, context.entityName || "\u7279\u6027");
+        }
+        break;
+    }
+    if (!result) {
+      new import_obsidian9.Notice("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u5BFC\u51FA\u90AE\u4EF6\u603B\u7ED3");
+      return null;
+    }
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const emlContent = generateEML({
+      subject: result.subject,
+      from: "ProjectManager <no-reply@obsidian.local>",
+      to: "User <user@local>",
+      htmlBody: result.html,
+      plainBody: result.plain
+    });
+    const safeName = result.subject.replace(/[\\/:*?"<>|]/g, "_");
+    const filename = `${safeName}_${dateStr}`;
+    return { emlContent, filename };
+  }
+  async buildEmailFromRenderedPage() {
+    const captured = await captureRenderedPage(this.app);
+    if (!captured) {
+      return null;
+    }
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const subject = `${captured.title} - ${dateStr}`;
+    const emlContent = generateEML({
+      subject,
+      from: "ProjectManager <no-reply@obsidian.local>",
+      to: "User <user@local>",
+      htmlBody: captured.html,
+      plainBody: captured.plain
+    });
+    const safeName = subject.replace(/[\\/:*?"<>|]/g, "_");
+    const filename = `${safeName}_${dateStr}`;
+    return { emlContent, filename };
+  }
+  async detectPageContext() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile)
+      return null;
+    const path = activeFile.path;
+    if (path === "ProjectManager/\u603B\u89C8.md") {
+      return { type: "overview", filePath: path };
+    }
+    const cache = this.app.metadataCache.getFileCache(activeFile);
+    const fm = cache == null ? void 0 : cache.frontmatter;
+    const id = (fm == null ? void 0 : fm.id) ? String(fm.id) : void 0;
+    const name = (fm == null ? void 0 : fm.name) ? String(fm.name) : activeFile.basename;
+    if (path.startsWith("ProjectManager/Versions/") && id) {
+      return { type: "version", entityId: id, entityName: name, filePath: path };
+    }
+    if (path.startsWith("ProjectManager/Projects/") && id) {
+      return { type: "project", entityId: id, entityName: name, filePath: path };
+    }
+    if (path.startsWith("ProjectManager/Features/") && id) {
+      return { type: "feature", entityId: id, entityName: name, filePath: path };
+    }
+    return null;
+  }
+  // ==================== 总览邮件 ====================
+  async buildOverviewEmail() {
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const subject = `\u9879\u76EE\u7BA1\u7406\u603B\u89C8 - ${dateStr}`;
+    const [versions, projects, features, health, workloadProjects, trend, overdue] = await Promise.all([
+      this.entityManager.listVersions(),
+      this.entityManager.listProjects(),
+      this.entityManager.listFeatures(),
+      this.reportService.calculateProjectHealth(),
+      this.reportService.calculateWorkloadByProject(),
+      this.reportService.calculateCompletionTrend(30),
+      this.entityManager.getOverdueItems()
+    ]);
+    const completedVersions = versions.filter((v) => v.status === "completed").length;
+    const completedProjects = projects.filter((p) => p.status === "completed").length;
+    const completedFeatures = features.filter((f) => f.status === "completed").length;
+    const html = this.wrapHTML(subject, `
+      <h1>${subject}</h1>
+      <div class="metrics">
+        ${this.metricCard("\u7248\u672C\u603B\u6570", String(versions.length))}
+        ${this.metricCard("\u9879\u76EE\u603B\u6570", String(projects.length))}
+        ${this.metricCard("\u7279\u6027\u603B\u6570", String(features.length))}
+        ${this.metricCard("\u6574\u4F53\u5B8C\u6210\u7387", `${health.completionRate}%`)}
+        ${this.metricCard("\u903E\u671F\u7279\u6027\u6570", String(health.overdueCount), health.overdueCount > 0 ? "overdue" : "")}
+        ${this.metricCard("\u5E73\u5747\u8FDB\u5EA6", `${health.avgProgress}%`)}
+      </div>
+      <h2>\u7248\u672C\u72B6\u6001\u4E00\u89C8</h2>
+      ${this.versionsTable(versions)}
+      <h2>\u9879\u76EE\u5DE5\u4F5C\u91CF TOP 5</h2>
+      ${this.workloadTable(workloadProjects.slice(0, 5))}
+      <h2>\u8FD130\u5929\u5B8C\u6210\u8D8B\u52BF</h2>
+      ${this.trendTable(trend)}
+      <h2>\u903E\u671F\u9879\u63D0\u9192</h2>
+      ${this.overdueList(overdue)}
+    `);
+    const plain = this.buildPlainOverview(subject, versions, projects, features, health, workloadProjects, trend, overdue);
+    return { subject, html, plain };
+  }
+  // ==================== 版本邮件 ====================
+  async buildVersionEmail(versionId, versionName) {
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const subject = `\u7248\u672C ${versionName} \u9879\u76EE\u603B\u7ED3 - ${dateStr}`;
+    const [version, projects, features, health, workloadByProject, burndown, overdue] = await Promise.all([
+      this.entityManager.getVersion(versionId),
+      this.entityManager.listProjects({ versionId }),
+      this.entityManager.listFeatures({ versionId }),
+      this.reportService.calculateProjectHealth(versionId),
+      this.reportService.calculateWorkloadByProject({ mode: "list", version: versionId }),
+      this.reportService.calculateBurndownData(versionId),
+      this.entityManager.getOverdueItems("feature")
+    ]);
+    const versionOverdue = overdue.filter((o) => "projectId" in o && o.versionId === versionId);
+    const html = this.wrapHTML(subject, `
+      <h1>${subject}</h1>
+      <p><strong>\u72B6\u6001:</strong> ${version ? getStatusLabel(version.status, "version") : "-"} &nbsp;|&nbsp; <strong>\u8D1F\u8D23\u4EBA:</strong> ${(version == null ? void 0 : version.owner) || "\u672A\u5206\u914D"} &nbsp;|&nbsp; <strong>\u5468\u671F:</strong> ${(version == null ? void 0 : version.startDate) || "-"} ~ ${(version == null ? void 0 : version.endDate) || "-"}</p>
+      <div class="metrics">
+        ${this.metricCard("\u7279\u6027\u603B\u6570", String(health.totalFeatures))}
+        ${this.metricCard("\u5B8C\u6210\u7387", `${health.completionRate}%`)}
+        ${this.metricCard("\u903E\u671F\u6570", String(health.overdueCount), health.overdueCount > 0 ? "overdue" : "")}
+        ${this.metricCard("\u603B\u9884\u4F30\u5DE5\u65F6", String(health.totalEstimatedHours))}
+        ${this.metricCard("\u603B\u5B9E\u9645\u5DE5\u65F6", String(health.totalActualHours))}
+        ${this.metricCard("\u98CE\u9669\u7B49\u7EA7", this.riskLabel(health.riskLevel), `risk-${health.riskLevel}`)}
+      </div>
+      <h2>\u5305\u542B\u9879\u76EE</h2>
+      ${this.projectsTable(projects, features)}
+      <h2>\u71C3\u5C3D\u56FE\u6458\u8981</h2>
+      ${this.burndownTable(burndown)}
+      <h2>\u9879\u76EE\u5DE5\u4F5C\u91CF</h2>
+      ${this.workloadTable(workloadByProject)}
+      <h2>\u903E\u671F\u7279\u6027</h2>
+      ${this.overdueList(versionOverdue)}
+    `);
+    const plain = this.buildPlainVersion(subject, version, projects, features, health, workloadByProject, burndown, versionOverdue);
+    return { subject, html, plain };
+  }
+  // ==================== 项目邮件 ====================
+  async buildProjectEmail(projectId, projectName) {
+    var _a;
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const subject = `\u9879\u76EE ${projectName} \u8FDB\u5C55\u62A5\u544A - ${dateStr}`;
+    const [project, features, workloadOwners, overdue] = await Promise.all([
+      this.entityManager.getProject(projectId),
+      this.entityManager.listFeatures({ projectId }),
+      this.reportService.calculateWorkloadByOwner("feature", { mode: "list", project: projectId }),
+      this.entityManager.getOverdueItems("feature")
+    ]);
+    const completedCount = features.filter((f) => f.status === "completed").length;
+    const avgProgress = features.length > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / features.length) : 0;
+    const totalEstimated = features.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
+    const totalActual = features.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+    const projectOverdue = overdue.filter((o) => "projectId" in o && o.projectId === projectId);
+    const html = this.wrapHTML(subject, `
+      <h1>${subject}</h1>
+      <p><strong>\u6240\u5C5E\u7248\u672C:</strong> ${project ? ((_a = await this.entityManager.getVersion(project.versionId)) == null ? void 0 : _a.name) || "-" : "-"} &nbsp;|&nbsp; <strong>\u8D1F\u8D23\u4EBA:</strong> ${(project == null ? void 0 : project.owner) || "\u672A\u5206\u914D"} &nbsp;|&nbsp; <strong>\u72B6\u6001:</strong> ${project ? getStatusLabel(project.status, "project") : "-"} &nbsp;|&nbsp; <strong>\u4F18\u5148\u7EA7:</strong> ${project ? getPriorityLabel(project.priority) : "-"}</p>
+      <div class="metrics">
+        ${this.metricCard("\u7279\u6027\u603B\u6570", String(features.length))}
+        ${this.metricCard("\u5DF2\u5B8C\u6210", String(completedCount))}
+        ${this.metricCard("\u5E73\u5747\u8FDB\u5EA6", `${avgProgress}%`)}
+        ${this.metricCard("\u903E\u671F\u6570", String(projectOverdue.length), projectOverdue.length > 0 ? "overdue" : "")}
+        ${this.metricCard("\u9884\u4F30\u5DE5\u65F6", String(totalEstimated))}
+        ${this.metricCard("\u5B9E\u9645\u5DE5\u65F6", String(totalActual))}
+      </div>
+      <h2>\u7279\u6027\u5217\u8868</h2>
+      ${this.featuresTable(features)}
+      <h2>\u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF</h2>
+      ${this.workloadTable(workloadOwners)}
+      <h2>\u903E\u671F\u7279\u6027</h2>
+      ${this.overdueList(projectOverdue)}
+    `);
+    const plain = this.buildPlainProject(subject, project, features, completedCount, avgProgress, totalEstimated, totalActual, workloadOwners, projectOverdue);
+    return { subject, html, plain };
+  }
+  // ==================== 特性邮件 ====================
+  async buildFeatureEmail(featureId, featureName) {
+    const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const subject = `\u7279\u6027 ${featureName} \u8FDB\u5C55\u62A5\u544A - ${dateStr}`;
+    const feature = await this.entityManager.getFeature(featureId);
+    const [version, project] = await Promise.all([
+      feature ? this.entityManager.getVersion(feature.versionId) : Promise.resolve(null),
+      feature ? this.entityManager.getProject(feature.projectId) : Promise.resolve(null)
+    ]);
+    const remaining = Math.max(0, ((feature == null ? void 0 : feature.estimatedHours) || 0) - ((feature == null ? void 0 : feature.actualHours) || 0));
+    const html = this.wrapHTML(subject, `
+      <h1>${subject}</h1>
+      <p><strong>\u6240\u5C5E\u7248\u672C:</strong> ${(version == null ? void 0 : version.name) || "-"} &nbsp;|&nbsp; <strong>\u6240\u5C5E\u9879\u76EE:</strong> ${(project == null ? void 0 : project.name) || "-"} &nbsp;|&nbsp; <strong>\u8D1F\u8D23\u4EBA:</strong> ${(feature == null ? void 0 : feature.owner) || "\u672A\u5206\u914D"}</p>
+      <div class="metrics">
+        ${this.metricCard("\u72B6\u6001", feature ? getStatusLabel(feature.status, "feature") : "-")}
+        ${this.metricCard("\u4F18\u5148\u7EA7", feature ? getPriorityLabel(feature.priority) : "-")}
+        ${this.metricCard("\u8FDB\u5EA6", `${(feature == null ? void 0 : feature.progress) || 0}%`)}
+        ${this.metricCard("\u9884\u4F30\u5DE5\u65F6", String((feature == null ? void 0 : feature.estimatedHours) || 0))}
+        ${this.metricCard("\u5B9E\u9645\u5DE5\u65F6", String((feature == null ? void 0 : feature.actualHours) || 0))}
+        ${this.metricCard("\u5269\u4F59\u5DE5\u65F6", String(remaining))}
+      </div>
+      <h2>\u65F6\u95F4\u8BA1\u5212</h2>
+      <p>\u5F00\u59CB\u65E5\u671F: ${(feature == null ? void 0 : feature.startDate) || "-"} &nbsp;|&nbsp; \u7ED3\u675F\u65E5\u671F: ${(feature == null ? void 0 : feature.endDate) || "-"}</p>
+      <h2>\u8FDB\u5EA6\u8BE6\u60C5</h2>
+      <div style="background:#e5e7eb;border-radius:4px;height:20px;width:100%;max-width:400px;">
+        <div style="background:#3b82f6;border-radius:4px;height:20px;width:${(feature == null ? void 0 : feature.progress) || 0}%;"></div>
+      </div>
+    `);
+    const plain = this.buildPlainFeature(subject, feature, version, project, remaining);
+    return { subject, html, plain };
+  }
+  // ==================== HTML 构建工具 ====================
+  wrapHTML(title, body) {
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; color: #333; line-height: 1.6; padding: 16px; }
+h1 { font-size: 20px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; }
+h2 { font-size: 16px; color: #2563eb; margin-top: 24px; }
+table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 13px; }
+th { background: #f3f4f6; }
+.metrics { margin: 16px 0; }
+.metric { display: inline-block; min-width: 110px; padding: 12px; background: #f9fafb; border-radius: 6px; margin: 0 8px 8px 0; text-align: center; }
+.metric-value { font-size: 18px; font-weight: bold; color: #111827; }
+.metric-label { font-size: 12px; color: #6b7280; }
+.risk-low { color: #22c55e; }
+.risk-medium { color: #f59e0b; }
+.risk-high { color: #ef4444; }
+.overdue { color: #ef4444; }
+.empty { color: #9ca3af; font-style: italic; }
+</style>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+  }
+  metricCard(label, value, extraClass = "") {
+    return `<div class="metric">
+  <div class="metric-value ${extraClass}">${value}</div>
+  <div class="metric-label">${label}</div>
+</div>`;
+  }
+  riskLabel(level) {
+    switch (level) {
+      case "low":
+        return "\u4F4E\u98CE\u9669";
+      case "medium":
+        return "\u4E2D\u98CE\u9669";
+      case "high":
+        return "\u9AD8\u98CE\u9669";
+      default:
+        return level;
+    }
+  }
+  versionsTable(versions) {
+    if (versions.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const rows = versions.map((v) => `
+      <tr>
+        <td>${v.name}</td>
+        <td>${getStatusLabel(v.status, "version")}</td>
+        <td>${v.startDate || "-"} ~ ${v.endDate || "-"}</td>
+        <td>${v.owner || "\u672A\u5206\u914D"}</td>
+      </tr>
+    `).join("");
+    return `<table><thead><tr><th>\u7248\u672C\u540D\u79F0</th><th>\u72B6\u6001</th><th>\u5468\u671F</th><th>\u8D1F\u8D23\u4EBA</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  projectsTable(projects, allFeatures) {
+    if (projects.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const rows = projects.map((p) => {
+      const count = allFeatures.filter((f) => f.projectId === p.id).length;
+      return `
+        <tr>
+          <td>${p.name}</td>
+          <td>${getStatusLabel(p.status, "project")}</td>
+          <td>${p.owner || "\u672A\u5206\u914D"}</td>
+          <td>${count}</td>
+        </tr>
+      `;
+    }).join("");
+    return `<table><thead><tr><th>\u9879\u76EE\u540D\u79F0</th><th>\u72B6\u6001</th><th>\u8D1F\u8D23\u4EBA</th><th>\u7279\u6027\u6570</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  featuresTable(features) {
+    if (features.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const rows = features.map((f) => `
+      <tr>
+        <td>${f.name}</td>
+        <td>${getStatusLabel(f.status, "feature")}</td>
+        <td>${f.progress}%</td>
+        <td>${f.owner || "\u672A\u5206\u914D"}</td>
+        <td>${f.endDate || "-"}</td>
+      </tr>
+    `).join("");
+    return `<table><thead><tr><th>\u7279\u6027\u540D\u79F0</th><th>\u72B6\u6001</th><th>\u8FDB\u5EA6</th><th>\u8D1F\u8D23\u4EBA</th><th>\u622A\u6B62\u65E5\u671F</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  workloadTable(data) {
+    if (data.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const rows = data.map((d) => `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.estimated}</td>
+        <td>${d.actual}</td>
+        <td>${d.remaining}</td>
+        <td>${d.taskCount}</td>
+        <td>${d.efficiency}%</td>
+      </tr>
+    `).join("");
+    return `<table><thead><tr><th>\u540D\u79F0</th><th>\u9884\u4F30\u5DE5\u65F6</th><th>\u5B9E\u9645\u5DE5\u65F6</th><th>\u5269\u4F59\u5DE5\u65F6</th><th>\u4EFB\u52A1\u6570</th><th>\u6548\u7387</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  trendTable(data) {
+    if (data.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const rows = data.map((d) => `
+      <tr><td>${d.date}</td><td>${d.count}</td></tr>
+    `).join("");
+    return `<table><thead><tr><th>\u65E5\u671F</th><th>\u5B8C\u6210\u6570</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  burndownTable(data) {
+    if (data.length === 0)
+      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
+    const sample = data.filter((_, i) => i % Math.max(1, Math.floor(data.length / 10)) === 0 || i === data.length - 1);
+    const rows = sample.map((d) => `
+      <tr><td>${d.date}</td><td>${d.planned}</td><td>${d.actual}</td><td>${d.completed}</td></tr>
+    `).join("");
+    return `<table><thead><tr><th>\u65E5\u671F</th><th>\u8BA1\u5212\u5269\u4F59</th><th>\u5B9E\u9645\u5269\u4F59</th><th>\u5F53\u65E5\u5B8C\u6210</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  overdueList(items) {
+    if (items.length === 0)
+      return '<p class="empty">\u65E0\u903E\u671F\u9879</p>';
+    const list = items.map((i) => {
+      const typeLabel = "projectId" in i ? "versionId" in i && !("projectId" in i && i.projectId) ? "\u7248\u672C" : "\u7279\u6027" : "versionId" in i ? "\u9879\u76EE" : "\u7248\u672C";
+      const date = i.endDate || "-";
+      return `<li class="overdue">[${typeLabel}] ${i.name} (\u622A\u6B62: ${date})</li>`;
+    }).join("");
+    return `<ul>${list}</ul>`;
+  }
+  // ==================== 纯文本构建工具 ====================
+  buildPlainOverview(subject, versions, projects, features, health, workload, trend, overdue) {
+    const lines = [subject, ""];
+    lines.push(`\u7248\u672C\u603B\u6570: ${versions.length} | \u9879\u76EE\u603B\u6570: ${projects.length} | \u7279\u6027\u603B\u6570: ${features.length}`);
+    lines.push(`\u6574\u4F53\u5B8C\u6210\u7387: ${health.completionRate}% | \u903E\u671F\u7279\u6027\u6570: ${health.overdueCount} | \u5E73\u5747\u8FDB\u5EA6: ${health.avgProgress}%`);
+    lines.push("", "== \u7248\u672C\u72B6\u6001 ==");
+    versions.forEach((v) => lines.push(`${v.name}: ${getStatusLabel(v.status, "version")} | ${v.startDate || "-"} ~ ${v.endDate || "-"}`));
+    lines.push("", "== \u9879\u76EE\u5DE5\u4F5C\u91CF TOP 5 ==");
+    workload.slice(0, 5).forEach((w) => lines.push(`${w.name}: \u9884\u4F30${w.estimated}h \u5B9E\u9645${w.actual}h \u6548\u7387${w.efficiency}%`));
+    lines.push("", "== \u8FD130\u5929\u5B8C\u6210\u8D8B\u52BF\uFF08\u6700\u8FD15\u5929\uFF09 ==");
+    trend.slice(-5).forEach((t) => lines.push(`${t.date}: ${t.count}`));
+    lines.push("", "== \u903E\u671F\u9879 ==");
+    if (overdue.length === 0)
+      lines.push("\u65E0\u903E\u671F\u9879");
+    else
+      overdue.forEach((o) => lines.push(`- ${o.name} (\u622A\u6B62: ${o.endDate || "-"})`));
+    return lines.join("\n");
+  }
+  buildPlainVersion(subject, version, projects, features, health, workload, burndown, overdue) {
+    const lines = [subject, ""];
+    if (version) {
+      lines.push(`\u7248\u672C: ${version.name} | \u72B6\u6001: ${getStatusLabel(version.status, "version")} | \u8D1F\u8D23\u4EBA: ${version.owner || "\u672A\u5206\u914D"}`);
+      lines.push(`\u5468\u671F: ${version.startDate || "-"} ~ ${version.endDate || "-"}`);
+    }
+    lines.push(`\u7279\u6027\u603B\u6570: ${health.totalFeatures} | \u5B8C\u6210\u7387: ${health.completionRate}% | \u903E\u671F\u6570: ${health.overdueCount}`);
+    lines.push(`\u9884\u4F30\u5DE5\u65F6: ${health.totalEstimatedHours}h | \u5B9E\u9645\u5DE5\u65F6: ${health.totalActualHours}h | \u98CE\u9669: ${this.riskLabel(health.riskLevel)}`);
+    lines.push("", "== \u5305\u542B\u9879\u76EE ==");
+    projects.forEach((p) => lines.push(`${p.name}: ${getStatusLabel(p.status, "project")} | \u8D1F\u8D23\u4EBA: ${p.owner || "\u672A\u5206\u914D"}`));
+    lines.push("", "== \u71C3\u5C3D\u6458\u8981 ==");
+    burndown.slice(0, 5).forEach((b) => lines.push(`${b.date}: \u8BA1\u5212${b.planned} \u5B9E\u9645${b.actual} \u5B8C\u6210${b.completed}`));
+    lines.push("", "== \u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF ==");
+    workload.forEach((w) => lines.push(`${w.name}: \u9884\u4F30${w.estimated}h \u5B9E\u9645${w.actual}h`));
+    lines.push("", "== \u903E\u671F\u7279\u6027 ==");
+    if (overdue.length === 0)
+      lines.push("\u65E0\u903E\u671F\u9879");
+    else
+      overdue.forEach((o) => lines.push(`- ${o.name} (\u622A\u6B62: ${o.endDate || "-"})`));
+    return lines.join("\n");
+  }
+  buildPlainProject(subject, project, features, completedCount, avgProgress, totalEstimated, totalActual, workload, overdue) {
+    const lines = [subject, ""];
+    if (project) {
+      lines.push(`\u9879\u76EE: ${project.name} | \u72B6\u6001: ${getStatusLabel(project.status, "project")} | \u4F18\u5148\u7EA7: ${getPriorityLabel(project.priority)}`);
+    }
+    lines.push(`\u7279\u6027\u603B\u6570: ${features.length} | \u5DF2\u5B8C\u6210: ${completedCount} | \u5E73\u5747\u8FDB\u5EA6: ${avgProgress}%`);
+    lines.push(`\u9884\u4F30\u5DE5\u65F6: ${totalEstimated}h | \u5B9E\u9645\u5DE5\u65F6: ${totalActual}h | \u903E\u671F\u6570: ${overdue.length}`);
+    lines.push("", "== \u7279\u6027\u5217\u8868 ==");
+    features.forEach((f) => lines.push(`${f.name}: ${getStatusLabel(f.status, "feature")} | \u8FDB\u5EA6${f.progress}% | \u8D1F\u8D23\u4EBA:${f.owner || "\u672A\u5206\u914D"} | \u622A\u6B62:${f.endDate || "-"}`));
+    lines.push("", "== \u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF ==");
+    workload.forEach((w) => lines.push(`${w.name}: \u9884\u4F30${w.estimated}h \u5B9E\u9645${w.actual}h`));
+    lines.push("", "== \u903E\u671F\u7279\u6027 ==");
+    if (overdue.length === 0)
+      lines.push("\u65E0\u903E\u671F\u9879");
+    else
+      overdue.forEach((o) => lines.push(`- ${o.name} (\u622A\u6B62: ${o.endDate || "-"})`));
+    return lines.join("\n");
+  }
+  buildPlainFeature(subject, feature, version, project, remaining) {
+    const lines = [subject, ""];
+    if (feature) {
+      lines.push(`\u7279\u6027: ${feature.name}`);
+      lines.push(`\u72B6\u6001: ${getStatusLabel(feature.status, "feature")} | \u4F18\u5148\u7EA7: ${getPriorityLabel(feature.priority)} | \u8FDB\u5EA6: ${feature.progress}%`);
+      lines.push(`\u8D1F\u8D23\u4EBA: ${feature.owner || "\u672A\u5206\u914D"}`);
+      lines.push(`\u6240\u5C5E\u7248\u672C: ${(version == null ? void 0 : version.name) || "-"} | \u6240\u5C5E\u9879\u76EE: ${(project == null ? void 0 : project.name) || "-"}`);
+      lines.push(`\u9884\u4F30\u5DE5\u65F6: ${feature.estimatedHours || 0}h | \u5B9E\u9645\u5DE5\u65F6: ${feature.actualHours || 0}h | \u5269\u4F59: ${remaining}h`);
+      lines.push(`\u65F6\u95F4\u8BA1\u5212: ${feature.startDate || "-"} ~ ${feature.endDate || "-"}`);
+    }
+    return lines.join("\n");
+  }
+};
+
 // src/services/ChangeLogService.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 var ChangeLogService = class {
   constructor(app) {
     this.app = app;
@@ -3511,7 +5960,7 @@ var ChangeLogService = class {
     await this.ensureDirectory(this.LOG_DIR);
     const line = JSON.stringify(entry) + "\n";
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);
-    if (existingFile instanceof import_obsidian8.TFile) {
+    if (existingFile instanceof import_obsidian10.TFile) {
       const content = await this.app.vault.read(existingFile);
       await this.app.vault.modify(existingFile, content + line);
     } else {
@@ -3523,11 +5972,11 @@ var ChangeLogService = class {
    */
   async getLogFiles(startDate, endDate) {
     const folder = this.app.vault.getAbstractFileByPath(this.LOG_DIR);
-    if (!(folder instanceof import_obsidian8.TFolder))
+    if (!(folder instanceof import_obsidian10.TFolder))
       return [];
     const files = [];
     for (const child of folder.children) {
-      if (!(child instanceof import_obsidian8.TFile))
+      if (!(child instanceof import_obsidian10.TFile))
         continue;
       if (!child.name.endsWith(".jsonl"))
         continue;
@@ -4227,6 +6676,224 @@ var DataviewFunctionRegistry = class {
   }
 };
 
+// src/services/RiskService.ts
+var import_obsidian11 = require("obsidian");
+var RiskService = class {
+  constructor(app, entityManager) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.riskParser = new RiskParser();
+  }
+  /**
+   * 获取单个文件的风险列表
+   */
+  async getRisksByPath(path) {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof import_obsidian11.TFile) || file.extension !== "md")
+      return [];
+    const content = await this.app.vault.cachedRead(file);
+    return this.riskParser.parseRisks(content);
+  }
+  /**
+   * 获取所有风险（跨所有实体）
+   */
+  async getAllRisks() {
+    const versions = await this.entityManager.listVersions();
+    const projects = await this.entityManager.listProjects();
+    const features = await this.entityManager.listFeatures();
+    const allRisks = [];
+    for (const v of versions) {
+      const path = await this.entityManager.getVersionPath(v.id);
+      if (path) {
+        const risks = await this.getRisksByPath(path);
+        risks.forEach((r) => {
+          r.sourceName = v.name;
+          r.sourceType = "version";
+          r.sourcePath = path;
+        });
+        allRisks.push(...risks);
+      }
+    }
+    for (const p of projects) {
+      const path = await this.entityManager.getProjectPath(p.id);
+      if (path) {
+        const risks = await this.getRisksByPath(path);
+        risks.forEach((r) => {
+          r.sourceName = p.name;
+          r.sourceType = "project";
+          r.sourcePath = path;
+        });
+        allRisks.push(...risks);
+      }
+    }
+    for (const f of features) {
+      const path = await this.entityManager.getFeaturePath(f.id);
+      if (path) {
+        const risks = await this.getRisksByPath(path);
+        risks.forEach((r) => {
+          r.sourceName = f.name;
+          r.sourceType = "feature";
+          r.sourcePath = path;
+        });
+        allRisks.push(...risks);
+      }
+    }
+    return allRisks;
+  }
+  /**
+   * 获取某个版本及其下属项目、特性的所有风险
+   */
+  async getRisksByVersion(versionId) {
+    const version = await this.entityManager.getVersion(versionId);
+    if (!version)
+      return [];
+    const risks = [];
+    const vPath = await this.entityManager.getVersionPath(versionId);
+    if (vPath) {
+      const vRisks = await this.getRisksByPath(vPath);
+      vRisks.forEach((r) => {
+        r.sourceName = version.name;
+        r.sourceType = "version";
+        r.sourcePath = vPath;
+      });
+      risks.push(...vRisks);
+    }
+    const projects = await this.entityManager.getVersionProjects(versionId);
+    for (const p of projects) {
+      const pPath = await this.entityManager.getProjectPath(p.id);
+      if (pPath) {
+        const pRisks = await this.getRisksByPath(pPath);
+        pRisks.forEach((r) => {
+          r.sourceName = p.name;
+          r.sourceType = "project";
+          r.sourcePath = pPath;
+        });
+        risks.push(...pRisks);
+      }
+    }
+    const features = await this.entityManager.listFeatures({ versionId });
+    for (const f of features) {
+      const fPath = await this.entityManager.getFeaturePath(f.id);
+      if (fPath) {
+        const fRisks = await this.getRisksByPath(fPath);
+        fRisks.forEach((r) => {
+          r.sourceName = f.name;
+          r.sourceType = "feature";
+          r.sourcePath = fPath;
+        });
+        risks.push(...fRisks);
+      }
+    }
+    return risks;
+  }
+  /**
+   * 获取某个项目及其下属特性的所有风险
+   */
+  async getRisksByProject(projectId) {
+    const project = await this.entityManager.getProject(projectId);
+    if (!project)
+      return [];
+    const risks = [];
+    const pPath = await this.entityManager.getProjectPath(projectId);
+    if (pPath) {
+      const pRisks = await this.getRisksByPath(pPath);
+      pRisks.forEach((r) => {
+        r.sourceName = project.name;
+        r.sourceType = "project";
+      });
+      risks.push(...pRisks);
+    }
+    const features = await this.entityManager.getProjectFeatures(projectId);
+    for (const f of features) {
+      const fPath = await this.entityManager.getFeaturePath(f.id);
+      if (fPath) {
+        const fRisks = await this.getRisksByPath(fPath);
+        fRisks.forEach((r) => {
+          r.sourceName = f.name;
+          r.sourceType = "feature";
+          r.sourcePath = fPath;
+        });
+        risks.push(...fRisks);
+      }
+    }
+    return risks;
+  }
+};
+
+// src/services/LogWriterService.ts
+var import_obsidian12 = require("obsidian");
+var LogWriterService = class {
+  constructor(app) {
+    this.app = app;
+  }
+  /**
+   * 在指定文件的风险跟踪表格中追加一行
+   */
+  async appendRisk(path, risk) {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof import_obsidian12.TFile))
+      return;
+    let content = await this.app.vault.read(file);
+    const riskRow = `| ${risk.type} | ${risk.description} | ${this.formatRiskLevel(risk.level)} | ${risk.owner} | ${risk.foundDate} | ${risk.closeDate || ""} | ${risk.status} |`;
+    if (!content.includes("## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A")) {
+      content += "\n\n## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A\n\n| \u98CE\u9669\u7C7B\u578B | \u98CE\u9669\u63CF\u8FF0 | \u98CE\u9669\u7B49\u7EA7 | \u8D23\u4EFB\u4EBA | \u53D1\u73B0\u65F6\u95F4 | \u95ED\u73AF\u65F6\u95F4 | \u72B6\u6001 |\n|---------|---------|---------|--------|----------|----------|------|\n" + riskRow;
+    } else {
+      const sectionIndex = content.indexOf("## \u26A0\uFE0F \u98CE\u9669\u8DDF\u8E2A");
+      const afterSection = content.slice(sectionIndex);
+      const lines = afterSection.split("\n");
+      let insertIndex = sectionIndex;
+      for (let i = 0; i < lines.length; i++) {
+        insertIndex += lines[i].length + 1;
+        if (lines[i].startsWith("|") && !lines[i].includes("---")) {
+          if (i + 1 >= lines.length || !lines[i + 1].trim().startsWith("|")) {
+            insertIndex -= 1;
+            break;
+          }
+        }
+      }
+      content = content.slice(0, insertIndex) + "\n" + riskRow + content.slice(insertIndex);
+    }
+    await this.app.vault.modify(file, content);
+  }
+  /**
+   * 在指定文件的进展反馈表格中追加一行
+   */
+  async appendProgressLog(path, log) {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof import_obsidian12.TFile))
+      return;
+    let content = await this.app.vault.read(file);
+    const logRow = `| ${log.time} | ${log.content} | ${log.author || ""} |`;
+    if (!content.includes("## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988")) {
+      content += "\n\n## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988\n\n| \u65F6\u95F4 | \u53CD\u9988\u5185\u5BB9 | \u8BB0\u5F55\u4EBA |\n|------|---------|--------|\n" + logRow;
+    } else {
+      const sectionIndex = content.indexOf("## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988");
+      const afterSection = content.slice(sectionIndex);
+      const lines = afterSection.split("\n");
+      let insertIndex = sectionIndex;
+      for (let i = 0; i < lines.length; i++) {
+        insertIndex += lines[i].length + 1;
+        if (lines[i].startsWith("|") && !lines[i].includes("---")) {
+          if (i + 1 >= lines.length || !lines[i + 1].trim().startsWith("|")) {
+            insertIndex -= 1;
+            break;
+          }
+        }
+      }
+      content = content.slice(0, insertIndex) + "\n" + logRow + content.slice(insertIndex);
+    }
+    await this.app.vault.modify(file, content);
+  }
+  formatRiskLevel(level) {
+    const map = {
+      high: "\u9AD8",
+      medium: "\u4E2D",
+      low: "\u4F4E"
+    };
+    return map[level] || level;
+  }
+};
+
 // src/core/EntityManager.ts
 var EntityManager = class {
   constructor(app, settings) {
@@ -4450,7 +7117,7 @@ var EntityManager = class {
 };
 
 // src/ui/components/Breadcrumb.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 var Breadcrumb = class {
   constructor(app, entityManager) {
     this.app = app;
@@ -4595,1106 +7262,32 @@ var Breadcrumb = class {
   }
   async openFile(path) {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (file instanceof import_obsidian9.TFile) {
+    if (file instanceof import_obsidian13.TFile) {
       await this.app.workspace.getLeaf().openFile(file);
     }
   }
 };
 
 // src/ui/components/Button.ts
-var import_obsidian18 = require("obsidian");
-
-// src/modals/CreateVersionModal.ts
-var import_obsidian10 = require("obsidian");
-init_constants();
-
-// src/ui/components/DatePicker.ts
-function formatDateDisplay(dateStr) {
-  if (!dateStr)
-    return "";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime()))
-    return dateStr;
-  const today = /* @__PURE__ */ new Date();
-  today.setHours(0, 0, 0, 0);
-  const targetDate = new Date(date);
-  targetDate.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((targetDate.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
-  if (diffDays === 0)
-    return `${dateStr} (\u4ECA\u5929)`;
-  if (diffDays === 1)
-    return `${dateStr} (\u660E\u5929)`;
-  if (diffDays === -1)
-    return `${dateStr} (\u6628\u5929)`;
-  if (diffDays > 0 && diffDays <= 7)
-    return `${dateStr} (${diffDays}\u5929\u540E)`;
-  if (diffDays < 0 && diffDays >= -7)
-    return `${dateStr} (${Math.abs(diffDays)}\u5929\u524D)`;
-  return dateStr;
-}
-
-// src/modals/CreateVersionModal.ts
-var CreateVersionModal = class extends import_obsidian10.Modal {
-  constructor(app, onSubmit) {
-    super(app);
-    this.result = {
-      name: "",
-      status: "planning",
-      tags: []
-    };
-    // 用于存储输入元素引用以便更新值
-    this.startDateInput = null;
-    this.endDateInput = null;
-    this.onSubmit = onSubmit;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    contentEl.createEl("h2", { text: "\u521B\u5EFA\u7248\u672C" });
-    new import_obsidian10.Setting(contentEl).setName("\u7248\u672C\u540D\u79F0").setDesc("\u8F93\u5165\u7248\u672C\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Av1.0 \u7B2C\u4E00\u5B63\u5EA6").setValue(this.result.name).onChange((value) => {
-      this.result.name = value;
-    }));
-    new import_obsidian10.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-      VERSION_STATUSES.forEach((status) => {
-        dropdown.addOption(status.value, status.label);
-      });
-      dropdown.setValue(this.result.status);
-      dropdown.onChange((value) => {
-        this.result.status = value;
-      });
-    });
-    const startDateSetting = new import_obsidian10.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-    startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.startDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.startDateInput.value = this.result.startDate || "";
-      this.startDateInput.addEventListener("change", (e) => {
-        const value = e.target.value;
-        this.result.startDate = value || void 0;
-        startDateSetting.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        this.result.startDate = date;
-        if (this.startDateInput) {
-          this.startDateInput.value = date;
-        }
-        startDateSetting.setDesc(formatDateDisplay(date));
-      });
-    });
-    const endDateSetting = new import_obsidian10.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-    endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.endDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.endDateInput.value = this.result.endDate || "";
-      this.endDateInput.addEventListener("change", (e) => {
-        const value = e.target.value;
-        this.result.endDate = value || void 0;
-        endDateSetting.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        this.result.endDate = date;
-        if (this.endDateInput) {
-          this.endDateInput.value = date;
-        }
-        endDateSetting.setDesc(formatDateDisplay(date));
-      });
-    });
-    new import_obsidian10.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
-      this.result.owner = value || void 0;
-    }));
-    new import_obsidian10.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      var _a;
-      return text.setPlaceholder("\u4F8B\u5982\uFF1AQ1, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const exampleButton = buttonContainer.createEl("button", {
-      text: "\u586B\u5165\u793A\u4F8B",
-      cls: "pm-btn--secondary"
-    });
-    exampleButton.style.marginRight = "auto";
-    exampleButton.addEventListener("click", () => this.fillExample());
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const submitButton = buttonContainer.createEl("button", {
-      text: "\u521B\u5EFA",
-      cls: "mod-cta"
-    });
-    submitButton.addEventListener("click", () => {
-      if (!this.result.name.trim()) {
-        return;
-      }
-      this.onSubmit(this.result);
-      this.close();
-    });
-  }
-  /**
-   * 填入示例数据
-   */
-  fillExample() {
-    const today = /* @__PURE__ */ new Date();
-    const nextQuarter = new Date(today);
-    nextQuarter.setMonth(nextQuarter.getMonth() + 3);
-    this.result = {
-      name: "v1.0.0 \u6625\u5B63\u8FED\u4EE3",
-      status: "planning",
-      owner: "\u5F20\u4E09",
-      startDate: today.toISOString().split("T")[0],
-      endDate: nextQuarter.toISOString().split("T")[0],
-      tags: ["Q2", "\u91CD\u8981"]
-    };
-    this.onOpen();
-  }
-  /**
-   * 创建快捷日期按钮
-   */
-  createQuickDateButtons(container, onSelect) {
-    const quickContainer = container.createDiv({ cls: "pm-date-quick" });
-    const today = /* @__PURE__ */ new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextMonth = new Date(today);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const formatDate3 = (date) => {
-      return date.toISOString().split("T")[0];
-    };
-    const buttons = [
-      { label: "\u4ECA\u5929", date: formatDate3(today) },
-      { label: "\u660E\u5929", date: formatDate3(tomorrow) },
-      { label: "\u4E00\u5468\u540E", date: formatDate3(nextWeek) },
-      { label: "\u4E00\u6708\u540E", date: formatDate3(nextMonth) }
-    ];
-    buttons.forEach(({ label, date }) => {
-      const btn = quickContainer.createEl("button", {
-        text: label,
-        cls: "pm-date-quick__btn"
-      });
-      btn.addEventListener("click", () => onSelect(date));
-    });
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/modals/CreateProjectModal.ts
-var import_obsidian11 = require("obsidian");
-init_constants();
-var formatDate2 = (date) => date.toISOString().split("T")[0];
-var CreateProjectModal = class extends import_obsidian11.Modal {
-  constructor(app, entityManager, defaultVersionId, onSubmit) {
-    super(app);
-    this.result = {
-      name: "",
-      versionId: "",
-      status: "backlog",
-      priority: "medium",
-      tags: []
-    };
-    this.versions = [];
-    this.startDateInput = null;
-    this.endDateInput = null;
-    this.entityManager = entityManager;
-    this.onSubmit = onSubmit;
-    if (defaultVersionId) {
-      this.result.versionId = defaultVersionId;
-    }
-  }
-  async onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    this.versions = await this.entityManager.listVersions();
-    if (this.versions.length === 0) {
-      contentEl.createEl("h2", { text: "\u521B\u5EFA\u9879\u76EE" });
-      contentEl.createEl("p", {
-        text: "\u6682\u65E0\u7248\u672C\uFF0C\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u9879\u76EE\u3002",
-        cls: "pm-modal__warning"
-      });
-      const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
-      const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
-      okButton.addEventListener("click", () => this.close());
-      return;
-    }
-    contentEl.createEl("h2", { text: "\u521B\u5EFA\u9879\u76EE" });
-    new import_obsidian11.Setting(contentEl).setName("\u9879\u76EE\u540D\u79F0").setDesc("\u8F93\u5165\u9879\u76EE\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5B98\u7F51\u91CD\u6784").setValue(this.result.name).onChange((value) => {
-      this.result.name = value;
-    }));
-    new import_obsidian11.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u9879\u76EE\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
-      dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
-      this.versions.forEach((version) => {
-        dropdown.addOption(version.id, version.name);
-      });
-      dropdown.setValue(this.result.versionId);
-      dropdown.onChange((value) => {
-        this.result.versionId = value;
-      });
-    });
-    new import_obsidian11.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-      PROJECT_STATUSES.forEach((status) => {
-        dropdown.addOption(status.value, status.label);
-      });
-      dropdown.setValue(this.result.status);
-      dropdown.onChange((value) => {
-        this.result.status = value;
-      });
-    });
-    new import_obsidian11.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
-      PRIORITIES.forEach((priority) => {
-        dropdown.addOption(priority.value, priority.label);
-      });
-      dropdown.setValue(this.result.priority);
-      dropdown.onChange((value) => {
-        this.result.priority = value;
-      });
-    });
-    new import_obsidian11.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
-      this.result.owner = value || void 0;
-    }));
-    const startDateSetting = new import_obsidian11.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-    startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.startDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.startDateInput.value = this.result.startDate || "";
-      this.startDateInput.addEventListener("change", (e) => {
-        const value = e.target.value;
-        this.result.startDate = value || void 0;
-        startDateSetting.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      const quickContainer = div.createDiv({ cls: "pm-date-quick" });
-      const today = /* @__PURE__ */ new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const nextMonth = new Date(today);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      [
-        { label: "\u4ECA\u5929", date: formatDate2(today) },
-        { label: "\u660E\u5929", date: formatDate2(tomorrow) },
-        { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
-        { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
-      ].forEach(({ label, date }) => {
-        const btn = quickContainer.createEl("button", {
-          text: label,
-          cls: "pm-date-quick-btn"
-        });
-        btn.addEventListener("click", () => {
-          this.result.startDate = date;
-          if (this.startDateInput) {
-            this.startDateInput.value = date;
-          }
-          startDateSetting.setDesc(formatDateDisplay(date));
-        });
-      });
-    });
-    const endDateSetting = new import_obsidian11.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-    endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.endDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.endDateInput.value = this.result.endDate || "";
-      this.endDateInput.addEventListener("change", (e) => {
-        const value = e.target.value;
-        this.result.endDate = value || void 0;
-        endDateSetting.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      const quickContainer = div.createDiv({ cls: "pm-date-quick" });
-      const today = /* @__PURE__ */ new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const nextMonth = new Date(today);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      [
-        { label: "\u4ECA\u5929", date: formatDate2(today) },
-        { label: "\u660E\u5929", date: formatDate2(tomorrow) },
-        { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
-        { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
-      ].forEach(({ label, date }) => {
-        const btn = quickContainer.createEl("button", {
-          text: label,
-          cls: "pm-date-quick-btn"
-        });
-        btn.addEventListener("click", () => {
-          this.result.endDate = date;
-          if (this.endDateInput) {
-            this.endDateInput.value = date;
-          }
-          endDateSetting.setDesc(formatDateDisplay(date));
-        });
-      });
-    });
-    new import_obsidian11.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      var _a;
-      return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, \u91CD\u8981").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const exampleButton = buttonContainer.createEl("button", {
-      text: "\u586B\u5165\u793A\u4F8B",
-      cls: "pm-btn--secondary"
-    });
-    exampleButton.style.marginRight = "auto";
-    exampleButton.addEventListener("click", () => this.fillExample());
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const submitButton = buttonContainer.createEl("button", {
-      text: "\u521B\u5EFA",
-      cls: "mod-cta"
-    });
-    submitButton.addEventListener("click", () => {
-      if (!this.result.name.trim()) {
-        new import_obsidian11.Notice("\u9879\u76EE\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
-        return;
-      }
-      if (!this.result.versionId) {
-        new import_obsidian11.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
-        return;
-      }
-      this.onSubmit(this.result);
-      this.close();
-    });
-  }
-  /**
-   * 填入示例数据
-   */
-  fillExample() {
-    const today = /* @__PURE__ */ new Date();
-    const nextMonth = new Date(today);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    this.result = {
-      name: "\u5B98\u7F51\u91CD\u6784\u9879\u76EE",
-      versionId: this.versions.length > 0 ? this.versions[0].id : "",
-      status: "backlog",
-      priority: "high",
-      owner: "\u674E\u56DB",
-      startDate: formatDate2(today),
-      endDate: formatDate2(nextMonth),
-      tags: ["\u524D\u7AEF", "\u8BBE\u8BA1", "\u5B98\u7F51"]
-    };
-    this.onOpen();
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/modals/CreateFeatureModal.ts
-var import_obsidian12 = require("obsidian");
-init_constants();
-var CreateFeatureModal = class extends import_obsidian12.Modal {
-  constructor(app, entityManager, defaultVersionId, defaultProjectId, onSubmit) {
-    super(app);
-    this.result = {
-      name: "",
-      versionId: "",
-      projectId: "",
-      status: "backlog",
-      priority: "medium",
-      progress: 0,
-      tags: [],
-      estimatedHours: void 0,
-      actualHours: void 0,
-      requirementIds: [],
-      projectLink: void 0
-    };
-    this.versions = [];
-    this.projects = [];
-    this.filteredProjects = [];
-    // 用于存储输入元素引用
-    this.endDateInput = null;
-    this.endDateSetting = null;
-    this.startDateInput = null;
-    this.startDateSetting = null;
-    this.entityManager = entityManager;
-    this.onSubmit = onSubmit;
-    if (defaultVersionId) {
-      this.result.versionId = defaultVersionId;
-    }
-    if (defaultProjectId) {
-      this.result.projectId = defaultProjectId;
-    }
-  }
-  async onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    this.versions = await this.entityManager.listVersions();
-    this.projects = await this.entityManager.listProjects();
-    if (this.versions.length === 0) {
-      contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
-      contentEl.createEl("p", {
-        text: "\u6682\u65E0\u7248\u672C\uFF0C\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u7279\u6027\u3002",
-        cls: "pm-modal__warning"
-      });
-      const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
-      const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
-      okButton.addEventListener("click", () => this.close());
-      return;
-    }
-    if (this.projects.length === 0) {
-      contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
-      contentEl.createEl("p", {
-        text: "\u6682\u65E0\u9879\u76EE\uFF0C\u8BF7\u5148\u521B\u5EFA\u9879\u76EE\u540E\u518D\u521B\u5EFA\u7279\u6027\u3002",
-        cls: "pm-modal__warning"
-      });
-      const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
-      const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
-      okButton.addEventListener("click", () => this.close());
-      return;
-    }
-    contentEl.createEl("h2", { text: "\u521B\u5EFA\u7279\u6027" });
-    new import_obsidian12.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").setDesc("\u8F93\u5165\u7279\u6027\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u767B\u5F55\u9875\u9762\u5F00\u53D1").setValue(this.result.name).onChange((value) => {
-      this.result.name = value;
-    }));
-    const versionSetting = new import_obsidian12.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
-      dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
-      this.versions.forEach((version) => {
-        dropdown.addOption(version.id, version.name);
-      });
-      dropdown.setValue(this.result.versionId);
-      dropdown.onChange((value) => {
-        this.result.versionId = value;
-        this.updateProjectDropdown();
-      });
-    });
-    const projectSetting = new import_obsidian12.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE").setDesc("\u9009\u62E9\u7279\u6027\u6240\u5C5E\u7684\u9879\u76EE\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
-      this.projectDropdown = dropdown;
-      this.updateProjectDropdown();
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-      FEATURE_STATUSES.forEach((status) => {
-        dropdown.addOption(status.value, status.label);
-      });
-      dropdown.setValue(this.result.status);
-      dropdown.onChange((value) => {
-        this.result.status = value;
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
-      PRIORITIES.forEach((priority) => {
-        dropdown.addOption(priority.value, priority.label);
-      });
-      dropdown.setValue(this.result.priority);
-      dropdown.onChange((value) => {
-        this.result.priority = value;
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
-      this.result.progress = value;
-    }));
-    this.startDateSetting = new import_obsidian12.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
-    this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.startDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.startDateInput.value = this.result.startDate || "";
-      this.startDateInput.addEventListener("change", (e) => {
-        var _a;
-        const value = e.target.value;
-        this.result.startDate = value || void 0;
-        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        var _a;
-        this.result.startDate = date;
-        if (this.startDateInput) {
-          this.startDateInput.value = date;
-        }
-        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
-      });
-    });
-    this.endDateSetting = new import_obsidian12.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-    this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.endDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.endDateInput.value = this.result.endDate || "";
-      this.endDateInput.addEventListener("change", (e) => {
-        var _a;
-        const value = e.target.value;
-        this.result.endDate = value || void 0;
-        (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        var _a;
-        this.result.endDate = date;
-        if (this.endDateInput) {
-          this.endDateInput.value = date;
-        }
-        (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
-      toggle.setValue(this.result.isMilestone || false);
-      toggle.onChange((value) => {
-        this.result.isMilestone = value;
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
-      this.result.owner = value || void 0;
-    }));
-    new import_obsidian12.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      text.inputEl.type = "number";
-      text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
-      text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
-        const num = value ? parseFloat(value) : void 0;
-        this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      text.inputEl.type = "number";
-      text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
-      text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
-        const num = value ? parseFloat(value) : void 0;
-        this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      var _a;
-      return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, API").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      var _a;
-      return text.setPlaceholder("\u4F8B\u5982\uFF1AREQ-001, REQ-002").setValue(((_a = this.result.requirementIds) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.requirementIds = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    new import_obsidian12.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
-      this.result.projectLink = value || void 0;
-    }));
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const exampleButton = buttonContainer.createEl("button", {
-      text: "\u586B\u5165\u793A\u4F8B",
-      cls: "pm-btn--secondary"
-    });
-    exampleButton.style.marginRight = "auto";
-    exampleButton.addEventListener("click", () => this.fillExample());
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const submitButton = buttonContainer.createEl("button", {
-      text: "\u521B\u5EFA",
-      cls: "mod-cta"
-    });
-    submitButton.addEventListener("click", () => {
-      if (!this.result.name.trim()) {
-        new import_obsidian12.Notice("\u7279\u6027\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
-        return;
-      }
-      if (!this.result.versionId) {
-        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
-        return;
-      }
-      if (!this.result.projectId) {
-        new import_obsidian12.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u9879\u76EE");
-        return;
-      }
-      this.onSubmit(this.result);
-      this.close();
-    });
-  }
-  /**
-   * 填入示例数据
-   */
-  fillExample() {
-    const today = /* @__PURE__ */ new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    this.result = {
-      name: "\u9996\u9875\u8BBE\u8BA1\u5F00\u53D1",
-      versionId: this.result.versionId || (this.versions.length > 0 ? this.versions[0].id : ""),
-      projectId: this.result.projectId || (this.projects.length > 0 ? this.projects[0].id : ""),
-      status: "todo",
-      priority: "high",
-      progress: 0,
-      startDate: today.toISOString().split("T")[0],
-      endDate: nextWeek.toISOString().split("T")[0],
-      owner: "\u8BBE\u8BA1\u5E08\u5C0F\u738B",
-      tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"],
-      isMilestone: false,
-      estimatedHours: 40,
-      actualHours: 0,
-      requirementIds: ["REQ-001", "REQ-002"],
-      projectLink: "https://hialm.example.com/project/123"
-    };
-    this.onOpen();
-  }
-  /**
-   * 创建快捷日期按钮
-   */
-  createQuickDateButtons(container, onSelect) {
-    const quickContainer = container.createDiv({ cls: "pm-date-quick" });
-    const today = /* @__PURE__ */ new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextMonth = new Date(today);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const formatDate3 = (date) => {
-      return date.toISOString().split("T")[0];
-    };
-    const buttons = [
-      { label: "\u4ECA\u5929", date: formatDate3(today) },
-      { label: "\u660E\u5929", date: formatDate3(tomorrow) },
-      { label: "\u4E00\u5468\u540E", date: formatDate3(nextWeek) },
-      { label: "\u4E00\u6708\u540E", date: formatDate3(nextMonth) }
-    ];
-    buttons.forEach(({ label, date }) => {
-      const btn = quickContainer.createEl("button", {
-        text: label,
-        cls: "pm-date-quick__btn"
-      });
-      btn.addEventListener("click", () => onSelect(date));
-    });
-  }
-  updateProjectDropdown() {
-    if (!this.projectDropdown)
-      return;
-    this.projectDropdown.selectEl.innerHTML = "";
-    this.projectDropdown.addOption("", "\u8BF7\u9009\u62E9\u9879\u76EE");
-    this.filteredProjects = this.result.versionId ? this.projects.filter((p) => p.versionId === this.result.versionId) : this.projects;
-    this.filteredProjects.forEach((project) => {
-      this.projectDropdown.addOption(project.id, project.name);
-    });
-    if (this.result.projectId && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
-      this.result.projectId = "";
-      this.projectDropdown.setValue("");
-    } else {
-      this.projectDropdown.setValue(this.result.projectId);
-    }
-    this.projectDropdown.onChange((value) => {
-      this.result.projectId = value;
-    });
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/modals/index.ts
-init_QuickCreateModal();
-
-// src/modals/DeleteConfirmModal.ts
-var import_obsidian14 = require("obsidian");
-
-// src/modals/EditFeatureModal.ts
-var import_obsidian16 = require("obsidian");
-init_constants();
-
-// src/modals/ConfirmModal.ts
-var import_obsidian15 = require("obsidian");
-var ConfirmModal = class extends import_obsidian15.Modal {
-  constructor(app, title, message, onConfirm, onCancel) {
-    super(app);
-    this.title = title;
-    this.message = message;
-    this.onConfirm = onConfirm;
-    this.onCancel = onCancel;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    contentEl.createEl("h2", { text: this.title });
-    const messageEl = contentEl.createEl("p", { text: this.message });
-    messageEl.style.marginBottom = "20px";
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => {
-      if (this.onCancel) {
-        this.onCancel();
-      }
-      this.close();
-    });
-    const confirmButton = buttonContainer.createEl("button", {
-      text: "\u786E\u8BA4",
-      cls: "mod-warning"
-    });
-    confirmButton.addEventListener("click", () => {
-      this.onConfirm();
-      this.close();
-    });
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/modals/EditFeatureModal.ts
-var EditFeatureModal = class extends import_obsidian16.Modal {
-  constructor(app, entityManager, feature, onSubmit, onDelete) {
-    super(app);
-    // 用于存储输入元素引用
-    this.endDateInput = null;
-    this.endDateSetting = null;
-    this.startDateInput = null;
-    this.startDateSetting = null;
-    this.entityManager = entityManager;
-    this.feature = feature;
-    this.onSubmit = onSubmit;
-    this.onDelete = onDelete;
-    this.result = {
-      name: feature.name,
-      status: feature.status,
-      priority: feature.priority,
-      progress: feature.progress,
-      startDate: feature.startDate,
-      endDate: feature.endDate,
-      owner: feature.owner,
-      tags: [...feature.tags],
-      isMilestone: feature.isMilestone,
-      estimatedHours: feature.estimatedHours,
-      actualHours: feature.actualHours,
-      requirementIds: feature.requirementIds ? [...feature.requirementIds] : [],
-      projectLink: feature.projectLink
-    };
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
-    new import_obsidian16.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
-      this.result.name = value;
-    }));
-    new import_obsidian16.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
-      FEATURE_STATUSES.forEach((status) => {
-        dropdown.addOption(status.value, status.label);
-      });
-      dropdown.setValue(this.result.status);
-      dropdown.onChange((value) => {
-        const newStatus = value;
-        if (needsStatusConfirmation(this.result.status, newStatus)) {
-          new ConfirmModal(
-            this.app,
-            "\u786E\u8BA4\u72B6\u6001\u53D8\u66F4",
-            `\u786E\u5B9A\u8981\u5C06\u72B6\u6001\u4ECE "${getStatusLabel(this.result.status)}" \u53D8\u66F4\u4E3A "${getStatusLabel(newStatus)}" \u5417\uFF1F`,
-            () => {
-              this.result.status = newStatus;
-            },
-            () => {
-              dropdown.setValue(this.result.status);
-            }
-          ).open();
-        } else {
-          this.result.status = newStatus;
-        }
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
-      PRIORITIES.forEach((priority) => {
-        dropdown.addOption(priority.value, priority.label);
-      });
-      dropdown.setValue(this.result.priority);
-      dropdown.onChange((value) => {
-        this.result.priority = value;
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
-      this.result.progress = value;
-    }));
-    this.startDateSetting = new import_obsidian16.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
-    this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.startDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.startDateInput.value = this.result.startDate || "";
-      this.startDateInput.addEventListener("change", (e) => {
-        var _a;
-        const value = e.target.value;
-        this.result.startDate = value || void 0;
-        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        var _a;
-        this.result.startDate = date;
-        if (this.startDateInput) {
-          this.startDateInput.value = date;
-        }
-        (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
-      });
-    });
-    this.endDateSetting = new import_obsidian16.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-    this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
-      this.endDateInput = div.createEl("input", {
-        type: "date",
-        cls: "pm-date-picker"
-      });
-      this.endDateInput.value = this.result.endDate || "";
-      this.endDateInput.addEventListener("change", (e) => {
-        var _a;
-        const value = e.target.value;
-        this.result.endDate = value || void 0;
-        (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
-      });
-      this.createQuickDateButtons(div, (date) => {
-        var _a;
-        this.result.endDate = date;
-        if (this.endDateInput) {
-          this.endDateInput.value = date;
-        }
-        (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
-      toggle.setValue(this.result.isMilestone || false);
-      toggle.onChange((value) => {
-        this.result.isMilestone = value;
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
-      this.result.owner = value || void 0;
-    }));
-    new import_obsidian16.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      text.inputEl.type = "number";
-      text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
-      text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
-        const num = value ? parseFloat(value) : void 0;
-        this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
-      text.inputEl.type = "number";
-      text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
-      text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
-        const num = value ? parseFloat(value) : void 0;
-        this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
-      var _a;
-      return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7").addText((text) => {
-      var _a;
-      return text.setPlaceholder("\u4F8B\u5982\uFF1AREQ-001, REQ-002").setValue(((_a = this.result.requirementIds) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
-        this.result.requirementIds = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-      });
-    });
-    new import_obsidian16.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
-      this.result.projectLink = value || void 0;
-    }));
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    if (this.onDelete) {
-      const deleteButton = buttonContainer.createEl("button", {
-        text: "\u5220\u9664",
-        cls: "mod-warning"
-      });
-      deleteButton.style.marginRight = "auto";
-      deleteButton.addEventListener("click", () => {
-        new ConfirmModal(
-          this.app,
-          "\u786E\u8BA4\u5220\u9664",
-          `\u786E\u5B9A\u8981\u5220\u9664\u7279\u6027 "${this.feature.name}" \u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\u3002`,
-          () => {
-            this.onDelete();
-            this.close();
-          }
-        ).open();
-      });
-    }
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const submitButton = buttonContainer.createEl("button", {
-      text: "\u4FDD\u5B58",
-      cls: "mod-cta"
-    });
-    submitButton.addEventListener("click", () => {
-      var _a;
-      if (!((_a = this.result.name) == null ? void 0 : _a.trim())) {
-        return;
-      }
-      this.onSubmit(this.result);
-      this.close();
-    });
-  }
-  /**
-   * 创建快捷日期按钮
-   */
-  createQuickDateButtons(container, onSelect) {
-    const quickContainer = container.createDiv({ cls: "pm-date-quick" });
-    const today = /* @__PURE__ */ new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextMonth = new Date(today);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const formatDate3 = (date) => {
-      return date.toISOString().split("T")[0];
-    };
-    const buttons = [
-      { label: "\u4ECA\u5929", date: formatDate3(today) },
-      { label: "\u660E\u5929", date: formatDate3(tomorrow) },
-      { label: "\u4E00\u5468\u540E", date: formatDate3(nextWeek) },
-      { label: "\u4E00\u6708\u540E", date: formatDate3(nextMonth) }
-    ];
-    buttons.forEach(({ label, date }) => {
-      const btn = quickContainer.createEl("button", {
-        text: label,
-        cls: "pm-date-quick__btn"
-      });
-      btn.addEventListener("click", () => onSelect(date));
-    });
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/modals/ExportICSModal.ts
-var import_obsidian17 = require("obsidian");
-var ExportICSModal = class extends import_obsidian17.Modal {
-  constructor(app, entityManager) {
-    super(app);
-    this.entityManager = entityManager;
-    this.versions = [];
-    this.projects = [];
-    this.exportScope = "all";
-    this.selectedVersionId = "";
-    this.selectedProjectId = "";
-    this.renderFilters = () => {
-    };
-  }
-  async onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("pm-modal");
-    this.versions = await this.entityManager.listVersions();
-    this.projects = await this.entityManager.listProjects();
-    contentEl.createEl("h2", { text: "\u5BFC\u51FAICS\u90AE\u4EF6" });
-    new import_obsidian17.Setting(contentEl).setName("\u5BFC\u51FA\u8303\u56F4").addDropdown((dropdown) => {
-      dropdown.addOption("all", "\u5168\u90E8\u7279\u6027");
-      dropdown.addOption("version", "\u6309\u7248\u672C\u7B5B\u9009");
-      dropdown.addOption("project", "\u6309\u9879\u76EE\u7B5B\u9009");
-      dropdown.setValue(this.exportScope);
-      dropdown.onChange((value) => {
-        this.exportScope = value;
-        this.renderFilters();
-      });
-    });
-    const filterContainer = contentEl.createDiv({ cls: "pm-modal__filters" });
-    this.renderFilters = () => {
-      filterContainer.empty();
-      if (this.exportScope === "version") {
-        if (this.versions.length === 0) {
-          filterContainer.createEl("p", { text: "\u6682\u65E0\u7248\u672C\u53EF\u9009", cls: "pm-modal__warning" });
-          return;
-        }
-        new import_obsidian17.Setting(filterContainer).setName("\u9009\u62E9\u7248\u672C").addDropdown((dropdown) => {
-          var _a;
-          this.versions.forEach((v) => {
-            dropdown.addOption(v.id, v.name);
-          });
-          dropdown.setValue(this.selectedVersionId || ((_a = this.versions[0]) == null ? void 0 : _a.id) || "");
-          dropdown.onChange((value) => {
-            this.selectedVersionId = value;
-          });
-          this.selectedVersionId = dropdown.getValue();
-        });
-      } else if (this.exportScope === "project") {
-        if (this.projects.length === 0) {
-          filterContainer.createEl("p", { text: "\u6682\u65E0\u9879\u76EE\u53EF\u9009", cls: "pm-modal__warning" });
-          return;
-        }
-        new import_obsidian17.Setting(filterContainer).setName("\u9009\u62E9\u9879\u76EE").addDropdown((dropdown) => {
-          var _a;
-          this.projects.forEach((p) => {
-            dropdown.addOption(p.id, p.name);
-          });
-          dropdown.setValue(this.selectedProjectId || ((_a = this.projects[0]) == null ? void 0 : _a.id) || "");
-          dropdown.onChange((value) => {
-            this.selectedProjectId = value;
-          });
-          this.selectedProjectId = dropdown.getValue();
-        });
-      }
-    };
-    this.renderFilters();
-    const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
-    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
-    cancelButton.addEventListener("click", () => this.close());
-    const submitButton = buttonContainer.createEl("button", {
-      text: "\u5BFC\u51FA",
-      cls: "mod-cta"
-    });
-    submitButton.addEventListener("click", () => this.handleExport());
-  }
-  async handleExport() {
-    let features = await this.entityManager.listFeatures();
-    if (this.exportScope === "version") {
-      const versionId = this.selectedVersionId;
-      if (!versionId) {
-        new import_obsidian17.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u7248\u672C");
-        return;
-      }
-      features = features.filter((f) => f.versionId === versionId);
-    } else if (this.exportScope === "project") {
-      const projectId = this.selectedProjectId;
-      if (!projectId) {
-        new import_obsidian17.Notice("\u8BF7\u9009\u62E9\u4E00\u4E2A\u9879\u76EE");
-        return;
-      }
-      features = features.filter((f) => f.projectId === projectId);
-    }
-    const featuresWithEndDate = features.filter((f) => f.endDate);
-    if (featuresWithEndDate.length === 0) {
-      new import_obsidian17.Notice("\u6CA1\u6709\u8BBE\u7F6E\u7ED3\u675F\u65E5\u671F\u7684\u7279\u6027", 3e3);
-      return;
-    }
-    let filename = "\u9879\u76EE\u7BA1\u7406_\u7ED3\u675F\u65E5\u671F";
-    if (this.exportScope === "version") {
-      const version = this.versions.find((v) => v.id === this.selectedVersionId);
-      if (version)
-        filename = `${version.name}_\u622A\u6B62\u65E5\u671F`;
-    } else if (this.exportScope === "project") {
-      const project = this.projects.find((p) => p.id === this.selectedProjectId);
-      if (project)
-        filename = `${project.name}_\u622A\u6B62\u65E5\u671F`;
-    }
-    const icsContent = generateICS(featuresWithEndDate);
-    downloadICS(icsContent, filename);
-    new import_obsidian17.Notice(`\u5DF2\u5BFC\u51FA ${featuresWithEndDate.length} \u4E2A\u7279\u6027`, 3e3);
-    this.close();
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/ui/components/Button.ts
+var import_obsidian24 = require("obsidian");
+init_modals();
+init_utils();
 var Button = class {
   constructor(app, entityManager) {
     this.app = app;
     this.entityManager = entityManager;
+    this.emailSummaryService = new EmailSummaryService(app, entityManager);
+  }
+  /**
+   * 处理单个按钮点击（供全局事件委托使用）
+   */
+  handleButtonClick(buttonEl) {
+    const action = buttonEl.getAttribute("data-action");
+    if (!action)
+      return;
+    const versionId = buttonEl.getAttribute("data-version-id");
+    const projectId = buttonEl.getAttribute("data-project-id");
+    this.handleAction(action, versionId, projectId);
   }
   /**
    * 处理容器中的所有按钮
@@ -5733,8 +7326,8 @@ var Button = class {
       case "create-feature":
         await this.handleCreateFeature(versionId, projectId);
         break;
-      case "export-ics":
-        await this.handleExportICS();
+      case "export-email-summary":
+        await this.handleExportEmailSummary();
         break;
       default:
     }
@@ -5811,22 +7404,30 @@ var Button = class {
     ).open();
   }
   /**
-   * 导出 ICS 日历
+   * 导出邮件总结（当前页面渲染结果）
    */
-  handleExportICS() {
-    new ExportICSModal(
-      this.app,
-      this.entityManager
-    ).open();
+  async handleExportEmailSummary() {
+    try {
+      const result = await this.emailSummaryService.buildEmailFromRenderedPage();
+      if (!result) {
+        return;
+      }
+      const { emlContent, filename } = result;
+      downloadEML(emlContent, filename);
+      this.showNotice("\u90AE\u4EF6\u5DF2\u5BFC\u51FA", 3e3);
+    } catch (error) {
+      console.error("\u5BFC\u51FA\u90AE\u4EF6\u5931\u8D25:", error);
+      this.showNotice("\u5BFC\u51FA\u90AE\u4EF6\u5931\u8D25: " + error.message, 5e3);
+    }
   }
   /**
    * 显示通知
    */
   showNotice(message, timeout = 4e3) {
-    new import_obsidian18.Notice(message, timeout);
+    new import_obsidian24.Notice(message, timeout);
   }
 };
-var ButtonContainer = class extends import_obsidian18.MarkdownRenderChild {
+var ButtonContainer = class extends import_obsidian24.MarkdownRenderChild {
   constructor(containerEl, button) {
     super(containerEl);
     this.button = button;
@@ -5851,7 +7452,7 @@ var ButtonContainer = class extends import_obsidian18.MarkdownRenderChild {
 };
 
 // src/ui/components/ProgressInput.ts
-var import_obsidian19 = require("obsidian");
+var import_obsidian25 = require("obsidian");
 var ProgressInput = class {
   constructor(app) {
     this.app = app;
@@ -5896,25 +7497,31 @@ var ProgressInput = class {
         hour: "2-digit",
         minute: "2-digit"
       });
-      const newEntry = `- [${timestamp}] ${content}`;
-      const historySection = "### \u5386\u53F2\u8BB0\u5F55";
-      const addNewSection = "### \u6DFB\u52A0\u65B0\u8FDB\u5C55";
+      const newEntry = `| ${timestamp} | ${content} | |`;
       let updatedContent;
-      if (fileContent.includes(historySection)) {
-        const historyIndex = fileContent.indexOf(historySection);
-        const addNewIndex = fileContent.indexOf(addNewSection, historyIndex);
-        if (addNewIndex > historyIndex) {
-          const insertPosition = fileContent.lastIndexOf("\n", addNewIndex);
-          updatedContent = fileContent.slice(0, insertPosition) + "\n" + newEntry + fileContent.slice(insertPosition);
-        } else {
-          const insertPosition = historyIndex + historySection.length;
-          updatedContent = fileContent.slice(0, insertPosition) + "\n" + newEntry + fileContent.slice(insertPosition);
+      const progressTableSection = "## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988";
+      if (fileContent.includes(progressTableSection)) {
+        const sectionIndex = fileContent.indexOf(progressTableSection);
+        const afterSection = fileContent.slice(sectionIndex);
+        const lines = afterSection.split("\n");
+        let insertOffset = sectionIndex;
+        for (let i = 0; i < lines.length; i++) {
+          insertOffset += lines[i].length + 1;
+          if (lines[i].startsWith("|") && !lines[i].includes("---")) {
+            if (i + 1 >= lines.length || !lines[i + 1].trim().startsWith("|")) {
+              insertOffset -= 1;
+              break;
+            }
+          }
         }
+        updatedContent = fileContent.slice(0, insertOffset) + "\n" + newEntry + fileContent.slice(insertOffset);
       } else {
-        const progressSection = "## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988";
-        if (fileContent.includes(progressSection)) {
-          const insertPosition = fileContent.indexOf(progressSection) + progressSection.length;
-          updatedContent = fileContent.slice(0, insertPosition) + "\n\n### \u5386\u53F2\u8BB0\u5F55\n" + newEntry + fileContent.slice(insertPosition);
+        const historySection = "### \u5386\u53F2\u8BB0\u5F55";
+        if (fileContent.includes(historySection)) {
+          const historyIndex = fileContent.indexOf(historySection);
+          const insertPosition = historyIndex + historySection.length;
+          updatedContent = fileContent.slice(0, insertPosition) + `
+- [${timestamp}] ${content}` + fileContent.slice(insertPosition);
         } else {
           console.error("\u672A\u627E\u5230\u8FDB\u5C55\u53CD\u9988\u90E8\u5206");
           return;
@@ -5952,7 +7559,7 @@ var ProgressInput = class {
     }, 5e3);
   }
 };
-var ProgressInputContainer = class extends import_obsidian19.MarkdownRenderChild {
+var ProgressInputContainer = class extends import_obsidian25.MarkdownRenderChild {
   constructor(containerEl, progressInput) {
     super(containerEl);
     this.progressInput = progressInput;
@@ -5976,7 +7583,12 @@ var ProgressInputContainer = class extends import_obsidian19.MarkdownRenderChild
   }
 };
 
+// src/ui/index.ts
+init_DatePicker();
+
 // src/main.ts
+init_modals();
+init_utils();
 init_constants();
 
 // src/view-engine/services/DataService.ts
@@ -6276,6 +7888,7 @@ var ActionService = class {
     this.entityManager = entityManager;
     this.strategyRegistry = new EntityStrategyRegistry2(entityManager);
     this.eventBus = new EventBus();
+    this.logWriter = new LogWriterService(app);
   }
   /**
    * 获取事件总线实例
@@ -6340,10 +7953,19 @@ var ActionService = class {
    */
   async updateProgress(type, id, progress) {
     try {
-      if (type !== "feature")
+      const strategy = this.getStrategy(type);
+      if (!strategy)
         return false;
-      await this.entityManager.updateFeature(id, { progress });
-      await this.addProgressLog(id, progress);
+      await strategy.update(id, { progress });
+      const path = await this.entityManager.getEntityPath(type, id);
+      if (path) {
+        const now = /* @__PURE__ */ new Date();
+        const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        await this.logWriter.appendProgressLog(path, {
+          time: timeStr,
+          content: `\u8FDB\u5EA6\u66F4\u65B0\u81F3 ${progress}%`
+        });
+      }
       this.triggerRefresh();
       return true;
     } catch (error) {
@@ -6352,70 +7974,44 @@ var ActionService = class {
     }
   }
   /**
-   * 添加进展记录到特性文件
+   * 添加进展反馈到任意实体文件
    */
-  async addProgressLog(featureId, progress) {
-    const path = await this.entityManager.getFeaturePath(featureId);
-    if (!path)
-      return;
-    const obsidian = require("obsidian");
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof obsidian.TFile))
-      return;
-    const content = await this.app.vault.read(file);
-    const now = /* @__PURE__ */ new Date();
-    const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const progressEntry = `- [${timeStr}] \u8FDB\u5EA6\u66F4\u65B0\u81F3 ${progress}%
-`;
-    const progressSection = "## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988\u5386\u53F2\u8BB0\u5F55\n\n";
-    if (content.includes(progressSection)) {
-      const newContent = content.replace(
-        progressSection,
-        progressSection + progressEntry
-      );
-      await this.app.vault.modify(file, newContent);
-    }
-  }
-  /**
-   * 添加进展反馈笔记到文件
-   */
-  async addProgressNote(type, id, note) {
+  async addProgressLog(type, id, log) {
     try {
-      if (type !== "feature")
-        return false;
-      const path = await this.entityManager.getFeaturePath(id);
+      const path = await this.entityManager.getEntityPath(type, id);
       if (!path)
         return false;
-      const obsidian = require("obsidian");
-      const file = this.app.vault.getAbstractFileByPath(path);
-      if (!(file instanceof obsidian.TFile))
-        return false;
-      const content = await this.app.vault.read(file);
-      const now = /* @__PURE__ */ new Date();
-      const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-      const noteEntry = `- [${timeStr}] ${note}
-`;
-      const historySection = "### \u5386\u53F2\u8BB0\u5F55\n";
-      const historyIndex = content.indexOf(historySection);
-      if (historyIndex !== -1) {
-        const insertIndex = historyIndex + historySection.length;
-        const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
-        await this.app.vault.modify(file, newContent);
-      } else {
-        const oldSection = "## \u{1F4DD} \u8FDB\u5C55\u53CD\u9988\n\n### \u5386\u53F2\u8BB0\u5F55\n";
-        const oldIndex = content.indexOf(oldSection);
-        if (oldIndex !== -1) {
-          const insertIndex = oldIndex + oldSection.length;
-          const newContent = content.slice(0, insertIndex) + noteEntry + content.slice(insertIndex);
-          await this.app.vault.modify(file, newContent);
-        }
-      }
+      await this.logWriter.appendProgressLog(path, log);
       this.triggerRefresh();
       return true;
     } catch (error) {
       console.error("\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988\u5931\u8D25:", error);
       return false;
     }
+  }
+  /**
+   * 添加风险到任意实体文件
+   */
+  async addRisk(type, id, risk) {
+    try {
+      const path = await this.entityManager.getEntityPath(type, id);
+      if (!path)
+        return false;
+      await this.logWriter.appendRisk(path, risk);
+      this.triggerRefresh();
+      return true;
+    } catch (error) {
+      console.error("\u6DFB\u52A0\u98CE\u9669\u5931\u8D25:", error);
+      return false;
+    }
+  }
+  /**
+   * 添加进展反馈笔记到文件（兼容旧接口）
+   */
+  async addProgressNote(type, id, note) {
+    const now = /* @__PURE__ */ new Date();
+    const timeStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    return this.addProgressLog(type, id, { time: timeStr, content: note });
   }
   /**
    * 更新负责人
@@ -6500,8 +8096,8 @@ var ActionService = class {
    */
   async showConfirmDialog(title, message) {
     return new Promise((resolve) => {
-      const { Modal: Modal10, ButtonComponent: ButtonComponent2 } = require("obsidian");
-      class ConfirmModal2 extends Modal10 {
+      const { Modal: Modal12, ButtonComponent: ButtonComponent2 } = require("obsidian");
+      class ConfirmModal2 extends Modal12 {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl("h2", { text: title });
@@ -6534,7 +8130,6 @@ var ActionService = class {
 var VIEW_MODE_LABELS = {
   "kanban": "\u{1F4CA} \u770B\u677F\u89C6\u56FE",
   "list": "\u{1F4CB} \u5217\u8868\u89C6\u56FE",
-  "grid": "\u25A6 \u7F51\u683C\u89C6\u56FE",
   "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
   "timeline": "\u23F1\uFE0F \u65F6\u95F4\u7EBF\u89C6\u56FE",
   "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE",
@@ -6549,6 +8144,8 @@ var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "startDate", label: "\u5F00\u59CB\u65E5\u671F", required: false },
   { key: "endDate", label: "\u7ED3\u675F\u65E5\u671F", required: false },
   { key: "progress", label: "\u8FDB\u5EA6\u6761", required: false },
+  { key: "risk", label: "\u98CE\u9669\u5FBD\u7AE0", required: false },
+  { key: "latestProgress", label: "\u6700\u65B0\u8FDB\u5C55", required: false },
   { key: "tags", label: "\u6807\u7B7E", required: false },
   { key: "description", label: "\u63CF\u8FF0", required: false },
   { key: "parent", label: "\u7236\u7EA7\u4FE1\u606F", required: false },
@@ -6564,6 +8161,8 @@ var LIST_COLUMN_DEFINITIONS = [
   { key: "startDate", label: "\u5F00\u59CB\u65E5\u671F", required: false },
   { key: "endDate", label: "\u7ED3\u675F\u65E5\u671F", required: false },
   { key: "progress", label: "\u8FDB\u5EA6", required: false },
+  { key: "risk", label: "\u98CE\u9669", required: false },
+  { key: "latestProgress", label: "\u6700\u65B0\u8FDB\u5C55", required: false },
   { key: "tags", label: "\u6807\u7B7E", required: false },
   { key: "versionId", label: "\u7248\u672C", required: false },
   { key: "projectId", label: "\u9879\u76EE", required: false }
@@ -6576,6 +8175,50 @@ function getEntityType(entity) {
     return "project";
   }
   return "version";
+}
+var FEATURE_FIELDS = [
+  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "status", label: "\u72B6\u6001", type: "select", options: ["backlog", "todo", "in-progress", "testing", "completed", "archived"], editable: true, sortable: true, filterable: true },
+  { name: "priority", label: "\u4F18\u5148\u7EA7", type: "select", options: ["critical", "high", "medium", "low"], editable: true, sortable: true, filterable: true },
+  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "progress", label: "\u8FDB\u5EA6", type: "progress", editable: true, sortable: true, filterable: false },
+  { name: "estimatedHours", label: "\u9884\u4F30\u5DE5\u65F6", type: "number", editable: true, sortable: true, filterable: false },
+  { name: "actualHours", label: "\u5B9E\u9645\u5DE5\u65F6", type: "number", editable: true, sortable: true, filterable: false },
+  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true },
+  { name: "versionId", label: "\u7248\u672C", type: "entity", editable: true, sortable: true, filterable: true },
+  { name: "projectId", label: "\u9879\u76EE", type: "entity", editable: true, sortable: true, filterable: true }
+];
+var PROJECT_FIELDS = [
+  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "status", label: "\u72B6\u6001", type: "select", options: ["backlog", "in-progress", "completed", "archived"], editable: true, sortable: true, filterable: true },
+  { name: "priority", label: "\u4F18\u5148\u7EA7", type: "select", options: ["critical", "high", "medium", "low"], editable: true, sortable: true, filterable: true },
+  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true },
+  { name: "versionId", label: "\u7248\u672C", type: "entity", editable: true, sortable: true, filterable: true }
+];
+var VERSION_FIELDS = [
+  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "status", label: "\u72B6\u6001", type: "select", options: ["planning", "in-progress", "completed", "archived"], editable: true, sortable: true, filterable: true },
+  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
+  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
+  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true }
+];
+function getEntityFields(entityType) {
+  switch (entityType) {
+    case "feature":
+      return FEATURE_FIELDS;
+    case "project":
+      return PROJECT_FIELDS;
+    case "version":
+      return VERSION_FIELDS;
+    default:
+      return [];
+  }
 }
 
 // src/view-engine/design-tokens.ts
@@ -7263,6 +8906,7 @@ var EntityTreeSelector = class {
         this.updateTriggerDisplay(triggerBtn);
       }
     }
+    this.options.onSelect(null);
   }
   /**
    * 销毁选择器，清理事件监听器和 DOM
@@ -7300,432 +8944,8 @@ var EntityTreeSelector = class {
   }
 };
 
-// src/view-engine/components/FilterBar.ts
-var FilterBar = class {
-  constructor(app, entityManager, onChange, sourcePath, codeBlockStart) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.onChange = onChange;
-    this.sourcePath = sourcePath;
-    this.codeBlockStart = codeBlockStart;
-    this.filters = { mode: "kanban" };
-    this.owners = [];
-    this.currentEntityType = "feature";
-    this.cleanupFns = [];
-    // 实体类型选项（带颜色）
-    this.entityTypeOptions = [
-      { value: "version", label: "\u{1F4C1} \u7248\u672C", color: "#6366f1" },
-      { value: "project", label: "\u{1F4C2} \u9879\u76EE", color: "#3b82f6" },
-      { value: "feature", label: "\u{1F4C4} \u7279\u6027", color: "#22c55e" }
-    ];
-    // 状态选项（带颜色）
-    this.statusOptions = [
-      { value: "", label: "\u5168\u90E8\u72B6\u6001", color: "#9ca3af" },
-      { value: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
-      { value: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
-      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
-      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
-      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" }
-    ];
-    // 优先级选项（带颜色）
-    this.priorityOptions = [
-      { value: "", label: "\u5168\u90E8\u4F18\u5148\u7EA7", color: "#9ca3af" },
-      { value: "critical", label: "\u7D27\u6025", color: "#ef4444" },
-      { value: "high", label: "\u9AD8", color: "#f97316" },
-      { value: "medium", label: "\u4E2D", color: "#eab308" },
-      { value: "low", label: "\u4F4E", color: "#22c55e" }
-    ];
-    this.configService = new CodeBlockConfigService(app);
-  }
-  /**
-   * 加载选项数据（使用缓存优化）
-   */
-  async loadOptions() {
-    const ownersFromCache = this.entityManager.getOwners();
-    this.owners = ["\u5168\u90E8\u8D1F\u8D23\u4EBA", ...ownersFromCache];
-  }
-  /**
-   * 渲染筛选器 - 横向紧凑卡片式，所有下拉框使用 SelectCell 风格
-   */
-  render(parent, initialFilters) {
-    this.container = parent.createDiv("pm-filter-container");
-    if (initialFilters) {
-      this.filters = { ...this.filters, ...initialFilters };
-      if (initialFilters.entityType) {
-        this.currentEntityType = initialFilters.entityType;
-      }
-    }
-    const filterBar = this.container.createDiv("pm-filter-bar-compact");
-    this.createSelectCell(filterBar, "\u5B9E\u4F53\u7C7B\u578B", this.entityTypeOptions, this.currentEntityType, (value) => {
-      var _a;
-      this.currentEntityType = value;
-      this.filters.entityType = this.currentEntityType;
-      this.filters.version = void 0;
-      this.filters.project = void 0;
-      this.filters.feature = void 0;
-      (_a = this.treeSelector) == null ? void 0 : _a.updateEntityType(this.currentEntityType);
-      this.onFilterChange();
-    });
-    const treeWrapper = filterBar.createDiv("pm-filter-tree-wrapper");
-    this.treeSelector = new EntityTreeSelector(this.app, this.entityManager, {
-      entityType: this.currentEntityType,
-      onSelect: (selection) => {
-        this.handleTreeSelection(selection);
-      },
-      initialSelection: this.buildInitialSelection()
-    });
-    this.treeSelector.render(treeWrapper);
-    this.createSelectCell(filterBar, "\u72B6\u6001", this.statusOptions, this.filters.status || "", (value) => {
-      this.filters.status = value || void 0;
-      this.onFilterChange();
-    });
-    this.createSelectCell(filterBar, "\u4F18\u5148\u7EA7", this.priorityOptions, this.filters.priority || "", (value) => {
-      this.filters.priority = value || void 0;
-      this.onFilterChange();
-    });
-    const ownerOptions = this.owners.map((o) => ({
-      value: o === "\u5168\u90E8\u8D1F\u8D23\u4EBA" ? "" : o,
-      label: o,
-      color: "#8b5cf6"
-    }));
-    this.createSelectCell(filterBar, "\u8D1F\u8D23\u4EBA", ownerOptions, this.filters.owner || "", (value) => {
-      this.filters.owner = value || void 0;
-      this.onFilterChange();
-    });
-    return this.container;
-  }
-  /**
-   * 创建 SelectCell 风格的下拉选择器
-   */
-  createSelectCell(container, label, options, value, onChange) {
-    const wrapper = container.createDiv("pm-filter-field-compact");
-    const triggerBtn = wrapper.createDiv("pm-cell-badge pm-filter-badge");
-    const selectedOption = options.find((opt) => opt.value === value) || options[0];
-    this.updateBadgeStyle(triggerBtn, selectedOption);
-    let dropdownEl = null;
-    triggerBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (dropdownEl) {
-        dropdownEl.remove();
-        dropdownEl = null;
-        return;
-      }
-      dropdownEl = this.createDropdown(wrapper, options, value, (newValue) => {
-        onChange(newValue);
-        const newOption = options.find((opt) => opt.value === newValue) || options[0];
-        this.updateBadgeStyle(triggerBtn, newOption);
-        dropdownEl == null ? void 0 : dropdownEl.remove();
-        dropdownEl = null;
-      });
-    });
-    const closeHandler = (e) => {
-      if (dropdownEl && !dropdownEl.contains(e.target) && !wrapper.contains(e.target)) {
-        dropdownEl.remove();
-        dropdownEl = null;
-      }
-    };
-    document.addEventListener("click", closeHandler);
-    this.cleanupFns.push(() => {
-      document.removeEventListener("click", closeHandler);
-      if (dropdownEl) {
-        dropdownEl.remove();
-      }
-    });
-    return wrapper;
-  }
-  /**
-   * 更新 badge 样式
-   */
-  updateBadgeStyle(badge, option) {
-    badge.empty();
-    badge.textContent = option.label;
-    const color = option.color || "#9ca3af";
-    badge.style.cssText = `
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      background-color: ${this.hexToRgba(color, 0.15)};
-      color: ${color};
-      border: 1px solid ${this.hexToRgba(color, 0.3)};
-      transition: all 0.2s ease;
-    `;
-    const arrow = badge.createSpan();
-    arrow.textContent = "\u25BC";
-    arrow.style.cssText = `
-      font-size: 10px;
-      opacity: 0.7;
-      margin-left: 2px;
-    `;
-  }
-  /**
-   * 创建下拉菜单
-   */
-  createDropdown(container, options, currentValue, onSelect) {
-    const rect = container.getBoundingClientRect();
-    const dropdown = document.body.createDiv("pm-cell-dropdown pm-filter-dropdown");
-    const zIndex = "var(--pm-z-dropdown, 1000)";
-    dropdown.style.cssText = `
-      position: fixed;
-      left: ${rect.left}px;
-      top: ${rect.bottom + 4}px;
-      min-width: ${rect.width}px;
-      max-width: 200px;
-      max-height: 280px;
-      overflow-y: auto;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 8px;
-      padding: 4px;
-      z-index: ${zIndex};
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    `;
-    options.forEach((opt) => {
-      const item = dropdown.createDiv("pm-cell-dropdown-item");
-      item.style.cssText = `
-        padding: 8px 12px;
-        cursor: pointer;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        transition: background 0.15s ease;
-      `;
-      const color = opt.color || "#9ca3af";
-      const dot = item.createSpan();
-      dot.style.cssText = `
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: ${color};
-        flex-shrink: 0;
-      `;
-      item.createSpan({ text: opt.label });
-      if (opt.value === currentValue) {
-        item.createSpan({
-          text: "\u2713",
-          cls: "pm-cell-dropdown-check"
-        }).style.cssText = "margin-left: auto; font-weight: bold;";
-      }
-      item.addEventListener("click", () => {
-        onSelect(opt.value);
-      });
-      item.addEventListener("mouseenter", () => {
-        item.style.background = "var(--background-modifier-hover)";
-      });
-      item.addEventListener("mouseleave", () => {
-        item.style.background = "";
-      });
-    });
-    return dropdown;
-  }
-  /**
-   * Hex 转 RGBA
-   */
-  hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  /**
-   * 构建初始选择状态
-   * 根据 entityType 和 filter 字段智能构建树选择状态（统一使用列表）
-   */
-  buildInitialSelection() {
-    const selection = { type: this.currentEntityType };
-    let hasSelection = false;
-    switch (this.currentEntityType) {
-      case "version":
-        if (this.filters.versions && this.filters.versions.length > 0) {
-          selection.versionIds = [...this.filters.versions];
-          hasSelection = true;
-        }
-        break;
-      case "project":
-        if (this.filters.projects && this.filters.projects.length > 0) {
-          selection.projectIds = [...this.filters.projects];
-          hasSelection = true;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          selection.versionIds = [...this.filters.versions];
-          hasSelection = true;
-        }
-        break;
-      case "feature":
-        if (this.filters.features && this.filters.features.length > 0) {
-          selection.featureIds = [...this.filters.features];
-          hasSelection = true;
-        } else if (this.filters.projects && this.filters.projects.length > 0) {
-          selection.projectIds = [...this.filters.projects];
-          hasSelection = true;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          selection.versionIds = [...this.filters.versions];
-          hasSelection = true;
-        }
-        break;
-    }
-    return hasSelection ? selection : void 0;
-  }
-  /**
-   * 处理树形选择器的选择变化
-   * 树形选择器已处理级联勾选，这里直接使用勾选的节点ID
-   * - 关注 version：使用勾选的 versionIds
-   * - 关注 project：使用勾选的 projectIds
-   * - 关注 feature：使用勾选的 featureIds
-   */
-  handleTreeSelection(selection) {
-    this.filters.versions = void 0;
-    this.filters.projects = void 0;
-    this.filters.features = void 0;
-    if (!selection) {
-      this.onFilterChange();
-      return;
-    }
-    switch (this.currentEntityType) {
-      case "version": {
-        if (selection.versionIds && selection.versionIds.length > 0) {
-          this.filters.versions = selection.versionIds;
-        }
-        break;
-      }
-      case "project": {
-        if (selection.projectIds && selection.projectIds.length > 0) {
-          this.filters.projects = selection.projectIds;
-        }
-        break;
-      }
-      case "feature": {
-        if (selection.featureIds && selection.featureIds.length > 0) {
-          this.filters.features = selection.featureIds;
-        }
-        break;
-      }
-    }
-    this.onFilterChange();
-  }
-  /**
-   * 筛选条件变化时的处理
-   * 统一使用列表形式传递层级筛选字段
-   */
-  onFilterChange() {
-    const cleanFilters = {
-      mode: this.filters.mode,
-      entityType: this.filters.entityType
-    };
-    cleanFilters.versions = void 0;
-    cleanFilters.projects = void 0;
-    cleanFilters.features = void 0;
-    switch (this.currentEntityType) {
-      case "version":
-        if (this.filters.versions && this.filters.versions.length > 0) {
-          cleanFilters.versions = this.filters.versions;
-        }
-        break;
-      case "project":
-        if (this.filters.projects && this.filters.projects.length > 0) {
-          cleanFilters.projects = this.filters.projects;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          cleanFilters.versions = this.filters.versions;
-        }
-        break;
-      case "feature":
-        if (this.filters.features && this.filters.features.length > 0) {
-          cleanFilters.features = this.filters.features;
-        } else if (this.filters.projects && this.filters.projects.length > 0) {
-          cleanFilters.projects = this.filters.projects;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          cleanFilters.versions = this.filters.versions;
-        }
-        break;
-    }
-    if (this.filters.status)
-      cleanFilters.status = this.filters.status;
-    if (this.filters.priority)
-      cleanFilters.priority = this.filters.priority;
-    if (this.filters.owner)
-      cleanFilters.owner = this.filters.owner;
-    if (this.filters.tag)
-      cleanFilters.tag = this.filters.tag;
-    this.onChange(cleanFilters);
-    this.saveFiltersToCodeBlock();
-  }
-  /**
-   * 保存筛选条件到代码块（使用 CodeBlockConfigService）
-   * 统一使用列表形式保存层级筛选字段
-   */
-  async saveFiltersToCodeBlock() {
-    if (!this.sourcePath || this.codeBlockStart === void 0)
-      return;
-    const filterUpdates = {};
-    if (this.filters.entityType)
-      filterUpdates.entityType = this.filters.entityType;
-    filterUpdates.versions = void 0;
-    filterUpdates.projects = void 0;
-    filterUpdates.features = void 0;
-    switch (this.currentEntityType) {
-      case "version":
-        if (this.filters.versions && this.filters.versions.length > 0) {
-          filterUpdates.versions = this.filters.versions;
-        }
-        break;
-      case "project":
-        if (this.filters.projects && this.filters.projects.length > 0) {
-          filterUpdates.projects = this.filters.projects;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          filterUpdates.versions = this.filters.versions;
-        }
-        break;
-      case "feature":
-        if (this.filters.features && this.filters.features.length > 0) {
-          filterUpdates.features = this.filters.features;
-        } else if (this.filters.projects && this.filters.projects.length > 0) {
-          filterUpdates.projects = this.filters.projects;
-        } else if (this.filters.versions && this.filters.versions.length > 0) {
-          filterUpdates.versions = this.filters.versions;
-        }
-        break;
-    }
-    filterUpdates.status = this.filters.status || void 0;
-    filterUpdates.priority = this.filters.priority || void 0;
-    filterUpdates.owner = this.filters.owner || void 0;
-    filterUpdates.tag = this.filters.tag || void 0;
-    await this.configService.saveConfig(
-      this.sourcePath,
-      this.codeBlockStart,
-      filterUpdates,
-      { preserveKeys: ["mode", "title", "groupBy", "sortBy", "sortOrder", "limit", "cols", "expanded"] }
-    );
-  }
-  /**
-   * 获取当前筛选条件
-   */
-  getFilters() {
-    return { ...this.filters };
-  }
-  /**
-   * 销毁筛选栏，清理所有事件监听器
-   */
-  destroy() {
-    this.cleanupFns.forEach((fn) => fn());
-    this.cleanupFns = [];
-    if (this.container) {
-      this.container.remove();
-      this.container = void 0;
-    }
-    if (this.treeSelector) {
-      this.treeSelector.destroy();
-      this.treeSelector = void 0;
-    }
-  }
-};
-
 // src/view-engine/components/StatusPicker.ts
+init_getOverlayContainer();
 var StatusPicker = class {
   constructor() {
     /**
@@ -7800,7 +9020,7 @@ var StatusPicker = class {
         }
       };
     });
-    document.body.appendChild(this.menu);
+    getOverlayContainer().appendChild(this.menu);
     this.positionMenu(triggerEl);
     setTimeout(() => {
       document.addEventListener("click", this.handleOutsideClick);
@@ -7838,6 +9058,7 @@ var StatusPicker = class {
 };
 
 // src/view-engine/components/ProgressPicker.ts
+init_getOverlayContainer();
 var ProgressPicker = class {
   constructor() {
     /**
@@ -7976,7 +9197,7 @@ var ProgressPicker = class {
       onSelect(value);
       this.hide();
     };
-    document.body.appendChild(this.menu);
+    getOverlayContainer().appendChild(this.menu);
     this.positionMenu(triggerEl);
     setTimeout(() => {
       document.addEventListener("click", this.handleOutsideClick);
@@ -8013,7 +9234,289 @@ var ProgressPicker = class {
   }
 };
 
+// src/view-engine/components/EntityCard.ts
+var EntityCard = class {
+  constructor(app) {
+    this.app = app;
+  }
+  /**
+   * 渲染实体卡片
+   */
+  render(container, entity, options, callbacks, logSummary) {
+    const entityType = getEntityType(entity);
+    const card = container.createDiv("pm-entity-card");
+    card.addClass(`pm-entity-card--${entityType}`);
+    card.addClass("pm-entity-card--default");
+    if (options.selected) {
+      card.addClass("pm-entity-card--selected");
+    }
+    if (options.draggable && entityType === "feature") {
+      card.setAttribute("draggable", "true");
+      card.addClass("pm-entity-card--draggable");
+      this.setupDragEvents(card, entity, callbacks);
+    }
+    this.renderHeader(card, entity, options);
+    this.renderBody(card, entity, options);
+    this.renderFooter(card, entity, options, logSummary);
+    if (options.showActions) {
+      this.renderActions(card, entity, options, callbacks);
+    }
+    if (logSummary) {
+      card._logSummary = logSummary;
+    }
+    card.addEventListener("click", () => {
+      var _a;
+      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
+    });
+    return card;
+  }
+  /**
+   * 渲染卡片头部
+   */
+  renderHeader(card, entity, options) {
+    const header = card.createDiv("pm-entity-card__header");
+    const entityType = getEntityType(entity);
+    if (options.showPriority && "priority" in entity && entity.priority) {
+      const priorityEl = header.createSpan("pm-entity-card__priority");
+      priorityEl.addClass(`pm-entity-card__priority--${entity.priority}`);
+    }
+    if (options.showTypeIcon) {
+      const iconEl = header.createSpan("pm-entity-card__type-icon");
+      iconEl.textContent = getEntityIcon(entityType);
+    }
+    const titleEl = header.createEl(options.smallTitle ? "span" : "h3", {
+      cls: "pm-entity-card__title"
+    });
+    titleEl.textContent = entity.name;
+    if (options.showStatus && "status" in entity && entity.status) {
+      const statusEl = header.createSpan("pm-entity-card__status");
+      statusEl.addClass(`pm-status-badge--${entity.status}`);
+      statusEl.textContent = translateStatus(entity.status);
+    }
+  }
+  /**
+   * 渲染卡片主体
+   */
+  renderBody(card, entity, options) {
+    if (!options.showParent && !options.showDescription && !options.showTags)
+      return;
+    const body = card.createDiv("pm-entity-card__body");
+    const entityType = getEntityType(entity);
+    if (options.showParent && entityType === "feature") {
+      const feature = entity;
+      if (feature.projectId || feature.versionId) {
+        const parentEl = body.createDiv("pm-entity-card__parent");
+        if (feature.projectId) {
+          parentEl.textContent = feature.projectId;
+        } else if (feature.versionId) {
+          parentEl.textContent = feature.versionId;
+        }
+      }
+    }
+    if (options.showDescription && "description" in entity && entity.description) {
+      const descEl = body.createDiv("pm-entity-card__description");
+      const descText = String(entity.description);
+      descEl.textContent = descText.length > 100 ? descText.substring(0, 100) + "..." : descText;
+    }
+    if (options.showTags && "tags" in entity && entity.tags && entity.tags.length > 0) {
+      const tagsEl = body.createDiv("pm-entity-card__tags");
+      const limit = 3;
+      entity.tags.slice(0, limit).forEach((tag) => {
+        tagsEl.createSpan({ cls: "pm-entity-card__tag", text: tag });
+      });
+      if (entity.tags.length > limit) {
+        tagsEl.createSpan({
+          cls: "pm-entity-card__tag-more",
+          text: `+${entity.tags.length - limit}`
+        });
+      }
+    }
+  }
+  /**
+   * 渲染卡片底部
+   */
+  renderFooter(card, entity, options, logSummary) {
+    const footer = card.createDiv("pm-entity-card__footer");
+    const entityType = getEntityType(entity);
+    const metaLeft = footer.createDiv("pm-entity-card__meta-left");
+    if (options.showOwner && entity.owner) {
+      const ownerEl = metaLeft.createDiv("pm-entity-card__owner");
+      ownerEl.textContent = entity.owner;
+    }
+    if (options.showStartDate && "startDate" in entity && entity.startDate) {
+      const startEl = metaLeft.createDiv("pm-entity-card__start-date");
+      startEl.textContent = DateFormat.medium(entity.startDate);
+    }
+    if (options.showDueDate && "endDate" in entity && entity.endDate) {
+      const overdue = isOverdue(entity.endDate, "status" in entity ? entity.status : void 0);
+      const dueEl = metaLeft.createDiv("pm-entity-card__due");
+      dueEl.textContent = DateFormat.medium(entity.endDate);
+      if (overdue) {
+        dueEl.addClass("pm-entity-card__due--overdue");
+      }
+    }
+    const metaRight = footer.createDiv("pm-entity-card__meta-right");
+    if (options.showLatestProgress && (logSummary == null ? void 0 : logSummary.latestProgress)) {
+      const progressText = logSummary.latestProgress.length > 12 ? logSummary.latestProgress.substring(0, 12) + "..." : logSummary.latestProgress;
+      const progressEl = metaRight.createDiv("pm-entity-card__latest-progress");
+      progressEl.textContent = `\u{1F4DD} ${progressText}`;
+      progressEl.title = logSummary.latestProgress;
+    }
+    if (options.showProgress && "progress" in entity) {
+      const progress = entity.progress || 0;
+      const progressEl = metaRight.createDiv("pm-entity-card__progress");
+      const trackEl = progressEl.createDiv("pm-entity-card__progress-track");
+      const fillEl = trackEl.createDiv("pm-entity-card__progress-fill");
+      fillEl.style.width = `${progress}%`;
+      progressEl.createSpan({
+        cls: "pm-entity-card__progress-text",
+        text: `${progress}%`
+      });
+    }
+    if (options.showRisk && logSummary && logSummary.riskSummary.total > 0) {
+      const riskEl = metaRight.createDiv("pm-entity-card__risk");
+      const summary = logSummary.riskSummary;
+      let badgeText = `\u26A0\uFE0F ${summary.open}`;
+      if (summary.high > 0) {
+        riskEl.addClass("pm-entity-card__risk--high");
+        badgeText += ` \u{1F534}${summary.high}`;
+      } else if (summary.medium > 0) {
+        riskEl.addClass("pm-entity-card__risk--medium");
+        badgeText += ` \u{1F7E1}${summary.medium}`;
+      } else {
+        riskEl.addClass("pm-entity-card__risk--low");
+      }
+      riskEl.textContent = badgeText;
+      riskEl.title = `\u603B\u98CE\u9669: ${summary.total} | \u672A\u5173\u95ED: ${summary.open} | \u9AD8: ${summary.high} \u4E2D: ${summary.medium} \u4F4E: ${summary.low}`;
+    }
+    if (options.showStats && (entityType === "version" || entityType === "project")) {
+      if ("stats" in entity && entity.stats) {
+        const stats = entity.stats;
+        if (stats.total > 0) {
+          const statsEl = metaRight.createDiv("pm-entity-card__stats");
+          statsEl.textContent = `${stats.completed || 0}/${stats.total}`;
+        }
+      }
+    }
+    if (!metaRight.hasChildNodes()) {
+      metaRight.remove();
+    }
+    if (!metaLeft.hasChildNodes()) {
+      metaLeft.remove();
+    }
+  }
+  /**
+   * 渲染操作按钮
+   */
+  renderActions(card, entity, options, callbacks) {
+    const actions = card.createDiv("pm-entity-card__actions");
+    if ("status" in entity) {
+      const statusBtn = actions.createEl("button", {
+        cls: "pm-entity-card__action-btn",
+        attr: { title: "\u53D8\u66F4\u72B6\u6001" }
+      });
+      statusBtn.textContent = "\u26A1";
+      statusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showStatusPicker(entity, statusBtn, callbacks);
+      };
+    }
+    if (options.showProgress && "progress" in entity) {
+      const progressBtn = actions.createEl("button", {
+        cls: "pm-entity-card__action-btn",
+        attr: { title: "\u66F4\u65B0\u8FDB\u5EA6" }
+      });
+      progressBtn.textContent = "\u{1F4CA}";
+      progressBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showProgressPicker(entity, progressBtn, callbacks);
+      };
+    }
+    const noteBtn = actions.createEl("button", {
+      cls: "pm-entity-card__action-btn",
+      attr: { title: "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988" }
+    });
+    noteBtn.textContent = "\u{1F4DD}";
+    noteBtn.onclick = (e) => {
+      var _a;
+      e.stopPropagation();
+      (_a = callbacks == null ? void 0 : callbacks.onAddProgress) == null ? void 0 : _a.call(callbacks, entity);
+    };
+    const riskBtn = actions.createEl("button", {
+      cls: "pm-entity-card__action-btn",
+      attr: { title: "\u6DFB\u52A0\u98CE\u9669" }
+    });
+    riskBtn.textContent = "\u26A0\uFE0F";
+    riskBtn.onclick = (e) => {
+      var _a;
+      e.stopPropagation();
+      (_a = callbacks == null ? void 0 : callbacks.onAddRisk) == null ? void 0 : _a.call(callbacks, entity);
+    };
+    const openBtn = actions.createEl("button", {
+      cls: "pm-entity-card__action-btn",
+      attr: { title: "\u6253\u5F00\u6587\u4EF6" }
+    });
+    openBtn.textContent = "\u2197";
+    openBtn.onclick = (e) => {
+      var _a;
+      e.stopPropagation();
+      (_a = callbacks == null ? void 0 : callbacks.onOpen) == null ? void 0 : _a.call(callbacks, entity);
+    };
+  }
+  /**
+   * 设置拖拽事件
+   */
+  setupDragEvents(card, entity, callbacks) {
+    card.addEventListener("dragstart", (e) => {
+      var _a, _b, _c;
+      (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
+      (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", getEntityType(entity));
+      card.addClass("pm-entity-card--dragging");
+      (_c = callbacks == null ? void 0 : callbacks.onDragStart) == null ? void 0 : _c.call(callbacks, entity, e);
+    });
+    card.addEventListener("dragend", (e) => {
+      var _a;
+      card.removeClass("pm-entity-card--dragging");
+      (_a = callbacks == null ? void 0 : callbacks.onDragEnd) == null ? void 0 : _a.call(callbacks, entity, e);
+    });
+  }
+  /**
+   * 显示状态选择器
+   */
+  showStatusPicker(entity, triggerEl, callbacks) {
+    if (!this.statusPicker) {
+      this.statusPicker = new StatusPicker();
+    }
+    this.statusPicker.show(
+      triggerEl,
+      "status" in entity ? entity.status : void 0,
+      (status) => {
+        var _a;
+        (_a = callbacks == null ? void 0 : callbacks.onStatusChange) == null ? void 0 : _a.call(callbacks, entity, status);
+      }
+    );
+  }
+  /**
+   * 显示进度选择器
+   */
+  showProgressPicker(entity, triggerEl, callbacks) {
+    if (!this.progressPicker) {
+      this.progressPicker = new ProgressPicker();
+    }
+    const currentProgress = entity.progress || 0;
+    this.progressPicker.show(
+      triggerEl,
+      currentProgress,
+      (progress) => {
+        var _a;
+        (_a = callbacks == null ? void 0 : callbacks.onProgressChange) == null ? void 0 : _a.call(callbacks, entity, progress);
+      }
+    );
+  }
+};
+
 // src/view-engine/components/DropdownMenu.ts
+init_getOverlayContainer();
 var DropdownMenu = class {
   constructor() {
     this.element = null;
@@ -8033,6 +9536,7 @@ var DropdownMenu = class {
       className = "pm-dropdown-menu",
       minWidth = 180,
       maxHeight,
+      padding,
       position = {},
       closeOnOutsideClick = true,
       closeOnEscape = true,
@@ -8049,10 +9553,10 @@ var DropdownMenu = class {
       position: absolute;
       background: var(--background-primary);
       border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 8px;
+      border-radius: 8px;
+      ${padding !== void 0 ? `padding: ${padding}px;` : "padding: 8px;"}
       z-index: var(--pm-z-dropdown, 1000);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       min-width: ${minWidth}px;
       ${maxHeight ? `max-height: ${maxHeight}px; overflow-y: auto;` : ""}
     `;
@@ -8062,7 +9566,7 @@ var DropdownMenu = class {
       this.element.appendChild(content);
     }
     this.positionMenu(triggerEl, horizontalAlign, verticalOffset, boundaryCheck);
-    document.body.appendChild(this.element);
+    getOverlayContainer().appendChild(this.element);
     if (closeOnOutsideClick) {
       this.setupOutsideClickHandler(triggerEl, onClose);
     }
@@ -8189,6 +9693,7 @@ var DropdownMenuManager = class {
 DropdownMenuManager.currentMenu = null;
 
 // src/view-engine/renderers/BaseRenderer.ts
+init_getOverlayContainer();
 var BaseRenderer = class {
   constructor(app, entityManager, dataService, actionService) {
     this.app = app;
@@ -8215,7 +9720,52 @@ var BaseRenderer = class {
       this.config.sortBy,
       this.config.sortOrder
     );
+    if (this.config.limit && this.config.limit > 0) {
+      return sorted.slice(0, this.config.limit);
+    }
     return sorted;
+  }
+  /**
+   * 判断卡片字段是否应该显示
+   */
+  shouldShowCardField(fieldKey) {
+    const cardFields = this.config.cardFields || {
+      required: ["name", "priority"],
+      optional: ["status", "owner", "progress"]
+    };
+    const allFields = [...cardFields.required || [], ...cardFields.optional || []];
+    return allFields.includes(fieldKey);
+  }
+  /**
+   * 构建 EntityCard 选项
+   * 将 cardFields 配置映射为 EntityCardOptions
+   */
+  buildCardOptions(overrides) {
+    const cardFields = this.config.cardFields || {
+      required: ["name", "priority"],
+      optional: ["status", "owner", "progress"]
+    };
+    const allFields = /* @__PURE__ */ new Set([
+      ...cardFields.required || [],
+      ...cardFields.optional || []
+    ]);
+    return {
+      showPriority: allFields.has("priority"),
+      showStatus: allFields.has("status"),
+      showOwner: allFields.has("owner"),
+      showStartDate: allFields.has("startDate"),
+      showDueDate: allFields.has("endDate"),
+      showProgress: allFields.has("progress"),
+      showRisk: allFields.has("risk"),
+      showLatestProgress: allFields.has("latestProgress"),
+      showTags: allFields.has("tags"),
+      showDescription: allFields.has("description"),
+      showParent: allFields.has("parent"),
+      showTypeIcon: allFields.has("typeIcon"),
+      showStats: allFields.has("stats"),
+      showActions: allFields.has("actions"),
+      ...overrides
+    };
   }
   /**
    * 创建视图容器
@@ -8271,57 +9821,6 @@ var BaseRenderer = class {
     return errorEl;
   }
   /**
-   * 渲染实体卡片
-   */
-  async renderEntityCard(container, entity, options) {
-    const cardEl = container.createDiv("pm-card");
-    cardEl.classList.add(`pm-card-${getEntityType(entity)}`);
-    const content = cardEl.createDiv("pm-card-content");
-    const typeIcon = this.getEntityTypeIcon(getEntityType(entity));
-    content.createEl("span", { cls: "pm-card-type-icon", text: typeIcon });
-    content.createEl("span", { cls: "pm-card-name", text: entity.name });
-    if ("status" in entity && entity.status) {
-      const statusBadge = content.createSpan("pm-card-status");
-      statusBadge.textContent = this.translateStatus(entity.status);
-      statusBadge.dataset.status = entity.status;
-    }
-    if ((options == null ? void 0 : options.showActions) !== false) {
-      await this.renderCardActions(cardEl, entity);
-    }
-    cardEl.addEventListener("click", () => {
-      this.actionService.openEntity(getEntityType(entity), entity.id);
-    });
-  }
-  /**
-   * 渲染卡片操作按钮
-   */
-  async renderCardActions(cardEl, entity) {
-    const actions = cardEl.createDiv("pm-card-actions");
-    actions.style.display = "none";
-    if ("status" in entity) {
-      const statusBtn = actions.createEl("button", { cls: "pm-action-btn" });
-      statusBtn.textContent = "\u72B6\u6001";
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity);
-      };
-    }
-    if (getEntityType(entity) === "feature") {
-      const noteBtn = actions.createEl("button", { cls: "pm-action-btn" });
-      noteBtn.textContent = "\u8FDB\u5C55";
-      noteBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressNoteInput(entity);
-      };
-    }
-    cardEl.addEventListener("mouseenter", () => {
-      actions.style.display = "flex";
-    });
-    cardEl.addEventListener("mouseleave", () => {
-      actions.style.display = "none";
-    });
-  }
-  /**
    * 显示状态选择器
    * 使用 StatusPicker 组件
    */
@@ -8361,6 +9860,89 @@ var BaseRenderer = class {
         this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
       }
     );
+  }
+  /**
+   * 显示添加风险输入框（简化版：直接打开模态框通过事件总线）
+   */
+  showRiskInput(entity, triggerEl) {
+    var _a;
+    const menu = document.createElement("div");
+    menu.className = "pm-risk-note-input";
+    menu.style.cssText = `
+      position: fixed;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 280px;
+    `;
+    menu.createEl("div", {
+      text: "\u6DFB\u52A0\u98CE\u9669",
+      cls: "pm-picker-title"
+    }).style.cssText = "font-size: 13px; font-weight: 500; margin-bottom: 8px;";
+    const textarea = menu.createEl("textarea");
+    textarea.placeholder = "\u8F93\u5165\u98CE\u9669\u63CF\u8FF0\uFF08\u7C7B\u578B | \u63CF\u8FF0 | \u7B49\u7EA7 | \u8D23\u4EFB\u4EBA\uFF09";
+    textarea.style.cssText = `
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      background: var(--background-primary);
+      color: var(--text-normal);
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+    `;
+    const btnContainer = menu.createDiv();
+    btnContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;";
+    const cancelBtn = btnContainer.createEl("button");
+    cancelBtn.textContent = "\u53D6\u6D88";
+    cancelBtn.onclick = () => menu.remove();
+    const confirmBtn = btnContainer.createEl("button");
+    confirmBtn.textContent = "\u4FDD\u5B58";
+    confirmBtn.style.cssText = `
+      padding: 4px 12px;
+      font-size: 12px;
+      border: none;
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    confirmBtn.onclick = () => {
+      const content = textarea.value.trim();
+      if (content) {
+        const parts = content.split(/\||\t/).map((s) => s.trim());
+        const type = parts[0] || "\u5176\u4ED6";
+        const desc = parts[1] || content;
+        const level = (parts[2] || "medium").toLowerCase();
+        const owner = parts[3] || "";
+        this.actionService.addRisk(
+          getEntityType(entity),
+          entity.id,
+          { type, description: desc, level, owner, foundDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0], status: "\u672A\u5173\u95ED" }
+        );
+      }
+      menu.remove();
+    };
+    getOverlayContainer().appendChild(menu);
+    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 4}px`;
+    }
+    textarea.focus();
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
   }
   /**
    * 显示进展反馈输入框
@@ -8438,7 +10020,7 @@ var BaseRenderer = class {
         menu.remove();
       }
     };
-    document.body.appendChild(menu);
+    getOverlayContainer().appendChild(menu);
     const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
     if (targetEl) {
       const rect = targetEl.getBoundingClientRect();
@@ -8486,13 +10068,10 @@ var RendererRegistry = class {
   /**
    * 创建渲染器实例
    */
-  static create(mode, app, entityManager, dataService, actionService, configService) {
+  static create(mode, app, entityManager, dataService, actionService) {
     const Ctor = this.renderers.get(mode);
     if (!Ctor)
       return null;
-    if (Ctor.length >= 5 && configService) {
-      return new Ctor(app, entityManager, dataService, actionService, configService);
-    }
     return new Ctor(app, entityManager, dataService, actionService);
   }
   /**
@@ -8646,30 +10225,33 @@ var KanbanRenderer = class extends BaseRenderer {
     ).open();
   }
   /**
-   * 渲染看板卡片 - 卡片式风格
+   * 渲染看板卡片 - 使用 EntityCard 组件
    */
   renderKanbanCard(container, entity) {
     const entityType = getEntityType(entity);
-    const card = container.createDiv("pm-kanban-card");
-    card.draggable = entityType === "feature" && "status" in entity;
-    card.addEventListener("dragstart", (e) => {
-      var _a, _b;
-      (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", entity.id);
-      (_b = e.dataTransfer) == null ? void 0 : _b.setData("entity-type", entityType);
-      card.addClass("pm-kanban-card-dragging");
-    });
-    card.addEventListener("dragend", () => {
-      card.removeClass("pm-kanban-card-dragging");
-    });
-    if ("priority" in entity && entity.priority) {
-      const priorityColor = getPriorityColor2(entity.priority);
-      const priorityBar = card.createDiv("pm-kanban-card-priority-bar");
-      priorityBar.style.background = priorityColor.bg;
-    }
-    const header = card.createDiv("pm-kanban-card-header");
-    const titleEl = header.createDiv("pm-kanban-card-title");
-    titleEl.textContent = entity.name;
-    const actions = header.createDiv("pm-kanban-card-actions");
+    const wrapper = container.createDiv("pm-kanban-card-wrapper");
+    const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+    const card = new EntityCard(this.app);
+    card.render(
+      wrapper,
+      entity,
+      {
+        ...this.buildCardOptions(),
+        draggable: entityType === "feature" && "status" in entity,
+        smallTitle: true
+      },
+      {
+        onOpen: () => this.actionService.openEntity(entityType, entity.id),
+        onStatusChange: (e, status) => this.actionService.changeStatus(entityType, e.id, status),
+        onProgressChange: (e, progress) => this.actionService.updateProgress(entityType, e.id, progress),
+        onAddProgress: (e) => this.showProgressNoteInput(e, wrapper),
+        onAddRisk: (e) => this.showRiskInput(e, wrapper),
+        onDragStart: () => wrapper.addClass("pm-kanban-card-dragging"),
+        onDragEnd: () => wrapper.removeClass("pm-kanban-card-dragging")
+      },
+      logSummary || void 0
+    );
+    const actions = wrapper.createDiv("pm-kanban-card-actions");
     if ("status" in entity) {
       const nextStatus = this.getNextStatus(entity.status);
       if (nextStatus) {
@@ -8688,7 +10270,7 @@ var KanbanRenderer = class extends BaseRenderer {
       noteBtn.title = "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988";
       noteBtn.onclick = (e) => {
         e.stopPropagation();
-        this.showProgressNoteInput(entity, card);
+        this.showProgressNoteInput(entity, wrapper);
       };
     }
     const openBtn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
@@ -8698,47 +10280,6 @@ var KanbanRenderer = class extends BaseRenderer {
       e.stopPropagation();
       this.actionService.openEntity(entityType, entity.id);
     };
-    const content = card.createDiv("pm-kanban-card-content");
-    if (entity.tags && entity.tags.length > 0) {
-      const tagsContainer = content.createDiv("pm-kanban-card-tags");
-      entity.tags.slice(0, 3).forEach((tag) => {
-        tagsContainer.createSpan({ cls: "pm-kanban-card-tag", text: tag });
-      });
-      if (entity.tags.length > 3) {
-        tagsContainer.createSpan({
-          cls: "pm-kanban-card-tag-more",
-          text: `+${entity.tags.length - 3}`
-        });
-      }
-    }
-    const footer = card.createDiv("pm-kanban-card-footer");
-    if (entity.owner) {
-      footer.createSpan({ cls: "pm-kanban-card-owner", text: `@${entity.owner}` });
-    }
-    if ("progress" in entity && entity.progress !== void 0) {
-      const progressEl = footer.createDiv("pm-kanban-card-progress");
-      const progressBar = progressEl.createDiv("pm-kanban-card-progress-bar");
-      progressBar.createDiv({
-        cls: "pm-kanban-card-progress-fill",
-        attr: { style: `width: ${entity.progress}%` }
-      });
-      progressEl.createSpan({
-        cls: "pm-kanban-card-progress-text",
-        text: `${entity.progress}%`
-      });
-    }
-    if ("endDate" in entity && entity.endDate) {
-      const isOverdue2 = new Date(entity.endDate) < /* @__PURE__ */ new Date() && "status" in entity && entity.status !== "completed";
-      footer.createSpan({
-        cls: `pm-kanban-card-due${isOverdue2 ? " pm-overdue" : ""}`,
-        text: DateFormat.short(entity.endDate)
-      });
-    }
-    card.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      console.log("[KanbanRenderer] Card clicked:", entity.name, entityType, entity.id);
-      await this.actionService.openEntity(entityType, entity.id);
-    });
   }
   /**
    * 获取下一个状态（用于快速切换）
@@ -8749,11 +10290,696 @@ var KanbanRenderer = class extends BaseRenderer {
 };
 RendererRegistry.register("kanban", KanbanRenderer);
 
+// src/view-engine/cells/BaseCell.ts
+var BaseCell = class {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange, onBlur) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.entityId = entityId;
+    this.entityType = entityType;
+    this.field = field;
+    this.value = value;
+    this.onChange = onChange;
+    this.onBlur = onBlur;
+    this.containerEl = null;
+    this.isEditing = false;
+    this.originalValue = value;
+  }
+  /**
+   * 创建单元格容器
+   */
+  render(container) {
+    this.containerEl = container;
+    this.containerEl.addClass("pm-cell");
+    this.containerEl.dataset.field = this.field;
+    if (this.isEditing) {
+      this.renderEdit(this.containerEl);
+    } else {
+      this.renderDisplay(this.containerEl);
+    }
+  }
+  /**
+   * 切换到编辑模式
+   */
+  startEdit() {
+    if (this.isEditing)
+      return;
+    this.isEditing = true;
+    if (this.containerEl) {
+      this.containerEl.empty();
+      this.renderEdit(this.containerEl);
+    }
+  }
+  /**
+   * 退出编辑模式
+   */
+  endEdit(save = true) {
+    var _a;
+    if (!this.isEditing)
+      return;
+    this.isEditing = false;
+    if (save) {
+      this.saveValue();
+    } else {
+      this.value = this.originalValue;
+    }
+    if (this.containerEl) {
+      this.containerEl.empty();
+      this.renderDisplay(this.containerEl);
+    }
+    (_a = this.onBlur) == null ? void 0 : _a.call(this);
+  }
+  /**
+   * 保存值（子类可覆盖）
+   */
+  saveValue() {
+    var _a;
+    if (this.value !== this.originalValue) {
+      (_a = this.onChange) == null ? void 0 : _a.call(this, this.value);
+      this.originalValue = this.value;
+    }
+  }
+  /**
+   * 更新值
+   */
+  setValue(value) {
+    this.value = value;
+    if (!this.isEditing && this.containerEl) {
+      this.containerEl.empty();
+      this.renderDisplay(this.containerEl);
+    }
+  }
+  /**
+   * 获取当前值
+   */
+  getValue() {
+    return this.value;
+  }
+  /**
+   * 创建可点击的显示元素
+   */
+  createClickableDisplay(container, content) {
+    const el = container.createEl("div", { cls: "pm-cell-display" });
+    if (typeof content === "string") {
+      el.textContent = content || "-";
+    } else {
+      el.appendChild(content);
+    }
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.startEdit();
+    });
+    return el;
+  }
+  /**
+   * 创建输入框包装器
+   */
+  createInputWrapper(container) {
+    const wrapper = container.createDiv("pm-cell-edit-wrapper");
+    return wrapper;
+  }
+  /**
+   * 销毁单元格
+   */
+  destroy() {
+    if (this.containerEl) {
+      this.containerEl.empty();
+    }
+    this.containerEl = null;
+  }
+};
+
+// src/view-engine/cells/TextCell.ts
+var TextCell = class extends BaseCell {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange, options) {
+    super(app, entityManager, entityId, entityType, field, value || "", onChange);
+    this.isMultiline = false;
+    this.isMultiline = (options == null ? void 0 : options.multiline) || false;
+  }
+  /**
+   * 渲染显示状态
+   */
+  renderDisplay(container) {
+    const displayText = this.value || "-";
+    this.createClickableDisplay(container, displayText);
+  }
+  /**
+   * 渲染编辑状态
+   */
+  renderEdit(container) {
+    const wrapper = this.createInputWrapper(container);
+    const input = wrapper.createEl(this.isMultiline ? "textarea" : "input");
+    input.className = "pm-cell-input";
+    if (!this.isMultiline) {
+      input.type = "text";
+    }
+    input.value = this.value;
+    setTimeout(() => input.focus(), 0);
+    const handleSave = () => {
+      this.value = input.value;
+      this.endEdit(true);
+    };
+    const handleCancel = () => {
+      this.endEdit(false);
+    };
+    if (this.isMultiline) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.ctrlKey) {
+          e.preventDefault();
+          handleSave();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          handleCancel();
+        }
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (!wrapper.contains(document.activeElement)) {
+            handleSave();
+          }
+        }, 100);
+      });
+    } else {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSave();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          handleCancel();
+        }
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (!wrapper.contains(document.activeElement)) {
+            handleSave();
+          }
+        }, 100);
+      });
+    }
+  }
+};
+
+// src/view-engine/cells/SelectCell.ts
+var SelectCell = class extends BaseCell {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange, rawOptions) {
+    super(app, entityManager, entityId, entityType, field, value || "", onChange);
+    this.options = (rawOptions || []).map((opt) => {
+      if (typeof opt === "string") {
+        return {
+          value: opt,
+          label: this.translateOption(opt),
+          color: this.getOptionColor(opt)
+        };
+      }
+      return opt;
+    });
+    this.optionMap = new Map(this.options.map((o) => [o.value, o]));
+  }
+  /**
+   * 渲染显示状态
+   */
+  renderDisplay(container) {
+    const option = this.optionMap.get(this.value);
+    const badge = container.createEl("div", {
+      cls: `pm-cell-badge pm-cell-badge-${this.value}`
+    });
+    if (option == null ? void 0 : option.color) {
+      badge.style.backgroundColor = this.hexToRgba(option.color, 0.15);
+      badge.style.color = option.color;
+      badge.style.border = `1px solid ${this.hexToRgba(option.color, 0.3)}`;
+    } else if (!this.value) {
+      badge.style.color = "var(--text-muted)";
+      badge.style.border = "1px solid var(--background-modifier-border-hover)";
+    }
+    badge.textContent = (option == null ? void 0 : option.label) || this.value || "-";
+    badge.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.showDropdown(container);
+    });
+  }
+  /**
+   * 渲染编辑状态（显示下拉菜单）
+   */
+  renderEdit(container) {
+    this.showDropdown(container);
+  }
+  /**
+   * 显示下拉选择菜单
+   */
+  showDropdown(container) {
+    const existingMenu = container.querySelector(".pm-cell-dropdown");
+    if (existingMenu)
+      existingMenu.remove();
+    const zIndex = "var(--pm-z-dropdown, 1000)";
+    const menu = container.createDiv("pm-cell-dropdown");
+    menu.style.cssText = `
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 140px;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      padding: 4px;
+      z-index: ${zIndex};
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 200px;
+      overflow-y: auto;
+    `;
+    this.options.forEach((opt) => {
+      const item = menu.createDiv("pm-cell-dropdown-item");
+      item.style.cssText = `
+        padding: 6px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      `;
+      if (opt.color) {
+        const dot = item.createSpan();
+        dot.style.cssText = `
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: ${opt.color};
+          flex-shrink: 0;
+        `;
+      }
+      item.createSpan({ text: opt.label });
+      if (opt.value === this.value) {
+        item.createSpan({
+          text: "\u2713",
+          cls: "pm-cell-dropdown-check"
+        }).style.cssText = "margin-left: auto; font-weight: bold;";
+      }
+      item.addEventListener("click", () => {
+        this.value = opt.value;
+        this.endEdit(true);
+      });
+      item.addEventListener("mouseenter", () => {
+        item.style.background = "var(--background-modifier-hover)";
+      });
+      item.addEventListener("mouseleave", () => {
+        item.style.background = "";
+      });
+    });
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) && !container.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", closeMenu);
+        if (this.isEditing) {
+          this.isEditing = false;
+        }
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+  }
+  /**
+   * 翻译选项显示名称
+   */
+  translateOption(value) {
+    const translations = {
+      // 状态
+      backlog: "\u5F85\u5904\u7406",
+      todo: "\u5F85\u5F00\u59CB",
+      "in-progress": "\u8FDB\u884C\u4E2D",
+      testing: "\u6D4B\u8BD5\u4E2D",
+      completed: "\u5DF2\u5B8C\u6210",
+      archived: "\u5DF2\u5F52\u6863",
+      planning: "\u89C4\u5212\u4E2D",
+      active: "\u8FDB\u884C\u4E2D",
+      suspended: "\u5DF2\u6682\u505C",
+      // 优先级
+      critical: "\u7D27\u6025",
+      high: "\u9AD8",
+      medium: "\u4E2D",
+      low: "\u4F4E"
+    };
+    return translations[value] || value;
+  }
+  /**
+   * 获取选项颜色
+   */
+  getOptionColor(value) {
+    const colors = {
+      // 状态颜色
+      backlog: "#9ca3af",
+      todo: "#3b82f6",
+      "in-progress": "#f59e0b",
+      testing: "#8b5cf6",
+      completed: "#22c55e",
+      archived: "#6b7280",
+      planning: "#6366f1",
+      active: "#22c55e",
+      suspended: "#ef4444",
+      // 优先级颜色
+      critical: "#ef4444",
+      high: "#f97316",
+      medium: "#eab308",
+      low: "#22c55e"
+    };
+    return colors[value];
+  }
+  /**
+   * Hex 转 RGBA
+   */
+  hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+};
+
+// src/view-engine/cells/DateCell.ts
+var DateCell = class extends BaseCell {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange) {
+    super(app, entityManager, entityId, entityType, field, value || "", onChange);
+  }
+  /**
+   * 渲染显示状态
+   */
+  renderDisplay(container) {
+    const displayText = this.value ? this.formatDate(this.value) : "-";
+    const el = this.createClickableDisplay(container, displayText);
+    el.addClass("pm-cell-date");
+    if (this.value && this.isOverdue(this.value)) {
+      el.addClass("pm-cell-date-overdue");
+      el.setAttribute("title", "\u5DF2\u8FC7\u671F");
+    }
+  }
+  /**
+   * 渲染编辑状态
+   */
+  renderEdit(container) {
+    const wrapper = this.createInputWrapper(container);
+    wrapper.style.position = "relative";
+    const input = wrapper.createEl("input");
+    input.className = "pm-cell-input pm-cell-date-input";
+    input.type = "date";
+    input.value = this.value;
+    input.style.cssText = `
+      width: 100%;
+      padding: 4px 8px;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      background: var(--background-primary);
+      color: var(--text-normal);
+      font-size: 13px;
+    `;
+    setTimeout(() => input.focus(), 0);
+    input.addEventListener("change", () => {
+      this.value = input.value;
+      this.endEdit(true);
+    });
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!wrapper.contains(document.activeElement)) {
+          this.value = input.value;
+          this.endEdit(true);
+        }
+      }, 100);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.endEdit(false);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        this.value = input.value;
+        this.endEdit(true);
+      }
+    });
+    const quickActions = wrapper.createDiv("pm-cell-date-actions");
+    const zIndex = "var(--pm-z-dropdown, 1000)";
+    quickActions.style.cssText = `
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 4px;
+      margin-top: 4px;
+      padding: 4px;
+      z-index: ${zIndex};
+      display: flex;
+      gap: 4px;
+    `;
+    const todayBtn = quickActions.createEl("button");
+    todayBtn.textContent = "\u4ECA\u5929";
+    todayBtn.className = "pm-cell-btn";
+    todayBtn.onclick = () => {
+      this.value = this.formatDateForInput(/* @__PURE__ */ new Date());
+      this.endEdit(true);
+    };
+    const tomorrowBtn = quickActions.createEl("button");
+    tomorrowBtn.textContent = "\u660E\u5929";
+    tomorrowBtn.className = "pm-cell-btn";
+    tomorrowBtn.onclick = () => {
+      const tomorrow = /* @__PURE__ */ new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      this.value = this.formatDateForInput(tomorrow);
+      this.endEdit(true);
+    };
+    const nextWeekBtn = quickActions.createEl("button");
+    nextWeekBtn.textContent = "\u4E0B\u5468";
+    nextWeekBtn.className = "pm-cell-btn";
+    nextWeekBtn.onclick = () => {
+      const nextWeek = /* @__PURE__ */ new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      this.value = this.formatDateForInput(nextWeek);
+      this.endEdit(true);
+    };
+    if (this.value) {
+      const clearBtn = quickActions.createEl("button");
+      clearBtn.textContent = "\u6E05\u9664";
+      clearBtn.className = "pm-cell-btn pm-cell-btn-danger";
+      clearBtn.onclick = () => {
+        this.value = "";
+        this.endEdit(true);
+      };
+    }
+    const closeMenu = (e) => {
+      if (!wrapper.contains(e.target)) {
+        this.value = input.value;
+        this.endEdit(true);
+        document.removeEventListener("click", closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+  }
+  /**
+   * 格式化日期显示
+   */
+  formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const today = /* @__PURE__ */ new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (this.isSameDay(date, today)) {
+      return "\u4ECA\u5929";
+    }
+    if (this.isSameDay(date, tomorrow)) {
+      return "\u660E\u5929";
+    }
+    const diffDays = Math.floor((date.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      return `${Math.abs(diffDays)}\u5929\u524D`;
+    }
+    if (diffDays <= 7) {
+      return `${diffDays}\u5929\u540E`;
+    }
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+  /**
+   * 格式化为 input date 格式 (YYYY-MM-DD)
+   */
+  formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  /**
+   * 检查是否是同一天
+   */
+  isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  }
+  /**
+   * 检查是否过期
+   */
+  isOverdue(dateStr) {
+    const date = new Date(dateStr);
+    const today = /* @__PURE__ */ new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  }
+};
+
+// src/view-engine/cells/ProgressCell.ts
+var ProgressCell = class extends BaseCell {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange) {
+    super(app, entityManager, entityId, entityType, field, value != null ? value : 0, onChange);
+  }
+  renderDisplay(container) {
+    const progressBar = container.createDiv("pm-cell-progress");
+    const barContainer = progressBar.createDiv("pm-cell-progress-bar");
+    const barFill = barContainer.createDiv("pm-cell-progress-fill");
+    barFill.style.width = `${this.value}%`;
+    barFill.style.background = this.getProgressColor(this.value);
+    const percentText = progressBar.createSpan("pm-cell-progress-text");
+    percentText.textContent = `${Math.round(this.value)}%`;
+    progressBar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.startEdit();
+    });
+  }
+  renderEdit(container) {
+    const wrapper = this.createInputWrapper(container);
+    wrapper.addClass("pm-cell-dropdown");
+    const slider = wrapper.createEl("input");
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = "100";
+    slider.value = String(this.value);
+    slider.style.width = "100%";
+    const valueDisplay = wrapper.createDiv();
+    valueDisplay.textContent = `${this.value}%`;
+    slider.addEventListener("input", () => {
+      this.value = parseInt(slider.value);
+      valueDisplay.textContent = `${this.value}%`;
+    });
+    const quickValues = [0, 25, 50, 75, 100];
+    const quickRow = wrapper.createDiv();
+    quickValues.forEach((val) => {
+      const btn = quickRow.createEl("button");
+      btn.textContent = `${val}%`;
+      btn.onclick = () => {
+        this.value = val;
+        slider.value = String(val);
+        valueDisplay.textContent = `${val}%`;
+      };
+    });
+    const buttonRow = wrapper.createDiv();
+    const cancelBtn = buttonRow.createEl("button");
+    cancelBtn.textContent = "\u53D6\u6D88";
+    cancelBtn.onclick = () => this.endEdit(false);
+    const saveBtn = buttonRow.createEl("button");
+    saveBtn.textContent = "\u4FDD\u5B58";
+    saveBtn.onclick = () => this.endEdit(true);
+    setTimeout(() => slider.focus(), 0);
+  }
+  getProgressColor(value) {
+    if (value === 100)
+      return "#22c55e";
+    if (value >= 75)
+      return "#3b82f6";
+    if (value >= 50)
+      return "#8b5cf6";
+    if (value >= 25)
+      return "#f59e0b";
+    return "#ef4444";
+  }
+};
+
+// src/view-engine/cells/MultiSelectCell.ts
+var MultiSelectCell = class extends BaseCell {
+  constructor(app, entityManager, entityId, entityType, field, value, onChange, options) {
+    super(app, entityManager, entityId, entityType, field, value || [], onChange);
+    this.availableOptions = options || [];
+  }
+  renderDisplay(container) {
+    const tagsContainer = container.createDiv("pm-cell-tags");
+    if (!this.value || this.value.length === 0) {
+      tagsContainer.createSpan({ text: "-", cls: "pm-cell-empty" });
+    } else {
+      this.value.forEach((tag) => {
+        const tagEl = tagsContainer.createSpan("pm-cell-tag");
+        tagEl.textContent = tag;
+        tagEl.style.background = this.getTagColor(tag);
+      });
+    }
+    tagsContainer.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.startEdit();
+    });
+  }
+  renderEdit(container) {
+    const wrapper = this.createInputWrapper(container);
+    wrapper.addClass("pm-cell-dropdown");
+    const title = wrapper.createDiv();
+    title.textContent = "\u7F16\u8F91\u6807\u7B7E";
+    const selectedArea = wrapper.createDiv("pm-cell-tags-selected");
+    this.renderSelectedTags(selectedArea);
+    const inputContainer = wrapper.createDiv();
+    const input = inputContainer.createEl("input");
+    input.placeholder = "\u8F93\u5165\u65B0\u6807\u7B7E...";
+    const addBtn = inputContainer.createEl("button");
+    addBtn.textContent = "\u6DFB\u52A0";
+    addBtn.onclick = () => {
+      const newTag = input.value.trim();
+      if (newTag && !this.value.includes(newTag)) {
+        this.value = [...this.value, newTag];
+        this.renderSelectedTags(selectedArea);
+        input.value = "";
+      }
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addBtn.click();
+      }
+    });
+    const buttonRow = wrapper.createDiv();
+    const cancelBtn = buttonRow.createEl("button");
+    cancelBtn.textContent = "\u53D6\u6D88";
+    cancelBtn.onclick = () => this.endEdit(false);
+    const saveBtn = buttonRow.createEl("button");
+    saveBtn.textContent = "\u4FDD\u5B58";
+    saveBtn.onclick = () => this.endEdit(true);
+  }
+  renderSelectedTags(container) {
+    container.empty();
+    if (this.value.length === 0) {
+      container.createSpan({ text: "\u6682\u65E0\u6807\u7B7E" });
+    } else {
+      this.value.forEach((tag, index) => {
+        const tagEl = container.createDiv("pm-cell-tag-item");
+        tagEl.style.background = this.getTagColor(tag);
+        tagEl.createSpan({ text: tag });
+        const removeBtn = tagEl.createSpan({ text: " x" });
+        removeBtn.onclick = () => {
+          this.value = this.value.filter((_, i) => i !== index);
+          this.renderSelectedTags(container);
+        };
+      });
+    }
+  }
+  getTagColor(tag) {
+    const colors = [
+      "rgba(59, 130, 246, 0.2)",
+      "rgba(34, 197, 94, 0.2)",
+      "rgba(245, 158, 11, 0.2)",
+      "rgba(239, 68, 68, 0.2)"
+    ];
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = (hash << 5) - hash + tag.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+};
+
 // src/view-engine/renderers/ListRenderer.ts
 var ListRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService, configService) {
+  constructor(app, entityManager, dataService, actionService) {
     super(app, entityManager, dataService, actionService);
-    this.configService = configService;
     this.entities = [];
   }
   /**
@@ -8780,51 +11006,33 @@ var ListRenderer = class extends BaseRenderer {
    */
   renderListHeader(container) {
     const header = container.createDiv("pm-list-header");
+    const currentColumns = this.config.listColumns || ["name", "status", "priority", "owner"];
     const info = header.createDiv("pm-list-info");
     info.createSpan({
       cls: "pm-list-count",
       text: `\u5171 ${this.entities.length} \u4E2A\u5B9E\u4F53`
     });
-    const sortControl = header.createDiv("pm-list-sort");
-    const sortSelect = sortControl.createEl("select", { cls: "pm-list-sort-select" });
-    const sortOptions = [
-      { value: "name", label: "\u540D\u79F0" },
-      { value: "status", label: "\u72B6\u6001" },
-      { value: "priority", label: "\u4F18\u5148\u7EA7" },
-      { value: "startDate", label: "\u5F00\u59CB\u65E5\u671F" },
-      { value: "endDate", label: "\u7ED3\u675F\u65E5\u671F" },
-      { value: "progress", label: "\u8FDB\u5EA6" }
-    ];
-    sortOptions.forEach((opt) => {
-      const option = sortSelect.createEl("option");
-      option.value = opt.value;
-      option.textContent = opt.label;
-      if (opt.value === (this.config.sortBy || "name"))
-        option.selected = true;
-    });
-    sortSelect.addEventListener("change", async () => {
-      const newConfig = { ...this.config, sortBy: sortSelect.value };
-      await this.saveSortConfig(newConfig);
-      this.render(container.closest(".pm-list-view"));
-    });
-    const currentSortOrder = this.config.sortOrder || "asc";
-    const orderBtn = sortControl.createEl("button", {
-      cls: "pm-list-sort-order",
-      attr: { title: currentSortOrder === "asc" ? "\u5347\u5E8F" : "\u964D\u5E8F" }
-    });
-    orderBtn.textContent = currentSortOrder === "asc" ? "\u2191" : "\u2193";
-    orderBtn.addEventListener("click", async () => {
-      const newOrder = currentSortOrder === "asc" ? "desc" : "asc";
-      const newConfig = { ...this.config, sortOrder: newOrder };
-      await this.saveSortConfig(newConfig);
-      this.render(container.closest(".pm-list-view"));
-    });
+    const columnsRow = header.createDiv("pm-list-header-columns");
+    const mainCol = columnsRow.createDiv("pm-list-header-main");
+    mainCol.textContent = "\u540D\u79F0";
+    const metaCol = columnsRow.createDiv("pm-list-header-meta");
+    const metaFields = ["status", "priority", "progress", "risk", "latestProgress", "owner", "endDate", "tags"];
+    for (const fieldKey of metaFields) {
+      if (currentColumns.includes(fieldKey)) {
+        const cell = metaCol.createDiv("pm-list-header-cell");
+        cell.style.width = this.getColumnWidth(fieldKey);
+        cell.style.minWidth = this.getColumnWidth(fieldKey);
+        const def = LIST_COLUMN_DEFINITIONS.find((d) => d.key === fieldKey);
+        cell.textContent = (def == null ? void 0 : def.label) || fieldKey;
+      }
+    }
   }
   /**
    * 渲染列表卡片
    */
   async renderListCard(container, entity) {
     const entityType = getEntityType(entity);
+    const currentColumns = this.config.listColumns || ["name", "status", "priority", "owner"];
     const card = container.createDiv("pm-list-card");
     card.dataset.entityId = entity.id;
     card.dataset.entityType = entityType;
@@ -8839,63 +11047,60 @@ var ListRenderer = class extends BaseRenderer {
     typeIcon.textContent = this.getEntityTypeIcon(entityType);
     const titleSection = main.createDiv("pm-list-card-title-section");
     titleSection.createDiv({ cls: "pm-list-card-title", text: entity.name });
-    if ("projectId" in entity && entity.projectId) {
+    if (currentColumns.includes("projectId") && "projectId" in entity && entity.projectId) {
       const projectName = await this.getEntityName("projectId", entity.projectId);
       titleSection.createDiv({
         cls: "pm-list-card-subtitle",
         text: `\u96B6\u5C5E\u4E8E: ${projectName || entity.projectId}`
       });
-    } else if ("versionId" in entity && entity.versionId) {
+    }
+    if (currentColumns.includes("versionId") && "versionId" in entity && entity.versionId) {
       const versionName = await this.getEntityName("versionId", entity.versionId);
       titleSection.createDiv({
         cls: "pm-list-card-subtitle",
         text: `\u7248\u672C: ${versionName || entity.versionId}`
       });
     }
+    main.addEventListener("click", async () => {
+      await this.actionService.openEntity(entityType, entity.id);
+    });
     const meta = content.createDiv("pm-list-card-meta");
-    if ("status" in entity && entity.status) {
-      meta.createSpan({
-        cls: `pm-list-card-status pm-status-${entity.status}`,
-        text: this.translateStatus(entity.status)
-      });
-    }
-    if ("progress" in entity && entity.progress !== void 0) {
-      const progressEl = meta.createDiv("pm-list-card-progress");
-      const progressBar = progressEl.createDiv("pm-list-card-progress-bar");
-      progressBar.createDiv({
-        cls: "pm-list-card-progress-fill",
-        attr: { style: `width: ${entity.progress}%` }
-      });
-      progressEl.createSpan({ text: `${entity.progress}%` });
-    }
-    if (entity.owner) {
-      meta.createSpan({ cls: "pm-list-card-owner", text: `@${entity.owner}` });
-    }
-    if ("endDate" in entity && entity.endDate) {
-      const isOverdueDate = isOverdue(entity.endDate, entity.status);
-      meta.createSpan({
-        cls: `pm-list-card-due${isOverdueDate ? " pm-overdue" : ""}`,
-        text: DateFormat.short(entity.endDate)
-      });
-    }
-    if (entity.tags && entity.tags.length > 0) {
-      const tagsEl = meta.createDiv("pm-list-card-tags");
-      entity.tags.slice(0, 2).forEach((tag) => {
-        tagsEl.createSpan({ cls: "pm-list-card-tag", text: tag });
-      });
+    const metaFields = ["status", "priority", "progress", "risk", "latestProgress", "owner", "endDate", "tags"];
+    for (const fieldKey of metaFields) {
+      if (!currentColumns.includes(fieldKey))
+        continue;
+      const cellContainer = meta.createDiv("pm-list-card-cell");
+      cellContainer.style.width = this.getColumnWidth(fieldKey);
+      cellContainer.style.minWidth = this.getColumnWidth(fieldKey);
+      if (fieldKey === "risk") {
+        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+        if (logSummary && logSummary.riskSummary.total > 0) {
+          const summary = logSummary.riskSummary;
+          const riskEl = cellContainer.createSpan("pm-list-card-risk");
+          let badgeText = `\u26A0\uFE0F ${summary.open}`;
+          if (summary.high > 0) {
+            riskEl.addClass("pm-list-card-risk--high");
+            badgeText += ` \u{1F534}${summary.high}`;
+          } else if (summary.medium > 0) {
+            riskEl.addClass("pm-list-card-risk--medium");
+            badgeText += ` \u{1F7E1}${summary.medium}`;
+          }
+          riskEl.textContent = badgeText;
+          riskEl.title = `\u603B\u98CE\u9669: ${summary.total} | \u672A\u5173\u95ED: ${summary.open} | \u9AD8: ${summary.high} \u4E2D: ${summary.medium} \u4F4E: ${summary.low}`;
+        }
+      } else if (fieldKey === "latestProgress") {
+        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+        if (logSummary == null ? void 0 : logSummary.latestProgress) {
+          const progressText = logSummary.latestProgress.length > 10 ? logSummary.latestProgress.substring(0, 10) + "..." : logSummary.latestProgress;
+          const progressEl = cellContainer.createSpan("pm-list-card-latest-progress");
+          progressEl.textContent = `\u{1F4DD} ${progressText}`;
+          progressEl.title = logSummary.latestProgress;
+        }
+      } else {
+        this.renderCellForField(cellContainer, entity, fieldKey);
+      }
     }
     const actions = content.createDiv("pm-list-card-actions");
-    if ("status" in entity) {
-      const statusBtn = actions.createEl("button", {
-        cls: "pm-list-action-btn",
-        attr: { title: "\u53D8\u66F4\u72B6\u6001" }
-      });
-      statusBtn.textContent = "\u26A1";
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity, statusBtn);
-      };
-    }
     const openBtn = actions.createEl("button", {
       cls: "pm-list-action-btn",
       attr: { title: "\u6253\u5F00\u6587\u4EF6" }
@@ -8905,9 +11110,73 @@ var ListRenderer = class extends BaseRenderer {
       e.stopPropagation();
       this.actionService.openEntity(entityType, entity.id);
     };
-    card.addEventListener("click", async () => {
-      await this.actionService.openEntity(entityType, entity.id);
-    });
+  }
+  /**
+   * 为指定字段渲染行内编辑单元格
+   */
+  renderCellForField(container, entity, field) {
+    const entityType = getEntityType(entity);
+    const fields = getEntityFields(entityType);
+    const fieldDef = fields.find((f) => f.name === field);
+    const value = entity[field];
+    if (!fieldDef) {
+      if (value !== void 0 && value !== null && value !== "") {
+        container.createSpan({ cls: "pm-cell-readonly", text: String(value) });
+      }
+      return;
+    }
+    if (!fieldDef.editable) {
+      container.createSpan({
+        cls: "pm-cell-readonly",
+        text: Array.isArray(value) && value.length === 0 ? "" : String(value != null ? value : "")
+      });
+      return;
+    }
+    const cellValue = value != null ? value : fieldDef.type === "multi-select" ? [] : "";
+    const onChange = async (newValue) => {
+      if (field === "progress" && entityType === "feature") {
+        await this.actionService.updateProgress(entityType, entity.id, newValue);
+      } else {
+        await this.actionService.updateField(entityType, entity.id, field, newValue);
+      }
+    };
+    let cell;
+    switch (fieldDef.type) {
+      case "text":
+        cell = new TextCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case "select":
+        cell = new SelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
+        break;
+      case "date":
+        cell = new DateCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case "progress":
+        cell = new ProgressCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
+        break;
+      case "multi-select":
+        cell = new MultiSelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
+        break;
+      default:
+        return;
+    }
+    cell.render(container);
+  }
+  /**
+   * 获取列宽
+   */
+  getColumnWidth(field) {
+    const widths = {
+      status: "72px",
+      priority: "60px",
+      progress: "90px",
+      risk: "90px",
+      latestProgress: "100px",
+      owner: "80px",
+      endDate: "80px",
+      tags: "100px"
+    };
+    return widths[field] || "auto";
   }
   /**
    * 获取实体名称
@@ -8926,153 +11195,8 @@ var ListRenderer = class extends BaseRenderer {
     }
     return null;
   }
-  /**
-   * 保存排序配置到代码块 - 使用 CodeBlockConfigService
-   */
-  async saveSortConfig(newConfig) {
-    if (!this.context.sourcePath || this.context.codeBlockIndex === void 0)
-      return;
-    try {
-      await this.configService.saveConfig(
-        this.context.sourcePath,
-        this.context.codeBlockIndex,
-        {
-          sortBy: newConfig.sortBy,
-          sortOrder: newConfig.sortOrder
-        }
-      );
-      this.config = newConfig;
-    } catch (error) {
-      console.error("\u4FDD\u5B58\u6392\u5E8F\u914D\u7F6E\u5931\u8D25:", error);
-    }
-  }
 };
 RendererRegistry.register("list", ListRenderer);
-
-// src/view-engine/renderers/GridRenderer.ts
-var GridRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-    this.entities = [];
-  }
-  /**
-   * 渲染网格视图
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-grid-view");
-    let sorted = await this.prepareData();
-    this.entities = sorted;
-    const limited = this.config.limit ? sorted.slice(0, this.config.limit) : sorted;
-    const gridContainer = container.createDiv("pm-grid-container");
-    const cols = this.config.cols || 3;
-    gridContainer.style.setProperty("--grid-cols", String(cols));
-    if (limited.length === 0) {
-      this.createEmptyState(gridContainer, "\u6CA1\u6709\u5339\u914D\u7684\u5B9E\u4F53");
-    } else {
-      for (const entity of limited) {
-        await this.renderGridCard(gridContainer, entity);
-      }
-    }
-  }
-  /**
-   * 渲染网格卡片 - 统一卡片式风格
-   */
-  async renderGridCard(container, entity) {
-    const entityType = getEntityType(entity);
-    const card = container.createDiv("pm-grid-card");
-    if ("priority" in entity && entity.priority) {
-      const priorityColor = getPriorityColor2(entity.priority);
-      const priorityBar = card.createDiv("pm-grid-card-priority-bar");
-      priorityBar.style.background = priorityColor.bg;
-    }
-    const header = card.createDiv("pm-grid-card-header");
-    const typeLabel = header.createDiv("pm-grid-card-type");
-    typeLabel.textContent = this.getEntityTypeLabel(entityType);
-    const actions = header.createDiv("pm-grid-card-header-actions");
-    if ("status" in entity) {
-      const statusBtn = actions.createEl("button", { cls: "pm-grid-action-btn" });
-      statusBtn.textContent = "\u26A1";
-      statusBtn.title = "\u53D8\u66F4\u72B6\u6001";
-      statusBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showStatusPicker(entity, statusBtn);
-      };
-    }
-    const openBtn = actions.createEl("button", { cls: "pm-grid-action-btn" });
-    openBtn.textContent = "\u2197";
-    openBtn.title = "\u6253\u5F00\u6587\u4EF6";
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(entityType, entity.id);
-    };
-    const body = card.createDiv("pm-grid-card-body");
-    body.createDiv({ cls: "pm-grid-card-title", text: entity.name });
-    if ("description" in entity && entity.description && typeof entity.description === "string") {
-      body.createDiv({
-        cls: "pm-grid-card-desc",
-        text: entity.description
-      });
-    }
-    if ("status" in entity && entity.status) {
-      body.createSpan({
-        cls: `pm-grid-card-status pm-status-${entity.status}`,
-        text: this.translateStatus(entity.status)
-      });
-    }
-    if (entity.tags && entity.tags.length > 0) {
-      const tagsContainer = body.createDiv("pm-grid-card-tags");
-      entity.tags.slice(0, 4).forEach((tag) => {
-        tagsContainer.createSpan({ cls: "pm-grid-card-tag", text: tag });
-      });
-      if (entity.tags.length > 4) {
-        tagsContainer.createSpan({
-          cls: "pm-grid-card-tag-more",
-          text: `+${entity.tags.length - 4}`
-        });
-      }
-    }
-    const footer = card.createDiv("pm-grid-card-footer");
-    const footerLeft = footer.createDiv("pm-grid-card-footer-left");
-    if (entity.owner) {
-      footerLeft.createSpan({
-        cls: "pm-grid-card-owner",
-        text: `@${entity.owner}`
-      });
-    }
-    if ("endDate" in entity && entity.endDate) {
-      const isOverdueDate = isOverdue(entity.endDate, entity.status);
-      footerLeft.createSpan({
-        cls: `pm-grid-card-due${isOverdueDate ? " pm-overdue" : ""}`,
-        text: DateFormat.short(entity.endDate)
-      });
-    }
-    if ("progress" in entity && entity.progress !== void 0) {
-      const progressEl = footer.createDiv("pm-grid-card-progress");
-      const progressBar = progressEl.createDiv("pm-grid-card-progress-bar");
-      progressBar.createDiv({
-        cls: "pm-grid-card-progress-fill",
-        attr: { style: `width: ${entity.progress}%` }
-      });
-      progressEl.createSpan({ text: `${entity.progress}%` });
-    }
-    card.addEventListener("click", async () => {
-      await this.actionService.openEntity(entityType, entity.id);
-    });
-  }
-  /**
-   * 获取实体类型标签
-   */
-  getEntityTypeLabel(type) {
-    const labels = {
-      version: "\u7248\u672C",
-      project: "\u9879\u76EE",
-      feature: "\u7279\u6027"
-    };
-    return labels[type] || type;
-  }
-};
-RendererRegistry.register("grid", GridRenderer);
 
 // src/view-engine/renderers/CascadeRenderer.ts
 var CascadeRenderer = class extends BaseRenderer {
@@ -9080,135 +11204,154 @@ var CascadeRenderer = class extends BaseRenderer {
     super(app, entityManager, dataService, actionService);
   }
   /**
+   * 级联视图字段显示控制
+   * 未配置 cardFields 时默认显示所有字段，保持向后兼容
+   */
+  shouldShowCardField(fieldKey) {
+    if (!this.config.cardFields) {
+      return true;
+    }
+    return super.shouldShowCardField(fieldKey);
+  }
+  /**
+   * 构建 EntityCard 选项
+   * 级联视图未配置 cardFields 时默认显示所有字段
+   */
+  buildCardOptions(overrides) {
+    if (!this.config.cardFields) {
+      return {
+        showPriority: true,
+        showStatus: true,
+        showOwner: true,
+        showStartDate: true,
+        showDueDate: true,
+        showProgress: true,
+        showRisk: true,
+        showLatestProgress: true,
+        showTags: true,
+        showDescription: true,
+        showParent: true,
+        showTypeIcon: true,
+        showStats: true,
+        showActions: true,
+        ...overrides
+      };
+    }
+    return super.buildCardOptions(overrides);
+  }
+  /**
    * 渲染级联视图
    */
   async render(container) {
     container.empty();
     container.addClass("pm-cascade-container");
-    if (this.config.id) {
-      await this.renderEntityTree(container, this.config.id);
-    } else {
-      await this.renderAllVersions(container);
+    const data = await this.prepareCascadeData();
+    if (data.versions.length === 0) {
+      this.createEmptyState(container, "\u6682\u65E0\u6570\u636E");
+      return;
+    }
+    for (const version of data.versions) {
+      const versionProjects = data.projects.filter((p) => p.versionId === version.id);
+      await this.renderVersionTree(container, version, versionProjects, data.features);
     }
   }
   /**
-   * 渲染单个实体的级联树
+   * 准备级联数据
+   * 1. 通过 DataService.loadEntities 应用树形筛选
+   * 2. 从筛选结果反推需要显示的版本和项目
+   * 3. 返回过滤后的三层数据
    */
-  async renderEntityTree(container, entityId) {
-    if (this.config.feature) {
-      await this.renderFeatureTree(container, entityId, 0);
-    } else if (this.config.project) {
-      await this.renderProjectTree(container, entityId, 0);
-    } else {
-      await this.renderVersionTree(container, entityId, 0);
+  async prepareCascadeData() {
+    const entityType = this.config.entityType || "feature";
+    const filteredEntities = await this.dataService.loadEntities(this.config);
+    let versionIds = /* @__PURE__ */ new Set();
+    let projectIds = /* @__PURE__ */ new Set();
+    let features = [];
+    if (entityType === "feature") {
+      features = filteredEntities;
+      features.forEach((f) => {
+        projectIds.add(f.projectId);
+        versionIds.add(f.versionId);
+      });
+    } else if (entityType === "project") {
+      const projects2 = filteredEntities;
+      projects2.forEach((p) => {
+        projectIds.add(p.id);
+        versionIds.add(p.versionId);
+      });
+      const allFeatures = await this.entityManager.listFeatures();
+      features = allFeatures.filter((f) => projectIds.has(f.projectId));
+      features = this.dataService.applyFilters(features, this.config);
+    } else if (entityType === "version") {
+      const versions2 = filteredEntities;
+      versions2.forEach((v) => versionIds.add(v.id));
+      const allProjects2 = await this.entityManager.listProjects();
+      const relevantProjects = allProjects2.filter((p) => versionIds.has(p.versionId));
+      relevantProjects.forEach((p) => projectIds.add(p.id));
+      const allFeatures = await this.entityManager.listFeatures();
+      features = allFeatures.filter((f) => projectIds.has(f.projectId));
+      features = this.dataService.applyFilters(features, this.config);
     }
+    const allVersions = await this.entityManager.listVersions();
+    const versions = this.sortEntities(
+      allVersions.filter((v) => versionIds.has(v.id))
+    );
+    const allProjects = await this.entityManager.listProjects();
+    const projects = this.sortEntities(
+      allProjects.filter((p) => projectIds.has(p.id))
+    );
+    features = this.sortEntities(features);
+    return { versions, projects, features };
   }
   /**
    * 渲染版本树
    */
-  async renderVersionTree(container, versionId, level) {
-    const version = await this.entityManager.getVersion(versionId);
-    if (!version)
-      return;
+  async renderVersionTree(container, version, projects, allFeatures) {
     const versionSection = container.createDiv("pm-cascade-section");
-    await this.renderVersionHeader(versionSection, version);
-    const projects = await this.entityManager.listProjects({ versionId });
+    await this.renderVersionHeader(versionSection, version, projects, allFeatures);
     if (projects.length === 0) {
       versionSection.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u9879\u76EE" });
       return;
     }
-    const sortedProjects = this.sortEntities(projects);
     const projectsContainer = versionSection.createDiv("pm-cascade__projects");
-    for (const project of sortedProjects) {
-      await this.renderProjectCard(projectsContainer, project);
-    }
-  }
-  /**
-   * 渲染项目树
-   */
-  async renderProjectTree(container, projectId, level) {
-    const project = await this.entityManager.getProject(projectId);
-    if (!project)
-      return;
-    const section = container.createDiv("pm-cascade-section");
-    await this.renderProjectCard(section, project, true);
-  }
-  /**
-   * 渲染特性树
-   */
-  async renderFeatureTree(container, featureId, level) {
-    const feature = await this.entityManager.getFeature(featureId);
-    if (!feature)
-      return;
-    const project = feature.projectId ? await this.entityManager.getProject(feature.projectId) : null;
-    const version = (project == null ? void 0 : project.versionId) ? await this.entityManager.getVersion(project.versionId) : null;
-    const section = container.createDiv("pm-cascade-section");
-    if (version) {
-      await this.renderVersionHeader(section, version, true);
-    }
-    if (project) {
-      await this.renderProjectCard(section, project, true, feature);
-    } else {
-      this.renderFeatureRow(section.createDiv("pm-cascade__features"), feature);
-    }
-  }
-  /**
-   * 渲染所有版本
-   */
-  async renderAllVersions(container) {
-    const versions = await this.entityManager.listVersions();
-    if (versions.length === 0) {
-      container.createDiv({ cls: "pm-cascade-empty", text: "\u6682\u65E0\u7248\u672C" });
-      return;
-    }
-    const sortedVersions = this.sortEntities(versions);
-    for (const version of sortedVersions) {
-      await this.renderVersionTree(container, version.id, 0);
+    for (const project of projects) {
+      const projectFeatures = allFeatures.filter((f) => f.projectId === project.id);
+      await this.renderProjectCard(projectsContainer, project, projectFeatures);
     }
   }
   /**
    * 渲染版本头部
    */
-  async renderVersionHeader(container, version, isPlaceholder = false) {
+  async renderVersionHeader(container, version, projects, allFeatures) {
     const header = container.createDiv("pm-cascade__header");
-    if (!isPlaceholder) {
-      header.addClass("pm-cascade__header--clickable");
-      header.addEventListener("click", async () => {
-        await this.actionService.openEntity("version", version.id);
-      });
-    } else {
-      header.addClass("pm-cascade__header--placeholder");
-    }
+    header.addClass("pm-cascade__header--clickable");
+    header.addEventListener("click", async () => {
+      await this.actionService.openEntity("version", version.id);
+    });
     const titleRow = header.createDiv("pm-cascade__title-row");
     const title = titleRow.createDiv("pm-cascade__title");
     title.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("version") });
     title.createSpan({ text: version.name });
-    if (version.status) {
+    if (version.status && this.shouldShowCardField("status")) {
       titleRow.createSpan({
         cls: `pm-cascade__status pm-cascade__status--${version.status}`,
         text: this.translateStatus(version.status)
       });
     }
-    const projects = await this.entityManager.listProjects({ versionId: version.id });
-    const allFeatures = [];
-    let totalProgress = 0;
-    let completedCount = 0;
-    for (const project of projects) {
-      const features = await this.entityManager.listFeatures({ projectId: project.id });
-      allFeatures.push(...features);
-      for (const f of features) {
-        totalProgress += f.progress || 0;
-        if (f.status === "completed")
-          completedCount++;
-      }
-    }
-    const avgProgress = allFeatures.length > 0 ? Math.round(totalProgress / allFeatures.length) : 0;
+    const versionFeatures = allFeatures.filter(
+      (f) => projects.some((p) => p.id === f.projectId)
+    );
+    const totalProgress = versionFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
+    const avgProgress = versionFeatures.length > 0 ? Math.round(totalProgress / versionFeatures.length) : 0;
+    const completedCount = versionFeatures.filter((f) => f.status === "completed").length;
     const summary = header.createDiv("pm-cascade__summary");
-    summary.createSpan({
-      cls: "pm-cascade__summary-text",
-      text: `${projects.length} \u9879\u76EE \xB7 ${allFeatures.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
-    });
-    if (allFeatures.length > 0) {
+    if (this.shouldShowCardField("stats")) {
+      summary.createSpan({
+        cls: "pm-cascade__summary-text",
+        text: `${projects.length} \u9879\u76EE \xB7 ${versionFeatures.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
+      });
+    }
+    if (versionFeatures.length > 0 && this.shouldShowCardField("progress")) {
       const progressBar = summary.createDiv("pm-cascade__main-progress");
       progressBar.createDiv({
         cls: "pm-cascade__main-progress-fill",
@@ -9219,7 +11362,21 @@ var CascadeRenderer = class extends BaseRenderer {
         text: `${avgProgress}%`
       });
     }
-    if (version.endDate) {
+    if (this.shouldShowCardField("risk")) {
+      const logSummary = this.entityManager.cache.getLogSummary(version.id);
+      if (logSummary && logSummary.riskSummary.total > 0) {
+        const rs = logSummary.riskSummary;
+        const riskEl = summary.createSpan("pm-cascade__risk-badge");
+        let badgeText = `\u26A0\uFE0F ${rs.open}`;
+        if (rs.high > 0)
+          badgeText += ` \u{1F534}${rs.high}`;
+        else if (rs.medium > 0)
+          badgeText += ` \u{1F7E1}${rs.medium}`;
+        riskEl.textContent = badgeText;
+        riskEl.title = `\u603B\u98CE\u9669: ${rs.total} | \u672A\u5173\u95ED: ${rs.open}`;
+      }
+    }
+    if (version.endDate && this.shouldShowCardField("endDate")) {
       summary.createSpan({
         cls: "pm-cascade__summary-date",
         text: DateFormat.medium(version.endDate)
@@ -9229,50 +11386,35 @@ var CascadeRenderer = class extends BaseRenderer {
   /**
    * 渲染项目卡片
    */
-  async renderProjectCard(container, project, isSingleView = false, highlightFeature) {
-    const card = container.createDiv("pm-cascade__project");
-    const header = card.createDiv("pm-cascade__project-header");
-    header.addEventListener("click", async () => {
-      await this.actionService.openEntity("project", project.id);
-    });
-    header.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("project") });
-    header.createSpan({ cls: "pm-cascade__project-name", text: project.name });
-    let features = await this.entityManager.listFeatures({ projectId: project.id });
-    features = this.dataService.applyFilters(features, this.config);
-    const sortedFeatures = this.sortEntities(features);
-    const totalProgress = sortedFeatures.reduce((sum, f) => sum + (f.progress || 0), 0);
+  async renderProjectCard(container, project, features) {
+    const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter((f) => f.status === "completed").length;
+    const wrapper = container.createDiv("pm-cascade__project");
+    const card = new EntityCard(this.app);
+    const projectWithStats = {
+      ...project,
+      stats: { total: features.length, completed: completedCount },
+      progress: avgProgress
+    };
+    const cardOptions = this.buildCardOptions({
+      showStats: this.shouldShowCardField("stats"),
+      showProgress: this.shouldShowCardField("progress")
+    });
+    const cardEl = card.render(wrapper, projectWithStats, cardOptions, {
+      onOpen: () => this.actionService.openEntity("project", project.id)
+    });
     if (features.length > 0) {
-      const progressContainer = header.createDiv("pm-cascade__project-progress");
-      const progressBar = progressContainer.createDiv("pm-cascade__mini-progress");
-      progressBar.createDiv({
-        cls: "pm-cascade__mini-progress-fill",
-        attr: { style: `width: ${avgProgress}%` }
-      });
-      progressContainer.createSpan({
-        cls: "pm-cascade__progress-text",
-        text: `${avgProgress}%`
-      });
-    }
-    if (features.length > 0) {
-      card.createDiv({
-        cls: "pm-cascade__project-stats",
-        text: `${features.length} \u7279\u6027 \xB7 ${completedCount} \u5DF2\u5B8C\u6210`
-      });
-    }
-    if (sortedFeatures.length > 0) {
-      const featuresContainer = card.createDiv("pm-cascade__features");
-      const maxFeatures = isSingleView ? 50 : 5;
-      const displayFeatures = sortedFeatures.slice(0, maxFeatures);
+      const featuresContainer = cardEl.createDiv("pm-cascade__features");
+      const maxFeatures = 5;
+      const displayFeatures = features.slice(0, maxFeatures);
       for (const feature of displayFeatures) {
-        const isHighlighted = highlightFeature && feature.id === highlightFeature.id;
-        this.renderFeatureRow(featuresContainer, feature, isHighlighted);
+        this.renderFeatureRow(featuresContainer, feature);
       }
-      if (sortedFeatures.length > maxFeatures) {
+      if (features.length > maxFeatures) {
         featuresContainer.createDiv({
           cls: "pm-cascade__more-features",
-          text: `\u8FD8\u6709 ${sortedFeatures.length - maxFeatures} \u4E2A\u7279\u6027...`
+          text: `\u8FD8\u6709 ${features.length - maxFeatures} \u4E2A\u7279\u6027...`
         });
       }
     }
@@ -9288,7 +11430,8 @@ var CascadeRenderer = class extends BaseRenderer {
     row.addEventListener("click", async () => {
       await this.actionService.openEntity("feature", feature.id);
     });
-    if (feature.priority) {
+    const opts = this.buildCardOptions();
+    if (feature.priority && opts.showPriority) {
       const priorityColors = {
         critical: "#ef4444",
         high: "#f97316",
@@ -9301,16 +11444,18 @@ var CascadeRenderer = class extends BaseRenderer {
         text: "\u25CF"
       });
     }
-    row.createSpan({ cls: "pm-cascade__feature-icon", text: "\u2630" });
+    if (opts.showTypeIcon) {
+      row.createSpan({ cls: "pm-cascade__feature-icon", text: "\u2630" });
+    }
     const nameContainer = row.createDiv("pm-cascade__feature-name-container");
     nameContainer.createSpan({ cls: "pm-cascade__feature-name", text: feature.name });
-    if (feature.progress !== void 0) {
+    if (feature.progress !== void 0 && opts.showProgress) {
       row.createSpan({
         cls: "pm-cascade__feature-progress",
         text: `${feature.progress}%`
       });
     }
-    if (feature.endDate) {
+    if (feature.endDate && opts.showDueDate) {
       const isOverdueDate = isOverdue(feature.endDate, feature.status);
       const isUpcoming = !isOverdueDate && new Date(feature.endDate).getTime() - (/* @__PURE__ */ new Date()).getTime() < 7 * 24 * 60 * 60 * 1e3;
       let dueClass = "pm-cascade__feature-due";
@@ -9325,8 +11470,31 @@ var CascadeRenderer = class extends BaseRenderer {
         text: DateFormat.short(feature.endDate)
       });
     }
-    if (feature.owner) {
+    if (feature.startDate && opts.showStartDate) {
+      row.createSpan({
+        cls: "pm-cascade__feature-start",
+        text: DateFormat.short(feature.startDate)
+      });
+    }
+    if (feature.owner && opts.showOwner) {
       row.createSpan({ cls: "pm-cascade__feature-owner", text: `@${feature.owner}` });
+    }
+    if (feature.status && opts.showStatus) {
+      row.createSpan({
+        cls: `pm-cascade__feature-status pm-cascade__feature-status--${feature.status}`,
+        text: this.translateStatus(feature.status)
+      });
+    }
+    if (opts.showRisk) {
+      const logSummary = this.entityManager.cache.getLogSummary(feature.id);
+      if (logSummary && logSummary.riskSummary.total > 0) {
+        const rs = logSummary.riskSummary;
+        row.createSpan({
+          cls: "pm-cascade__feature-risk",
+          text: `\u26A0\uFE0F ${rs.open}`,
+          attr: { title: `\u603B\u98CE\u9669: ${rs.total} | \u672A\u5173\u95ED: ${rs.open}` }
+        });
+      }
     }
     return row;
   }
@@ -9385,12 +11553,12 @@ var TimelineRenderer = class extends BaseRenderer {
     }
     const allDates = [];
     entitiesWithDates.forEach((e) => {
-      const endTime = new Date(e.endDate).getTime();
-      if (!isNaN(endTime))
+      const endTime = this.parseDateValue(e.endDate);
+      if (endTime !== null)
         allDates.push(endTime);
       if (e.startDate) {
-        const startTime = new Date(e.startDate).getTime();
-        if (!isNaN(startTime))
+        const startTime = this.parseDateValue(e.startDate);
+        if (startTime !== null)
           allDates.push(startTime);
       }
     });
@@ -9487,6 +11655,7 @@ var TimelineRenderer = class extends BaseRenderer {
    * 渲染甘特图行
    */
   renderGanttRow(container, entity, chartStart, chartRange) {
+    var _a;
     const row = container.createDiv("pm-gantt-row");
     row.style.cssText = `
       display: flex;
@@ -9523,11 +11692,17 @@ var TimelineRenderer = class extends BaseRenderer {
     timelineCol.style.cssText = `
       flex: 1;
       position: relative;
+      height: 100%;
+      min-height: 44px;
     `;
-    const entityStart = entity.startDate ? new Date(entity.startDate).getTime() : new Date(entity.endDate).getTime();
-    const entityEnd = new Date(entity.endDate).getTime();
-    if (isNaN(entityStart) || isNaN(entityEnd))
+    const entityStart = (_a = this.parseDateValue(entity.startDate)) != null ? _a : this.parseDateValue(entity.endDate);
+    const entityEnd = this.parseDateValue(entity.endDate);
+    if (entityStart === null || entityEnd === null) {
+      const err = timelineCol.createDiv("pm-gantt-bar-error");
+      err.textContent = `\u65E5\u671F\u683C\u5F0F\u9519\u8BEF: ${String(entity.startDate)} ~ ${String(entity.endDate)}`;
+      err.style.cssText = "color: #ef4444; font-size: 10px; padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
       return;
+    }
     const startPercent = (entityStart - chartStart) / chartRange * 100;
     const endPercent = (entityEnd - chartStart) / chartRange * 100;
     const widthPercent = Math.max(1, endPercent - startPercent);
@@ -9542,18 +11717,22 @@ var TimelineRenderer = class extends BaseRenderer {
       barColor = colors[entity.priority] || barColor;
     }
     const bar = timelineCol.createDiv("pm-gantt-bar");
+    const safeLeft = Math.max(0, Math.min(99, startPercent));
+    const safeWidth = Math.max(2, Math.min(100, widthPercent));
     bar.style.cssText = `
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      left: ${Math.max(0, startPercent)}%;
-      width: ${Math.min(100, widthPercent)}%;
-      height: 20px;
-      border-radius: 4px;
-      background: ${barColor};
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      min-width: 2px;
+      position: absolute !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      left: ${safeLeft}% !important;
+      width: ${safeWidth}% !important;
+      height: 20px !important;
+      border-radius: 4px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+      min-width: 2px !important;
+      z-index: 2;
     `;
+    bar.style.setProperty("background-color", barColor, "important");
+    bar.style.setProperty("background-image", "none", "important");
     const progress = entity.progress || 0;
     if (progress > 0) {
       const fill = bar.createDiv("pm-gantt-progress");
@@ -9640,6 +11819,40 @@ var TimelineRenderer = class extends BaseRenderer {
       `;
       owner.textContent = `\u8D1F\u8D23\u4EBA: ${entity.owner}`;
     }
+  }
+  /**
+   * 安全解析日期值
+   * 处理字符串、数字时间戳、Date 对象、Luxon DateTime 等多种格式
+   */
+  parseDateValue(val) {
+    if (val === void 0 || val === null || val === "")
+      return null;
+    if (val instanceof Date)
+      return val.getTime();
+    if (typeof val === "number") {
+      if (val > 1e12)
+        return val;
+      const str2 = String(val);
+      if (str2.length === 8) {
+        const d4 = /* @__PURE__ */ new Date(`${str2.slice(0, 4)}-${str2.slice(4, 6)}-${str2.slice(6, 8)}`);
+        if (!isNaN(d4.getTime()))
+          return d4.getTime();
+      }
+      const d3 = new Date(val);
+      if (!isNaN(d3.getTime()))
+        return d3.getTime();
+      return null;
+    }
+    const str = String(val).trim();
+    if (!str)
+      return null;
+    const d = new Date(str);
+    if (!isNaN(d.getTime()))
+      return d.getTime();
+    const d2 = new Date(str.replace(/\//g, "-"));
+    if (!isNaN(d2.getTime()))
+      return d2.getTime();
+    return null;
   }
 };
 RendererRegistry.register("timeline", TimelineRenderer);
@@ -10528,8 +12741,7 @@ var BurndownRenderer = class extends BaseRenderer {
   async render(container) {
     container.empty();
     container.addClass("pm-burndown-view");
-    const versionId = this.config.version;
-    const data = await this.reportService.calculateBurndownData(versionId);
+    const data = await this.reportService.calculateBurndownData(void 0, void 0, this.config);
     if (data.length === 0) {
       this.createEmptyState(container, "\u6682\u65E0\u6570\u636E\uFF0C\u8BF7\u5148\u521B\u5EFA\u7279\u6027\u5E76\u8BBE\u7F6E\u9884\u4F30\u5DE5\u65F6");
       return;
@@ -10708,9 +12920,8 @@ var WorkloadRenderer = class extends BaseRenderer {
    * 加载数据
    */
   async loadData() {
-    const versionId = this.config.version;
     if (this.groupBy === "project") {
-      return this.reportService.calculateWorkloadByProject(versionId);
+      return this.reportService.calculateWorkloadByProject(this.config);
     } else {
       return this.reportService.calculateWorkloadByOwner(
         this.config.entityType || "feature",
@@ -10811,15 +13022,115 @@ var WorkloadRenderer = class extends BaseRenderer {
 RendererRegistry.register("workload", WorkloadRenderer);
 
 // src/view-engine/controllers/ToolbarController.ts
+init_utils();
 var ToolbarController = class {
+  constructor(app, entityManager, onChange, onSave, sourcePath, codeBlockIndex) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.onChange = onChange;
+    this.onSave = onSave;
+    this.sourcePath = sourcePath;
+    this.codeBlockIndex = codeBlockIndex;
+    this.filters = { mode: "cascade" };
+    this.owners = [];
+    this.currentEntityType = "feature";
+    this.cleanupFns = [];
+    // 实体类型选项（带颜色）
+    this.entityTypeOptions = [
+      { value: "version", label: "\u{1F4C1} \u7248\u672C", color: "#6366f1" },
+      { value: "project", label: "\u{1F4C2} \u9879\u76EE", color: "#3b82f6" },
+      { value: "feature", label: "\u{1F4C4} \u7279\u6027", color: "#22c55e" }
+    ];
+    // 状态选项（带颜色）
+    this.statusOptions = [
+      { value: "", label: "\u5168\u90E8\u72B6\u6001", color: "#9ca3af" },
+      { value: "backlog", label: "\u5F85\u5904\u7406", color: "#9ca3af" },
+      { value: "todo", label: "\u5F85\u5F00\u59CB", color: "#3b82f6" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "#f59e0b" },
+      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "#8b5cf6" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "#22c55e" }
+    ];
+    // 优先级选项（带颜色）
+    this.priorityOptions = [
+      { value: "", label: "\u5168\u90E8\u4F18\u5148\u7EA7", color: "#9ca3af" },
+      { value: "critical", label: "\u7D27\u6025", color: "#ef4444" },
+      { value: "high", label: "\u9AD8", color: "#f97316" },
+      { value: "medium", label: "\u4E2D", color: "#eab308" },
+      { value: "low", label: "\u4F4E", color: "#22c55e" }
+    ];
+  }
+  /**
+   * 加载选项数据（使用缓存优化）
+   */
+  async loadOptions() {
+    const ownersFromCache = this.entityManager.getOwners();
+    this.owners = ["\u5168\u90E8\u8D1F\u8D23\u4EBA", ...ownersFromCache];
+  }
   /**
    * 渲染工具栏
    */
   render(wrapper, config, options) {
     const toolbar = wrapper.createDiv("pm-view-toolbar");
+    this.container = toolbar;
+    this.filters = { ...this.filters, ...config };
+    if (config.entityType) {
+      this.currentEntityType = config.entityType;
+    }
     this.renderViewModeSelector(toolbar, config, options.onViewModeChange);
-    this.renderActionButtons(toolbar, options);
+    const rightGroup = toolbar.createDiv("pm-toolbar-group pm-toolbar-right");
+    this.renderFilters(rightGroup, config);
+    if (options.sortMenuController && options.onSortChange && options.sortConfig) {
+      options.sortMenuController.renderBadge(rightGroup, options.sortConfig, options.onSortChange);
+    }
+    this.renderPropertyButton(rightGroup, options.onPropertyClick);
+    if (options.onFullscreenClick) {
+      this.renderFullscreenButton(rightGroup, options.onFullscreenClick);
+    }
     return toolbar;
+  }
+  /**
+   * 渲染筛选器 badges
+   */
+  renderFilters(container, config) {
+    this.createSelectCell(container, "\u5B9E\u4F53\u7C7B\u578B", this.entityTypeOptions, this.currentEntityType, (value) => {
+      var _a;
+      this.currentEntityType = value;
+      this.filters.entityType = this.currentEntityType;
+      this.filters.version = void 0;
+      this.filters.project = void 0;
+      this.filters.feature = void 0;
+      this.filters.versions = void 0;
+      this.filters.projects = void 0;
+      this.filters.features = void 0;
+      (_a = this.treeSelector) == null ? void 0 : _a.updateEntityType(this.currentEntityType);
+      this.onFilterChange();
+    });
+    const treeWrapper = container.createDiv("pm-filter-tree-wrapper");
+    this.treeSelector = new EntityTreeSelector(this.app, this.entityManager, {
+      entityType: this.currentEntityType,
+      onSelect: (selection) => {
+        this.handleTreeSelection(selection);
+      },
+      initialSelection: this.buildInitialSelection()
+    });
+    this.treeSelector.render(treeWrapper);
+    this.createSelectCell(container, "\u72B6\u6001", this.statusOptions, this.filters.status || "", (value) => {
+      this.filters.status = value || void 0;
+      this.onFilterChange();
+    });
+    this.createSelectCell(container, "\u4F18\u5148\u7EA7", this.priorityOptions, this.filters.priority || "", (value) => {
+      this.filters.priority = value || void 0;
+      this.onFilterChange();
+    });
+    const ownerOptions = this.owners.map((o) => ({
+      value: o === "\u5168\u90E8\u8D1F\u8D23\u4EBA" ? "" : o,
+      label: o,
+      color: "#8b5cf6"
+    }));
+    this.createSelectCell(container, "\u8D1F\u8D23\u4EBA", ownerOptions, this.filters.owner || "", (value) => {
+      this.filters.owner = value || void 0;
+      this.onFilterChange();
+    });
   }
   /**
    * 渲染视图模式选择器
@@ -10841,47 +13152,385 @@ var ToolbarController = class {
     });
   }
   /**
-   * 渲染操作按钮组
+   * 创建 SelectCell 风格的下拉选择器
    */
-  renderActionButtons(toolbar, options) {
-    const buttonGroup = toolbar.createDiv("pm-toolbar-group pm-toolbar-right");
-    const filterBtn = buttonGroup.createEl("button", {
-      cls: "pm-toolbar-btn",
-      text: "\u7B5B\u9009 \u25BC"
+  createSelectCell(container, label, options, value, onChange) {
+    const wrapper = container.createDiv("pm-filter-field-compact");
+    const triggerBtn = wrapper.createDiv("pm-cell-badge pm-filter-badge");
+    const selectedOption = options.find((opt) => opt.value === value) || options[0];
+    this.updateBadgeStyle(triggerBtn, selectedOption);
+    let dropdownEl = null;
+    let currentValue = value;
+    triggerBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (dropdownEl) {
+        dropdownEl.remove();
+        dropdownEl = null;
+        return;
+      }
+      dropdownEl = this.createDropdown(wrapper, options, currentValue, (newValue) => {
+        currentValue = newValue;
+        onChange(newValue);
+        const newOption = options.find((opt) => opt.value === newValue) || options[0];
+        this.updateBadgeStyle(triggerBtn, newOption);
+        dropdownEl == null ? void 0 : dropdownEl.remove();
+        dropdownEl = null;
+      });
     });
-    filterBtn.addEventListener("click", () => {
-      options.onFilterToggle();
-      const currentWrapper = filterBtn.closest(".pm-view-wrapper");
-      const filterBar = currentWrapper == null ? void 0 : currentWrapper.querySelector(".pm-filter-container");
-      if (filterBar) {
-        const isHidden = filterBar.style.display === "none";
-        filterBtn.textContent = isHidden ? "\u7B5B\u9009 \u25B2" : "\u7B5B\u9009 \u25BC";
+    const closeHandler = (e) => {
+      if (dropdownEl && !dropdownEl.contains(e.target) && !wrapper.contains(e.target)) {
+        dropdownEl.remove();
+        dropdownEl = null;
+      }
+    };
+    document.addEventListener("click", closeHandler);
+    this.cleanupFns.push(() => {
+      document.removeEventListener("click", closeHandler);
+      if (dropdownEl) {
+        dropdownEl.remove();
       }
     });
-    const sortBtn = buttonGroup.createEl("button", {
-      cls: "pm-toolbar-btn",
-      text: "\u6392\u5E8F \u25BC"
+    return wrapper;
+  }
+  /**
+   * 更新 badge 样式
+   */
+  updateBadgeStyle(badge, option) {
+    badge.empty();
+    badge.textContent = option.label;
+    const color = option.color || "#9ca3af";
+    badge.style.cssText = `
+			background-color: ${hexToRgba(color, 0.15)};
+			color: ${color};
+			border-color: ${hexToRgba(color, 0.3)};
+		`;
+    const arrow = badge.createSpan();
+    arrow.textContent = "\u25BC";
+    arrow.style.cssText = `
+			font-size: 10px;
+			opacity: 0.7;
+			margin-left: 2px;
+		`;
+  }
+  /**
+   * 创建下拉菜单
+   */
+  createDropdown(container, options, currentValue, onSelect) {
+    const rect = container.getBoundingClientRect();
+    const dropdown = document.body.createDiv("pm-cell-dropdown pm-filter-dropdown");
+    const zIndex = "var(--pm-z-dropdown, 1000)";
+    dropdown.style.cssText = `
+			position: fixed;
+			left: ${rect.left}px;
+			top: ${rect.bottom + 4}px;
+			min-width: ${rect.width}px;
+			max-width: 200px;
+			max-height: 280px;
+			overflow-y: auto;
+			background: var(--background-primary);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 8px;
+			padding: 4px;
+			z-index: ${zIndex};
+			box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+		`;
+    options.forEach((opt) => {
+      const item = dropdown.createDiv("pm-cell-dropdown-item");
+      item.style.cssText = `
+				padding: 8px 12px;
+				cursor: pointer;
+				border-radius: 6px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: 13px;
+				transition: background 0.15s ease;
+			`;
+      const color = opt.color || "#9ca3af";
+      const dot = item.createSpan();
+      dot.style.cssText = `
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: ${color};
+				flex-shrink: 0;
+			`;
+      item.createSpan({ text: opt.label });
+      if (opt.value === currentValue) {
+        item.createSpan({
+          text: "\u2713",
+          cls: "pm-cell-dropdown-check"
+        }).style.cssText = "margin-left: auto; font-weight: bold;";
+      }
+      item.addEventListener("click", () => {
+        onSelect(opt.value);
+      });
+      item.addEventListener("mouseenter", () => {
+        item.style.background = "var(--background-modifier-hover)";
+      });
+      item.addEventListener("mouseleave", () => {
+        item.style.background = "";
+      });
     });
-    sortBtn.addEventListener("click", options.onSortClick);
-    const propBtn = buttonGroup.createEl("button", {
-      cls: "pm-toolbar-btn",
-      text: "\u5C5E\u6027 \u25BC"
+    return dropdown;
+  }
+  /**
+   * 构建初始选择状态
+   */
+  buildInitialSelection() {
+    const selection = { type: this.currentEntityType };
+    let hasSelection = false;
+    switch (this.currentEntityType) {
+      case "version":
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
+      case "project":
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          selection.projectIds = [...this.filters.projects];
+          hasSelection = true;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
+      case "feature":
+        if (this.filters.features && this.filters.features.length > 0) {
+          selection.featureIds = [...this.filters.features];
+          hasSelection = true;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          selection.projectIds = [...this.filters.projects];
+          hasSelection = true;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
+    }
+    return hasSelection ? selection : void 0;
+  }
+  /**
+   * 处理树形选择器的选择变化
+   */
+  handleTreeSelection(selection) {
+    this.filters.versions = void 0;
+    this.filters.projects = void 0;
+    this.filters.features = void 0;
+    if (!selection) {
+      this.onFilterChange();
+      return;
+    }
+    switch (this.currentEntityType) {
+      case "version": {
+        if (selection.versionIds && selection.versionIds.length > 0) {
+          this.filters.versions = selection.versionIds;
+        }
+        break;
+      }
+      case "project": {
+        if (selection.projectIds && selection.projectIds.length > 0) {
+          this.filters.projects = selection.projectIds;
+        }
+        break;
+      }
+      case "feature": {
+        if (selection.featureIds && selection.featureIds.length > 0) {
+          this.filters.features = selection.featureIds;
+        }
+        break;
+      }
+    }
+    this.onFilterChange();
+  }
+  /**
+   * 筛选条件变化时的处理
+   */
+  onFilterChange() {
+    const cleanFilters = {
+      mode: this.filters.mode,
+      entityType: this.filters.entityType
+    };
+    cleanFilters.versions = void 0;
+    cleanFilters.projects = void 0;
+    cleanFilters.features = void 0;
+    switch (this.currentEntityType) {
+      case "version":
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+      case "project":
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          cleanFilters.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+      case "feature":
+        if (this.filters.features && this.filters.features.length > 0) {
+          cleanFilters.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          cleanFilters.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+    }
+    if (this.filters.status)
+      cleanFilters.status = this.filters.status;
+    if (this.filters.priority)
+      cleanFilters.priority = this.filters.priority;
+    if (this.filters.owner)
+      cleanFilters.owner = this.filters.owner;
+    if (this.filters.tag)
+      cleanFilters.tag = this.filters.tag;
+    this.onChange(cleanFilters);
+    this.saveFiltersToCodeBlock();
+  }
+  /**
+   * 保存筛选条件到代码块
+   */
+  saveFiltersToCodeBlock() {
+    const filterUpdates = {};
+    if (this.filters.entityType)
+      filterUpdates.entityType = this.filters.entityType;
+    filterUpdates.versions = void 0;
+    filterUpdates.projects = void 0;
+    filterUpdates.features = void 0;
+    switch (this.currentEntityType) {
+      case "version":
+        if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+      case "project":
+        if (this.filters.projects && this.filters.projects.length > 0) {
+          filterUpdates.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+      case "feature":
+        if (this.filters.features && this.filters.features.length > 0) {
+          filterUpdates.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          filterUpdates.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+    }
+    filterUpdates.status = this.filters.status || void 0;
+    filterUpdates.priority = this.filters.priority || void 0;
+    filterUpdates.owner = this.filters.owner || void 0;
+    filterUpdates.tag = this.filters.tag || void 0;
+    this.onSave(filterUpdates);
+  }
+  /**
+   * 渲染属性按钮
+   */
+  renderPropertyButton(container, onClick) {
+    const propBtn = container.createDiv("pm-cell-badge pm-toolbar-prop-btn");
+    propBtn.textContent = "\u5C5E\u6027 \u25BC";
+    const propColor = "#f59e0b";
+    propBtn.style.cssText = `
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 12px;
+			border-radius: 12px;
+			font-size: 13px;
+			font-weight: 500;
+			cursor: pointer;
+			white-space: nowrap;
+			background-color: rgba(245, 158, 11, 0.15);
+			color: ${propColor};
+			border: 1px solid rgba(245, 158, 11, 0.3);
+			transition: all 0.2s ease;
+		`;
+    propBtn.addEventListener("click", onClick);
+  }
+  /**
+   * 渲染全屏按钮
+   */
+  renderFullscreenButton(container, onClick) {
+    const fsBtn = container.createEl("button", {
+      cls: "pm-toolbar-btn pm-toolbar-btn-fullscreen"
     });
-    propBtn.addEventListener("click", options.onPropertyClick);
+    const { setIcon } = require("obsidian");
+    setIcon(fsBtn, "maximize");
+    fsBtn.addEventListener("click", onClick);
+  }
+  /**
+   * 获取当前筛选条件
+   */
+  getFilters() {
+    return { ...this.filters };
+  }
+  /**
+   * 销毁工具栏，清理所有事件监听器
+   */
+  destroy() {
+    this.cleanupFns.forEach((fn) => fn());
+    this.cleanupFns = [];
+    if (this.container) {
+      this.container.remove();
+      this.container = void 0;
+    }
+    if (this.treeSelector) {
+      this.treeSelector.destroy();
+      this.treeSelector = void 0;
+    }
   }
 };
 
 // src/view-engine/controllers/SortMenuController.ts
+init_utils();
 var SortMenuController = class {
   constructor() {
     this.sortFields = [
       { value: "name", label: "\u540D\u79F0" },
+      { value: "status", label: "\u72B6\u6001" },
       { value: "startDate", label: "\u5F00\u59CB\u65E5\u671F" },
       { value: "endDate", label: "\u7ED3\u675F\u65E5\u671F" },
       { value: "priority", label: "\u4F18\u5148\u7EA7" },
       { value: "progress", label: "\u8FDB\u5EA6" },
       { value: "created", label: "\u521B\u5EFA\u65F6\u95F4" }
     ];
+  }
+  /**
+   * 渲染排序 badge（SelectCell 风格）
+   */
+  renderBadge(container, config, onSortChange) {
+    const wrapper = container.createDiv("pm-sort-badge-wrapper");
+    const badge = wrapper.createDiv("pm-cell-badge pm-sort-badge");
+    this.updateBadgeText(badge, config.sortBy, config.sortOrder);
+    badge.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.show(badge, config, (sortBy, sortOrder) => {
+        this.updateBadgeText(badge, sortBy, sortOrder);
+        onSortChange(sortBy, sortOrder);
+      });
+    });
+    return wrapper;
+  }
+  /**
+   * 更新 badge 显示文本
+   */
+  updateBadgeText(badge, sortBy, sortOrder) {
+    badge.empty();
+    const field = this.sortFields.find((f) => f.value === sortBy);
+    const label = field ? field.label : "\u6392\u5E8F";
+    const arrow = sortOrder === "desc" ? "\u2193" : "\u2191";
+    badge.textContent = `${label} ${arrow}`;
+    const color = "#8b5cf6";
+    badge.style.cssText = `
+      background-color: ${hexToRgba(color, 0.15)};
+      color: ${color};
+      border-color: ${hexToRgba(color, 0.3)};
+    `;
   }
   /**
    * 显示排序菜单
@@ -10891,8 +13540,9 @@ var SortMenuController = class {
     const currentSortOrder = config.sortOrder || "asc";
     const content = this.createMenuContent(currentSortBy, currentSortOrder, onSortChange);
     DropdownMenuManager.show(triggerBtn, content, {
-      className: "pm-sort-menu pm-dropdown-menu",
-      minWidth: 180
+      className: "pm-cell-dropdown pm-sort-menu",
+      minWidth: 180,
+      padding: 4
     });
   }
   /**
@@ -10901,7 +13551,7 @@ var SortMenuController = class {
   createMenuContent(currentSortBy, currentSortOrder, onSortChange) {
     const menu = document.createElement("div");
     const title = menu.createEl("div", { text: "\u6392\u5E8F\u5B57\u6BB5", cls: "pm-menu-section-title" });
-    title.style.cssText = "font-weight: 600; margin-bottom: 8px; font-size: 13px;";
+    title.style.cssText = "font-weight: 600; margin-bottom: 4px; padding: 4px 8px; font-size: 12px; color: var(--text-muted);";
     const fieldList = menu.createDiv("pm-sort-field-list");
     this.sortFields.forEach((field) => {
       const item = this.createSortFieldItem(
@@ -10922,36 +13572,20 @@ var SortMenuController = class {
    */
   createSortFieldItem(field, currentSortBy, currentSortOrder, onClick) {
     const item = document.createElement("div");
-    item.className = "pm-sort-field-item";
-    item.style.cssText = `
-      padding: 6px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    `;
-    item.textContent = field.label;
+    item.className = "pm-cell-dropdown-item";
+    const dot = item.createEl("span");
+    dot.style.cssText = "width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6; flex-shrink: 0;";
+    item.createSpan({ text: field.label });
     if (currentSortBy === field.value) {
       item.classList.add("pm-sort-active");
-      item.style.background = "var(--background-modifier-hover)";
-      const orderIcon = document.createElement("span");
-      orderIcon.textContent = currentSortOrder === "asc" ? " \u25B2" : " \u25BC";
-      item.appendChild(orderIcon);
+      const orderIcon = item.createSpan({
+        text: currentSortOrder === "asc" ? "\u25B2" : "\u25BC",
+        cls: "pm-cell-dropdown-check"
+      });
     }
     item.addEventListener("click", () => {
       const newOrder = currentSortBy === field.value && currentSortOrder === "asc" ? "desc" : "asc";
       onClick(newOrder);
-    });
-    item.addEventListener("mouseenter", () => {
-      if (currentSortBy !== field.value) {
-        item.style.background = "var(--background-modifier-hover)";
-      }
-    });
-    item.addEventListener("mouseleave", () => {
-      if (currentSortBy !== field.value) {
-        item.style.background = "";
-      }
     });
     return item;
   }
@@ -10979,49 +13613,16 @@ var PropertyPanelController = class {
       text: "\u89C6\u56FE\u5C5E\u6027",
       cls: "pm-panel-title"
     }).style.cssText = "font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--background-modifier-border);";
-    this.renderEntityTypeSelector(panel, config, options);
     if (config.mode === "list") {
       this.renderListColumnSelector(panel, config, options);
     }
     if (config.mode !== "list") {
       this.renderCardFieldSelector(panel, config, options);
     }
-    if (config.mode === "kanban" || config.mode === "cascade") {
+    if (config.mode === "kanban") {
       this.renderGroupBySelector(panel, config, options);
     }
-    if (config.mode === "grid") {
-      this.renderColsSelector(panel, config, options);
-    }
-    this.renderLimitInput(panel, config, options);
     return panel;
-  }
-  /**
-   * 渲染实体类型选择器
-   */
-  renderEntityTypeSelector(panel, config, options) {
-    const section = panel.createDiv("pm-property-section");
-    section.style.marginBottom = "12px";
-    section.createEl("label", {
-      text: "\u5B9E\u4F53\u7C7B\u578B",
-      cls: "pm-property-label"
-    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
-    const select = section.createEl("select", { cls: "pm-property-select" });
-    select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
-    const entityTypes = [
-      { value: "feature", label: "\u7279\u6027" },
-      { value: "project", label: "\u9879\u76EE" },
-      { value: "version", label: "\u7248\u672C" }
-    ];
-    entityTypes.forEach((type) => {
-      const option = select.createEl("option");
-      option.value = type.value;
-      option.textContent = type.label;
-      if (config.entityType === type.value)
-        option.selected = true;
-    });
-    select.addEventListener("change", () => {
-      options.onConfigChange({ entityType: select.value });
-    });
   }
   /**
    * 渲染列表视图表头字段选择器
@@ -11035,28 +13636,27 @@ var PropertyPanelController = class {
     }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
     const checkboxContainer = section.createDiv("pm-checkbox-group");
     checkboxContainer.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
-    const currentColumns = config.listColumns || ["name", "status", "priority", "owner"];
+    let liveColumns = config.listColumns || ["name", "status", "priority", "owner"];
     LIST_COLUMN_DEFINITIONS.forEach((field) => {
       const label = checkboxContainer.createEl("label");
       label.style.cssText = "display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;";
       const checkbox = label.createEl("input");
       checkbox.type = "checkbox";
-      checkbox.checked = currentColumns.includes(field.key);
+      checkbox.checked = liveColumns.includes(field.key);
       checkbox.disabled = field.required;
       const text = label.createSpan();
       text.textContent = field.label + (field.required ? " (\u5FC5\u9009)" : "");
       text.style.cssText = field.required ? "color: var(--text-muted);" : "";
       checkbox.addEventListener("change", () => {
-        let newColumns = [...currentColumns];
         if (checkbox.checked) {
-          if (!newColumns.includes(field.key)) {
-            newColumns.push(field.key);
+          if (!liveColumns.includes(field.key)) {
+            liveColumns = [...liveColumns, field.key];
           }
         } else {
-          newColumns = newColumns.filter((k) => k !== field.key);
+          liveColumns = liveColumns.filter((k) => k !== field.key);
         }
-        options.debouncedSave({ listColumns: newColumns });
-        options.onConfigChange({ listColumns: newColumns });
+        options.debouncedSave({ listColumns: liveColumns });
+        options.onConfigChange({ listColumns: liveColumns });
       });
     });
   }
@@ -11074,7 +13674,7 @@ var PropertyPanelController = class {
       required: ["name", "priority"],
       optional: ["status", "owner", "progress"]
     };
-    const currentOptional = currentCardFields.optional || [];
+    let liveOptional = currentCardFields.optional || [];
     const multiSelectContainer = section.createDiv("pm-multi-select");
     multiSelectContainer.style.cssText = `
       border: 1px solid var(--background-modifier-border);
@@ -11102,18 +13702,17 @@ var PropertyPanelController = class {
       label.style.cssText = "display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; padding: 2px 0;";
       const checkbox = label.createEl("input");
       checkbox.type = "checkbox";
-      checkbox.checked = currentOptional.includes(field.key);
+      checkbox.checked = liveOptional.includes(field.key);
       label.createSpan({ text: field.label });
       checkbox.addEventListener("change", () => {
-        let newOptional = [...currentOptional];
         if (checkbox.checked) {
-          if (!newOptional.includes(field.key)) {
-            newOptional.push(field.key);
+          if (!liveOptional.includes(field.key)) {
+            liveOptional = [...liveOptional, field.key];
           }
         } else {
-          newOptional = newOptional.filter((k) => k !== field.key);
+          liveOptional = liveOptional.filter((k) => k !== field.key);
         }
-        const newCardFields = { ...currentCardFields, optional: newOptional };
+        const newCardFields = { ...currentCardFields, optional: liveOptional };
         options.debouncedSave({ cardFields: newCardFields });
         options.onConfigChange({ cardFields: newCardFields });
       });
@@ -11148,77 +13747,54 @@ var PropertyPanelController = class {
       options.onConfigChange({ groupBy: groupByValue });
     });
   }
-  /**
-   * 渲染网格列数选择器
-   */
-  renderColsSelector(panel, config, options) {
-    const section = panel.createDiv("pm-property-section");
-    section.style.marginBottom = "12px";
-    section.createEl("label", {
-      text: "\u5217\u6570",
-      cls: "pm-property-label"
-    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
-    const select = section.createEl("select", { cls: "pm-property-select" });
-    select.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
-    [2, 3, 4, 5].forEach((num) => {
-      const option = select.createEl("option");
-      option.value = String(num);
-      option.textContent = `${num} \u5217`;
-      if ((config.cols || 3) === num)
-        option.selected = true;
-    });
-    select.addEventListener("change", () => {
-      const newCols = parseInt(select.value);
-      options.debouncedSave({ cols: newCols });
-      options.onConfigChange({ cols: newCols });
-    });
-  }
-  /**
-   * 渲染显示数量限制输入框
-   */
-  renderLimitInput(panel, config, options) {
-    const section = panel.createDiv("pm-property-section");
-    section.style.marginBottom = "12px";
-    section.createEl("label", {
-      text: "\u663E\u793A\u6570\u91CF\u9650\u5236",
-      cls: "pm-property-label"
-    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
-    const input = section.createEl("input");
-    input.type = "number";
-    input.placeholder = "\u65E0\u9650\u5236";
-    input.value = config.limit ? String(config.limit) : "";
-    input.style.cssText = "width: 100%; padding: 4px 8px;";
-    input.addEventListener("change", () => {
-      const limit = input.value ? parseInt(input.value) : void 0;
-      options.debouncedSave({ limit });
-      options.onConfigChange({ limit });
-    });
-  }
 };
 
 // src/view-engine/ViewEngine.ts
+init_utils();
 var ViewEngine = class {
   constructor(app, entityManager) {
     this.app = app;
     this.entityManager = entityManager;
-    // 使用 codeBlockIndex 作为 key，避免 DOM 引用导致的内存泄漏
-    this.filterBarMap = /* @__PURE__ */ new Map();
+    // 保存每个代码块的工具栏控制器，避免 DOM 引用导致的内存泄漏
+    this.toolbarMap = /* @__PURE__ */ new Map();
+    // 保存每个代码块的最新配置，避免闭包陷阱
+    this.currentConfigs = /* @__PURE__ */ new Map();
+    // 当前处于全屏模式的 wrapper
+    this.fullscreenWrapper = null;
+    // fullscreenchange 事件处理器
+    this.fullscreenChangeHandler = null;
     this.dataService = new DataService(app, entityManager);
     this.actionService = new ActionService(app, entityManager);
     this.configService = new CodeBlockConfigService(app);
-    this.toolbarController = new ToolbarController();
     this.sortMenuController = new SortMenuController();
     this.propertyPanelController = new PropertyPanelController();
+    this.actionService.setBeforeOpenEntityCallback(() => {
+      if (this.fullscreenWrapper && document.fullscreenElement === this.fullscreenWrapper) {
+        document.exitFullscreen().catch(() => {
+        });
+      }
+    });
+    this.setupFullscreenHandler();
   }
   /**
    * 销毁视图引擎，清理所有资源
    */
   destroy() {
-    this.filterBarMap.forEach((filterBar) => {
-      filterBar.destroy();
+    this.toolbarMap.forEach((toolbar) => {
+      toolbar.destroy();
     });
-    this.filterBarMap.clear();
+    this.toolbarMap.clear();
+    this.currentConfigs.clear();
     this.configService.clearPendingSaves();
+    if (this.fullscreenWrapper && document.fullscreenElement === this.fullscreenWrapper) {
+      document.exitFullscreen().catch(() => {
+      });
+    }
+    this.fullscreenWrapper = null;
+    if (this.fullscreenChangeHandler) {
+      document.removeEventListener("fullscreenchange", this.fullscreenChangeHandler);
+      this.fullscreenChangeHandler = null;
+    }
   }
   /**
    * 防抖保存配置 - 委托给 CodeBlockConfigService
@@ -11227,61 +13803,108 @@ var ViewEngine = class {
     this.configService.debouncedSave(sourcePath, codeBlockIndex, updates, delay);
   }
   /**
-   * 渲染视图 - 工具栏在上，筛选在中，视图在下
+   * 设置全屏状态变化监听器
+   */
+  setupFullscreenHandler() {
+    this.fullscreenChangeHandler = () => {
+      const isFullscreen = !!document.fullscreenElement;
+      document.querySelectorAll(".pm-toolbar-btn-fullscreen").forEach((btn) => {
+        const { setIcon } = require("obsidian");
+        setIcon(btn, isFullscreen ? "minimize" : "maximize");
+      });
+      if (!isFullscreen) {
+        this.fullscreenWrapper = null;
+      }
+    };
+    document.addEventListener("fullscreenchange", this.fullscreenChangeHandler);
+  }
+  /**
+   * 切换全屏状态
+   */
+  toggleFullscreen(wrapper) {
+    if (document.fullscreenElement === wrapper) {
+      document.exitFullscreen().catch(() => {
+      });
+    } else {
+      this.fullscreenWrapper = wrapper;
+      wrapper.requestFullscreen().catch(() => {
+      });
+    }
+  }
+  /**
+   * 获取 ActionService 实例
+   */
+  getActionService() {
+    return this.actionService;
+  }
+  /**
+   * 渲染视图 - 工具栏（含筛选）在上，视图在下
    */
   async render(container, config, context, codeBlockIndex) {
     container.empty();
     container.addClass("pm-view");
     const wrapper = container.createDiv("pm-view-wrapper");
-    this.renderToolbar(wrapper, config, context, codeBlockIndex);
     const key = `${context.sourcePath}:${codeBlockIndex != null ? codeBlockIndex : "unknown"}`;
-    const oldFilterBar = this.filterBarMap.get(key);
-    if (oldFilterBar) {
-      oldFilterBar.destroy();
+    const oldToolbar = this.toolbarMap.get(key);
+    if (oldToolbar) {
+      oldToolbar.destroy();
     }
-    const filterBar = new FilterBar(
+    this.currentConfigs.set(key, config);
+    const toolbarController = new ToolbarController(
       this.app,
       this.entityManager,
       async (filters) => {
-        const finalConfig = { ...config, ...filters };
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const finalConfig = { ...currentConfig, ...filters };
+        this.currentConfigs.set(key, finalConfig);
         await this.renderContent(contentArea, finalConfig, context);
+      },
+      (filterUpdates) => {
+        this.debouncedSave(context.sourcePath, codeBlockIndex, filterUpdates);
       },
       context.sourcePath,
       codeBlockIndex
     );
-    await filterBar.loadOptions();
-    filterBar.render(wrapper, config);
-    this.filterBarMap.set(key, filterBar);
+    await toolbarController.loadOptions();
+    this.toolbarMap.set(key, toolbarController);
+    this.renderToolbar(wrapper, config, context, codeBlockIndex, toolbarController);
     const contentArea = wrapper.createDiv("pm-view-content");
     context.codeBlockIndex = codeBlockIndex;
     await this.renderContent(contentArea, config, context);
   }
   /**
-   * 渲染工具栏 - 委托给 ToolbarController
+   * 渲染工具栏 - 委托给 ToolbarController 完整渲染
    */
-  renderToolbar(wrapper, config, context, codeBlockIndex) {
-    const contentArea = wrapper.querySelector(".pm-view-content") || wrapper;
-    return this.toolbarController.render(wrapper, config, {
+  renderToolbar(wrapper, config, context, codeBlockIndex, toolbarController) {
+    const key = `${context.sourcePath}:${codeBlockIndex != null ? codeBlockIndex : "unknown"}`;
+    return toolbarController.render(wrapper, config, {
       onViewModeChange: async (newMode) => {
-        const newConfig = { ...config, mode: newMode };
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig = { ...currentConfig, mode: newMode };
+        this.currentConfigs.set(key, newConfig);
         await this.saveViewModeChange(context.sourcePath, codeBlockIndex, newMode);
         const targetContentArea = wrapper.querySelector(".pm-view-content");
         if (targetContentArea) {
           await this.renderContent(targetContentArea, newConfig, context);
         }
       },
-      onFilterToggle: () => {
-        const filterBar = wrapper.querySelector(".pm-filter-container");
-        if (filterBar) {
-          const isHidden = filterBar.style.display === "none";
-          filterBar.style.display = isHidden ? "block" : "none";
-        }
-      },
-      onSortClick: () => {
-        this.showSortMenu(wrapper, config, context, codeBlockIndex);
-      },
       onPropertyClick: () => {
-        this.showPropertyPanel(wrapper, config, context, codeBlockIndex);
+        this.showPropertyPanel(wrapper, this.currentConfigs.get(key) || config, context, codeBlockIndex);
+      },
+      onFullscreenClick: () => {
+        this.toggleFullscreen(wrapper);
+      },
+      sortMenuController: this.sortMenuController,
+      sortConfig: this.currentConfigs.get(key) || config,
+      onSortChange: async (sortBy, sortOrder) => {
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig = { ...currentConfig, sortBy, sortOrder };
+        this.currentConfigs.set(key, newConfig);
+        await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
+        const targetContentArea = wrapper.querySelector(".pm-view-content");
+        if (targetContentArea) {
+          await this.renderContent(targetContentArea, newConfig, context);
+        }
       }
     });
   }
@@ -11303,14 +13926,16 @@ var ViewEngine = class {
    * 渲染内容区域
    */
   async renderContent(container, config, context) {
+    var _a;
     container.empty();
-    const mode = config.mode || "kanban";
+    const mode = config.mode || "cascade";
     const renderer = this.createRenderer(mode);
     if (!renderer) {
       this.renderError(container, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
       return;
     }
     renderer.init(config, context);
+    (_a = container._unsubscribeRefresh) == null ? void 0 : _a.call(container);
     const unsubscribe = this.actionService.onRefresh(() => {
       this.renderContent(container, config, context);
     });
@@ -11330,8 +13955,7 @@ var ViewEngine = class {
       this.app,
       this.entityManager,
       this.dataService,
-      this.actionService,
-      this.configService
+      this.actionService
     );
   }
   /**
@@ -11368,38 +13992,22 @@ var ViewEngine = class {
       return validation.config;
     } catch (error) {
       ErrorHandler.handle(error, "\u914D\u7F6E\u89E3\u6790\u5931\u8D25", { category: "user" });
-      return { mode: "kanban" };
+      return { mode: "cascade" };
     }
-  }
-  /**
-   * 显示排序菜单 - 委托给 SortMenuController
-   */
-  showSortMenu(wrapper, config, context, codeBlockIndex) {
-    const triggerBtn = wrapper.querySelector(".pm-toolbar-btn:nth-child(2)");
-    if (!triggerBtn)
-      return;
-    this.sortMenuController.show(triggerBtn, config, async (sortBy, sortOrder) => {
-      const newConfig = { ...config, sortBy, sortOrder };
-      await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
-      const contentArea = wrapper.querySelector(".pm-view-content");
-      if (contentArea) {
-        await this.renderContent(contentArea, newConfig, context);
-      }
-    });
   }
   /**
    * 显示属性面板 - 委托给 PropertyPanelController
    */
   showPropertyPanel(wrapper, config, context, codeBlockIndex) {
-    const triggerBtn = wrapper.querySelector(".pm-toolbar-btn:nth-child(3)");
+    const triggerBtn = wrapper.querySelector(".pm-toolbar-right .pm-toolbar-prop-btn");
     if (!triggerBtn)
       return;
+    const key = `${context.sourcePath}:${codeBlockIndex != null ? codeBlockIndex : "unknown"}`;
     this.propertyPanelController.show(triggerBtn, wrapper, config, {
       onConfigChange: async (updates) => {
-        const newConfig = { ...config, ...updates };
-        if ("entityType" in updates) {
-          await this.saveEntityTypeConfig(context.sourcePath, codeBlockIndex, updates.entityType);
-        }
+        const currentConfig = this.currentConfigs.get(key) || config;
+        const newConfig = { ...currentConfig, ...updates };
+        this.currentConfigs.set(key, newConfig);
         const contentArea = wrapper.querySelector(".pm-view-content");
         if (contentArea) {
           await this.renderContent(contentArea, newConfig, context);
@@ -11420,12 +14028,6 @@ var ViewEngine = class {
     });
   }
   /**
-   * 保存实体类型配置 - 使用统一的 saveViewConfig
-   */
-  async saveEntityTypeConfig(sourcePath, codeBlockIndex, entityType) {
-    await this.saveViewConfig(sourcePath, codeBlockIndex, { entityType });
-  }
-  /**
    * 渲染错误状态
    */
   renderError(container, error) {
@@ -11437,7 +14039,7 @@ var ViewEngine = class {
 };
 
 // src/settings/TemplateSettingTab.ts
-var import_obsidian20 = require("obsidian");
+var import_obsidian26 = require("obsidian");
 init_TemplateService();
 var TEMPLATE_LABELS = {
   overview: "\u603B\u89C8\u9875\u9762",
@@ -11451,7 +14053,7 @@ var TEMPLATE_DESCRIPTIONS = {
   project: "\u521B\u5EFA\u65B0\u9879\u76EE\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
   feature: "\u521B\u5EFA\u65B0\u7279\u6027\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F"
 };
-var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
+var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -11461,7 +14063,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Project Manager \u6A21\u677F\u8BBE\u7F6E" });
-    new import_obsidian20.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
+    new import_obsidian26.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.enableCustomTemplates);
       toggle.onChange(async (value) => {
         this.plugin.settings.enableCustomTemplates = value;
@@ -11469,7 +14071,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
         this.templateService.updateSettings(this.plugin.settings);
       });
     });
-    new import_obsidian20.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
+    new import_obsidian26.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
       text.setPlaceholder("ProjectManager/.templates");
       text.setValue(this.plugin.settings.templateFolder || "");
       text.onChange(async (value) => {
@@ -11485,7 +14087,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
     }
     containerEl.createEl("hr");
     containerEl.createEl("h3", { text: "\u6279\u91CF\u64CD\u4F5C" });
-    new import_obsidian20.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
+    new import_obsidian26.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
       button.setButtonText("\u5BFC\u51FA\u6A21\u677F");
       button.onClick(async () => {
         try {
@@ -11493,13 +14095,13 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
           for (const type of types) {
             await this.templateService.exportTemplateToFile(type);
           }
-          new import_obsidian20.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
+          new import_obsidian26.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
         } catch (error) {
-          new import_obsidian20.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
+          new import_obsidian26.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
         }
       });
     });
-    new import_obsidian20.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
+    new import_obsidian26.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
       button.setButtonText("\u91CD\u7F6E");
       button.setWarning();
       button.onClick(async () => {
@@ -11507,7 +14109,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
           this.plugin.settings.customTemplates = {};
           await this.plugin.saveSettings();
           this.templateService.updateSettings(this.plugin.settings);
-          new import_obsidian20.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
+          new import_obsidian26.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
           this.display();
         }
       });
@@ -11560,7 +14162,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
         delete this.plugin.settings.customTemplates[type];
         await this.plugin.saveSettings();
         this.templateService.updateSettings(this.plugin.settings);
-        new import_obsidian20.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
+        new import_obsidian26.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
       }
     });
   }
@@ -11587,7 +14189,7 @@ var TemplateSettingTab = class extends import_obsidian20.PluginSettingTab {
     new TemplatePreviewModal(this.app, type, template).open();
   }
 };
-var TemplateEditorModal = class extends import_obsidian20.Modal {
+var TemplateEditorModal = class extends import_obsidian26.Modal {
   constructor(app, templateService, type, onSave) {
     super(app);
     this.textArea = null;
@@ -11602,9 +14204,9 @@ var TemplateEditorModal = class extends import_obsidian20.Modal {
     const defaultTemplate = this.templateService.getDefaultTemplate(this.type);
     const settings = this.templateService.getSettings();
     const currentTemplate = settings.customTemplates[this.type] || defaultTemplate;
-    const setting = new import_obsidian20.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
+    const setting = new import_obsidian26.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
     setting.controlEl.style.width = "100%";
-    this.textArea = new import_obsidian20.TextAreaComponent(setting.controlEl);
+    this.textArea = new import_obsidian26.TextAreaComponent(setting.controlEl);
     this.textArea.setValue(currentTemplate);
     this.textArea.inputEl.style.width = "100%";
     this.textArea.inputEl.style.minHeight = "400px";
@@ -11632,7 +14234,7 @@ var TemplateEditorModal = class extends import_obsidian20.Modal {
       var _a;
       const content = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
       await this.onSave(content);
-      new import_obsidian20.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
+      new import_obsidian26.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
       this.close();
     });
   }
@@ -11692,7 +14294,7 @@ var TemplateEditorModal = class extends import_obsidian20.Modal {
     }
   }
 };
-var TemplatePreviewModal = class extends import_obsidian20.Modal {
+var TemplatePreviewModal = class extends import_obsidian26.Modal {
   constructor(app, type, template) {
     super(app);
     this.type = type;
@@ -11774,7 +14376,7 @@ var PREVIEW_EXAMPLES = {
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
   async onload() {
     await this.loadSettings();
     this.entityManager = new EntityManager(this.app, this.settings);
@@ -11783,10 +14385,17 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     this.progressInput = new ProgressInput(this.app);
     this.viewEngine = new ViewEngine(this.app, this.entityManager);
     this.dataviewRegistry = new DataviewFunctionRegistry(this.app, this);
+    this.emailSummaryService = new EmailSummaryService(this.app, this.entityManager);
+    this.riskService = new RiskService(this.app, this.entityManager);
     await this.waitForMetadataCache();
     await this.entityManager.initialize();
     const stats = this.entityManager.cache.getStats();
     console.log("\u3010ProjectManager\u3011\u7F13\u5B58\u521D\u59CB\u5316\u5B8C\u6210:", stats);
+    this.api = {
+      getRisksByVersion: (id) => this.riskService.getRisksByVersion(id),
+      getRisksByProject: (id) => this.riskService.getRisksByProject(id),
+      getAllRisks: () => this.riskService.getAllRisks()
+    };
     this.registerDataviewFunctions();
     this.registerMarkdownCodeBlockProcessor("pm-view", this.processViewBlock.bind(this));
     this.registerMarkdownPostProcessor((el, ctx) => {
@@ -11822,9 +14431,9 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
       callback: () => this.openCreateFeatureModal()
     });
     this.addCommand({
-      id: "export-ics",
-      name: "\u5BFC\u51FA\u622A\u6B62\u65E5\u671F\u5230\u65E5\u5386",
-      callback: () => this.exportICS()
+      id: "export-email-summary",
+      name: "\u5BFC\u51FA\u9879\u76EE\u603B\u7ED3\u90AE\u4EF6",
+      callback: () => this.exportEmailSummary()
     });
     this.addCommand({
       id: "view-changelog",
@@ -11833,7 +14442,7 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian21.TFile) {
+        if (file instanceof import_obsidian27.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -11841,11 +14450,33 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian21.TFile) {
+        if (file instanceof import_obsidian27.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
     );
+    this.registerDomEvent(document, "click", (evt) => {
+      const target = evt.target;
+      const btn = target.closest(".pm-btn[data-action]");
+      if (!btn)
+        return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      const action = btn.dataset.action;
+      if (action === "add-progress" || action === "add-risk") {
+        const entityType = btn.dataset.entityType;
+        const entityId = btn.dataset.entityId;
+        if (entityType && entityId) {
+          if (action === "add-progress") {
+            this.openAddProgressModal(entityType, entityId);
+          } else {
+            this.openAddRiskModal(entityType, entityId);
+          }
+        }
+        return;
+      }
+      this.button.handleButtonClick(btn);
+    });
     this.registerEvent(
       this.app.workspace.on("layout-change", () => {
         setTimeout(() => {
@@ -11894,9 +14525,12 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
    */
   async waitForMetadataCache() {
     return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 100;
       const checkReady = () => {
+        attempts++;
         const files = this.app.vault.getMarkdownFiles();
-        if (files.length > 0) {
+        if (files.length > 0 || attempts >= maxAttempts) {
           setTimeout(resolve, 100);
         } else {
           setTimeout(checkReady, 50);
@@ -11968,7 +14602,7 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
   async getCodeBlockIndex(sourcePath, source, el) {
     try {
       const file = this.app.vault.getAbstractFileByPath(sourcePath);
-      if (!(file instanceof import_obsidian21.TFile))
+      if (!(file instanceof import_obsidian27.TFile))
         return 0;
       const content = await this.app.vault.read(file);
       const lines = content.split("\n");
@@ -12026,7 +14660,7 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian21.TFile))
+    if (!(file instanceof import_obsidian27.TFile))
       return;
     const containerEl = el.parentElement;
     if (!containerEl)
@@ -12238,6 +14872,24 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     ).open();
   }
   /**
+   * 打开添加进展模态框
+   */
+  openAddProgressModal(type, id) {
+    const { AddProgressModal: AddProgressModal2 } = (init_modals(), __toCommonJS(modals_exports));
+    new AddProgressModal2(this.app, async (log) => {
+      await this.viewEngine.getActionService().addProgressLog(type, id, log);
+    }).open();
+  }
+  /**
+   * 打开添加风险模态框
+   */
+  openAddRiskModal(type, id) {
+    const { AddRiskModal: AddRiskModal2 } = (init_modals(), __toCommonJS(modals_exports));
+    new AddRiskModal2(this.app, async (risk) => {
+      await this.viewEngine.getActionService().addRisk(type, id, risk);
+    }).open();
+  }
+  /**
    * 打开创建特性模态框
    */
   openCreateFeatureModal() {
@@ -12261,10 +14913,10 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     ).open();
   }
   /**
-   * 导出 ICS 文件
+   * 导出项目总结邮件
    */
-  exportICS() {
-    new ExportICSModal(this.app, this.entityManager).open();
+  exportEmailSummary() {
+    new ExportEmailModal(this.app, this.emailSummaryService).open();
   }
   /**
    * 打开变更历史视图
@@ -12273,7 +14925,7 @@ var ProjectManagerPlugin = class extends import_obsidian21.Plugin {
     const fileName = `ProjectManager/\u53D8\u66F4\u5386\u53F2_${(/* @__PURE__ */ new Date()).toISOString().split("T")[0]}.md`;
     const content = "---\ntitle: \u53D8\u66F4\u5386\u53F2\n---\n\n# \u{1F4DC} \u9879\u76EE\u53D8\u66F4\u5386\u53F2\n\n> \u751F\u6210\u65F6\u95F4: " + (/* @__PURE__ */ new Date()).toLocaleString("zh-CN") + "\n\n## \u4F7F\u7528\u8BF4\u660E\n\n\u5728\u4EFB\u610F\u4EE3\u7801\u5757\u4E2D\u4F7F\u7528\u4EE5\u4E0B\u914D\u7F6E\u67E5\u770B\u53D8\u66F4\u5386\u53F2:\n\n```pm-view\nmode: changelog\nentityType: feature  # \u53EF\u9009: version/project/feature\nlimit: 50\ndays: 30\n```\n\n\u53D8\u66F4\u65E5\u5FD7\u4F1A\u81EA\u52A8\u8BB0\u5F55\u5728 ProjectManager/.changelog/ \u76EE\u5F55\u4E0B\u3002\n";
     const existingFile = this.app.vault.getAbstractFileByPath(fileName);
-    if (existingFile instanceof import_obsidian21.TFile) {
+    if (existingFile instanceof import_obsidian27.TFile) {
       this.app.workspace.openLinkText(fileName, "", false);
     } else {
       this.app.vault.create(fileName, content).then((file) => {

@@ -226,21 +226,36 @@ export class TemplateService {
       minute: '2-digit'
     });
 
+    // 预计算工时偏差
+    if ('estimatedHours' in context || 'actualHours' in context) {
+      const est = Number(context.estimatedHours) || 0;
+      const act = Number(context.actualHours) || 0;
+      enriched.hoursDeviation = act - est;
+      enriched.hoursDeviationText = act >= est ? `+${act - est}h` : `${act - est}h`;
+    }
+
     return enriched;
   }
 
   /**
-   * 处理 {{#if}} 块
+   * 处理 {{#if}} 块，支持嵌套
    */
   private processIfBlocks(template: string, context: Record<string, unknown>): string {
-    const ifRegex = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
-    
-    return template.replace(ifRegex, (match, variable, content) => {
-      const value = context[variable];
-      const hasValue = value !== undefined && value !== null && value !== '' && 
-        !(Array.isArray(value) && value.length === 0);
-      return hasValue ? content : '';
-    });
+    let result = template;
+    let prev: string;
+    let depth = 0;
+    const maxDepth = 10;
+    do {
+      prev = result;
+      result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, variable, content) => {
+        const value = context[variable];
+        const hasValue = value !== undefined && value !== null && value !== '' &&
+          !(Array.isArray(value) && value.length === 0);
+        return hasValue ? content : '';
+      });
+      depth++;
+    } while (prev !== result && depth < maxDepth);
+    return result;
   }
 
   /**

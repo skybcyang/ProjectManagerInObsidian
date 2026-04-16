@@ -1,3 +1,5 @@
+import { getOverlayContainer } from '../../utils/getOverlayContainer';
+
 /**
  * 进度选择器组件
  * 可复用的进度选择滑块
@@ -162,7 +164,6 @@ export class ProgressPicker {
       this.hide();
     };
 
-    const { getOverlayContainer } = require('../../utils');
     getOverlayContainer().appendChild(this.menu);
 
     // 定位菜单

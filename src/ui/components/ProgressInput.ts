@@ -58,44 +58,37 @@ export class ProgressInput {
         minute: '2-digit',
       });
 
-      // 创建新的进展记录
-      const newEntry = `- [${timestamp}] ${content}`;
+      // 创建新的进展记录（表格行格式）
+      const newEntry = `| ${timestamp} | ${content} | |`;
 
-      // 查找历史记录部分并插入新记录
-      const historySection = '### 历史记录';
-      const addNewSection = '### 添加新进展';
-      
       let updatedContent: string;
-      
-      if (fileContent.includes(historySection)) {
-        // 在历史记录后插入新条目
-        const historyIndex = fileContent.indexOf(historySection);
-        const addNewIndex = fileContent.indexOf(addNewSection, historyIndex);
-        
-        if (addNewIndex > historyIndex) {
-          // 在历史记录和添加新进展之间插入
-          const insertPosition = fileContent.lastIndexOf('\n', addNewIndex);
-          updatedContent = 
-            fileContent.slice(0, insertPosition) + 
-            '\n' + newEntry + 
-            fileContent.slice(insertPosition);
-        } else {
-          // 在历史记录后插入
-          const insertPosition = historyIndex + historySection.length;
-          updatedContent = 
-            fileContent.slice(0, insertPosition) + 
-            '\n' + newEntry + 
-            fileContent.slice(insertPosition);
+
+      // 优先使用新的表格格式
+      const progressTableSection = '## 📈 进展反馈';
+      if (fileContent.includes(progressTableSection)) {
+        const sectionIndex = fileContent.indexOf(progressTableSection);
+        const afterSection = fileContent.slice(sectionIndex);
+        const lines = afterSection.split('\n');
+
+        let insertOffset = sectionIndex;
+        for (let i = 0; i < lines.length; i++) {
+          insertOffset += lines[i].length + 1;
+          if (lines[i].startsWith('|') && !lines[i].includes('---')) {
+            if (i + 1 >= lines.length || !lines[i + 1].trim().startsWith('|')) {
+              insertOffset -= 1;
+              break;
+            }
+          }
         }
+
+        updatedContent = fileContent.slice(0, insertOffset) + '\n' + newEntry + fileContent.slice(insertOffset);
       } else {
-        // 如果没有历史记录部分，在进展反馈部分添加
-        const progressSection = '## 📝 进展反馈';
-        if (fileContent.includes(progressSection)) {
-          const insertPosition = fileContent.indexOf(progressSection) + progressSection.length;
-          updatedContent = 
-            fileContent.slice(0, insertPosition) + 
-            '\n\n### 历史记录\n' + newEntry + 
-            fileContent.slice(insertPosition);
+        // 回退到旧格式
+        const historySection = '### 历史记录';
+        if (fileContent.includes(historySection)) {
+          const historyIndex = fileContent.indexOf(historySection);
+          const insertPosition = historyIndex + historySection.length;
+          updatedContent = fileContent.slice(0, insertPosition) + '\n' + `- [${timestamp}] ${content}` + fileContent.slice(insertPosition);
         } else {
           console.error('未找到进展反馈部分');
           return;

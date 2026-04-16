@@ -7,3 +7,4 @@ export { getUserAvatarElement } from './avatar';
 export { ErrorHandler } from './errorHandler';
 export { ConfigValidator } from './configValidator';
 export { getOverlayContainer } from './getOverlayContainer';
+export { hexToRgba } from './color';
