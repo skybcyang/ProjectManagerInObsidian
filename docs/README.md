@@ -1,6 +1,6 @@
 # Project Manager 文档中心
 
-> 当前版本：**v0.7.3**
+> 当前版本：**v0.7.7**
 
 本文档中心包含 Project Manager for Obsidian 插件的完整技术文档。
 
@@ -85,8 +85,8 @@ src/
 │   ├── filesystem/         # 文件系统封装
 │   └── EntityManager.ts    # 统一实体管理入口
 ├── view-engine/            # 视图引擎
-│   ├── renderers/          # 视图渲染器 (5种模式)
-│   ├── components/         # 视图组件 (FilterBar, EntityCard)
+│   ├── renderers/          # 视图渲染器 (7种模式)
+│   ├── components/         # 视图组件 (EntityCard, EntityTreeSelector)
 │   ├── cells/              # 行内编辑单元格
 │   └── services/           # 数据/操作服务
 ├── services/               # 全局服务
@@ -119,12 +119,15 @@ npm run test:coverage    # 生成测试覆盖率报告
 
 查看最新版本信息请查看 [CHANGELOG](./CHANGELOG.md)。
 
-**当前版本**: v0.7.2
+**当前版本**: v0.7.7
 
 主要里程碑：
+- v0.7.7 - 统一实体卡片渲染、ToolbarController 重构、风险管理服务
+- v0.7.6 - 级联视图树形筛选、ViewEngine 状态管理、内存泄漏修复
+- v0.7.5 - 树形筛选器级联行为修复、筛选清空失效修复
 - v0.7.2 - 修复看板点击跳转、燃尽图数据解析、CSS 样式优化
 - v0.7.1 - 燃尽图视图、工作量统计视图、内存泄漏修复
-- v0.7.0 - 删除 IPD 流程、统一日期字段、FilterBar 优化
+- v0.7.0 - 删除 IPD 流程、统一日期字段、筛选栏优化
 - v0.6.0 - IPD 流程支持、TR 里程碑视图、路线图视图
 - v0.5.0 - 自定义模板系统
 - v0.4.0 - 统一视图引擎 pm-view

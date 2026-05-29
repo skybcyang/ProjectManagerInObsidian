@@ -139,7 +139,7 @@ ProjectManager/
 ```
 
 - **Core 层** - 负责文件读写和数据一致性
-- **UI 层** - 通过 ViewEngine 统一处理所有视图，FilterBar 提供统一筛选
+- **UI 层** - 通过 ViewEngine 统一处理所有视图，ToolbarController 提供统一筛选
 
 ## 📝 数据格式
 

@@ -7078,7 +7078,7 @@ var EntityManager = class {
   // ==================== 缓存优化查询 ====================
   /**
    * 获取所有负责人列表（从缓存，高性能）
-   * 用于 FilterBar 负责人筛选下拉框
+   * 用于 ToolbarController 负责人筛选下拉框
    */
   getOwners() {
     return this.cache.getOwners();

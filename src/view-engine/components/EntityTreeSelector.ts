@@ -4,14 +4,14 @@ import type { EntityType } from '../types';
 
 /**
  * 树节点选择 - 支持多选
- * 记录实际勾选的节点类型，用于 FilterBar 智能解析
+ * 记录实际勾选的节点类型，用于 ToolbarController 智能解析
  */
 export interface TreeSelection {
   versionIds?: string[];
   projectIds?: string[];
   featureIds?: string[];
   type: EntityType;
-  /** 实际勾选的节点类型（用于 FilterBar 判断筛选逻辑） */
+  /** 实际勾选的节点类型（用于 ToolbarController 判断筛选逻辑） */
   checkedTypes?: EntityType[];
 }
 

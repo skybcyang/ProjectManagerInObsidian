@@ -21,7 +21,7 @@ npm run test       # 运行测试
 |------|------|
 | [核心设计原则](docs/核心设计原则.md) | 架构原则、设计决策、双层架构 |
 | [技术架构](docs/技术架构.md) | 详细架构设计、目录结构、核心机制、扩展指南 |
-| [视图系统详细设计](docs/视图系统详细设计.md) | 8种视图详解、FilterBar、数据流、样式规范 |
+| [视图系统详细设计](docs/视图系统详细设计.md) | 8种视图详解、ToolbarController、数据流、样式规范 |
 | [Dataview集成计划](docs/Dataview集成计划.md) | Dataview 集成方案 |
 | [测试策略](docs/测试策略.md) | 测试规范 |
 | [CHANGELOG](docs/CHANGELOG.md) | 完整版本历史 |
@@ -85,7 +85,7 @@ src/
 │   └── EntityManager.ts     # 统一 API 入口
 ├── view-engine/             # 视图系统
 │   ├── renderers/           # 8 种视图渲染器
-│   ├── components/          # FilterBar, EntityCard 等组件
+│   ├── components/          # EntityCard, EntityTreeSelector, DropdownMenu 等组件
 │   ├── cells/               # 行内编辑单元格
 │   ├── services/            # DataService, ActionService
 │   ├── controllers/         # ToolbarController, SortMenuController, PropertyPanelController
@@ -205,12 +205,12 @@ const config = await configService.readConfig(sourcePath, codeBlockIndex);
 
 - `EntityCache` 监听 Obsidian 文件事件（create/modify/delete/rename）
 - 插件加载时重建缓存
-- 维护负责人索引供 FilterBar 快速查询
+- 维护负责人索引供 ToolbarController 快速查询
 
 ### 内存管理
 
 - 必须在 `onunload()` 中调用 `ViewEngine.destroy()` 防止内存泄漏
-- 清理内容包括：事件监听器、全屏遮罩、FilterBar、待执行定时器、`currentConfigs` 配置状态
+- 清理内容包括：事件监听器、全屏遮罩、ToolbarController、待执行定时器、`currentConfigs` 配置状态
 
 ### 文件命名
 

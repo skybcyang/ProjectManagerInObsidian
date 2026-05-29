@@ -1,5 +1,42 @@
 # 版本迭代记录
 
+## v0.7.7 (2026-04-16)
+
+### 重构
+
+- **统一实体卡片渲染**
+  - 所有视图（Kanban、Cascade）统一使用 `EntityCard` 组件渲染卡片
+  - `BaseRenderer` 新增 `buildCardOptions()` 方法，将 `cardFields` 配置映射为 `EntityCardOptions`
+  - `EntityCard` 新增 `showStartDate` 支持，补全属性面板勾选字段
+  - 清理旧的 Kanban/Cascade 硬编码卡片 DOM 和冗余 CSS
+
+- **删除 GridRenderer 与 FilterBar 内联组件**
+  - 移除 `GridRenderer` 及 `GridView.stories.ts`
+  - 移除内联 `FilterBar` 组件，筛选逻辑完全由 `ToolbarController` + `EntityTreeSelector` 接管
+  - 简化视图渲染器职责，消除重复代码
+
+- **ToolbarController 重构**
+  - 统一工具栏渲染：视图切换、排序、筛选、属性面板、全屏
+  - 删除 `ListRenderer` 内联排序 UI，列表视图统一使用工具栏排序
+
+### 新增
+
+- **风险管理服务**
+  - 新增 `RiskService`：统一的风险 CRUD 操作
+  - 新增 `RiskParser`：从 Markdown 正文解析风险表格和日志摘要
+  - 新增 `LogWriterService`：自动追加进展/风险日志到实体文件
+  - 新增 `AddRiskModal` / `AddProgressModal`：添加风险和进展的专用模态框
+  - `EntityCard` 支持显示风险徽章和最新进展摘要
+
+### 修复
+
+- **TimelineRenderer 日期解析与样式覆盖**
+  - `EntityCache.parseFrontmatterFromContent()` 保留 `startDate`/`endDate` 为字符串，避免 `2026-04-20` 被截断成数字
+  - `TimelineRenderer` 新增 `parseDateValue()` 容错解析：支持字符串、Date、时间戳、`YYYYMMDD` 数字
+  - 使用 `style.setProperty('background-color', ..., 'important')` 防止主题 CSS 覆盖条形背景色
+
+---
+
 ## v0.7.6 (2026-04-15)
 
 ### 重构
