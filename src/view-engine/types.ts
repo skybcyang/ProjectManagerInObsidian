@@ -6,16 +6,14 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'cascade' | 'timeline' | 'timeview' | 'burndown' | 'workload';
+export type ViewMode = 'kanban' | 'list' | 'cascade' | 'timeview' | 'workload';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'kanban': '📊 看板视图',
   'list': '📋 列表视图',
   'cascade': '🌲 级联视图',
-  'timeline': '⏱️ 时间线视图',
   'timeview': '🗓️ 时间视图',
-  'burndown': '📉 燃尽图',
   'workload': '⚖️ 工作量统计'
 };
 
@@ -190,14 +188,6 @@ export interface StatsData {
 }
 
 // ==================== 报表数据类型 ====================
-
-/** 燃尽图数据点 */
-export interface BurndownDataPoint {
-  date: string;
-  planned: number;
-  actual: number;
-  completed: number;
-}
 
 /** 工作量数据 */
 export interface WorkloadData {

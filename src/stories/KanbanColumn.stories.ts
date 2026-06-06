@@ -74,16 +74,6 @@ const createKanbanColumn = ({ title, color, count, cards }: KanbanColumnProps): 
     cardTitle.textContent = card.title;
     cardHeader.appendChild(cardTitle);
 
-    // 操作按钮
-    const actions = document.createElement('div');
-    actions.className = 'pm-kanban-card-actions';
-
-    const openBtn = document.createElement('button');
-    openBtn.className = 'pm-kanban-action-btn';
-    openBtn.textContent = '↗';
-    actions.appendChild(openBtn);
-
-    cardHeader.appendChild(actions);
     cardEl.appendChild(cardHeader);
 
     // 标签

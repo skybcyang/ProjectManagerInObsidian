@@ -160,26 +160,6 @@ const createKanbanView = ({ entities, title, groupBy = 'status' }: KanbanViewPro
       cardTitle.style.cssText = 'font-weight: 500; font-size: 13px; flex: 1;';
       cardHeader.appendChild(cardTitle);
 
-      const actions = document.createElement('div');
-      actions.className = 'pm-kanban-card-actions';
-      actions.style.cssText = 'display: flex; gap: 2px;';
-      ['→', '📝', '↗'].forEach(icon => {
-        const btn = document.createElement('button');
-        btn.textContent = icon;
-        btn.style.cssText = `
-          width: 22px;
-          height: 22px;
-          border: none;
-          background: transparent;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 11px;
-          opacity: 0;
-          transition: opacity 0.15s ease;
-        `;
-        actions.appendChild(btn);
-      });
-      cardHeader.appendChild(actions);
       card.appendChild(cardHeader);
 
       // Content
@@ -263,17 +243,11 @@ const createKanbanView = ({ entities, title, groupBy = 'status' }: KanbanViewPro
         card.style.borderColor = 'var(--background-modifier-border)';
         card.style.transform = 'translateY(-2px)';
         card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        actions.querySelectorAll('button').forEach(btn => {
-          (btn as HTMLElement).style.opacity = '1';
-        });
       });
       card.addEventListener('mouseleave', () => {
         card.style.borderColor = 'transparent';
         card.style.transform = 'translateY(0)';
         card.style.boxShadow = 'none';
-        actions.querySelectorAll('button').forEach(btn => {
-          (btn as HTMLElement).style.opacity = '0';
-        });
       });
 
       cardsContainer.appendChild(card);

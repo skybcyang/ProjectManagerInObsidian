@@ -1,6 +1,6 @@
 # Project Manager 文档中心
 
-> 当前版本：**v0.7.7**
+> 当前版本：**v0.8.0**
 
 本文档中心包含 Project Manager for Obsidian 插件的完整技术文档。
 
@@ -37,16 +37,14 @@ ProjectManager/
 └── Features/            # 特性文件
 ```
 
-### 支持的视图模式 (v0.7.6)
+### 支持的视图模式 (v0.8.0)
 
 | 模式 | 说明 | 配置示例 |
 |------|------|----------|
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
 | `list` | 列表视图 | `mode: list`<br>`type: feature` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version` |
-| `timeline` | 时间线视图 | `mode: timeline`<br>`type: feature` |
 | `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
-| `burndown` | 燃尽图 | `mode: burndown`<br>`type: feature` |
 | `workload` | 工作量统计 | `mode: workload`<br>`type: feature` |
 
 ### 常用代码块示例
@@ -125,8 +123,8 @@ npm run test:coverage    # 生成测试覆盖率报告
 - v0.7.7 - 统一实体卡片渲染、ToolbarController 重构、风险管理服务
 - v0.7.6 - 级联视图树形筛选、ViewEngine 状态管理、内存泄漏修复
 - v0.7.5 - 树形筛选器级联行为修复、筛选清空失效修复
-- v0.7.2 - 修复看板点击跳转、燃尽图数据解析、CSS 样式优化
-- v0.7.1 - 燃尽图视图、工作量统计视图、内存泄漏修复
+- v0.7.2 - 修复看板点击跳转、CSS 样式优化
+- v0.7.1 - 工作量统计视图、内存泄漏修复
 - v0.7.0 - 删除 IPD 流程、统一日期字段、筛选栏优化
 - v0.6.0 - IPD 流程支持、TR 里程碑视图、路线图视图
 - v0.5.0 - 自定义模板系统

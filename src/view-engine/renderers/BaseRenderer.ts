@@ -82,7 +82,7 @@ export abstract class BaseRenderer {
   protected buildCardOptions(overrides?: Partial<EntityCardOptions>): EntityCardOptions {
     const cardFields = this.config.cardFields || {
       required: ['name', 'priority'],
-      optional: ['status', 'owner', 'progress']
+      optional: ['status', 'owner', 'progress', 'endDate', 'tags', 'risk']
     };
     const allFields = new Set([
       ...(cardFields.required || []),

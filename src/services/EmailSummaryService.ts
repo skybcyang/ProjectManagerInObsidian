@@ -1,7 +1,7 @@
 import { App, TFile, Notice } from 'obsidian';
 import type { EntityManager } from '../core';
 import type { Version, Project, Feature } from '../types';
-import { ReportService, type HealthMetrics, type WorkloadData, type TrendDataPoint, type BurndownDataPoint } from './ReportService';
+import { ReportService, type HealthMetrics, type WorkloadData, type TrendDataPoint } from './ReportService';
 import { generateEML, downloadEML, captureRenderedPage } from '../utils';
 import { getStatusLabel, getPriorityLabel } from '../constants';
 
@@ -174,13 +174,12 @@ export class EmailSummaryService {
     const dateStr = new Date().toISOString().split('T')[0];
     const subject = `版本 ${versionName} 项目总结 - ${dateStr}`;
 
-    const [version, projects, features, health, workloadByProject, burndown, overdue] = await Promise.all([
+    const [version, projects, features, health, workloadByProject, overdue] = await Promise.all([
       this.entityManager.getVersion(versionId),
       this.entityManager.listProjects({ versionId }),
       this.entityManager.listFeatures({ versionId }),
       this.reportService.calculateProjectHealth(versionId),
       this.reportService.calculateWorkloadByProject({ mode: 'list', version: versionId }),
-      this.reportService.calculateBurndownData(versionId),
       this.entityManager.getOverdueItems('feature'),
     ]);
 
@@ -199,15 +198,13 @@ export class EmailSummaryService {
       </div>
       <h2>包含项目</h2>
       ${this.projectsTable(projects, features)}
-      <h2>燃尽图摘要</h2>
-      ${this.burndownTable(burndown)}
       <h2>项目工作量</h2>
       ${this.workloadTable(workloadByProject)}
       <h2>逾期特性</h2>
       ${this.overdueList(versionOverdue)}
     `);
 
-    const plain = this.buildPlainVersion(subject, version, projects, features, health, workloadByProject, burndown, versionOverdue);
+    const plain = this.buildPlainVersion(subject, version, projects, features, health, workloadByProject, versionOverdue);
     return { subject, html, plain };
   }
 
@@ -406,15 +403,6 @@ ${body}
     return `<table><thead><tr><th>日期</th><th>完成数</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
-  private burndownTable(data: BurndownDataPoint[]): string {
-    if (data.length === 0) return '<p class="empty">暂无数据</p>';
-    const sample = data.filter((_, i) => i % Math.max(1, Math.floor(data.length / 10)) === 0 || i === data.length - 1);
-    const rows = sample.map(d => `
-      <tr><td>${d.date}</td><td>${d.planned}</td><td>${d.actual}</td><td>${d.completed}</td></tr>
-    `).join('');
-    return `<table><thead><tr><th>日期</th><th>计划剩余</th><th>实际剩余</th><th>当日完成</th></tr></thead><tbody>${rows}</tbody></table>`;
-  }
-
   private overdueList(items: Array<Version | Project | Feature>): string {
     if (items.length === 0) return '<p class="empty">无逾期项</p>';
     const list = items.map(i => {
@@ -459,7 +447,6 @@ ${body}
     features: Feature[],
     health: HealthMetrics,
     workload: WorkloadData[],
-    burndown: BurndownDataPoint[],
     overdue: Array<Version | Project | Feature>
   ): string {
     const lines = [subject, ''];
@@ -471,8 +458,6 @@ ${body}
     lines.push(`预估工时: ${health.totalEstimatedHours}h | 实际工时: ${health.totalActualHours}h | 风险: ${this.riskLabel(health.riskLevel)}`);
     lines.push('', '== 包含项目 ==');
     projects.forEach(p => lines.push(`${p.name}: ${getStatusLabel(p.status, 'project')} | 负责人: ${p.owner || '未分配'}`));
-    lines.push('', '== 燃尽摘要 ==');
-    burndown.slice(0, 5).forEach(b => lines.push(`${b.date}: 计划${b.planned} 实际${b.actual} 完成${b.completed}`));
     lines.push('', '== 负责人工作量 ==');
     workload.forEach(w => lines.push(`${w.name}: 预估${w.estimated}h 实际${w.actual}h`));
     lines.push('', '== 逾期特性 ==');

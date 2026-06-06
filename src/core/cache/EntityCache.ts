@@ -284,7 +284,7 @@ export class EntityCache {
       } else if (value === 'false') {
         frontmatter[key] = false;
       } else if (/^\d+$/.test(value)) {
-        // 保留日期字段为字符串，避免被解析成数字后 TimelineRenderer 无法识别
+        // 保留日期字段为字符串，避免被解析成数字后时间视图无法识别
         if (key === 'startDate' || key === 'endDate') {
           frontmatter[key] = value;
         } else {

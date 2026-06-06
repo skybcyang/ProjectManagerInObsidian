@@ -1680,7 +1680,7 @@ var init_errorHandler = __esm({
 var VALID_VIEW_MODES, VALID_ENTITY_TYPES, VALID_SORT_FIELDS, VALID_SORT_ORDERS, VALID_GROUP_BY, VALID_LIST_COLUMNS, ConfigValidator;
 var init_configValidator = __esm({
   "src/utils/configValidator.ts"() {
-    VALID_VIEW_MODES = ["kanban", "list", "cascade", "timeline", "timeview", "burndown", "workload"];
+    VALID_VIEW_MODES = ["kanban", "list", "cascade", "timeview", "workload"];
     VALID_ENTITY_TYPES = ["version", "project", "feature"];
     VALID_SORT_FIELDS = ["name", "startDate", "endDate", "priority", "progress", "created"];
     VALID_SORT_ORDERS = ["asc", "desc"];
@@ -4974,50 +4974,6 @@ var ReportService = class {
     });
   }
   /**
-   * 计算燃尽图数据
-   * @param versionId 版本ID（可选，向后兼容）
-   * @param dateRange 日期范围（可选，默认使用版本周期或最近30天）
-   * @param filters 视图配置筛选（可选）
-   */
-  async calculateBurndownData(versionId, dateRange, filters) {
-    let features = await this.entityManager.listFeatures(
-      versionId ? { versionId } : void 0
-    );
-    features = this.applyFeatureFilters(features, filters);
-    const range = dateRange || this.getDefaultDateRange(features);
-    const dates = this.generateDateRange(range.start, range.end);
-    const totalEstimated = features.reduce(
-      (sum, f) => sum + (f.estimatedHours || 0),
-      0
-    );
-    return dates.map((date, index) => {
-      const dateStr = date.toISOString().split("T")[0];
-      const daysPassed = index;
-      const totalDays = dates.length - 1 || 1;
-      const plannedRemaining = Math.round(
-        totalEstimated * (1 - daysPassed / totalDays)
-      );
-      const completedBeforeDate = features.filter((f) => {
-        if (f.status !== "completed")
-          return false;
-        if (f.endDate)
-          return f.endDate <= dateStr;
-        return false;
-      });
-      const actualCompleted = completedBeforeDate.reduce(
-        (sum, f) => sum + (f.actualHours || f.estimatedHours || 0),
-        0
-      );
-      const completedOnDate = completedBeforeDate.filter((f) => f.endDate === dateStr).reduce((sum, f) => sum + (f.actualHours || f.estimatedHours || 0), 0);
-      return {
-        date: dateStr,
-        planned: plannedRemaining,
-        actual: totalEstimated - actualCompleted,
-        completed: completedOnDate
-      };
-    });
-  }
-  /**
    * 按负责人统计工作量
    */
   async calculateWorkloadByOwner(entityType = "feature", filters) {
@@ -5372,13 +5328,12 @@ var EmailSummaryService = class {
   async buildVersionEmail(versionId, versionName) {
     const dateStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     const subject = `\u7248\u672C ${versionName} \u9879\u76EE\u603B\u7ED3 - ${dateStr}`;
-    const [version, projects, features, health, workloadByProject, burndown, overdue] = await Promise.all([
+    const [version, projects, features, health, workloadByProject, overdue] = await Promise.all([
       this.entityManager.getVersion(versionId),
       this.entityManager.listProjects({ versionId }),
       this.entityManager.listFeatures({ versionId }),
       this.reportService.calculateProjectHealth(versionId),
       this.reportService.calculateWorkloadByProject({ mode: "list", version: versionId }),
-      this.reportService.calculateBurndownData(versionId),
       this.entityManager.getOverdueItems("feature")
     ]);
     const versionOverdue = overdue.filter((o) => "projectId" in o && o.versionId === versionId);
@@ -5395,14 +5350,12 @@ var EmailSummaryService = class {
       </div>
       <h2>\u5305\u542B\u9879\u76EE</h2>
       ${this.projectsTable(projects, features)}
-      <h2>\u71C3\u5C3D\u56FE\u6458\u8981</h2>
-      ${this.burndownTable(burndown)}
       <h2>\u9879\u76EE\u5DE5\u4F5C\u91CF</h2>
       ${this.workloadTable(workloadByProject)}
       <h2>\u903E\u671F\u7279\u6027</h2>
       ${this.overdueList(versionOverdue)}
     `);
-    const plain = this.buildPlainVersion(subject, version, projects, features, health, workloadByProject, burndown, versionOverdue);
+    const plain = this.buildPlainVersion(subject, version, projects, features, health, workloadByProject, versionOverdue);
     return { subject, html, plain };
   }
   // ==================== 项目邮件 ====================
@@ -5587,15 +5540,6 @@ ${body}
     `).join("");
     return `<table><thead><tr><th>\u65E5\u671F</th><th>\u5B8C\u6210\u6570</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
-  burndownTable(data) {
-    if (data.length === 0)
-      return '<p class="empty">\u6682\u65E0\u6570\u636E</p>';
-    const sample = data.filter((_, i) => i % Math.max(1, Math.floor(data.length / 10)) === 0 || i === data.length - 1);
-    const rows = sample.map((d) => `
-      <tr><td>${d.date}</td><td>${d.planned}</td><td>${d.actual}</td><td>${d.completed}</td></tr>
-    `).join("");
-    return `<table><thead><tr><th>\u65E5\u671F</th><th>\u8BA1\u5212\u5269\u4F59</th><th>\u5B9E\u9645\u5269\u4F59</th><th>\u5F53\u65E5\u5B8C\u6210</th></tr></thead><tbody>${rows}</tbody></table>`;
-  }
   overdueList(items) {
     if (items.length === 0)
       return '<p class="empty">\u65E0\u903E\u671F\u9879</p>';
@@ -5624,7 +5568,7 @@ ${body}
       overdue.forEach((o) => lines.push(`- ${o.name} (\u622A\u6B62: ${o.endDate || "-"})`));
     return lines.join("\n");
   }
-  buildPlainVersion(subject, version, projects, features, health, workload, burndown, overdue) {
+  buildPlainVersion(subject, version, projects, features, health, workload, overdue) {
     const lines = [subject, ""];
     if (version) {
       lines.push(`\u7248\u672C: ${version.name} | \u72B6\u6001: ${getStatusLabel(version.status, "version")} | \u8D1F\u8D23\u4EBA: ${version.owner || "\u672A\u5206\u914D"}`);
@@ -5634,8 +5578,6 @@ ${body}
     lines.push(`\u9884\u4F30\u5DE5\u65F6: ${health.totalEstimatedHours}h | \u5B9E\u9645\u5DE5\u65F6: ${health.totalActualHours}h | \u98CE\u9669: ${this.riskLabel(health.riskLevel)}`);
     lines.push("", "== \u5305\u542B\u9879\u76EE ==");
     projects.forEach((p) => lines.push(`${p.name}: ${getStatusLabel(p.status, "project")} | \u8D1F\u8D23\u4EBA: ${p.owner || "\u672A\u5206\u914D"}`));
-    lines.push("", "== \u71C3\u5C3D\u6458\u8981 ==");
-    burndown.slice(0, 5).forEach((b) => lines.push(`${b.date}: \u8BA1\u5212${b.planned} \u5B9E\u9645${b.actual} \u5B8C\u6210${b.completed}`));
     lines.push("", "== \u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF ==");
     workload.forEach((w) => lines.push(`${w.name}: \u9884\u4F30${w.estimated}h \u5B9E\u9645${w.actual}h`));
     lines.push("", "== \u903E\u671F\u7279\u6027 ==");
@@ -8131,9 +8073,7 @@ var VIEW_MODE_LABELS = {
   "kanban": "\u{1F4CA} \u770B\u677F\u89C6\u56FE",
   "list": "\u{1F4CB} \u5217\u8868\u89C6\u56FE",
   "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
-  "timeline": "\u23F1\uFE0F \u65F6\u95F4\u7EBF\u89C6\u56FE",
   "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE",
-  "burndown": "\u{1F4C9} \u71C3\u5C3D\u56FE",
   "workload": "\u2696\uFE0F \u5DE5\u4F5C\u91CF\u7EDF\u8BA1"
 };
 var ENTITY_CARD_FIELD_DEFINITIONS = [
@@ -8328,19 +8268,6 @@ function translateStatus(status) {
 function translatePriority(priority) {
   var _a;
   return ((_a = PRIORITY_COLORS[priority]) == null ? void 0 : _a.label) || priority;
-}
-function getNextStatus(currentStatus) {
-  const flow = {
-    backlog: "todo",
-    todo: "in-progress",
-    "in-progress": "testing",
-    testing: "completed"
-  };
-  const nextId = flow[currentStatus];
-  if (!nextId)
-    return null;
-  const option = FEATURE_STATUS_OPTIONS.find((o) => o.id === nextId);
-  return option ? { id: nextId, label: option.label } : null;
 }
 
 // src/view-engine/components/EntityTreeSelector.ts
@@ -9743,7 +9670,7 @@ var BaseRenderer = class {
   buildCardOptions(overrides) {
     const cardFields = this.config.cardFields || {
       required: ["name", "priority"],
-      optional: ["status", "owner", "progress"]
+      optional: ["status", "owner", "progress", "endDate", "tags", "risk"]
     };
     const allFields = /* @__PURE__ */ new Set([
       ...cardFields.required || [],
@@ -10251,41 +10178,6 @@ var KanbanRenderer = class extends BaseRenderer {
       },
       logSummary || void 0
     );
-    const actions = wrapper.createDiv("pm-kanban-card-actions");
-    if ("status" in entity) {
-      const nextStatus = this.getNextStatus(entity.status);
-      if (nextStatus) {
-        const btn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
-        btn.textContent = "\u2192";
-        btn.title = `\u79FB\u52A8\u5230: ${nextStatus.label}`;
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          this.actionService.changeStatus(entityType, entity.id, nextStatus.id);
-        };
-      }
-    }
-    if (entityType === "feature") {
-      const noteBtn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
-      noteBtn.textContent = "\u{1F4DD}";
-      noteBtn.title = "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988";
-      noteBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressNoteInput(entity, wrapper);
-      };
-    }
-    const openBtn = actions.createEl("button", { cls: "pm-kanban-action-btn" });
-    openBtn.textContent = "\u2197";
-    openBtn.title = "\u6253\u5F00\u6587\u4EF6";
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(entityType, entity.id);
-    };
-  }
-  /**
-   * 获取下一个状态（用于快速切换）
-   */
-  getNextStatus(currentStatus) {
-    return getNextStatus(currentStatus);
   }
 };
 RendererRegistry.register("kanban", KanbanRenderer);
@@ -11511,362 +11403,21 @@ var CascadeRenderer = class extends BaseRenderer {
 };
 RendererRegistry.register("cascade", CascadeRenderer);
 
-// src/view-engine/renderers/TimelineRenderer.ts
-var TimelineRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-  }
-  /**
-   * 渲染甘特图时间线
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-timeline-view");
-    container.style.cssText = `
-      width: 100%;
-      padding: 16px;
-      box-sizing: border-box;
-    `;
-    const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config);
-    const sorted = this.dataService.applySort(
-      filtered,
-      this.config.sortBy,
-      this.config.sortOrder
-    );
-    if (sorted.length === 0) {
-      this.createEmptyState(container, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
-      return;
-    }
-    await this.renderGantt(container, sorted);
-  }
-  /**
-   * 渲染甘特图
-   */
-  async renderGantt(container, entities) {
-    const entitiesWithDates = entities.filter(
-      (e) => "endDate" in e && e.endDate
-    );
-    if (entitiesWithDates.length === 0) {
-      this.createEmptyState(container, "\u6CA1\u6709\u53EF\u663E\u793A\u7684\u65F6\u95F4\u4FE1\u606F\uFF08\u9700\u8981\u8BBE\u7F6E endDate\uFF09");
-      return;
-    }
-    const allDates = [];
-    entitiesWithDates.forEach((e) => {
-      const endTime = this.parseDateValue(e.endDate);
-      if (endTime !== null)
-        allDates.push(endTime);
-      if (e.startDate) {
-        const startTime = this.parseDateValue(e.startDate);
-        if (startTime !== null)
-          allDates.push(startTime);
-      }
-    });
-    if (allDates.length === 0) {
-      this.createEmptyState(container, "\u65E5\u671F\u683C\u5F0F\u65E0\u6548");
-      return;
-    }
-    const minDate = Math.min(...allDates);
-    const maxDate = Math.max(...allDates);
-    const buffer = (maxDate - minDate) * 0.1;
-    const chartStart = minDate - buffer;
-    const chartEnd = maxDate + buffer;
-    const chartRange = chartEnd - chartStart;
-    const ganttContainer = container.createDiv("pm-timeline-gantt");
-    ganttContainer.style.cssText = `
-      width: 100%;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 8px;
-      overflow: hidden;
-      background: var(--background-primary);
-    `;
-    this.renderGanttHeader(ganttContainer, chartStart, chartEnd);
-    const ganttBody = ganttContainer.createDiv("pm-gantt-body");
-    ganttBody.style.cssText = `
-      display: flex;
-      flex-direction: column;
-    `;
-    entitiesWithDates.forEach((entity) => {
-      this.renderGanttRow(ganttBody, entity, chartStart, chartRange);
-    });
-  }
-  /**
-   * 渲染甘特图表头
-   */
-  renderGanttHeader(container, startTime, endTime) {
-    const header = container.createDiv("pm-gantt-header");
-    header.style.cssText = `
-      display: flex;
-      height: 40px;
-      background: var(--background-secondary);
-      border-bottom: 1px solid var(--background-modifier-border);
-    `;
-    const timeRange = endTime - startTime;
-    const days = timeRange / (24 * 60 * 60 * 1e3);
-    const tickCount = days < 30 ? Math.ceil(days / 3) : 6;
-    const tickInterval = timeRange / tickCount;
-    const nameCol = header.createDiv("pm-gantt-header-name");
-    nameCol.style.cssText = `
-      width: 150px;
-      min-width: 150px;
-      padding: 0 12px;
-      display: flex;
-      align-items: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-right: 1px solid var(--background-modifier-border);
-    `;
-    nameCol.textContent = "\u7279\u6027";
-    const timelineHeader = header.createDiv("pm-gantt-header-timeline");
-    timelineHeader.style.cssText = `
-      flex: 1;
-      position: relative;
-    `;
-    for (let i = 0; i <= tickCount; i++) {
-      const tickTime = startTime + tickInterval * i;
-      const tick = timelineHeader.createDiv("pm-gantt-tick");
-      tick.style.cssText = `
-        position: absolute;
-        bottom: 4px;
-        left: ${i / tickCount * 100}%;
-        transform: translateX(-50%);
-        font-size: 11px;
-        color: var(--text-muted);
-        white-space: nowrap;
-      `;
-      const date = new Date(tickTime);
-      tick.textContent = `${date.getMonth() + 1}/${date.getDate()}`;
-    }
-    for (let i = 1; i <= tickCount; i++) {
-      const gridLine = timelineHeader.createDiv("pm-gantt-grid-line");
-      gridLine.style.cssText = `
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: ${i / tickCount * 100}%;
-        width: 1px;
-        background: var(--background-modifier-border);
-        opacity: 0.3;
-      `;
-    }
-  }
-  /**
-   * 渲染甘特图行
-   */
-  renderGanttRow(container, entity, chartStart, chartRange) {
-    var _a;
-    const row = container.createDiv("pm-gantt-row");
-    row.style.cssText = `
-      display: flex;
-      height: 44px;
-      border-bottom: 1px solid var(--background-modifier-border);
-      cursor: pointer;
-      position: relative;
-    `;
-    row.addEventListener("mouseenter", () => {
-      row.style.background = "var(--background-modifier-hover)";
-    });
-    row.addEventListener("mouseleave", () => {
-      row.style.background = "";
-    });
-    const nameCol = row.createDiv("pm-gantt-name");
-    nameCol.style.cssText = `
-      width: 150px;
-      min-width: 150px;
-      padding: 0 12px;
-      display: flex;
-      align-items: center;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-normal);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      border-right: 1px solid var(--background-modifier-border);
-      background: var(--background-primary);
-    `;
-    nameCol.textContent = entity.name;
-    nameCol.title = entity.name;
-    const timelineCol = row.createDiv("pm-gantt-timeline");
-    timelineCol.style.cssText = `
-      flex: 1;
-      position: relative;
-      height: 100%;
-      min-height: 44px;
-    `;
-    const entityStart = (_a = this.parseDateValue(entity.startDate)) != null ? _a : this.parseDateValue(entity.endDate);
-    const entityEnd = this.parseDateValue(entity.endDate);
-    if (entityStart === null || entityEnd === null) {
-      const err = timelineCol.createDiv("pm-gantt-bar-error");
-      err.textContent = `\u65E5\u671F\u683C\u5F0F\u9519\u8BEF: ${String(entity.startDate)} ~ ${String(entity.endDate)}`;
-      err.style.cssText = "color: #ef4444; font-size: 10px; padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
-      return;
-    }
-    const startPercent = (entityStart - chartStart) / chartRange * 100;
-    const endPercent = (entityEnd - chartStart) / chartRange * 100;
-    const widthPercent = Math.max(1, endPercent - startPercent);
-    let barColor = "#3b82f6";
-    if ("priority" in entity && entity.priority) {
-      const colors = {
-        critical: "#ef4444",
-        high: "#f97316",
-        medium: "#f59e0b",
-        low: "#22c55e"
-      };
-      barColor = colors[entity.priority] || barColor;
-    }
-    const bar = timelineCol.createDiv("pm-gantt-bar");
-    const safeLeft = Math.max(0, Math.min(99, startPercent));
-    const safeWidth = Math.max(2, Math.min(100, widthPercent));
-    bar.style.cssText = `
-      position: absolute !important;
-      top: 50% !important;
-      transform: translateY(-50%) !important;
-      left: ${safeLeft}% !important;
-      width: ${safeWidth}% !important;
-      height: 20px !important;
-      border-radius: 4px !important;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-      min-width: 2px !important;
-      z-index: 2;
-    `;
-    bar.style.setProperty("background-color", barColor, "important");
-    bar.style.setProperty("background-image", "none", "important");
-    const progress = entity.progress || 0;
-    if (progress > 0) {
-      const fill = bar.createDiv("pm-gantt-progress");
-      fill.style.cssText = `
-        height: 100%;
-        background: rgba(255, 255, 255, 0.4);
-        border-radius: 4px 0 0 4px;
-        width: ${progress}%;
-      `;
-    }
-    row.addEventListener("click", async () => {
-      await this.actionService.openEntity(getEntityType(entity), entity.id);
-    });
-    const tooltip = timelineCol.createDiv("pm-gantt-tooltip");
-    tooltip.style.cssText = `
-      display: none;
-      position: absolute;
-      left: 10px;
-      top: 30px;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-      z-index: 1000;
-      min-width: 200px;
-    `;
-    row.addEventListener("mouseenter", () => {
-      tooltip.style.display = "block";
-    });
-    row.addEventListener("mouseleave", () => {
-      tooltip.style.display = "none";
-    });
-    this.renderTooltip(tooltip, entity, entityStart, entityEnd);
-  }
-  /**
-   * 渲染悬停提示
-   */
-  renderTooltip(container, entity, startDate, endDate) {
-    const header = container.createDiv("pm-gantt-tooltip-header");
-    header.style.cssText = `
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 8px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--background-modifier-border);
-      color: var(--text-normal);
-    `;
-    header.textContent = entity.name;
-    const dates = container.createDiv("pm-gantt-tooltip-dates");
-    dates.style.cssText = `
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    `;
-    dates.textContent = `${DateFormat.short(new Date(startDate))} ~ ${DateFormat.short(new Date(endDate))}`;
-    if ("status" in entity && entity.status) {
-      const status = container.createDiv("pm-gantt-tooltip-status");
-      status.style.cssText = `
-        font-size: 12px;
-        margin-top: 4px;
-        padding: 2px 8px;
-        border-radius: 4px;
-        background: var(--background-secondary);
-        display: inline-block;
-      `;
-      status.textContent = this.translateStatus(entity.status);
-    }
-    if ("progress" in entity && entity.progress !== void 0) {
-      const progress = container.createDiv("pm-gantt-tooltip-progress");
-      progress.style.cssText = `
-        font-size: 12px;
-        margin-top: 4px;
-        color: var(--text-normal);
-      `;
-      progress.textContent = `\u8FDB\u5EA6: ${entity.progress}%`;
-    }
-    if (entity.owner) {
-      const owner = container.createDiv("pm-gantt-tooltip-owner");
-      owner.style.cssText = `
-        font-size: 12px;
-        margin-top: 4px;
-        color: var(--text-muted);
-      `;
-      owner.textContent = `\u8D1F\u8D23\u4EBA: ${entity.owner}`;
-    }
-  }
-  /**
-   * 安全解析日期值
-   * 处理字符串、数字时间戳、Date 对象、Luxon DateTime 等多种格式
-   */
-  parseDateValue(val) {
-    if (val === void 0 || val === null || val === "")
-      return null;
-    if (val instanceof Date)
-      return val.getTime();
-    if (typeof val === "number") {
-      if (val > 1e12)
-        return val;
-      const str2 = String(val);
-      if (str2.length === 8) {
-        const d4 = /* @__PURE__ */ new Date(`${str2.slice(0, 4)}-${str2.slice(4, 6)}-${str2.slice(6, 8)}`);
-        if (!isNaN(d4.getTime()))
-          return d4.getTime();
-      }
-      const d3 = new Date(val);
-      if (!isNaN(d3.getTime()))
-        return d3.getTime();
-      return null;
-    }
-    const str = String(val).trim();
-    if (!str)
-      return null;
-    const d = new Date(str);
-    if (!isNaN(d.getTime()))
-      return d.getTime();
-    const d2 = new Date(str.replace(/\//g, "-"));
-    if (!isNaN(d2.getTime()))
-      return d2.getTime();
-    return null;
-  }
-};
-RendererRegistry.register("timeline", TimelineRenderer);
-
 // src/view-engine/renderers/TimeViewRenderer.ts
 var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
   constructor(app, entityManager, dataService, actionService) {
     super(app, entityManager, dataService, actionService);
     if (_TimeViewRenderer.sharedState) {
-      this.state = { ..._TimeViewRenderer.sharedState };
+      this.state = {
+        ..._TimeViewRenderer.sharedState,
+        collapsedGroups: new Set(_TimeViewRenderer.sharedState.collapsedGroups || [])
+      };
     } else {
       this.state = {
         currentDate: /* @__PURE__ */ new Date(),
-        viewMode: "month"
+        viewMode: "month",
+        groupBy: "owner",
+        collapsedGroups: /* @__PURE__ */ new Set()
       };
       _TimeViewRenderer.sharedState = this.state;
     }
@@ -11877,111 +11428,237 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
   async render(container) {
     container.empty();
     container.addClass("pm-timeview");
-    const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config);
-    console.log("[TimeView] \u914D\u7F6E:", JSON.stringify({
-      entityType: this.config.entityType,
-      project: this.config.project,
-      version: this.config.version,
-      status: this.config.status,
-      priority: this.config.priority
-    }));
-    console.log("[TimeView] \u52A0\u8F7D\u5B9E\u4F53:", entities.length, "\u8FC7\u6EE4\u540E:", filtered.length);
-    if (entities.length > 0) {
-      console.log("[TimeView] \u5B9E\u4F53\u793A\u4F8B:", entities.slice(0, 3).map((e) => ({
-        id: e.id,
-        name: e.name,
-        projectId: e.projectId,
-        versionId: e.versionId,
-        status: e.status
-      })));
-    }
-    const items = this.convertToTimeItems(filtered);
-    this.renderToolbar(container, entities.length, filtered.length, items.length);
+    const entities = await this.prepareData();
+    const items = this.convertToTimeItems(entities);
+    this.renderToolbar(container, entities.length, items.length);
     const contentArea = container.createDiv("pm-timeview-content");
     if (items.length === 0) {
-      this.renderEmptyState(contentArea, filtered.length === 0 ? "\u6682\u65E0\u6570\u636E" : "\u6CA1\u6709\u5E26\u7ED3\u675F\u65E5\u671F\u7684\u5B9E\u4F53");
+      this.renderEmptyState(contentArea, entities.length === 0 ? "\u6682\u65E0\u6570\u636E" : "\u6CA1\u6709\u5E26\u65F6\u95F4\u4FE1\u606F\u7684\u5B9E\u4F53");
       return;
     }
-    switch (this.state.viewMode) {
-      case "week":
-        this.renderWeekView(contentArea, items);
-        break;
-      case "month":
-        this.renderMonthView(contentArea, items);
-        break;
-      case "quarter":
-        this.renderQuarterView(contentArea, items);
-        break;
-    }
+    const { start: rangeStart, end: rangeEnd } = this.getTimeRange(items);
+    const rows = await this.buildGanttRows(items);
+    this.renderGantt(contentArea, rows, rangeStart, rangeEnd);
   }
+  // ==================== 数据准备 ====================
   /**
    * 将实体转换为时间视图项
    */
   convertToTimeItems(entities) {
-    console.log("[TimeView] convertToTimeItems \u8F93\u5165:", entities.length);
-    if (entities.length > 0) {
-      const sample = entities[0];
-      console.log("[TimeView] \u7B2C\u4E00\u4E2A\u5B9E\u4F53:", {
-        id: sample.id,
-        name: sample.name,
-        endDate: sample.endDate,
-        hasEndDate: "endDate" in sample,
-        endDateType: typeof sample.endDate
-      });
-    }
-    const withEndDate = entities.filter((e) => {
-      const hasEndDate = "endDate" in e && !!e.endDate;
-      if (!hasEndDate) {
-        console.log("[TimeView] \u8FC7\u6EE4\u6389\u65E0endDate:", e.id, e.name);
-      }
-      return hasEndDate;
-    });
-    console.log("[TimeView] \u6709endDate\u7684\u5B9E\u4F53:", withEndDate.length);
-    return withEndDate.map((e) => {
-      const entity = e;
-      const endDate = new Date(entity.endDate);
-      const startDate = entity.startDate ? new Date(entity.startDate) : new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1e3);
+    return entities.filter((e) => "endDate" in e && e.endDate).map((e) => {
+      const endDate = new Date(e.endDate);
+      const startDate = e.startDate ? new Date(e.startDate) : new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1e3);
       return {
-        entity,
+        entity: e,
         startDate,
         endDate,
-        isMilestone: entity.isMilestone || false,
-        progress: entity.progress || 0,
-        entityType: getEntityType(entity)
+        progress: e.progress || 0,
+        entityType: getEntityType(e)
       };
-    }).filter((item) => {
-      const valid = !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime());
-      if (!valid) {
-        console.log("[TimeView] \u65E0\u6548\u65E5\u671F:", item.entity.id, item.entity.name, item.entity.endDate);
-      }
-      return valid;
-    });
+    }).filter((item) => !isNaN(item.startDate.getTime()) && !isNaN(item.endDate.getTime()));
   }
   /**
-   * 渲染空状态
+   * 构建甘特图行列表
    */
-  renderEmptyState(container, message) {
-    const empty = container.createDiv("pm-timeview-empty");
-    empty.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 300px;
-      color: var(--text-muted);
-      gap: 12px;
-    `;
-    empty.createDiv({ text: "\u{1F4C5}", cls: "pm-timeview-empty-icon" }).style.cssText = "font-size: 48px;";
-    empty.createDiv({ text: message, cls: "pm-timeview-empty-text" }).style.cssText = "font-size: 14px;";
-    const hint = empty.createDiv({ cls: "pm-timeview-empty-hint" });
-    hint.style.cssText = "font-size: 12px; opacity: 0.7;";
-    hint.textContent = "\u63D0\u793A\uFF1A\u4E3A\u5B9E\u4F53\u6DFB\u52A0 endDate \u5B57\u6BB5\u5373\u53EF\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u663E\u793A";
+  async buildGanttRows(items) {
+    if (this.state.groupBy === "owner") {
+      return this.buildOwnerRows(items);
+    }
+    return this.buildProjectRows(items);
   }
+  /**
+   * 按负责人分组
+   */
+  buildOwnerRows(items) {
+    const byOwner = /* @__PURE__ */ new Map();
+    items.forEach((item) => {
+      const owner = item.entity.owner || "\u672A\u5206\u914D";
+      if (!byOwner.has(owner))
+        byOwner.set(owner, []);
+      byOwner.get(owner).push(item);
+    });
+    const rows = [];
+    Array.from(byOwner.entries()).forEach(([owner, ownerItems]) => {
+      const expanded = !this.state.collapsedGroups.has(owner);
+      rows.push({
+        id: `owner-${owner}`,
+        label: `@${owner}`,
+        indent: 0,
+        isGroupHeader: true,
+        expandable: true,
+        expanded,
+        groupId: owner
+      });
+      if (expanded) {
+        ownerItems.forEach((item) => {
+          rows.push({
+            id: `item-${item.entity.id}`,
+            label: item.entity.name,
+            item,
+            indent: 1,
+            isGroupHeader: false,
+            groupId: owner
+          });
+        });
+      }
+    });
+    return rows;
+  }
+  /**
+   * 按项目分组
+   */
+  async buildProjectRows(items) {
+    const projectItems = items.filter((i) => getEntityType(i.entity) === "project");
+    const featureItems = items.filter((i) => getEntityType(i.entity) === "feature");
+    if (projectItems.length > 0) {
+      const rows2 = [];
+      for (const pItem of projectItems) {
+        const projectId = pItem.entity.id;
+        const expanded = !this.state.collapsedGroups.has(projectId);
+        rows2.push({
+          id: `project-${projectId}`,
+          label: pItem.entity.name,
+          item: pItem,
+          indent: 0,
+          isGroupHeader: true,
+          expandable: true,
+          expanded,
+          groupId: projectId
+        });
+        if (expanded) {
+          const childFeatures = featureItems.filter(
+            (f) => f.entity.projectId === projectId
+          );
+          if (childFeatures.length === 0) {
+            try {
+              const features = await this.entityManager.getProjectFeatures(projectId);
+              const childItems = this.convertToTimeItems(features);
+              childItems.forEach((item) => {
+                rows2.push({
+                  id: `item-${item.entity.id}`,
+                  label: item.entity.name,
+                  item,
+                  indent: 1,
+                  isGroupHeader: false,
+                  groupId: projectId
+                });
+              });
+            } catch (e) {
+            }
+          } else {
+            childFeatures.forEach((item) => {
+              rows2.push({
+                id: `item-${item.entity.id}`,
+                label: item.entity.name,
+                item,
+                indent: 1,
+                isGroupHeader: false,
+                groupId: projectId
+              });
+            });
+          }
+        }
+      }
+      return rows2;
+    }
+    const byProject = /* @__PURE__ */ new Map();
+    featureItems.forEach((item) => {
+      const pid = item.entity.projectId || "\u672A\u5173\u8054";
+      if (!byProject.has(pid))
+        byProject.set(pid, []);
+      byProject.get(pid).push(item);
+    });
+    const rows = [];
+    for (const [pid, fItems] of byProject) {
+      let projectName = "\u672A\u5173\u8054\u9879\u76EE";
+      if (pid !== "\u672A\u5173\u8054") {
+        const project = await this.entityManager.getProject(pid);
+        if (project)
+          projectName = project.name;
+      }
+      const expanded = !this.state.collapsedGroups.has(pid);
+      rows.push({
+        id: `project-${pid}`,
+        label: projectName,
+        indent: 0,
+        isGroupHeader: true,
+        expandable: true,
+        expanded,
+        groupId: pid
+      });
+      if (expanded) {
+        fItems.forEach((item) => {
+          rows.push({
+            id: `item-${item.entity.id}`,
+            label: item.entity.name,
+            item,
+            indent: 1,
+            isGroupHeader: false,
+            groupId: pid
+          });
+        });
+      }
+    }
+    return rows;
+  }
+  // ==================== 时间范围 ====================
+  /**
+   * 获取当前视图的时间范围
+   */
+  getTimeRange(items) {
+    const { currentDate, viewMode } = this.state;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    switch (viewMode) {
+      case "week": {
+        const start = this.getWeekStart(currentDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return { start, end };
+      }
+      case "month": {
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0);
+        return { start, end };
+      }
+      case "year": {
+        const start = new Date(year, 0, 1);
+        const end = new Date(year, 11, 31);
+        return { start, end };
+      }
+      case "all": {
+        if (items && items.length > 0) {
+          const startTimes = items.map((i) => i.startDate.getTime());
+          const endTimes = items.map((i) => i.endDate.getTime());
+          const start2 = new Date(Math.min(...startTimes));
+          const end2 = new Date(Math.max(...endTimes));
+          const range = end2.getTime() - start2.getTime();
+          const buffer = range * 0.05;
+          return {
+            start: new Date(start2.getTime() - buffer),
+            end: new Date(end2.getTime() + buffer)
+          };
+        }
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0);
+        return { start, end };
+      }
+    }
+  }
+  /**
+   * 获取周开始日期（周日）
+   */
+  getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  }
+  // ==================== 工具栏 ====================
   /**
    * 渲染工具栏
    */
-  renderToolbar(container, totalCount = 0, filteredCount = 0, timeItemsCount = 0) {
+  renderToolbar(container, totalCount = 0, timeItemsCount = 0) {
     const toolbar = container.createDiv("pm-timeview-toolbar");
     const navGroup = toolbar.createDiv("pm-timeview-nav");
     const prevBtn = navGroup.createEl("button", { cls: "pm-timeview-nav-btn" });
@@ -11991,9 +11668,10 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
       this.refresh(container);
     };
     const todayBtn = navGroup.createEl("button", { cls: "pm-timeview-today-btn" });
-    todayBtn.textContent = "\u4ECA\u5929";
+    todayBtn.textContent = this.state.viewMode === "week" ? "\u672C\u5468" : this.state.viewMode === "year" ? "\u672C\u5E74\u5EA6" : this.state.viewMode === "all" ? "\u5168\u90E8" : "\u672C\u6708";
     todayBtn.onclick = () => {
       this.state.currentDate = /* @__PURE__ */ new Date();
+      this.syncSharedState();
       this.refresh(container);
     };
     const nextBtn = navGroup.createEl("button", { cls: "pm-timeview-nav-btn" });
@@ -12007,30 +11685,49 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     const modeGroup = toolbar.createDiv("pm-timeview-mode");
     const modeSelect = modeGroup.createEl("select", { cls: "pm-timeview-mode-select" });
     const modes = [
-      { value: "week", label: "\u5468\u89C6\u56FE" },
-      { value: "month", label: "\u6708\u89C6\u56FE" },
-      { value: "quarter", label: "\u5B63\u5EA6\u89C6\u56FE" }
+      { value: "week", label: "\u5468" },
+      { value: "month", label: "\u6708" },
+      { value: "year", label: "\u5E74\u5EA6" },
+      { value: "all", label: "\u5168\u90E8\u65F6\u95F4" }
     ];
     modes.forEach((mode) => {
-      const option = modeSelect.createEl("option", {
-        text: mode.label,
-        value: mode.value
-      });
-      if (mode.value === this.state.viewMode) {
+      const option = modeSelect.createEl("option", { text: mode.label, value: mode.value });
+      if (mode.value === this.state.viewMode)
         option.selected = true;
-      }
     });
     modeSelect.addEventListener("change", () => {
       this.state.viewMode = modeSelect.value;
-      _TimeViewRenderer.sharedState = { ...this.state };
+      this.syncSharedState();
       this.refresh(container);
     });
+    const groupToggle = toolbar.createDiv("pm-timeview-group-toggle");
+    const ownerBtn = groupToggle.createEl("button", {
+      cls: `pm-timeview-group-toggle__btn ${this.state.groupBy === "owner" ? "active" : ""}`,
+      text: "\u6309\u8D1F\u8D23\u4EBA"
+    });
+    ownerBtn.onclick = () => {
+      if (this.state.groupBy !== "owner") {
+        this.state.groupBy = "owner";
+        this.syncSharedState();
+        this.refresh(container);
+      }
+    };
+    const projectBtn = groupToggle.createEl("button", {
+      cls: `pm-timeview-group-toggle__btn ${this.state.groupBy === "project" ? "active" : ""}`,
+      text: "\u6309\u9879\u76EE"
+    });
+    projectBtn.onclick = () => {
+      if (this.state.groupBy !== "project") {
+        this.state.groupBy = "project";
+        this.syncSharedState();
+        this.refresh(container);
+      }
+    };
     const statsGroup = toolbar.createDiv("pm-timeview-stats");
-    const entityType = this.config.entityType || "feature";
-    statsGroup.textContent = `${entityType === "feature" ? "\u7279\u6027" : entityType === "project" ? "\u9879\u76EE" : "\u7248\u672C"}: ${timeItemsCount}`;
+    statsGroup.textContent = `${timeItemsCount} \u9879`;
   }
   /**
-   * 日期导航 - 只修改日期，不触发渲染（由调用方负责刷新）
+   * 日期导航
    */
   navigateDate(direction) {
     const { viewMode, currentDate } = this.state;
@@ -12041,17 +11738,28 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
       case "month":
         currentDate.setMonth(currentDate.getMonth() + direction);
         break;
-      case "quarter":
-        currentDate.setMonth(currentDate.getMonth() + direction * 3);
+      case "year":
+        currentDate.setFullYear(currentDate.getFullYear() + direction);
+        break;
+      case "all":
         break;
     }
-    _TimeViewRenderer.sharedState = { ...this.state };
+    this.syncSharedState();
+  }
+  /**
+   * 同步到共享状态
+   */
+  syncSharedState() {
+    _TimeViewRenderer.sharedState = {
+      ...this.state,
+      collapsedGroups: new Set(this.state.collapsedGroups)
+    };
   }
   /**
    * 刷新视图
    */
-  refresh(container) {
-    this.render(container);
+  async refresh(container) {
+    await this.render(container);
   }
   /**
    * 获取日期标题
@@ -12065,804 +11773,188 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
         const weekStart = this.getWeekStart(currentDate);
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
-        const startMonth = weekStart.getMonth() + 1;
-        const startDay = weekStart.getDate();
-        const endMonth = weekEnd.getMonth() + 1;
-        const endDay = weekEnd.getDate();
-        if (startMonth === endMonth) {
-          return `${year}\u5E74${startMonth}\u6708${startDay}\u65E5-${endDay}\u65E5`;
-        } else {
-          return `${year}\u5E74${startMonth}\u6708${startDay}\u65E5-${endMonth}\u6708${endDay}\u65E5`;
-        }
+        const sm = weekStart.getMonth() + 1;
+        const sd = weekStart.getDate();
+        const em = weekEnd.getMonth() + 1;
+        const ed = weekEnd.getDate();
+        return sm === em ? `${year}\u5E74${sm}\u6708${sd}\u65E5-${ed}\u65E5` : `${year}\u5E74${sm}\u6708${sd}\u65E5-${em}\u6708${ed}\u65E5`;
       }
       case "month":
         return `${year}\u5E74${month}\u6708`;
-      case "quarter": {
-        const quarter = Math.floor((month - 1) / 3) + 1;
-        return `${year}\u5E74 Q${quarter}`;
-      }
-      default:
-        return `${year}\u5E74${month}\u6708`;
+      case "year":
+        return `${year}\u5E74`;
+      case "all":
+        return "\u5168\u90E8\u65F6\u95F4";
     }
   }
+  // ==================== 甘特图渲染 ====================
   /**
-   * 渲染周视图 - 甘特图风格
+   * 渲染甘特图
    */
-  renderWeekView(container, items) {
-    container.empty();
-    container.addClass("pm-timeview-week");
-    const { currentDate } = this.state;
-    const weekStart = this.getWeekStart(currentDate);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const headerRow = container.createDiv("pm-timeview-week-header");
-    const weekDays = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
-    for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(weekStart);
-      dayDate.setDate(weekStart.getDate() + i);
-      const isToday = this.isSameDay(dayDate, /* @__PURE__ */ new Date());
-      const headerCell = headerRow.createDiv("pm-timeview-week-header-cell");
-      if (isToday) {
-        headerCell.classList.add("pm-timeview-today");
-      }
-      headerCell.createDiv({
-        cls: "pm-timeview-week-day-name",
-        text: weekDays[i]
-      });
-      headerCell.createDiv({
-        cls: "pm-timeview-week-day-number",
-        text: String(dayDate.getDate())
-      });
-    }
-    const weekItems = items.filter(
-      (item) => this.isDateRangeOverlap(item.startDate, item.endDate, weekStart, weekEnd)
-    );
-    const rows = this.calculateGanttRows(weekItems, weekStart, weekEnd);
-    const ganttContainer = container.createDiv("pm-timeview-week-gantt");
-    ganttContainer.style.display = "grid";
-    ganttContainer.style.gridTemplateColumns = "repeat(7, 1fr)";
-    ganttContainer.style.gap = "4px";
-    ganttContainer.style.padding = "8px";
-    for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(weekStart);
-      dayDate.setDate(weekStart.getDate() + i);
-      const dayBg = ganttContainer.createDiv("pm-timeview-week-day-bg");
-      dayBg.style.gridColumn = String(i + 1);
-      dayBg.style.gridRow = `1 / span ${rows.length}`;
-      dayBg.style.background = this.isSameDay(dayDate, /* @__PURE__ */ new Date()) ? "var(--background-modifier-accent)" : "var(--background-secondary)";
-      dayBg.style.borderRadius = "4px";
-      dayBg.style.opacity = "0.5";
-    }
-    rows.forEach((rowItems, rowIndex) => {
-      rowItems.forEach((item) => {
-        this.renderWeekGanttBar(ganttContainer, item, weekStart, rowIndex + 1);
-      });
+  renderGantt(container, rows, rangeStart, rangeEnd) {
+    const gantt = container.createDiv("pm-timeview-gantt");
+    this.renderGanttHeader(gantt, rangeStart, rangeEnd);
+    const body = gantt.createDiv("pm-timeview-gantt-body");
+    rows.forEach((row) => {
+      this.renderGanttRow(body, row, rangeStart, rangeEnd);
     });
   }
   /**
-   * 计算甘特图行分配
+   * 渲染甘特图表头
    */
-  calculateGanttRows(items, rangeStart, rangeEnd) {
-    const rows = [];
-    const occupied = [];
-    const sortedItems = [...items].sort(
-      (a, b) => a.startDate.getTime() - b.startDate.getTime()
-    );
-    for (const item of sortedItems) {
-      const actualStart = item.startDate < rangeStart ? rangeStart : item.startDate;
-      const actualEnd = item.endDate > rangeEnd ? rangeEnd : item.endDate;
-      const startCol = actualStart.getDay();
-      const endCol = actualEnd.getDay();
-      let rowIndex = 0;
-      while (occupied.some(
-        (o) => o.row === rowIndex && !(o.endCol < startCol || o.startCol > endCol)
-      )) {
-        rowIndex++;
+  renderGanttHeader(container, rangeStart, rangeEnd) {
+    const header = container.createDiv("pm-timeview-gantt-header");
+    const nameCol = header.createDiv("pm-timeview-gantt-header-name");
+    nameCol.textContent = this.state.groupBy === "project" ? "\u9879\u76EE / \u7279\u6027" : "\u8D1F\u8D23\u4EBA / \u4EFB\u52A1";
+    const timelineHeader = header.createDiv("pm-timeview-gantt-header-timeline");
+    const days = (rangeEnd.getTime() - rangeStart.getTime()) / (24 * 60 * 60 * 1e3) + 1;
+    let ticks = [];
+    if (days <= 10) {
+      for (let i = 0; i < days; i++) {
+        const d = new Date(rangeStart);
+        d.setDate(d.getDate() + i);
+        ticks.push(d);
       }
-      if (!rows[rowIndex]) {
-        rows[rowIndex] = [];
+    } else if (days <= 35) {
+      let d = new Date(rangeStart);
+      while (d <= rangeEnd) {
+        ticks.push(new Date(d));
+        d.setDate(d.getDate() + 7);
       }
-      rows[rowIndex].push(item);
-      occupied.push({ startCol, endCol, row: rowIndex });
-    }
-    return rows.length > 0 ? rows : [[]];
-  }
-  /**
-   * 渲染周视图甘特条
-   */
-  renderWeekGanttBar(container, item, weekStart, row) {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const actualStart = item.startDate < weekStart ? weekStart : item.startDate;
-    const actualEnd = item.endDate > weekEnd ? weekEnd : item.endDate;
-    const startCol = actualStart.getDay() + 1;
-    const endCol = actualEnd.getDay() + 1;
-    const span = endCol - startCol + 1;
-    const bar = container.createDiv("pm-timeview-gantt-bar");
-    bar.style.gridColumn = `${startCol} / span ${span}`;
-    bar.style.gridRow = String(row);
-    bar.style.margin = "2px 4px";
-    const priorityColor = getPriorityColor2(item.entity.priority);
-    if (item.isMilestone) {
-      bar.classList.add("pm-timeview-gantt-bar--milestone");
-      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
-      bar.style.color = "#fff";
+    } else if (days <= 730) {
+      let d = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+      while (d <= rangeEnd) {
+        ticks.push(new Date(d));
+        d.setMonth(d.getMonth() + 1);
+      }
     } else {
-      if (item.progress > 0) {
-        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
+      let d = new Date(rangeStart.getFullYear(), Math.floor(rangeStart.getMonth() / 3) * 3, 1);
+      while (d <= rangeEnd) {
+        ticks.push(new Date(d));
+        d.setMonth(d.getMonth() + 3);
+      }
+    }
+    if (ticks.length < 2) {
+      ticks = [rangeStart, rangeEnd];
+    }
+    const range = rangeEnd.getTime() - rangeStart.getTime();
+    const crossYear = rangeStart.getFullYear() !== rangeEnd.getFullYear();
+    ticks.forEach((tick) => {
+      const tickEl = timelineHeader.createDiv("pm-timeview-gantt-tick");
+      const percent = (tick.getTime() - rangeStart.getTime()) / range * 100;
+      tickEl.style.left = `${percent}%`;
+      if (days <= 35) {
+        tickEl.textContent = `${tick.getMonth() + 1}/${tick.getDate()}`;
+      } else if (crossYear) {
+        tickEl.textContent = `${tick.getFullYear()}\u5E74${tick.getMonth() + 1}\u6708`;
       } else {
-        bar.style.background = priorityColor.bg;
+        tickEl.textContent = `${tick.getMonth() + 1}\u6708`;
       }
-      bar.style.color = priorityColor.text;
-    }
-    bar.style.borderRadius = "4px";
-    bar.style.padding = "6px 10px";
-    bar.style.fontSize = "12px";
-    bar.style.fontWeight = item.isMilestone ? "600" : "500";
-    bar.style.whiteSpace = "nowrap";
-    bar.style.overflow = "hidden";
-    bar.style.textOverflow = "ellipsis";
-    bar.style.cursor = "pointer";
-    bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-    bar.style.transition = "all 0.15s ease";
-    bar.style.display = "flex";
-    bar.style.alignItems = "center";
-    bar.style.gap = "6px";
-    if (item.isMilestone) {
-      bar.textContent = "\u{1F537} ";
-    }
-    bar.appendChild(document.createTextNode(item.entity.name));
-    bar.addEventListener("mouseenter", () => {
-      bar.style.transform = "translateY(-2px)";
-      bar.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-      bar.style.zIndex = "10";
     });
-    bar.addEventListener("mouseleave", () => {
-      bar.style.transform = "translateY(0)";
-      bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-      bar.style.zIndex = "auto";
-    });
-    bar.addEventListener("click", async () => {
-      await this.actionService.openEntity(item.entityType, item.entity.id);
+    ticks.forEach((tick) => {
+      const line = timelineHeader.createDiv("pm-timeview-gantt-grid-line");
+      const percent = (tick.getTime() - rangeStart.getTime()) / range * 100;
+      line.style.left = `${percent}%`;
     });
   }
   /**
-   * 检查日期范围是否重叠
+   * 渲染甘特图行
    */
-  isDateRangeOverlap(start1, end1, start2, end2) {
-    return start1 <= end2 && end1 >= start2;
-  }
-  /**
-   * 渲染月视图 - 简化版，每天显示任务列表
-   */
-  renderMonthView(container, items) {
-    container.empty();
-    container.addClass("pm-timeview-month");
-    const { currentDate } = this.state;
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const weekdays = container.createDiv("pm-timeview-month-weekdays");
-    const weekNames = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
-    weekNames.forEach((name) => {
-      weekdays.createDiv({ cls: "pm-timeview-month-weekday", text: name });
-    });
-    const grid = container.createDiv("pm-timeview-month-grid");
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startOffset = firstDay.getDay();
-    const daysInMonth = lastDay.getDate();
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = startOffset - 1; i >= 0; i--) {
-      const dayCell = grid.createDiv("pm-timeview-month-day pm-timeview-month-day--other");
-      dayCell.createDiv({
-        cls: "pm-timeview-month-day-number",
-        text: String(prevMonthLastDay - i)
-      });
+  renderGanttRow(body, row, rangeStart, rangeEnd) {
+    const rowEl = body.createDiv("pm-timeview-gantt-row");
+    if (row.isGroupHeader)
+      rowEl.addClass("pm-timeview-gantt-row--header");
+    if (row.indent > 0)
+      rowEl.addClass("pm-timeview-gantt-row--sub");
+    const nameCol = rowEl.createDiv("pm-timeview-gantt-name");
+    nameCol.style.paddingLeft = `${12 + row.indent * 20}px`;
+    if (row.expandable) {
+      const expandBtn = nameCol.createSpan("pm-timeview-expand-btn");
+      expandBtn.textContent = row.expanded ? "\u25BC" : "\u25B6";
+      expandBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.toggleGroup(row.groupId);
+        this.refresh(rowEl.closest(".pm-timeview"));
+      };
     }
-    const today = /* @__PURE__ */ new Date();
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayDate = new Date(year, month, day);
-      const dayCell = grid.createDiv("pm-timeview-month-day");
-      if (this.isSameDay(dayDate, today)) {
-        dayCell.classList.add("pm-timeview-today");
-      }
-      dayCell.createDiv({
-        cls: "pm-timeview-month-day-number",
-        text: String(day)
-      });
-      const dayItems = items.filter(
-        (item) => this.isDateInRange(dayDate, item.startDate, item.endDate)
-      );
-      if (dayItems.length > 0) {
-        const list = dayCell.createDiv("pm-timeview-month-list");
-        dayItems.forEach((item) => {
-          const isStartDay = this.isSameDay(dayDate, item.startDate);
-          this.renderMonthItem(list, item, isStartDay);
-        });
-      }
+    const labelSpan = nameCol.createSpan("pm-timeview-gantt-name-text");
+    labelSpan.textContent = row.label;
+    const timelineCol = rowEl.createDiv("pm-timeview-gantt-timeline");
+    if (row.item) {
+      this.renderGanttBar(timelineCol, row.item, rangeStart, rangeEnd);
     }
-    const totalCells = startOffset + daysInMonth;
-    const remainingCells = (7 - totalCells % 7) % 7;
-    for (let day = 1; day <= remainingCells; day++) {
-      const dayCell = grid.createDiv("pm-timeview-month-day pm-timeview-month-day--other");
-      dayCell.createDiv({
-        cls: "pm-timeview-month-day-number",
-        text: String(day)
+    if (row.item) {
+      rowEl.addEventListener("click", () => {
+        this.actionService.openEntity(row.item.entityType, row.item.entity.id);
       });
+      rowEl.style.cursor = "pointer";
     }
   }
   /**
-   * 渲染月视图甘特条
+   * 渲染甘特条
    */
-  renderMonthGanttBar(container, item, weekStart, weekEnd, weekIndex, rowIndex, month) {
-    const actualStart = item.startDate < weekStart ? weekStart : item.startDate;
-    const actualEnd = item.endDate > weekEnd ? weekEnd : item.endDate;
-    const startCol = actualStart.getDay() + 1;
-    const endCol = actualEnd.getDay() + 1;
-    const span = endCol - startCol + 1;
-    const gridRow = weekIndex * 5 + rowIndex + 2;
+  renderGanttBar(container, item, rangeStart, rangeEnd) {
+    const range = rangeEnd.getTime() - rangeStart.getTime();
+    if (range <= 0)
+      return;
+    const itemStart = Math.max(item.startDate.getTime(), rangeStart.getTime());
+    const itemEnd = Math.min(item.endDate.getTime(), rangeEnd.getTime());
+    const duration = itemEnd - itemStart;
+    if (duration <= 0)
+      return;
+    const leftPercent = (itemStart - rangeStart.getTime()) / range * 100;
+    const widthPercent = duration / range * 100;
     const bar = container.createDiv("pm-timeview-gantt-bar");
-    bar.style.gridColumn = `${startCol} / span ${span}`;
-    bar.style.gridRow = String(gridRow);
-    bar.style.margin = "1px 2px";
-    bar.style.height = "22px";
-    const priorityColor = getPriorityColor2(item.entity.priority);
-    if (item.isMilestone) {
-      bar.classList.add("pm-timeview-gantt-bar--milestone");
-      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
-      bar.style.color = "#fff";
-    } else {
-      if (item.progress > 0) {
-        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
-      } else {
-        bar.style.background = priorityColor.bg;
-      }
-      bar.style.color = priorityColor.text;
-    }
-    bar.style.borderRadius = "3px";
-    bar.style.padding = "2px 6px";
-    bar.style.fontSize = "10px";
-    bar.style.fontWeight = item.isMilestone ? "600" : "500";
-    bar.style.whiteSpace = "nowrap";
-    bar.style.overflow = "hidden";
-    bar.style.textOverflow = "ellipsis";
-    bar.style.cursor = "pointer";
-    bar.style.display = "flex";
-    bar.style.alignItems = "center";
-    bar.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
-    if (item.isMilestone) {
-      bar.textContent = "\u{1F537} ";
-    }
-    bar.appendChild(document.createTextNode(item.entity.name));
-    bar.addEventListener("mouseenter", () => {
-      bar.style.transform = "translateY(-1px)";
-      bar.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
-      bar.style.zIndex = "10";
-    });
-    bar.addEventListener("mouseleave", () => {
-      bar.style.transform = "translateY(0)";
-      bar.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
-      bar.style.zIndex = "auto";
-    });
-    bar.addEventListener("click", async () => {
-      await this.actionService.openEntity(item.entityType, item.entity.id);
-    });
-  }
-  /**
-   * 渲染跨天任务条
-   */
-  renderMultiDayBar(container, item, startDate) {
-    const bar = container.createDiv("pm-timeview-month-bar");
-    const priorityColor = getPriorityColor2(item.entity.priority);
+    bar.style.left = `${Math.max(0, Math.min(99, leftPercent))}%`;
+    bar.style.width = `${Math.max(1, Math.min(100, widthPercent))}%`;
+    const priorityColor = getPriorityColor2(item.entity.priority || "medium");
     bar.style.background = priorityColor.bg;
-    if (item.isMilestone) {
-      bar.classList.add("pm-timeview-month-bar--milestone");
+    bar.style.color = "#fff";
+    if (item.progress > 0 && item.progress < 100) {
+      const darken = bar.createDiv("pm-timeview-gantt-bar-darken");
+      darken.style.cssText = `
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: ${100 - item.progress}%;
+        background: rgba(0,0,0,0.25);
+        border-radius: 0 4px 4px 0;
+        z-index: 1;
+      `;
     }
-    bar.textContent = item.entity.name;
-    bar.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
-    bar.addEventListener("click", async () => {
-      await this.actionService.openEntity(item.entityType, item.entity.id);
-    });
+    const barText = bar.createSpan("pm-timeview-gantt-bar-text");
+    barText.style.cssText = "position: relative; z-index: 2;";
+    barText.textContent = item.entity.name;
   }
+  // ==================== 交互 ====================
   /**
-   * 渲染月视图中的单个任务
+   * 切换分组展开/折叠状态
    */
-  renderMonthItem(container, item, isStartDay = false) {
-    const itemEl = container.createDiv("pm-timeview-month-item");
-    if (item.isMilestone) {
-      itemEl.classList.add("pm-timeview-month-item--milestone");
-    }
-    const priorityColor = getPriorityColor2(item.entity.priority);
-    const isMultiDay = item.startDate.getTime() !== item.endDate.getTime();
-    if (isMultiDay && isStartDay) {
-      itemEl.style.background = `linear-gradient(90deg, ${priorityColor.bg}, transparent)`;
-      itemEl.style.borderLeft = `4px solid ${priorityColor.text}`;
+  toggleGroup(groupId) {
+    if (this.state.collapsedGroups.has(groupId)) {
+      this.state.collapsedGroups.delete(groupId);
     } else {
-      itemEl.style.borderLeft = `3px solid ${priorityColor.bg}`;
+      this.state.collapsedGroups.add(groupId);
     }
-    const title = itemEl.createDiv("pm-timeview-month-item-title");
-    if (isMultiDay && isStartDay) {
-      title.createSpan({
-        cls: "pm-timeview-month-item-range",
-        text: "[\u2192] "
-      }).style.cssText = "color: var(--text-muted); font-size: 10px;";
-    }
-    title.appendChild(document.createTextNode(item.entity.name));
-    if (item.isMilestone) {
-      title.createSpan({
-        cls: "pm-timeview-month-item-milestone-icon",
-        text: " \u{1F537}"
-      });
-    }
-    if (!item.isMilestone && item.progress > 0) {
-      const progress = itemEl.createDiv("pm-timeview-month-item-progress");
-      progress.style.cssText = `
-        height: 2px;
-        background: var(--background-modifier-border);
-        border-radius: 1px;
-        margin-top: 2px;
-        overflow: hidden;
-      `;
-      const fill = progress.createDiv();
-      fill.style.cssText = `
-        height: 100%;
-        width: ${item.progress}%;
-        background: ${priorityColor.text};
-      `;
-    }
-    itemEl.addEventListener("click", async () => {
-      await this.actionService.openEntity(item.entityType, item.entity.id);
-    });
+    this.syncSharedState();
   }
+  // ==================== 辅助方法 ====================
   /**
-   * 渲染季度视图 - 以周为单位的甘特图，显示整个季度
+   * 渲染空状态
    */
-  renderQuarterView(container, items) {
-    container.empty();
-    container.addClass("pm-timeview-quarter");
-    const { currentDate } = this.state;
-    const year = currentDate.getFullYear();
-    const quarter = Math.floor(currentDate.getMonth() / 3) + 1;
-    const quarterStartMonth = (quarter - 1) * 3;
-    const quarterStart = new Date(year, quarterStartMonth, 1);
-    const quarterEnd = new Date(year, quarterStartMonth + 3, 0);
-    const weeks = this.getQuarterWeeks(quarterStart, quarterEnd);
-    const quarterContainer = container.createDiv("pm-timeview-quarter-container");
-    this.renderQuarterMonthHeader(quarterContainer, year, quarter);
-    this.renderQuarterWeekHeader(quarterContainer, weeks);
-    this.renderQuarterGantt(quarterContainer, items, weeks, quarterStart, quarterEnd);
-  }
-  /**
-   * 获取季度所有周的开始日期
-   */
-  getQuarterWeeks(start, end) {
-    const weeks = [];
-    let currentWeek = this.getWeekStart(start);
-    while (currentWeek <= end) {
-      weeks.push(new Date(currentWeek));
-      currentWeek.setDate(currentWeek.getDate() + 7);
-    }
-    return weeks;
-  }
-  /**
-   * 渲染季度视图月份标题
-   */
-  renderQuarterMonthHeader(container, year, quarter) {
-    const header = container.createDiv("pm-timeview-quarter-month-header");
-    header.style.cssText = `
-      display: flex;
-      margin-bottom: 8px;
-      border-bottom: 2px solid var(--background-modifier-border);
-      padding-bottom: 8px;
-    `;
-    const titleArea = header.createDiv("pm-timeview-quarter-title");
-    titleArea.style.cssText = "flex: 0 0 200px; font-weight: 600; font-size: 16px;";
-    titleArea.textContent = `${year}\u5E74 Q${quarter}`;
-    const monthsArea = header.createDiv("pm-timeview-quarter-months");
-    monthsArea.style.cssText = "flex: 1; display: flex;";
-    const quarterStartMonth = (quarter - 1) * 3;
-    const monthNames = ["1\u6708", "2\u6708", "3\u6708", "4\u6708", "5\u6708", "6\u6708", "7\u6708", "8\u6708", "9\u6708", "10\u6708", "11\u6708", "12\u6708"];
-    for (let i = 0; i < 3; i++) {
-      const monthDiv = monthsArea.createDiv("pm-timeview-quarter-month");
-      monthDiv.style.cssText = `
-        flex: 1;
-        text-align: center;
-        font-weight: 500;
-        color: var(--text-muted);
-        border-right: ${i < 2 ? "1px solid var(--background-modifier-border)" : "none"};
-      `;
-      monthDiv.textContent = monthNames[quarterStartMonth + i];
-    }
-  }
-  /**
-   * 渲染季度视图周标题行
-   */
-  renderQuarterWeekHeader(container, weeks) {
-    const header = container.createDiv("pm-timeview-quarter-week-header");
-    header.style.cssText = `
-      display: flex;
-      margin-bottom: 4px;
-      font-size: 11px;
-      color: var(--text-muted);
-    `;
-    const labelArea = header.createDiv();
-    labelArea.style.cssText = "flex: 0 0 200px;";
-    const weeksArea = header.createDiv("pm-timeview-quarter-weeks");
-    weeksArea.style.cssText = "flex: 1; display: flex;";
-    weeks.forEach((week, index) => {
-      const weekDiv = weeksArea.createDiv("pm-timeview-quarter-week-label");
-      weekDiv.style.cssText = `
-        flex: 1;
-        text-align: center;
-        padding: 4px 2px;
-        font-size: 10px;
-        border-right: 1px solid var(--background-modifier-border-hover);
-        ${this.isWeekCurrent(week) ? "background: var(--background-modifier-accent); color: var(--text-on-accent); border-radius: 4px;" : ""}
-      `;
-      weekDiv.textContent = `${week.getMonth() + 1}/${week.getDate()}`;
-      weekDiv.title = `\u7B2C${index + 1}\u5468: ${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, "0")}-${String(week.getDate()).padStart(2, "0")}`;
-    });
-  }
-  /**
-   * 判断是否为当前周
-   */
-  isWeekCurrent(weekStart) {
-    const today = /* @__PURE__ */ new Date();
-    const currentWeekStart = this.getWeekStart(today);
-    return this.isSameDay(weekStart, currentWeekStart);
-  }
-  /**
-   * 渲染季度视图甘特图
-   */
-  renderQuarterGantt(container, items, weeks, quarterStart, quarterEnd) {
-    const ganttContainer = container.createDiv("pm-timeview-quarter-gantt");
-    ganttContainer.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 500px;
-      overflow-y: auto;
-    `;
-    if (items.length === 0) {
-      this.renderEmptyState(ganttContainer, "\u672C\u5B63\u5EA6\u6CA1\u6709\u4EFB\u52A1");
-      return;
-    }
-    const quarterItems = items.filter(
-      (item) => this.isDateRangeOverlap(item.startDate, item.endDate, quarterStart, quarterEnd)
-    );
-    if (quarterItems.length === 0) {
-      this.renderEmptyState(ganttContainer, "\u672C\u5B63\u5EA6\u6CA1\u6709\u4EFB\u52A1");
-      return;
-    }
-    const rows = this.calculateQuarterRows(quarterItems, weeks, quarterStart, quarterEnd);
-    rows.forEach((rowItems) => {
-      const rowEl = ganttContainer.createDiv("pm-timeview-quarter-row");
-      rowEl.style.cssText = `
-        display: flex;
-        align-items: center;
-        min-height: 36px;
-        border-bottom: 1px solid var(--background-modifier-border-hover);
-      `;
-      rowItems.forEach((item) => {
-        this.renderQuarterGanttBar(rowEl, item, weeks, quarterStart, quarterEnd);
-      });
-    });
-    this.renderQuarterGridBackground(ganttContainer, weeks);
-  }
-  /**
-   * 计算季度视图的行分配
-   */
-  calculateQuarterRows(items, weeks, quarterStart, quarterEnd) {
-    const rows = [];
-    const occupied = [];
-    const sortedItems = [...items].sort(
-      (a, b) => a.startDate.getTime() - b.startDate.getTime()
-    );
-    for (const item of sortedItems) {
-      const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
-      const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
-      const startCol = this.getWeekIndex(actualStart, weeks);
-      const endCol = this.getWeekIndex(actualEnd, weeks);
-      if (startCol === -1 || endCol === -1)
-        continue;
-      let rowIndex = 0;
-      while (occupied.some(
-        (o) => o.row === rowIndex && !(o.endCol < startCol || o.startCol > endCol)
-      )) {
-        rowIndex++;
-      }
-      if (!rows[rowIndex]) {
-        rows[rowIndex] = [];
-      }
-      rows[rowIndex].push(item);
-      occupied.push({ startCol, endCol, row: rowIndex });
-    }
-    return rows.length > 0 ? rows : [[]];
-  }
-  /**
-   * 获取日期所在的周索引
-   */
-  getWeekIndex(date, weeks) {
-    for (let i = 0; i < weeks.length; i++) {
-      const weekStart = weeks[i];
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      if (date >= weekStart && date <= weekEnd) {
-        return i;
-      }
-    }
-    return -1;
-  }
-  /**
-   * 渲染季度视图甘特条
-   */
-  renderQuarterGanttBar(container, item, weeks, quarterStart, quarterEnd) {
-    const actualStart = item.startDate < quarterStart ? quarterStart : item.startDate;
-    const actualEnd = item.endDate > quarterEnd ? quarterEnd : item.endDate;
-    const startCol = this.getWeekIndex(actualStart, weeks);
-    const endCol = this.getWeekIndex(actualEnd, weeks);
-    if (startCol === -1 || endCol === -1)
-      return;
-    const bar = container.createDiv("pm-timeview-quarter-bar");
-    const leftOffset = 200;
-    const weekWidth = 100 / weeks.length;
-    const left = leftOffset + startCol * weekWidth;
-    const width = (endCol - startCol + 1) * weekWidth;
-    const priorityColor = getPriorityColor2(item.entity.priority);
-    bar.style.cssText = `
-      position: absolute;
-      left: ${left}px;
-      width: calc(${width}% - 8px);
-      height: 28px;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      transition: all 0.15s ease;
-      z-index: 1;
-    `;
-    if (item.isMilestone) {
-      bar.style.background = `linear-gradient(90deg, ${priorityColor.text}, ${priorityColor.bg})`;
-      bar.style.color = "#fff";
-      bar.textContent = "\u{1F537} ";
-    } else {
-      if (item.progress > 0) {
-        bar.style.background = `linear-gradient(90deg, ${priorityColor.text} ${item.progress}%, ${priorityColor.bg} ${item.progress}%)`;
-      } else {
-        bar.style.background = priorityColor.bg;
-      }
-      bar.style.color = priorityColor.text;
-    }
-    const nameSpan = document.createElement("span");
-    nameSpan.textContent = item.entity.name;
-    nameSpan.style.overflow = "hidden";
-    nameSpan.style.textOverflow = "ellipsis";
-    bar.appendChild(nameSpan);
-    bar.addEventListener("mouseenter", () => {
-      bar.style.transform = "translateY(-2px)";
-      bar.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-      bar.style.zIndex = "10";
-    });
-    bar.addEventListener("mouseleave", () => {
-      bar.style.transform = "translateY(0)";
-      bar.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-      bar.style.zIndex = "1";
-    });
-    bar.addEventListener("click", async () => {
-      await this.actionService.openEntity(item.entityType, item.entity.id);
-    });
-    const labelEl = container.createDiv("pm-timeview-quarter-bar-label");
-    labelEl.style.cssText = `
-      flex: 0 0 200px;
-      padding-right: 12px;
-      font-size: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--text-normal);
-      font-weight: 500;
-    `;
-    labelEl.textContent = item.entity.name;
-    labelEl.title = `${item.entity.name} (${DateFormat.short(item.startDate)} - ${DateFormat.short(item.endDate)})`;
-  }
-  /**
-   * 渲染季度视图网格背景
-   */
-  renderQuarterGridBackground(container, weeks) {
-    const gridBg = container.createDiv("pm-timeview-quarter-grid-bg");
-    gridBg.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 200px;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      pointer-events: none;
-      z-index: 0;
-    `;
-    weeks.forEach((week, index) => {
-      const weekCol = gridBg.createDiv("pm-timeview-quarter-grid-col");
-      weekCol.style.cssText = `
-        flex: 1;
-        border-right: 1px solid var(--background-modifier-border-hover);
-        background: ${this.isWeekCurrent(week) ? "var(--background-modifier-accent)" : "transparent"};
-        opacity: ${this.isWeekCurrent(week) ? 0.1 : 1};
-      `;
-    });
-    container.insertBefore(gridBg, container.firstChild);
-  }
-  /**
-   * 获取周开始日期（周日）
-   */
-  getWeekStart(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff));
-  }
-  /**
-   * 判断是否为同一天
-   */
-  isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-  }
-  /**
-   * 判断日期是否在范围内
-   */
-  isDateInRange(date, start, end) {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const s = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-    return d >= s && d <= e;
+  renderEmptyState(container, message) {
+    const empty = container.createDiv("pm-timeview-empty");
+    empty.createDiv({ text: "\u{1F4C5}", cls: "pm-timeview-empty-icon" }).style.cssText = "font-size: 48px;";
+    empty.createDiv({ text: message, cls: "pm-timeview-empty-text" }).style.cssText = "font-size: 14px;";
+    const hint = empty.createDiv({ cls: "pm-timeview-empty-hint" });
+    hint.style.cssText = "font-size: 12px; opacity: 0.7;";
+    hint.textContent = "\u63D0\u793A\uFF1A\u4E3A\u5B9E\u4F53\u6DFB\u52A0 startDate \u548C endDate \u5B57\u6BB5\u5373\u53EF\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u663E\u793A";
   }
 };
-// 静态变量保持状态 across 重新渲染
 _TimeViewRenderer.sharedState = null;
 var TimeViewRenderer = _TimeViewRenderer;
 RendererRegistry.register("timeview", TimeViewRenderer);
-
-// src/view-engine/renderers/BurndownRenderer.ts
-var BurndownRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-    this.reportService = new ReportService(app, entityManager);
-  }
-  /**
-   * 渲染燃尽图
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-burndown-view");
-    const data = await this.reportService.calculateBurndownData(void 0, void 0, this.config);
-    if (data.length === 0) {
-      this.createEmptyState(container, "\u6682\u65E0\u6570\u636E\uFF0C\u8BF7\u5148\u521B\u5EFA\u7279\u6027\u5E76\u8BBE\u7F6E\u9884\u4F30\u5DE5\u65F6");
-      return;
-    }
-    this.renderHeader(container, data);
-    this.renderChart(container, data);
-    this.renderStatsCards(container, data);
-  }
-  /**
-   * 渲染标题栏
-   */
-  renderHeader(container, data) {
-    const header = container.createDiv("pm-burndown-header");
-    const titleEl = header.createEl("h3", { cls: "pm-burndown-title" });
-    titleEl.textContent = this.config.title || "\u71C3\u5C3D\u56FE";
-    const rangeEl = header.createEl("span", { cls: "pm-burndown-range" });
-    rangeEl.textContent = `${data[0].date} ~ ${data[data.length - 1].date}`;
-  }
-  /**
-   * 渲染 SVG 图表
-   */
-  renderChart(container, data) {
-    const chartContainer = container.createDiv("pm-burndown-chart-container");
-    const padding = { top: 20, right: 30, bottom: 50, left: 60 };
-    const viewWidth = 800;
-    const viewHeight = 300;
-    const width = viewWidth - padding.left - padding.right;
-    const height = viewHeight - padding.top - padding.bottom;
-    const maxValue = Math.max(
-      ...data.map((d) => Math.max(d.planned, d.actual))
-    );
-    let svgContent = this.generateSVGContent(data, width, height, maxValue, padding);
-    const svgWrapper = chartContainer.createDiv("pm-burndown-chart");
-    svgWrapper.innerHTML = svgContent;
-  }
-  /**
-   * 生成 SVG 内容字符串
-   */
-  generateSVGContent(data, width, height, maxValue, padding) {
-    const viewWidth = width + padding.left + padding.right;
-    const viewHeight = height + padding.top + padding.bottom;
-    let svg = `<svg viewBox="0 0 ${viewWidth} ${viewHeight}" preserveAspectRatio="xMidYMid meet">`;
-    const gridCount = 5;
-    for (let i = 0; i <= gridCount; i++) {
-      const y = padding.top + height / gridCount * i;
-      svg += `<line x1="${padding.left}" y1="${y}" x2="${padding.left + width}" y2="${y}" stroke="var(--background-modifier-border)" stroke-width="1" stroke-dasharray="4,4" />`;
-    }
-    svg += `<line x1="${padding.left}" y1="${padding.top + height}" x2="${padding.left + width}" y2="${padding.top + height}" stroke="var(--text-muted)" stroke-width="1" />`;
-    svg += `<line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + height}" stroke="var(--text-muted)" stroke-width="1" />`;
-    const labelCount = Math.min(data.length, 7);
-    const step = Math.ceil(data.length / labelCount);
-    for (let i = 0; i < data.length; i += step) {
-      const x = padding.left + width / (data.length - 1 || 1) * i;
-      svg += `<text x="${x}" y="${padding.top + height + 20}" text-anchor="middle" fill="var(--text-muted)" font-size="11">${data[i].date.slice(5)}</text>`;
-    }
-    if (data.length >= 2) {
-      const plannedPoints = data.map((d, i) => {
-        const x = padding.left + width / (data.length - 1 || 1) * i;
-        const y = padding.top + height - d.planned / maxValue * height;
-        return `${x},${y}`;
-      }).join(" ");
-      svg += `<polyline points="${plannedPoints}" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="5,5" />`;
-      data.forEach((d, i) => {
-        const x = padding.left + width / (data.length - 1 || 1) * i;
-        const y = padding.top + height - d.planned / maxValue * height;
-        svg += `<circle cx="${x}" cy="${y}" r="3" fill="#22c55e" stroke="var(--background-primary)" stroke-width="1" />`;
-      });
-    }
-    if (data.length >= 2) {
-      const actualPoints = data.map((d, i) => {
-        const x = padding.left + width / (data.length - 1 || 1) * i;
-        const y = padding.top + height - d.actual / maxValue * height;
-        return `${x},${y}`;
-      }).join(" ");
-      svg += `<polyline points="${actualPoints}" fill="none" stroke="#3b82f6" stroke-width="2" />`;
-      data.forEach((d, i) => {
-        const x = padding.left + width / (data.length - 1 || 1) * i;
-        const y = padding.top + height - d.actual / maxValue * height;
-        svg += `<circle cx="${x}" cy="${y}" r="4" fill="#3b82f6" stroke="var(--background-primary)" stroke-width="2" />`;
-      });
-    }
-    const legendX = viewWidth - 120;
-    const legendY = 30;
-    svg += `<line x1="${legendX}" y1="${legendY + 5}" x2="${legendX + 20}" y2="${legendY + 5}" stroke="#22c55e" stroke-width="2" stroke-dasharray="5,5" />`;
-    svg += `<text x="${legendX + 25}" y="${legendY + 9}" fill="var(--text-normal)" font-size="12">\u8BA1\u5212\u5269\u4F59</text>`;
-    svg += `<line x1="${legendX}" y1="${legendY + 25}" x2="${legendX + 20}" y2="${legendY + 25}" stroke="#3b82f6" stroke-width="2" />`;
-    svg += `<text x="${legendX + 25}" y="${legendY + 29}" fill="var(--text-normal)" font-size="12">\u5B9E\u9645\u5269\u4F59</text>`;
-    svg += "</svg>";
-    return svg;
-  }
-  /**
-   * 渲染统计卡片
-   */
-  renderStatsCards(container, data) {
-    const statsContainer = container.createDiv("pm-burndown-stats");
-    const firstDay = data[0];
-    const lastDay = data[data.length - 1];
-    this.createStatCard(statsContainer, "\u603B\u9884\u4F30\u5DE5\u65F6", `${firstDay.planned}h`);
-    this.createStatCard(
-      statsContainer,
-      "\u5269\u4F59\u5DE5\u65F6",
-      `${lastDay.actual}h`,
-      lastDay.actual > lastDay.planned ? "warning" : "normal"
-    );
-    const completed = firstDay.planned - lastDay.actual;
-    this.createStatCard(statsContainer, "\u5DF2\u5B8C\u6210", `${completed}h`, "success");
-    const completionRate = firstDay.planned > 0 ? Math.round((firstDay.planned - lastDay.actual) / firstDay.planned * 100) : 0;
-    this.createStatCard(statsContainer, "\u5B8C\u6210\u7387", `${completionRate}%`);
-  }
-  /**
-   * 创建统计卡片
-   */
-  createStatCard(container, label, value, type = "normal") {
-    const card = container.createDiv(`pm-stat-card pm-stat-card--${type}`);
-    const labelEl = card.createEl("div", { cls: "pm-stat-card__label" });
-    labelEl.textContent = label;
-    const valueEl = card.createEl("div", { cls: "pm-stat-card__value" });
-    valueEl.textContent = value;
-  }
-};
-RendererRegistry.register("burndown", BurndownRenderer);
 
 // src/view-engine/renderers/WorkloadRenderer.ts
 var WorkloadRenderer = class extends BaseRenderer {

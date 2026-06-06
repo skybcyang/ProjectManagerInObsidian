@@ -19,7 +19,6 @@ export {
   KanbanRenderer,
   ListRenderer,
   CascadeRenderer,
-  TimelineRenderer,
   TimeViewRenderer,
 } from './renderers';
 
@@ -72,6 +71,5 @@ export {
   getEntityLabel,
   translateStatus,
   translatePriority,
-  getNextStatus,
   isOverdue,
 } from './design-tokens';

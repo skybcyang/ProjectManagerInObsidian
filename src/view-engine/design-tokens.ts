@@ -247,22 +247,6 @@ export function translatePriority(priority: string): string {
   return PRIORITY_COLORS[priority]?.label || priority;
 }
 
-/** 获取下一个状态（用于快速流转） */
-export function getNextStatus(currentStatus: string): { id: string; label: string } | null {
-  const flow: Record<string, string> = {
-    backlog: 'todo',
-    todo: 'in-progress',
-    'in-progress': 'testing',
-    testing: 'completed',
-  };
-
-  const nextId = flow[currentStatus];
-  if (!nextId) return null;
-
-  const option = FEATURE_STATUS_OPTIONS.find(o => o.id === nextId);
-  return option ? { id: nextId, label: option.label } : null;
-}
-
 // ============================================
 // 导出完整设计令牌
 // ============================================

@@ -13,7 +13,7 @@ export interface ValidationResult {
 /**
  * 有效的视图模式
  */
-const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'list', 'cascade', 'timeline', 'timeview', 'burndown', 'workload'];
+const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'list', 'cascade', 'timeview', 'workload'];
 
 /**
  * 有效的实体类型

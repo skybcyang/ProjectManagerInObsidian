@@ -9,7 +9,6 @@ import {
   KANBAN_COLUMNS,
   PRIORITY_OPTIONS,
   getPriorityColor,
-  getNextStatus,
   DateFormat,
 } from '../design-tokens';
 import { EntityCard } from '../components';
@@ -234,47 +233,8 @@ export class KanbanRenderer extends BaseRenderer {
       logSummary || undefined
     );
 
-    // 保留看板特有的快速流转悬浮操作
-    const actions = wrapper.createDiv('pm-kanban-card-actions');
-
-    if ('status' in entity) {
-      const nextStatus = this.getNextStatus(entity.status);
-      if (nextStatus) {
-        const btn = actions.createEl('button', { cls: 'pm-kanban-action-btn' });
-        btn.textContent = '→';
-        btn.title = `移动到: ${nextStatus.label}`;
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          this.actionService.changeStatus(entityType, entity.id, nextStatus.id);
-        };
-      }
-    }
-
-    if (entityType === 'feature') {
-      const noteBtn = actions.createEl('button', { cls: 'pm-kanban-action-btn' });
-      noteBtn.textContent = '📝';
-      noteBtn.title = '添加进展反馈';
-      noteBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.showProgressNoteInput(entity, wrapper);
-      };
-    }
-
-    const openBtn = actions.createEl('button', { cls: 'pm-kanban-action-btn' });
-    openBtn.textContent = '↗';
-    openBtn.title = '打开文件';
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(entityType, entity.id);
-    };
   }
 
-  /**
-   * 获取下一个状态（用于快速切换）
-   */
-  private getNextStatus(currentStatus: string): { id: string; label: string } | null {
-    return getNextStatus(currentStatus);
-  }
 }
 
 // 自注册到渲染器注册表

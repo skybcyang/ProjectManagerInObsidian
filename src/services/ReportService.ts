@@ -1,20 +1,12 @@
 /**
  * 报表数据服务
- * 提供燃尽图、工作量统计、项目健康度等报表数据计算
+ * 提供工作量统计、项目健康度等报表数据计算
  */
 
 import { App } from 'obsidian';
 import type { EntityManager } from '../core';
 import type { Feature, Project, Version } from '../types';
 import type { ViewConfig } from '../view-engine/types';
-
-/** 燃尽图数据点 */
-export interface BurndownDataPoint {
-  date: string;
-  planned: number;
-  actual: number;
-  completed: number;
-}
 
 /** 工作量数据 */
 export interface WorkloadData {
@@ -72,70 +64,6 @@ export class ReportService {
       if (filters.project && f.projectId !== filters.project) return false;
       if (filters.status && f.status !== filters.status) return false;
       return true;
-    });
-  }
-
-  /**
-   * 计算燃尽图数据
-   * @param versionId 版本ID（可选，向后兼容）
-   * @param dateRange 日期范围（可选，默认使用版本周期或最近30天）
-   * @param filters 视图配置筛选（可选）
-   */
-  async calculateBurndownData(
-    versionId?: string,
-    dateRange?: DateRange,
-    filters?: ViewConfig
-  ): Promise<BurndownDataPoint[]> {
-    // 获取特性列表
-    let features = await this.entityManager.listFeatures(
-      versionId ? { versionId } : undefined
-    );
-
-    features = this.applyFeatureFilters(features, filters);
-
-    // 确定日期范围
-    const range = dateRange || this.getDefaultDateRange(features);
-    const dates = this.generateDateRange(range.start, range.end);
-
-    // 计算总预估工时
-    const totalEstimated = features.reduce(
-      (sum, f) => sum + (f.estimatedHours || 0),
-      0
-    );
-
-    // 按日期计算数据点
-    return dates.map((date, index) => {
-      const dateStr = date.toISOString().split('T')[0];
-
-      // 计划剩余工时：线性递减
-      const daysPassed = index;
-      const totalDays = dates.length - 1 || 1;
-      const plannedRemaining = Math.round(
-        totalEstimated * (1 - daysPassed / totalDays)
-      );
-
-      // 实际完成工时：累计已完成特性的实际工时
-      const completedBeforeDate = features.filter((f) => {
-        if (f.status !== 'completed') return false;
-        // 简化处理：使用 endDate 或假设今天之前完成的
-        if (f.endDate) return f.endDate <= dateStr;
-        return false;
-      });
-      const actualCompleted = completedBeforeDate.reduce(
-        (sum, f) => sum + (f.actualHours || f.estimatedHours || 0),
-        0
-      );
-
-      // 当日完成工时
-      const completedOnDate = completedBeforeDate.filter((f) => f.endDate === dateStr)
-        .reduce((sum, f) => sum + (f.actualHours || f.estimatedHours || 0), 0);
-
-      return {
-        date: dateStr,
-        planned: plannedRemaining,
-        actual: totalEstimated - actualCompleted,
-        completed: completedOnDate,
-      };
     });
   }
 

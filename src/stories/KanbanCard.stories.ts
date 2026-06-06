@@ -46,23 +46,6 @@ const createKanbanCard = ({
   titleEl.textContent = title;
   header.appendChild(titleEl);
 
-  // 操作按钮
-  const actions = document.createElement('div');
-  actions.className = 'pm-kanban-card-actions';
-
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'pm-kanban-action-btn';
-  nextBtn.textContent = '→';
-  nextBtn.title = '移动到下一个状态';
-  actions.appendChild(nextBtn);
-
-  const openBtn = document.createElement('button');
-  openBtn.className = 'pm-kanban-action-btn';
-  openBtn.textContent = '↗';
-  openBtn.title = '打开文件';
-  actions.appendChild(openBtn);
-
-  header.appendChild(actions);
   card.appendChild(header);
 
   // 内容区

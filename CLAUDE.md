@@ -21,7 +21,7 @@ npm run test       # 运行测试
 |------|------|
 | [核心设计原则](docs/核心设计原则.md) | 架构原则、设计决策、双层架构 |
 | [技术架构](docs/技术架构.md) | 详细架构设计、目录结构、核心机制、扩展指南 |
-| [视图系统详细设计](docs/视图系统详细设计.md) | 8种视图详解、ToolbarController、数据流、样式规范 |
+| [视图系统详细设计](docs/视图系统详细设计.md) | 6种视图详解、ToolbarController、数据流、样式规范 |
 | [Dataview集成计划](docs/Dataview集成计划.md) | Dataview 集成方案 |
 | [测试策略](docs/测试策略.md) | 测试规范 |
 | [CHANGELOG](docs/CHANGELOG.md) | 完整版本历史 |
@@ -84,7 +84,7 @@ src/
 │   ├── filesystem/          # 文件系统抽象
 │   └── EntityManager.ts     # 统一 API 入口
 ├── view-engine/             # 视图系统
-│   ├── renderers/           # 8 种视图渲染器
+│   ├── renderers/           # 6 种视图渲染器
 │   ├── components/          # EntityCard, EntityTreeSelector, DropdownMenu 等组件
 │   ├── cells/               # 行内编辑单元格
 │   ├── services/            # DataService, ActionService
@@ -106,7 +106,7 @@ src/
 
 ## 视图模式
 
-插件通过 `pm-view` 代码块支持 7 种视图模式：
+插件通过 `pm-view` 代码块支持 6 种视图模式：
 
 | 模式 | 渲染器 | 说明 |
 |------|--------|------|
@@ -115,7 +115,6 @@ src/
 | `cascade` | CascadeRenderer | 层级展示 版本→项目→特性 |
 | `timeline` | TimelineRenderer | 水平/垂直时间轴 |
 | `timeview` | TimeViewRenderer | 日历视图 |
-| `burndown` | BurndownRenderer | 燃尽图 |
 | `workload` | WorkloadRenderer | 工作量分布统计 |
 
 > 详细视图配置、FilterBar 设计、样式规范见 [视图系统详细设计](docs/视图系统详细设计.md)
@@ -246,13 +245,13 @@ npm run test:coverage
 
 ## 版本与变更
 
-当前版本：**v0.7.6**（见 `manifest.json`）
+当前版本：**v0.7.7**（见 `manifest.json`）
 
 ### v0.7.6 主要变更
 - **重构**: 删除 ListRenderer 内联排序 UI，统一使用工具栏排序
 - **修复**: ViewEngine `currentConfigs` 机制，消除闭包陷阱和内存泄漏
 - **修复**: EntityTreeSelector / FilterBar 切换实体类型时的状态同步
-- **修复**: 燃尽图/工作量统计视图支持 `ViewConfig` 树形筛选
+- **修复**: 工作量统计视图支持 `ViewConfig` 树形筛选
 - **修复**: 级联视图支持树形筛选，保持三层 UI 结构不变
 
 ### v0.7.5 主要变更
@@ -274,11 +273,11 @@ npm run test:coverage
 
 ### v0.7.2 主要变更
 - **修复**: 看板/列表/网格视图点击跳转问题（`getEntityType` 逻辑修复）
-- **修复**: 燃尽图/工作量统计无数据问题（`EntityCache` 字段解析修复）
-- **优化**: 燃尽图/工作量统计样式与其他视图保持一致
+- **修复**: 工作量统计无数据问题（`EntityCache` 字段解析修复）
+- **优化**: 工作量统计样式与其他视图保持一致
 
 ### v0.7.1 主要变更
-- **新增**: 燃尽图视图 (`burndown`)、工作量统计视图 (`workload`)
+- **新增**: 工作量统计视图 (`workload`)
 - **重构**: CodeBlockConfigService 统一处理代码块配置
 - **修复**: 内存泄漏问题（ViewEngine/FilterBar 事件监听清理）
 
