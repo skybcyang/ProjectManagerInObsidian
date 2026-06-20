@@ -17,7 +17,6 @@ export { DataService, ActionService } from './services';
 export {
   BaseRenderer,
   KanbanRenderer,
-  ListRenderer,
   CascadeRenderer,
   TimeViewRenderer,
 } from './renderers';

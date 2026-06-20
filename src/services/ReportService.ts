@@ -31,17 +31,11 @@ export interface HealthMetrics {
   completionRate: number;
   overdueCount: number;
   overdueRate: number;
-  totalEstimatedHours: number;
-  totalActualHours: number;
-  hoursVariance: number; // 工时偏差率
+  totalEstimatedDays: number;
+  totalActualDays: number;
+  daysVariance: number; // 人天偏差率
   avgProgress: number;
   riskLevel: 'low' | 'medium' | 'high';
-}
-
-/** 日期范围 */
-export interface DateRange {
-  start: string;
-  end: string;
 }
 
 export class ReportService {
@@ -99,7 +93,7 @@ export class ReportService {
         let features = await this.entityManager.listFeatures();
         features = this.applyFeatureFilters(features, filters);
         for (const f of features) {
-          addWorkload(f.owner || '未分配', f.estimatedHours || 0, f.actualHours || 0, 1);
+          addWorkload(f.owner || '未分配', f.estimatedDays || 0, f.actualDays || 0, 1);
         }
         break;
       }
@@ -115,8 +109,8 @@ export class ReportService {
         }
         for (const [projectId, pfs] of projectGroups) {
           const project = projectMap.get(projectId);
-          const estimated = pfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-          const actual = pfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          const estimated = pfs.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+          const actual = pfs.reduce((sum, f) => sum + (f.actualDays || 0), 0);
           addWorkload(project?.owner || '未分配', estimated, actual, pfs.length);
         }
         break;
@@ -133,8 +127,8 @@ export class ReportService {
         }
         for (const [versionId, vfs] of versionGroups) {
           const version = versionMap.get(versionId);
-          const estimated = vfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-          const actual = vfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          const estimated = vfs.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+          const actual = vfs.reduce((sum, f) => sum + (f.actualDays || 0), 0);
           addWorkload(version?.owner || '未分配', estimated, actual, vfs.length);
         }
         break;
@@ -148,7 +142,7 @@ export class ReportService {
         data.actual > 0 ? Math.round((data.estimated / data.actual) * 100) : 100;
     }
 
-    // 按预估工时排序
+    // 按预估人天排序
     return result.sort((a, b) => b.estimated - a.estimated);
   }
 
@@ -182,11 +176,11 @@ export class ReportService {
       );
 
       const estimated = projectFeatures.reduce(
-        (sum, f) => sum + (f.estimatedHours || 0),
+        (sum, f) => sum + (f.estimatedDays || 0),
         0
       );
       const actual = projectFeatures.reduce(
-        (sum, f) => sum + (f.actualHours || 0),
+        (sum, f) => sum + (f.actualDays || 0),
         0
       );
 
@@ -249,19 +243,19 @@ export class ReportService {
     const overdueRate =
       totalFeatures > 0 ? Math.round((overdueCount / totalFeatures) * 100) : 0;
 
-    // 工时统计
-    const totalEstimatedHours = features.reduce(
-      (sum, f) => sum + (f.estimatedHours || 0),
+    // 人天统计
+    const totalEstimatedDays = features.reduce(
+      (sum, f) => sum + (f.estimatedDays || 0),
       0
     );
-    const totalActualHours = features.reduce(
-      (sum, f) => sum + (f.actualHours || 0),
+    const totalActualDays = features.reduce(
+      (sum, f) => sum + (f.actualDays || 0),
       0
     );
-    const hoursVariance =
-      totalActualHours > 0
+    const daysVariance =
+      totalActualDays > 0
         ? Math.round(
-            ((totalActualHours - totalEstimatedHours) / totalEstimatedHours) * 100
+            ((totalActualDays - totalEstimatedDays) / totalEstimatedDays) * 100
           )
         : 0;
 
@@ -275,9 +269,9 @@ export class ReportService {
 
     // 风险等级
     let riskLevel: 'low' | 'medium' | 'high' = 'low';
-    if (overdueRate > 20 || hoursVariance > 30) {
+    if (overdueRate > 20 || daysVariance > 30) {
       riskLevel = 'high';
-    } else if (overdueRate > 10 || hoursVariance > 15) {
+    } else if (overdueRate > 10 || daysVariance > 15) {
       riskLevel = 'medium';
     }
 
@@ -287,55 +281,11 @@ export class ReportService {
       completionRate,
       overdueCount,
       overdueRate,
-      totalEstimatedHours,
-      totalActualHours,
-      hoursVariance,
+      totalEstimatedDays,
+      totalActualDays,
+      daysVariance,
       avgProgress,
       riskLevel,
     };
-  }
-
-  /**
-   * 获取默认日期范围
-   */
-  private getDefaultDateRange(features: Feature[]): DateRange {
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // 尝试从特性日期推断范围
-    const dates = features
-      .flatMap((f) => [f.startDate, f.endDate])
-      .filter((d): d is string => !!d)
-      .sort();
-
-    if (dates.length > 0) {
-      return {
-        start: dates[0],
-        end: dates[dates.length - 1],
-      };
-    }
-
-    // 默认最近30天
-    return {
-      start: thirtyDaysAgo.toISOString().split('T')[0],
-      end: today.toISOString().split('T')[0],
-    };
-  }
-
-  /**
-   * 生成日期范围数组
-   */
-  private generateDateRange(start: string, end: string): Date[] {
-    const dates: Date[] = [];
-    const current = new Date(start);
-    const endDate = new Date(end);
-
-    while (current <= endDate) {
-      dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
   }
 }

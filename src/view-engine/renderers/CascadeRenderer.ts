@@ -59,7 +59,10 @@ export class CascadeRenderer extends BaseRenderer {
         showParent: true,
         showTypeIcon: true,
         showStats: true,
-        showActions: true,
+        showActions: false,
+        showEstimatedDays: true,
+        showActualDays: true,
+        smallTitle: true,
         ...overrides
       };
     }
@@ -200,11 +203,11 @@ export class CascadeRenderer extends BaseRenderer {
 
     // 状态标签
     if (version.status && this.shouldShowCardField('status')) {
-      titleRow.createSpan({
-        cls: `pm-cascade__status pm-cascade__status--${version.status}`,
-        text: this.translateStatus(version.status),
-      });
+      this.renderStatusBadge(titleRow, version.status).addClass('pm-cascade__status');
     }
+
+    // 展开详情按钮
+    this.createExpandToggle(header, container, version);
 
     // 统计摘要（从传入的过滤后数据计算）
     const versionFeatures = allFeatures.filter(f =>
@@ -217,6 +220,32 @@ export class CascadeRenderer extends BaseRenderer {
     const completedCount = versionFeatures.filter(f => f.status === 'completed').length;
 
     const summary = header.createDiv('pm-cascade__summary');
+
+    // 负责人
+    if (version.owner && this.shouldShowCardField('owner')) {
+      summary.createSpan({
+        cls: 'pm-cascade__summary-owner',
+        text: `@${version.owner}`,
+      });
+    }
+
+    // 日期范围
+    if (this.shouldShowCardField('startDate') && version.startDate) {
+      summary.createSpan({
+        cls: 'pm-cascade__summary-date',
+        text: DateFormat.medium(version.startDate),
+      });
+    }
+    if (this.shouldShowCardField('endDate') && version.endDate) {
+      const overdue = isOverdue(version.endDate, version.status);
+      const dateEl = summary.createSpan({
+        cls: 'pm-cascade__summary-date',
+        text: DateFormat.medium(version.endDate),
+      });
+      if (overdue) {
+        dateEl.addClass('pm-cascade__summary-date--overdue');
+      }
+    }
 
     // 统计文本
     if (this.shouldShowCardField('stats')) {
@@ -252,14 +281,6 @@ export class CascadeRenderer extends BaseRenderer {
         riskEl.title = `总风险: ${rs.total} | 未关闭: ${rs.open}`;
       }
     }
-
-    // 日期
-    if (version.endDate && this.shouldShowCardField('endDate')) {
-      summary.createSpan({
-        cls: 'pm-cascade__summary-date',
-        text: DateFormat.medium(version.endDate),
-      });
-    }
   }
 
   /**
@@ -288,9 +309,13 @@ export class CascadeRenderer extends BaseRenderer {
       showProgress: this.shouldShowCardField('progress'),
     });
 
+    const logSummary = this.entityManager.cache.getLogSummary(project.id);
     const cardEl = card.render(wrapper, projectWithStats as any, cardOptions, {
       onOpen: () => this.actionService.openEntity('project', project.id),
-    });
+    }, logSummary);
+
+    // 展开详情按钮
+    this.createExpandToggle(cardEl, wrapper, project);
 
     // 特性列表挂载在卡片底部
     if (features.length > 0) {
@@ -322,7 +347,8 @@ export class CascadeRenderer extends BaseRenderer {
     feature: Feature,
     isHighlighted: boolean = false
   ): HTMLElement {
-    const row = container.createDiv('pm-cascade__feature');
+    const wrapper = container.createDiv('pm-cascade__feature-wrapper');
+    const row = wrapper.createDiv('pm-cascade__feature');
     if (isHighlighted) {
       row.addClass('pm-cascade__feature--highlighted');
     }
@@ -333,7 +359,9 @@ export class CascadeRenderer extends BaseRenderer {
 
     const opts = this.buildCardOptions();
 
-    // 优先级标记
+    // 左侧：优先级标记 + 图标 + 名称
+    const main = row.createDiv('pm-cascade__feature-main');
+
     if (feature.priority && opts.showPriority) {
       const priorityColors: Record<string, string> = {
         critical: '#ef4444',
@@ -341,73 +369,75 @@ export class CascadeRenderer extends BaseRenderer {
         medium: '#f59e0b',
         low: '#22c55e',
       };
-      row.createSpan({
+      main.createSpan({
         cls: 'pm-cascade__feature-priority',
         attr: { style: `color: ${priorityColors[feature.priority] || '#9ca3af'}` },
         text: '●',
       });
     }
 
-    // 类型图标
     if (opts.showTypeIcon) {
-      row.createSpan({ cls: 'pm-cascade__feature-icon', text: '☰' });
+      main.createSpan({ cls: 'pm-cascade__feature-icon', text: '☰' });
     }
 
-    // 名称容器
-    const nameContainer = row.createDiv('pm-cascade__feature-name-container');
-    nameContainer.createSpan({ cls: 'pm-cascade__feature-name', text: feature.name });
+    main.createSpan({ cls: 'pm-cascade__feature-name', text: feature.name });
 
-    // 进度
+    // 右侧：元信息
+    const meta = row.createDiv('pm-cascade__feature-meta');
+
+    if (feature.status && opts.showStatus) {
+      this.renderStatusBadge(meta, feature.status).addClass('pm-cascade__feature-status');
+    }
+
+    if (feature.priority && opts.showPriority) {
+      this.renderPriorityBadge(meta, feature.priority).addClass('pm-cascade__feature-priority-badge');
+    }
+
     if (feature.progress !== undefined && opts.showProgress) {
-      row.createSpan({
-        cls: 'pm-cascade__feature-progress',
-        text: `${feature.progress}%`,
-      });
+      this.renderProgressBar(meta, feature.progress).addClass('pm-cascade__feature-progress-bar');
     }
 
-    // 结束日期
+    if (feature.startDate && opts.showStartDate) {
+      const isOverdueDate = isOverdue(feature.startDate, feature.status);
+      const el = this.renderDate(meta, feature.startDate);
+      el.addClass('pm-cascade__feature-start');
+      if (isOverdueDate) {
+        el.addClass('pm-cascade__feature-date--overdue');
+      }
+    }
+
     if (feature.endDate && opts.showDueDate) {
       const isOverdueDate = isOverdue(feature.endDate, feature.status);
       const isUpcoming = !isOverdueDate && new Date(feature.endDate).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000;
 
-      let dueClass = 'pm-cascade__feature-due';
-      if (feature.status === 'completed') dueClass += ' pm-cascade__feature-due--completed';
-      else if (isOverdueDate) dueClass += ' pm-cascade__feature-due--overdue';
-      else if (isUpcoming) dueClass += ' pm-cascade__feature-due--upcoming';
-
-      row.createSpan({
-        cls: dueClass,
-        text: DateFormat.short(feature.endDate),
-      });
+      const el = this.renderDate(meta, feature.endDate);
+      el.addClass('pm-cascade__feature-due');
+      if (feature.status === 'completed') el.addClass('pm-cascade__feature-due--completed');
+      else if (isOverdueDate) el.addClass('pm-cascade__feature-due--overdue');
+      else if (isUpcoming) el.addClass('pm-cascade__feature-due--upcoming');
     }
 
-    // 开始日期
-    if (feature.startDate && opts.showStartDate) {
-      row.createSpan({
-        cls: 'pm-cascade__feature-start',
-        text: DateFormat.short(feature.startDate),
-      });
-    }
-
-    // 负责人
     if (feature.owner && opts.showOwner) {
-      row.createSpan({ cls: 'pm-cascade__feature-owner', text: `@${feature.owner}` });
+      meta.createSpan({ cls: 'pm-cascade__feature-owner', text: `@${feature.owner}` });
     }
 
-    // 状态
-    if (feature.status && opts.showStatus) {
-      row.createSpan({
-        cls: `pm-cascade__feature-status pm-cascade__feature-status--${feature.status}`,
-        text: this.translateStatus(feature.status),
-      });
+    if (feature.estimatedDays !== undefined && opts.showEstimatedDays) {
+      this.renderDays(meta, feature.estimatedDays, '预').addClass('pm-cascade__feature-days');
     }
 
-    // 风险徽章
+    if (feature.actualDays !== undefined && opts.showActualDays) {
+      this.renderDays(meta, feature.actualDays, '实').addClass('pm-cascade__feature-days');
+    }
+
+    if (feature.tags && feature.tags.length > 0 && opts.showTags) {
+      this.renderTags(meta, feature.tags, 3).addClass('pm-cascade__feature-tags');
+    }
+
     if (opts.showRisk) {
       const logSummary = this.entityManager.cache.getLogSummary(feature.id);
       if (logSummary && logSummary.riskSummary.total > 0) {
         const rs = logSummary.riskSummary;
-        row.createSpan({
+        meta.createSpan({
           cls: 'pm-cascade__feature-risk',
           text: `⚠️ ${rs.open}`,
           attr: { title: `总风险: ${rs.total} | 未关闭: ${rs.open}` },
@@ -415,7 +445,39 @@ export class CascadeRenderer extends BaseRenderer {
       }
     }
 
-    return row;
+    // 展开详情按钮
+    this.createExpandToggle(row, wrapper, feature);
+
+    return wrapper;
+  }
+
+  /**
+   * 创建展开/收起详情按钮
+   */
+  private createExpandToggle(
+    triggerContainer: HTMLElement,
+    detailContainer: HTMLElement,
+    entity: Entity
+  ): void {
+    const btn = triggerContainer.createSpan({
+      cls: 'pm-cascade__expand-btn',
+      text: '▾',
+      attr: { title: '展开详情' },
+    });
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const existing = detailContainer.querySelector('.pm-list-card-detail');
+      if (existing) {
+        existing.remove();
+        btn.textContent = '▾';
+        btn.setAttribute('title', '展开详情');
+      } else {
+        this.renderDetailPanel(detailContainer, entity);
+        btn.textContent = '▴';
+        btn.setAttribute('title', '收起详情');
+      }
+    });
   }
 
   /**

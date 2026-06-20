@@ -30,8 +30,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       progress: data.progress || 0,
       startDate: data.startDate,
       endDate: data.endDate,
-      estimatedHours: data.estimatedHours,
-      actualHours: data.actualHours,
+      estimatedDays: data.estimatedDays,
+      actualDays: data.actualDays,
       projectLink: data.projectLink,
     };
 
@@ -88,8 +88,8 @@ export class FeatureStore extends BaseStore<Feature, CreateFeatureData, UpdateFe
       startDate: feature.startDate,
       endDate: feature.endDate,
       tags: feature.tags,
-      estimatedHours: feature.estimatedHours,
-      actualHours: feature.actualHours,
+      estimatedDays: feature.estimatedDays,
+      actualDays: feature.actualDays,
       projectLink: feature.projectLink,
     });
 

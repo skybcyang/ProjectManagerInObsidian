@@ -16,8 +16,8 @@ export interface EntityBase {
   tags: string[];
   startDate?: string;
   endDate?: string;
-  estimatedHours?: number;
-  actualHours?: number;
+  estimatedDays?: number;
+  actualDays?: number;
 }
 export type { 
   TemplateType, 

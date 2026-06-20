@@ -126,7 +126,7 @@ if (pm && pm.api) {
 ## 📦 版本管理
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: version
 \`\`\`
 
@@ -135,7 +135,7 @@ entityType: version
 ## 📁 项目管理
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: project
 \`\`\`
 
@@ -171,13 +171,13 @@ status: {{status}}
 
 ---
 
-## 📊 工时统计
+## 📊 人天统计
 
-| 类型 | 预估工时 | 实际工时 | 偏差 |
+| 类型 | 预估人天 | 实际人天 | 偏差 |
 |------|---------|---------|------|
-| 版本总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
+| 版本总计 | {{#if estimatedDays}}{{estimatedDays}}{{else}}0{{/if}}d | {{#if actualDays}}{{actualDays}}{{else}}0{{/if}}d | {{#if estimatedDays}}{{#if actualDays}}{{daysDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
-> 💡 **统计说明**: 自动汇总该版本下所有项目和特性的工时数据
+> 💡 **统计说明**: 自动汇总该版本下所有项目和特性的人天数据
 
 ---
 
@@ -346,13 +346,13 @@ priority: {{priority}}
 
 ---
 
-## 📊 工时统计
+## 📊 人天统计
 
-| 类型 | 预估工时 | 实际工时 | 偏差 |
+| 类型 | 预估人天 | 实际人天 | 偏差 |
 |------|---------|---------|------|
-| 项目总计 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
+| 项目总计 | {{#if estimatedDays}}{{estimatedDays}}{{else}}0{{/if}}d | {{#if actualDays}}{{actualDays}}{{else}}0{{/if}}d | {{#if estimatedDays}}{{#if actualDays}}{{daysDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
-> 💡 **统计说明**: 自动汇总该项目下所有特性的工时数据
+> 💡 **统计说明**: 自动汇总该项目下所有特性的人天数据
 
 ---
 
@@ -465,7 +465,7 @@ Border: off
 ## 📊 进度统计
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: feature
 projectId: {{id}}
 \`\`\`
@@ -546,8 +546,8 @@ progress: {{progress}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
-{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
-{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
+{{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
+{{/if}}{{#if actualDays}}actualDays: {{actualDays}}
 {{/if}}{{#if requirementIds}}requirementIds:
 {{#each requirementIds}}  - {{this}}
 {{/each}}{{/if}}{{#if projectLink}}projectLink: {{projectLink}}

@@ -6,15 +6,13 @@ import type { Version, Project, Feature } from '../types';
  */
 
 // 视图模式
-export type ViewMode = 'kanban' | 'list' | 'cascade' | 'timeview' | 'workload';
+export type ViewMode = 'kanban' | 'cascade' | 'timeview';
 
 // 视图模式显示名称
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   'kanban': '📊 看板视图',
-  'list': '📋 列表视图',
   'cascade': '🌲 级联视图',
-  'timeview': '🗓️ 时间视图',
-  'workload': '⚖️ 工作量统计'
+  'timeview': '🗓️ 时间视图'
 };
 
 // 实体类型
@@ -26,14 +24,6 @@ export interface ViewContext {
   el: HTMLElement;
   ctx?: MarkdownPostProcessorContext;
   codeBlockIndex?: number;
-}
-
-// 列配置（列表/网格视图用）
-export interface ColumnConfig {
-  field: string;           // 字段名
-  width?: number;          // 列宽（像素）
-  visible: boolean;        // 是否显示
-  align?: 'left' | 'center' | 'right';  // 对齐方式
 }
 
 // 筛选条件
@@ -68,9 +58,6 @@ export interface CardFieldsConfig {
   optional: string[];    // 可选字段，用户可选择显示
 }
 
-// 列表视图列配置
-export type ListColumnField = 'name' | 'status' | 'priority' | 'owner' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'versionId' | 'projectId' | 'risk' | 'latestProgress';
-
 // EntityCard 可配置字段定义
 export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'name', label: '名称', required: true },
@@ -79,6 +66,8 @@ export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'owner', label: '负责人', required: false },
   { key: 'startDate', label: '开始日期', required: false },
   { key: 'endDate', label: '结束日期', required: false },
+  { key: 'estimatedDays', label: '预估人天', required: false },
+  { key: 'actualDays', label: '实际人天', required: false },
   { key: 'progress', label: '进度条', required: false },
   { key: 'risk', label: '风险徽章', required: false },
   { key: 'latestProgress', label: '最新进展', required: false },
@@ -88,22 +77,6 @@ export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'typeIcon', label: '类型图标', required: false },
   { key: 'stats', label: '统计信息', required: false },
   { key: 'actions', label: '操作按钮', required: false },
-] as const;
-
-// 列表视图字段定义
-export const LIST_COLUMN_DEFINITIONS = [
-  { key: 'name', label: '名称', required: true },
-  { key: 'status', label: '状态', required: false },
-  { key: 'priority', label: '优先级', required: false },
-  { key: 'owner', label: '负责人', required: false },
-  { key: 'startDate', label: '开始日期', required: false },
-  { key: 'endDate', label: '结束日期', required: false },
-  { key: 'progress', label: '进度', required: false },
-  { key: 'risk', label: '风险', required: false },
-  { key: 'latestProgress', label: '最新进展', required: false },
-  { key: 'tags', label: '标签', required: false },
-  { key: 'versionId', label: '版本', required: false },
-  { key: 'projectId', label: '项目', required: false },
 ] as const;
 
 // 通用视图配置 - 新版
@@ -143,9 +116,6 @@ export interface ViewConfig {
   sortBy?: 'name' | 'status' | 'startDate' | 'endDate' | 'priority' | 'progress' | 'created';
   sortOrder?: 'asc' | 'desc';
 
-  // 显示列配置（列表/网格视图用）
-  columns?: ColumnConfig[];
-
   // 限制
   limit?: number;
 
@@ -154,9 +124,6 @@ export interface ViewConfig {
 
   // 视图选项
   options?: ViewOptions;
-
-  // 列表视图列配置
-  listColumns?: ListColumnField[];
 
   // EntityCard 显示字段配置
   cardFields?: CardFieldsConfig;
@@ -188,36 +155,6 @@ export interface StatsData {
 }
 
 // ==================== 报表数据类型 ====================
-
-/** 工作量数据 */
-export interface WorkloadData {
-  name: string;
-  estimated: number;
-  actual: number;
-  remaining: number;
-  taskCount: number;
-  efficiency: number;
-}
-
-/** 趋势数据点 */
-export interface TrendDataPoint {
-  date: string;
-  count: number;
-}
-
-/** 项目健康度指标 */
-export interface HealthMetrics {
-  totalFeatures: number;
-  completedFeatures: number;
-  completionRate: number;
-  overdueCount: number;
-  overdueRate: number;
-  totalEstimatedHours: number;
-  totalActualHours: number;
-  hoursVariance: number;
-  avgProgress: number;
-  riskLevel: 'low' | 'medium' | 'high';
-}
 
 // 帮助函数：获取实体类型
 export function getEntityType(entity: Entity): EntityType {
@@ -251,8 +188,8 @@ export const FEATURE_FIELDS: EntityField[] = [
   { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'endDate', label: '结束日期', type: 'date', editable: true, sortable: true, filterable: true },
   { name: 'progress', label: '进度', type: 'progress', editable: true, sortable: true, filterable: false },
-  { name: 'estimatedHours', label: '预估工时', type: 'number', editable: true, sortable: true, filterable: false },
-  { name: 'actualHours', label: '实际工时', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'estimatedDays', label: '预估人天', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'actualDays', label: '实际人天', type: 'number', editable: true, sortable: true, filterable: false },
   { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
   { name: 'projectId', label: '项目', type: 'entity', editable: true, sortable: true, filterable: true },

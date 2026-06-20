@@ -179,7 +179,7 @@ export class EmailSummaryService {
       this.entityManager.listProjects({ versionId }),
       this.entityManager.listFeatures({ versionId }),
       this.reportService.calculateProjectHealth(versionId),
-      this.reportService.calculateWorkloadByProject({ mode: 'list', version: versionId }),
+      this.reportService.calculateWorkloadByProject({ mode: 'cascade', version: versionId }),
       this.entityManager.getOverdueItems('feature'),
     ]);
 
@@ -192,8 +192,8 @@ export class EmailSummaryService {
         ${this.metricCard('特性总数', String(health.totalFeatures))}
         ${this.metricCard('完成率', `${health.completionRate}%`)}
         ${this.metricCard('逾期数', String(health.overdueCount), health.overdueCount > 0 ? 'overdue' : '')}
-        ${this.metricCard('总预估工时', String(health.totalEstimatedHours))}
-        ${this.metricCard('总实际工时', String(health.totalActualHours))}
+        ${this.metricCard('总预估人天', String(health.totalEstimatedDays))}
+        ${this.metricCard('总实际人天', String(health.totalActualDays))}
         ${this.metricCard('风险等级', this.riskLabel(health.riskLevel), `risk-${health.riskLevel}`)}
       </div>
       <h2>包含项目</h2>
@@ -217,7 +217,7 @@ export class EmailSummaryService {
     const [project, features, workloadOwners, overdue] = await Promise.all([
       this.entityManager.getProject(projectId),
       this.entityManager.listFeatures({ projectId }),
-      this.reportService.calculateWorkloadByOwner('feature', { mode: 'list', project: projectId }),
+      this.reportService.calculateWorkloadByOwner('feature', { mode: 'cascade', project: projectId }),
       this.entityManager.getOverdueItems('feature'),
     ]);
 
@@ -225,8 +225,8 @@ export class EmailSummaryService {
     const avgProgress = features.length > 0
       ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / features.length)
       : 0;
-    const totalEstimated = features.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-    const totalActual = features.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+    const totalEstimated = features.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+    const totalActual = features.reduce((sum, f) => sum + (f.actualDays || 0), 0);
     const projectOverdue = overdue.filter((o: Feature | Project | Version) => 'projectId' in o && o.projectId === projectId);
 
     const html = this.wrapHTML(subject, `
@@ -237,8 +237,8 @@ export class EmailSummaryService {
         ${this.metricCard('已完成', String(completedCount))}
         ${this.metricCard('平均进度', `${avgProgress}%`)}
         ${this.metricCard('逾期数', String(projectOverdue.length), projectOverdue.length > 0 ? 'overdue' : '')}
-        ${this.metricCard('预估工时', String(totalEstimated))}
-        ${this.metricCard('实际工时', String(totalActual))}
+        ${this.metricCard('预估人天', String(totalEstimated))}
+        ${this.metricCard('实际人天', String(totalActual))}
       </div>
       <h2>特性列表</h2>
       ${this.featuresTable(features)}
@@ -264,7 +264,7 @@ export class EmailSummaryService {
       feature ? this.entityManager.getProject(feature.projectId) : Promise.resolve(null),
     ]);
 
-    const remaining = Math.max(0, (feature?.estimatedHours || 0) - (feature?.actualHours || 0));
+    const remaining = Math.max(0, (feature?.estimatedDays || 0) - (feature?.actualDays || 0));
 
     const html = this.wrapHTML(subject, `
       <h1>${subject}</h1>
@@ -273,9 +273,9 @@ export class EmailSummaryService {
         ${this.metricCard('状态', feature ? getStatusLabel(feature.status, 'feature') : '-')}
         ${this.metricCard('优先级', feature ? getPriorityLabel(feature.priority) : '-')}
         ${this.metricCard('进度', `${feature?.progress || 0}%`)}
-        ${this.metricCard('预估工时', String(feature?.estimatedHours || 0))}
-        ${this.metricCard('实际工时', String(feature?.actualHours || 0))}
-        ${this.metricCard('剩余工时', String(remaining))}
+        ${this.metricCard('预估人天', String(feature?.estimatedDays || 0))}
+        ${this.metricCard('实际人天', String(feature?.actualDays || 0))}
+        ${this.metricCard('剩余人天', String(remaining))}
       </div>
       <h2>时间计划</h2>
       <p>开始日期: ${feature?.startDate || '-'} &nbsp;|&nbsp; 结束日期: ${feature?.endDate || '-'}</p>
@@ -392,7 +392,7 @@ ${body}
         <td>${d.efficiency}%</td>
       </tr>
     `).join('');
-    return `<table><thead><tr><th>名称</th><th>预估工时</th><th>实际工时</th><th>剩余工时</th><th>任务数</th><th>效率</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>名称</th><th>预估人天</th><th>实际人天</th><th>剩余人天</th><th>任务数</th><th>效率</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   private trendTable(data: TrendDataPoint[]): string {
@@ -455,7 +455,7 @@ ${body}
       lines.push(`周期: ${version.startDate || '-'} ~ ${version.endDate || '-'}`);
     }
     lines.push(`特性总数: ${health.totalFeatures} | 完成率: ${health.completionRate}% | 逾期数: ${health.overdueCount}`);
-    lines.push(`预估工时: ${health.totalEstimatedHours}h | 实际工时: ${health.totalActualHours}h | 风险: ${this.riskLabel(health.riskLevel)}`);
+    lines.push(`预估人天: ${health.totalEstimatedDays}d | 实际人天: ${health.totalActualDays}d | 风险: ${this.riskLabel(health.riskLevel)}`);
     lines.push('', '== 包含项目 ==');
     projects.forEach(p => lines.push(`${p.name}: ${getStatusLabel(p.status, 'project')} | 负责人: ${p.owner || '未分配'}`));
     lines.push('', '== 负责人工作量 ==');
@@ -482,7 +482,7 @@ ${body}
       lines.push(`项目: ${project.name} | 状态: ${getStatusLabel(project.status, 'project')} | 优先级: ${getPriorityLabel(project.priority)}`);
     }
     lines.push(`特性总数: ${features.length} | 已完成: ${completedCount} | 平均进度: ${avgProgress}%`);
-    lines.push(`预估工时: ${totalEstimated}h | 实际工时: ${totalActual}h | 逾期数: ${overdue.length}`);
+    lines.push(`预估人天: ${totalEstimated}d | 实际人天: ${totalActual}d | 逾期数: ${overdue.length}`);
     lines.push('', '== 特性列表 ==');
     features.forEach(f => lines.push(`${f.name}: ${getStatusLabel(f.status, 'feature')} | 进度${f.progress}% | 负责人:${f.owner || '未分配'} | 截止:${f.endDate || '-'}`));
     lines.push('', '== 负责人工作量 ==');
@@ -506,7 +506,7 @@ ${body}
       lines.push(`状态: ${getStatusLabel(feature.status, 'feature')} | 优先级: ${getPriorityLabel(feature.priority)} | 进度: ${feature.progress}%`);
       lines.push(`负责人: ${feature.owner || '未分配'}`);
       lines.push(`所属版本: ${version?.name || '-'} | 所属项目: ${project?.name || '-'}`);
-      lines.push(`预估工时: ${feature.estimatedHours || 0}h | 实际工时: ${feature.actualHours || 0}h | 剩余: ${remaining}h`);
+      lines.push(`预估人天: ${feature.estimatedDays || 0}d | 实际人天: ${feature.actualDays || 0}d | 剩余: ${remaining}d`);
       lines.push(`时间计划: ${feature.startDate || '-'} ~ ${feature.endDate || '-'}`);
     }
     return lines.join('\n');

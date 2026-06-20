@@ -32,6 +32,10 @@ export interface EntityCardOptions {
   showStartDate?: boolean;
   /** 显示截止日期 */
   showDueDate?: boolean;
+  /** 显示预估人天 */
+  showEstimatedDays?: boolean;
+  /** 显示实际人天 */
+  showActualDays?: boolean;
   /** 显示标签 */
   showTags?: boolean;
   /** 显示所属项目/版本 */
@@ -260,6 +264,18 @@ export class EntityCard {
       if (overdue) {
         dueEl.addClass('pm-entity-card__due--overdue');
       }
+    }
+
+    // 预估人天
+    if (options.showEstimatedDays && 'estimatedDays' in entity && entity.estimatedDays !== undefined) {
+      const estimatedEl = metaLeft.createDiv('pm-entity-card__days');
+      estimatedEl.textContent = `预 ${entity.estimatedDays}d`;
+    }
+
+    // 实际人天
+    if (options.showActualDays && 'actualDays' in entity && entity.actualDays !== undefined) {
+      const actualEl = metaLeft.createDiv('pm-entity-card__days');
+      actualEl.textContent = `实 ${entity.actualDays}d`;
     }
 
     // 中间/右侧元信息

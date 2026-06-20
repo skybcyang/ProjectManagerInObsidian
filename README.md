@@ -1,6 +1,6 @@
 # Project Manager for Obsidian
 
-在 Obsidian 中进行项目管理，支持版本、项目、特性三层结构化管理，提供看板视图、列表视图、级联视图、时间视图等多种可视化方式。
+在 Obsidian 中进行项目管理，支持版本、项目、特性三层结构化管理，提供看板视图、级联视图、时间视图三种可视化方式。
 
 ## ✨ 功能特性
 
@@ -11,11 +11,8 @@
 
 ### 视图系统
 - 📊 **看板视图** (`mode: kanban`) - 按状态/优先级分组展示
-- 📋 **列表视图** (`mode: list`) - 表格形式展示，支持列配置
-- ▦ **网格视图** (`mode: grid`) - 卡片网格布局
-- 🌲 **级联视图** (`mode: cascade`) - 版本→项目→特性的层级展示
+- 🌲 **级联视图** (`mode: cascade`) - 版本→项目→特性的层级展示，支持进展/风险详情
 - 🗓️ **时间视图** (`mode: timeview`) - 甘特图形式，支持按负责人/项目分组，可展开子特性
-- ⚖️ **工作量统计** (`mode: workload`) - 工作量分布统计
 
 ### 交互特性
 - 🔗 **级联展示** - 展示版本→项目→特性的完整层级结构和实时状态
@@ -69,11 +66,8 @@ groupBy: status
 | 模式 | 说明 | 示例配置 |
 |------|------|----------|
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
-| `list` | 列表视图 | `mode: list`<br>`type: feature` |
-| `grid` | 网格视图 | `mode: grid`<br>`type: project` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
 | `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
-| `workload` | 工作量统计 | `mode: workload`<br>`type: feature` |
 
 ### 通用配置参数
 
@@ -317,9 +311,14 @@ status: {{status}}
 
 ## 📜 版本历史
 
+### v0.8.1 (2026-06-20)
+
+- **⚠️ 重大变更**：移除列表视图和 workload 工作量统计视图，统一使用级联视图展示信息
+- **新增**：级联视图整合原列表视图的信息密度，支持进展/风险详情面板
+- **优化**：统一使用三种视图模式：`kanban` / `cascade` / `timeview`
+
 ### v0.7.1 (2026-04-11)
 
-- **新增**：工作量统计视图 (`mode: workload`)
 - **重构**：提取 `CodeBlockConfigService` 统一处理代码块配置
 - **优化**：`FilterBar` 负责人列表使用缓存索引，性能提升 10x
 - **修复**：内存泄漏问题（事件监听未清理）

@@ -1,6 +1,6 @@
 # Project Manager 文档中心
 
-> 当前版本：**v0.8.0**
+> 当前版本：**v0.8.1**
 
 本文档中心包含 Project Manager for Obsidian 插件的完整技术文档。
 
@@ -37,15 +37,13 @@ ProjectManager/
 └── Features/            # 特性文件
 ```
 
-### 支持的视图模式 (v0.8.0)
+### 支持的视图模式 (v0.8.1)
 
 | 模式 | 说明 | 配置示例 |
 |------|------|----------|
 | `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
-| `list` | 列表视图 | `mode: list`<br>`type: feature` |
 | `cascade` | 级联视图 | `mode: cascade`<br>`type: version` |
 | `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
-| `workload` | 工作量统计 | `mode: workload`<br>`type: feature` |
 
 ### 常用代码块示例
 
@@ -55,12 +53,6 @@ ProjectManager/
 mode: kanban
 type: feature
 groupBy: status
-```
-
-# 列表视图
-```pm-view
-mode: list
-type: feature
 ```
 
 # 级联视图
@@ -117,9 +109,11 @@ npm run test:coverage    # 生成测试覆盖率报告
 
 查看最新版本信息请查看 [CHANGELOG](./CHANGELOG.md)。
 
-**当前版本**: v0.7.7
+**当前版本**: v0.8.1
 
 主要里程碑：
+- v0.8.1 - 移除列表视图与工作量统计视图，级联视图信息密度增强
+- v0.8.0 - 合并时间线视图与时间视图为统一甘特图
 - v0.7.7 - 统一实体卡片渲染、ToolbarController 重构、风险管理服务
 - v0.7.6 - 级联视图树形筛选、ViewEngine 状态管理、内存泄漏修复
 - v0.7.5 - 树形筛选器级联行为修复、筛选清空失效修复

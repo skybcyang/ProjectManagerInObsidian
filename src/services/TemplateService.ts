@@ -226,12 +226,12 @@ export class TemplateService {
       minute: '2-digit'
     });
 
-    // 预计算工时偏差
-    if ('estimatedHours' in context || 'actualHours' in context) {
-      const est = Number(context.estimatedHours) || 0;
-      const act = Number(context.actualHours) || 0;
-      enriched.hoursDeviation = act - est;
-      enriched.hoursDeviationText = act >= est ? `+${act - est}h` : `${act - est}h`;
+    // 预计算人天偏差
+    if ('estimatedDays' in context || 'actualDays' in context) {
+      const est = Number(context.estimatedDays) || 0;
+      const act = Number(context.actualDays) || 0;
+      enriched.daysDeviation = act - est;
+      enriched.daysDeviationText = act >= est ? `+${act - est}d` : `${act - est}d`;
     }
 
     return enriched;

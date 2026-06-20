@@ -13,8 +13,8 @@ export class CreateFeatureModal extends Modal {
     priority: 'medium',
     progress: 0,
     tags: [],
-    estimatedHours: undefined,
-    actualHours: undefined,
+    estimatedDays: undefined,
+    actualDays: undefined,
     requirementIds: [],
     projectLink: undefined,
   };
@@ -237,31 +237,31 @@ export class CreateFeatureModal extends Modal {
           this.result.owner = value || undefined;
         }));
 
-    // 预估工时
+    // 预估人天
     new Setting(contentEl)
-      .setName('预估工时')
-      .setDesc('小时（可选）')
+      .setName('预估人天')
+      .setDesc('人天（可选）')
       .addText(text => {
         text.inputEl.type = 'number';
-        text.inputEl.placeholder = '例如：40';
-        text.setValue(this.result.estimatedHours !== undefined ? String(this.result.estimatedHours) : '')
+        text.inputEl.placeholder = '例如：5';
+        text.setValue(this.result.estimatedDays !== undefined ? String(this.result.estimatedDays) : '')
           .onChange(value => {
             const num = value ? parseFloat(value) : undefined;
-            this.result.estimatedHours = num !== undefined && !isNaN(num) ? num : undefined;
+            this.result.estimatedDays = num !== undefined && !isNaN(num) ? num : undefined;
           });
       });
 
-    // 实际工时
+    // 实际人天
     new Setting(contentEl)
-      .setName('实际工时')
-      .setDesc('小时（可选）')
+      .setName('实际人天')
+      .setDesc('人天（可选）')
       .addText(text => {
         text.inputEl.type = 'number';
-        text.inputEl.placeholder = '例如：32';
-        text.setValue(this.result.actualHours !== undefined ? String(this.result.actualHours) : '')
+        text.inputEl.placeholder = '例如：3';
+        text.setValue(this.result.actualDays !== undefined ? String(this.result.actualDays) : '')
           .onChange(value => {
             const num = value ? parseFloat(value) : undefined;
-            this.result.actualHours = num !== undefined && !isNaN(num) ? num : undefined;
+            this.result.actualDays = num !== undefined && !isNaN(num) ? num : undefined;
           });
       });
 
@@ -358,8 +358,8 @@ export class CreateFeatureModal extends Modal {
       owner: '设计师小王',
       tags: ['UI', '首页', '设计'],
       isMilestone: false,
-      estimatedHours: 40,
-      actualHours: 0,
+      estimatedDays: 5,
+      actualDays: 0,
       requirementIds: ['REQ-001', 'REQ-002'],
       projectLink: 'https://hialm.example.com/project/123',
     };

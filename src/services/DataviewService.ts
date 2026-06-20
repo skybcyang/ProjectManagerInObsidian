@@ -344,8 +344,8 @@ export class DataviewService {
       startDate: page.startDate as string | undefined,
       endDate: page.endDate as string | undefined,
       isMilestone: page.isMilestone as boolean | undefined,
-      estimatedHours: page.estimatedHours as number | undefined,
-      actualHours: page.actualHours as number | undefined,
+      estimatedDays: page.estimatedDays as number | undefined,
+      actualDays: page.actualDays as number | undefined,
     };
   }
 
@@ -375,8 +375,8 @@ export class DataviewService {
       startDate: frontmatter.startDate as string | undefined,
       endDate: frontmatter.endDate as string | undefined,
       isMilestone: frontmatter.isMilestone as boolean | undefined,
-      estimatedHours: frontmatter.estimatedHours as number | undefined,
-      actualHours: frontmatter.actualHours as number | undefined,
+      estimatedDays: frontmatter.estimatedDays as number | undefined,
+      actualDays: frontmatter.actualDays as number | undefined,
     };
   }
 

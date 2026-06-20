@@ -83,6 +83,7 @@ export class ActionService {
   private beforeOpenEntityCallback?: () => void;
 
   private logWriter: LogWriterService;
+  private refreshTimeout?: number;
 
   constructor(
     private app: App,
@@ -115,10 +116,16 @@ export class ActionService {
   }
 
   /**
-   * 触发刷新
+   * 触发刷新（带防抖，避免频繁重渲染导致卡死）
    */
   private triggerRefresh(): void {
-    this.eventBus.emit('refresh');
+    if (this.refreshTimeout) {
+      window.clearTimeout(this.refreshTimeout);
+    }
+    this.refreshTimeout = window.setTimeout(() => {
+      this.eventBus.emit('refresh');
+      this.refreshTimeout = undefined;
+    }, 300);
   }
 
   /**

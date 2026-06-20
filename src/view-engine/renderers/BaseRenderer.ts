@@ -6,11 +6,14 @@ import {
   STATUS_COLORS,
   FEATURE_STATUS_OPTIONS,
   getStatusColor,
+  getPriorityColor,
   getEntityIcon,
   translateStatus,
   translatePriority,
+  DateFormat,
 } from '../design-tokens';
 import { StatusPicker, ProgressPicker } from '../components';
+import type { RiskItem } from '../../types';
 import type { EntityCardOptions } from '../components';
 import { getOverlayContainer } from '../../utils/getOverlayContainer';
 
@@ -104,6 +107,8 @@ export abstract class BaseRenderer {
       showTypeIcon: allFields.has('typeIcon'),
       showStats: allFields.has('stats'),
       showActions: allFields.has('actions'),
+      showEstimatedDays: allFields.has('estimatedDays'),
+      showActualDays: allFields.has('actualDays'),
       ...overrides
     };
   }
@@ -440,6 +445,138 @@ export abstract class BaseRenderer {
       }
     };
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  }
+
+  /**
+   * 渲染状态徽章
+   */
+  protected renderStatusBadge(container: HTMLElement, status: string): HTMLElement {
+    const color = getStatusColor(status);
+    const badge = container.createSpan({
+      cls: 'pm-status-badge',
+      text: translateStatus(status),
+    });
+    badge.style.backgroundColor = color.bg;
+    badge.style.color = color.text;
+    return badge;
+  }
+
+  /**
+   * 渲染优先级徽章
+   */
+  protected renderPriorityBadge(container: HTMLElement, priority: string): HTMLElement {
+    const color = getPriorityColor(priority);
+    const badge = container.createSpan({
+      cls: 'pm-priority-badge',
+      text: translatePriority(priority),
+    });
+    badge.style.backgroundColor = color.bg;
+    badge.style.color = color.text;
+    return badge;
+  }
+
+  /**
+   * 渲染进度条
+   */
+  protected renderProgressBar(container: HTMLElement, progress: number): HTMLElement {
+    const progressEl = container.createDiv('pm-progress-bar');
+    const trackEl = progressEl.createDiv('pm-progress-bar__track');
+    const fillEl = trackEl.createDiv('pm-progress-bar__fill');
+    fillEl.style.width = `${progress}%`;
+    progressEl.createSpan({
+      cls: 'pm-progress-bar__text',
+      text: `${progress}%`,
+    });
+    return progressEl;
+  }
+
+  /**
+   * 渲染标签列表
+   */
+  protected renderTags(container: HTMLElement, tags: string[], limit: number = 3): HTMLElement {
+    const tagsEl = container.createDiv('pm-tags');
+    tags.slice(0, limit).forEach((tag) => {
+      tagsEl.createSpan({ cls: 'pm-tag', text: tag });
+    });
+    if (tags.length > limit) {
+      tagsEl.createSpan({
+        cls: 'pm-tag pm-tag--more',
+        text: `+${tags.length - limit}`,
+      });
+    }
+    return tagsEl;
+  }
+
+  /**
+   * 渲染日期
+   */
+  protected renderDate(container: HTMLElement, date: string | Date, cls?: string): HTMLElement {
+    const span = container.createSpan({
+      cls: cls || 'pm-date',
+      text: DateFormat.medium(date),
+    });
+    return span;
+  }
+
+  /**
+   * 渲染人天
+   */
+  protected renderDays(container: HTMLElement, days: number, label?: string): HTMLElement {
+    const text = label ? `${label}: ${days}d` : `${days}d`;
+    return container.createSpan({
+      cls: 'pm-days',
+      text,
+    });
+  }
+
+  /**
+   * 渲染实体详情面板（最新进展 + 最新风险，只读）
+   */
+  protected renderDetailPanel(container: HTMLElement, entity: Entity): HTMLElement {
+    const existing = container.querySelector('.pm-list-card-detail');
+    if (existing) existing.remove();
+
+    const detail = container.createDiv('pm-list-card-detail');
+    const inner = detail.createDiv('pm-list-card-detail-inner');
+
+    const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+
+    // 进展行
+    const progressRow = inner.createDiv('pm-list-detail-row');
+    progressRow.createDiv({ cls: 'pm-list-detail-section-title', text: '📈 最新进展' });
+
+    if (logSummary?.latestProgress) {
+      progressRow.createDiv({
+        cls: 'pm-list-detail-item',
+        text: `📝 ${logSummary.latestProgress}`,
+      });
+    } else {
+      progressRow.createDiv({
+        cls: 'pm-list-detail-item pm-list-detail-item--empty',
+        text: '📝 暂无进展记录',
+      });
+    }
+
+    // 风险行
+    const riskRow = inner.createDiv('pm-list-detail-row');
+    riskRow.createDiv({ cls: 'pm-list-detail-section-title', text: '⚠️ 最新风险' });
+
+    const openRisks = (logSummary as any)?.risks?.filter((r: RiskItem) => r.status === '未关闭' || r.status === '跟踪中') || [];
+    if (openRisks.length > 0) {
+      const firstRisk = openRisks[0];
+      const levelEmoji = firstRisk.level === 'high' ? '🔴' : firstRisk.level === 'medium' ? '🟡' : '🟢';
+      riskRow.createDiv({
+        cls: 'pm-list-detail-item',
+        text: `${levelEmoji} ${firstRisk.level === 'high' ? '高' : firstRisk.level === 'medium' ? '中' : '低'} | ${firstRisk.type} | ${firstRisk.description}`,
+      });
+    } else {
+      riskRow.createDiv({
+        cls: 'pm-list-detail-item pm-list-detail-item--empty',
+        text: '⚠️ 暂无未关闭风险',
+      });
+    }
+
+    return detail;
   }
 
   /**

@@ -54,8 +54,8 @@ export interface FeatureTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
-  estimatedHours?: number;
-  actualHours?: number;
+  estimatedDays?: number;
+  actualDays?: number;
   projectLink?: string;
 }
 
@@ -121,8 +121,8 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-04-15',
     tags: ['后端', '安全'],
-    estimatedHours: 40,
-    actualHours: 26,
+    estimatedDays: 5,
+    actualDays: 3,
   },
   overview: {
     date: new Date().toISOString().split('T')[0],

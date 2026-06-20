@@ -334,8 +334,8 @@ class TemplateEditorModal extends Modal {
           startDate: '开始日期（可选）',
           endDate: '结束日期（可选）',
           tags: '标签数组',
-          estimatedHours: '预估工时（可选）',
-          actualHours: '实际工时（可选）',
+          estimatedDays: '预估人天（可选）',
+          actualDays: '实际人天（可选）',
         };
       default:
         return commonVars;

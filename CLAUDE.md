@@ -84,7 +84,7 @@ src/
 │   ├── filesystem/          # 文件系统抽象
 │   └── EntityManager.ts     # 统一 API 入口
 ├── view-engine/             # 视图系统
-│   ├── renderers/           # 6 种视图渲染器
+│   ├── renderers/           # 3 种视图渲染器
 │   ├── components/          # EntityCard, EntityTreeSelector, DropdownMenu 等组件
 │   ├── cells/               # 行内编辑单元格
 │   ├── services/            # DataService, ActionService
@@ -106,16 +106,13 @@ src/
 
 ## 视图模式
 
-插件通过 `pm-view` 代码块支持 6 种视图模式：
+插件通过 `pm-view` 代码块支持 3 种视图模式：
 
 | 模式 | 渲染器 | 说明 |
 |------|--------|------|
 | `kanban` | KanbanRenderer | 类 Trello 看板，按状态/优先级分组 |
-| `list` | ListRenderer | 列表视图，支持行内编辑 |
 | `cascade` | CascadeRenderer | 层级展示 版本→项目→特性 |
-| `timeline` | TimelineRenderer | 水平/垂直时间轴 |
-| `timeview` | TimeViewRenderer | 日历视图 |
-| `workload` | WorkloadRenderer | 工作量分布统计 |
+| `timeview` | TimeViewRenderer | 甘特图，按负责人/项目分组 |
 
 > 详细视图配置、FilterBar 设计、样式规范见 [视图系统详细设计](docs/视图系统详细设计.md)
 
@@ -245,7 +242,15 @@ npm run test:coverage
 
 ## 版本与变更
 
-当前版本：**v0.7.7**（见 `manifest.json`）
+当前版本：**v0.8.1**（见 `manifest.json`）
+
+### v0.8.1 主要变更
+- **删除**: 列表视图与 workload 工作量统计视图
+  - 统一使用级联视图承载信息密度与进展/风险展示
+  - 移除 `ListRenderer`、`WorkloadRenderer` 及相关 stories、样式
+  - `ReportService` 保留工作量计算，继续服务邮件摘要
+- **增强**: 级联视图展示状态、负责人、起止日期、进度、风险、预估/实际人天、标签及详情面板
+- **重构**: `BaseRenderer` 提取共享字段渲染方法
 
 ### v0.7.6 主要变更
 - **重构**: 删除 ListRenderer 内联排序 UI，统一使用工具栏排序

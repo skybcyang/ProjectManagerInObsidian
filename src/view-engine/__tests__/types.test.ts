@@ -41,7 +41,7 @@ describe('ViewConfig types', () => {
 
   it('should allow filter configuration', () => {
     const config: ViewConfig = {
-      mode: 'list',
+      mode: 'cascade',
       version: 'ver-001',
       project: 'proj-001',
       status: 'in-progress',
@@ -69,7 +69,7 @@ describe('ViewConfig types', () => {
 
   it('should allow sort configuration with status field', () => {
     const config: ViewConfig = {
-      mode: 'list',
+      mode: 'cascade',
       sortBy: 'status',
       sortOrder: 'desc',
     };

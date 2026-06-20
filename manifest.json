@@ -1,9 +1,9 @@
 {
 	"id": "project-manager",
 	"name": "Project Manager",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"minAppVersion": "0.15.0",
-	"description": "在 Obsidian 中进行项目管理，支持版本/项目/特性三层结构，提供看板、列表、级联、时间视图等多种可视化方式",
+	"description": "在 Obsidian 中进行项目管理，支持版本/项目/特性三层结构，提供看板、级联、时间视图等多种可视化方式",
 	"author": "skybcyang",
 	"authorUrl": "",
 	"fundingUrl": "",

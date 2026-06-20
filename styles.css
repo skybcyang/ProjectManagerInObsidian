@@ -230,244 +230,129 @@
 }
 
 /* ========================================
-   List View - 卡片式列表
+   Entity Detail Panel (shared)
    ======================================== */
 
-.pm-list-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.pm-list-card-detail {
+  padding: 8px 14px;
+  border-top: 1px solid var(--background-modifier-border);
 }
 
-.pm-list-header {
+/* 详情区 */
+.pm-list-card-detail-inner {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 14px;
-  background: var(--background-secondary);
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
 }
 
-.pm-list-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pm-list-count {
-  font-size: 14px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.pm-list-header-columns {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  row-gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--background-modifier-border-hover);
-}
-
-.pm-list-header-main {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.pm-list-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pm-list-header-cell {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pm-list-cards {
+.pm-list-detail-row {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 3px;
 }
 
-.pm-list-card {
-  position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  overflow: hidden;
+.pm-list-detail-row:not(:last-child) {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
 }
 
-.pm-list-card:hover {
-  border-color: var(--card-border-hover);
-  box-shadow: var(--card-shadow-hover);
-  transform: translateX(4px);
+.pm-list-detail-section-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
 }
 
-.pm-list-card-priority-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
+.pm-list-detail-item {
+  font-size: 13px;
+  color: var(--text-normal);
+  padding: 2px 0;
+  line-height: 1.5;
 }
 
-.pm-list-card-content {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  row-gap: 8px;
-  padding: 12px 16px;
+.pm-list-detail-item--empty {
+  color: var(--text-faint);
+  font-style: italic;
 }
 
-.pm-list-card-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
+/* ========================================
+   Shared Field Tokens
+   ======================================== */
 
-.pm-list-card-type-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
+.pm-status-badge,
+.pm-priority-badge {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--background-secondary);
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.pm-progress-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 90px;
   flex-shrink: 0;
 }
 
-.pm-list-card-title-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.pm-list-card-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-normal);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pm-list-card-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.pm-list-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.pm-list-card-status {
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--background-secondary);
-  color: var(--text-muted);
-}
-
-.pm-list-card-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 80px;
-}
-
-.pm-list-card-progress-bar {
+.pm-progress-bar__track {
   flex: 1;
-  height: 4px;
+  height: 5px;
   background: var(--background-modifier-border);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
-.pm-list-card-progress-fill {
+.pm-progress-bar__fill {
   height: 100%;
   background: var(--interactive-accent);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
-.pm-list-card-owner {
-  font-size: 12px;
-  color: var(--text-accent);
-}
-
-.pm-list-card-due {
-  font-size: 12px;
+.pm-progress-bar__text {
+  font-size: 11px;
   color: var(--text-muted);
-  font-family: var(--font-monospace);
+  white-space: nowrap;
 }
 
-.pm-list-card-due.pm-overdue {
-  color: var(--text-error);
-  font-weight: 600;
-}
-
-.pm-list-card-tags {
+.pm-tags {
   display: flex;
+  align-items: center;
   gap: 4px;
+  flex-wrap: nowrap;
 }
 
-.pm-list-card-tag {
-  font-size: 10px;
+.pm-tag {
+  font-size: 11px;
   padding: 2px 8px;
   background: var(--background-secondary);
   border-radius: 10px;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
-.pm-list-card-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+.pm-tag--more {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 2px 4px;
 }
 
-.pm-list-card:hover .pm-list-card-actions {
-  opacity: 1;
-}
-
-.pm-list-action-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: var(--background-secondary);
-  border-radius: 6px;
-  cursor: pointer;
+.pm-date {
   font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  white-space: nowrap;
 }
 
-.pm-list-action-btn:hover {
-  background: var(--interactive-accent);
-  color: white;
+.pm-days {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ========================================
@@ -494,16 +379,6 @@
 .pm-status-blocked {
   background: color-mix(in srgb, var(--pi-color-error) 15%, transparent) !important;
   color: var(--pi-color-error) !important;
-}
-
-/* ========================================
-   Progress Bar
-   ======================================== */
-.pm-progress-bar {
-  height: 6px;
-  background: var(--pm-primary);
-  border-radius: 3px;
-  transition: width 0.3s ease;
 }
 
 /* ========================================
@@ -2307,6 +2182,137 @@
   flex-shrink: 0;
 }
 
+/* ---------- 级联视图信息密度增强 ---------- */
+.pm-cascade__feature-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-cascade__feature {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: var(--pm-radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
+}
+
+.pm-cascade__feature-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pm-cascade__feature-name {
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-cascade__feature-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.pm-cascade__feature-meta .pm-status-badge,
+.pm-cascade__feature-meta .pm-priority-badge {
+  flex-shrink: 0;
+}
+
+.pm-cascade__feature-progress-bar {
+  width: 70px;
+}
+
+.pm-cascade__feature-start,
+.pm-cascade__feature-due {
+  font-family: var(--font-monospace);
+  font-size: 11px;
+}
+
+.pm-cascade__feature-due--completed {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.pm-cascade__feature-due--overdue,
+.pm-cascade__feature-date--overdue {
+  color: var(--text-error);
+  font-weight: 600;
+}
+
+.pm-cascade__feature-due--upcoming {
+  color: var(--pi-color-warning);
+  background: color-mix(in srgb, var(--pi-color-warning) 10%, transparent);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.pm-cascade__feature-days {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pm-cascade__feature-tags {
+  max-width: 120px;
+  overflow: hidden;
+}
+
+.pm-cascade__feature-risk {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.12);
+  color: #ca8a04;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pm-cascade__expand-btn {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+  user-select: none;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.pm-cascade__expand-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.pm-cascade__summary-owner {
+  font-size: 12px;
+  color: var(--text-accent);
+}
+
+.pm-cascade__summary-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+.pm-cascade__summary-date--overdue {
+  color: var(--text-error);
+  font-weight: 600;
+}
+
 /* ---------- 更多提示 ---------- */
 .pm-cascade__more-features {
   padding: 6px 10px;
@@ -2704,211 +2710,6 @@
 }
 
 /* ========================================
-   Workload View - 工作量统计视图
-   ======================================== */
-
-/* 工具栏 */
-.pm-view .pm-workload-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 8px;
-}
-
-.pm-view .pm-workload-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-normal);
-  margin: 0;
-}
-
-/* 分组切换按钮 */
-.pm-view .pm-workload-toggle {
-  display: flex;
-  gap: 8px;
-}
-
-.pm-view .pm-workload-toggle__btn {
-  padding: 6px 16px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-primary);
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pm-view .pm-workload-toggle__btn:hover {
-  border-color: var(--interactive-accent);
-  color: var(--text-normal);
-}
-
-.pm-view .pm-workload-toggle__btn.active {
-  background: var(--interactive-accent);
-  color: white;
-  border-color: var(--interactive-accent);
-}
-
-/* 汇总统计 */
-.pm-view .pm-workload-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 16px;
-  background: var(--background-secondary);
-  border-radius: 8px;
-}
-
-.pm-view .pm-workload-summary__card {
-  flex: 1;
-  min-width: 100px;
-  padding: 16px 20px;
-  background: var(--background-primary);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  text-align: center;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.pm-view .pm-workload-summary__card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-.pm-view .pm-workload-summary__value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-normal);
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-.pm-view .pm-workload-summary__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* 工作量条形图容器 */
-.pm-view .pm-workload-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  background: var(--background-secondary);
-  border-radius: 8px;
-}
-
-/* 单个工作量条 */
-.pm-view .pm-workload-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--background-primary);
-  border-radius: 8px;
-  transition: background 0.15s ease;
-}
-
-.pm-view .pm-workload-bar:hover {
-  background: var(--background-primary-alt);
-}
-
-.pm-view .pm-workload-bar--hover {
-  background: var(--background-primary-alt);
-}
-
-/* 名称 */
-.pm-view .pm-workload-bar__name {
-  width: 120px;
-  min-width: 120px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-normal);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 进度条容器 */
-.pm-view .pm-workload-bar__progress {
-  flex: 1;
-  height: 20px;
-  background: var(--background-modifier-border);
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-}
-
-/* 预估工时条（背景） */
-.pm-view .pm-workload-bar__estimated {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #94a3b8 0%, #64748b 100%);
-  border-radius: 10px;
-  opacity: 0.3;
-}
-
-/* 实际工时条（前景） */
-.pm-view .pm-workload-bar__actual {
-  position: absolute;
-  top: 2px;
-  left: 0;
-  height: 16px;
-  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
-  border-radius: 8px;
-  transition: width 0.3s ease;
-}
-
-/* 实际工时条 - 超出预估 */
-.pm-view .pm-workload-bar__actual--over {
-  background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
-}
-
-/* 实际工时条 - 低于预估 */
-.pm-view .pm-workload-bar__actual--under {
-  background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
-}
-
-/* 数值标签 */
-.pm-view .pm-workload-bar__value {
-  width: 70px;
-  min-width: 70px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-align: right;
-}
-
-/* 效率标签 */
-.pm-view .pm-workload-bar__efficiency {
-  width: 50px;
-  min-width: 50px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-normal);
-  text-align: right;
-}
-
-.pm-view .pm-workload-bar__efficiency--over {
-  color: #ef4444;
-}
-
-.pm-view .pm-workload-bar__efficiency--under {
-  color: #22c55e;
-}
-
-/* ========================================
    Entity Card - 统一实体卡片
    ======================================== */
 
@@ -3206,6 +3007,13 @@
   display: flex;
   align-items: center;
   gap: var(--pm-space-1);
+}
+
+/* 人天 */
+.pm-entity-card--default .pm-entity-card__days {
+  font-size: 12px;
+  color: var(--pm-text-secondary);
+  white-space: nowrap;
 }
 
 /* 风险徽章 */
@@ -3515,113 +3323,6 @@
   background: rgba(var(--pm-primary-rgb), 0.05);
   border: 2px dashed var(--pm-primary);
   border-radius: var(--pm-radius-md);
-}
-
-/* ========================================
-   List View - 列表视图
-   ======================================== */
-
-.pm-list-view {
-  padding: var(--pm-space-2);
-}
-
-.pm-list-table-container {
-  background: var(--pm-bg-0);
-  border: 1px solid var(--pm-border);
-  border-radius: var(--pm-radius-lg);
-  overflow: auto;
-}
-
-.pm-list-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-}
-
-.pm-list-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.pm-list-table th {
-  background: var(--pm-bg-1);
-  border-bottom: 1px solid var(--pm-border);
-  padding: var(--pm-space-3) var(--pm-space-4);
-  text-align: left;
-  font-weight: 600;
-  color: var(--pm-text-primary);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.pm-list-table tbody tr {
-  transition: all 0.15s ease;
-  cursor: pointer;
-  border-left: 3px solid transparent;
-}
-
-.pm-list-table tbody tr:hover {
-  background: var(--pm-bg-1);
-  border-left-color: var(--pm-primary);
-}
-
-.pm-list-table tbody tr:not(:last-child) td {
-  border-bottom: 1px solid var(--pm-border);
-}
-
-.pm-list-table td {
-  padding: var(--pm-space-3) var(--pm-space-4);
-  vertical-align: middle;
-}
-
-/* 列表中的徽章样式 */
-.pm-list-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--pm-radius-full);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.pm-list-badge--priority-critical { background: rgba(248, 113, 113, 0.12); color: #dc2626; }
-.pm-list-badge--priority-high { background: rgba(251, 146, 60, 0.12); color: #ea580c; }
-.pm-list-badge--priority-medium { background: rgba(250, 204, 21, 0.12); color: #ca8a04; }
-.pm-list-badge--priority-low { background: rgba(74, 222, 128, 0.12); color: #16a34a; }
-
-/* 列表进度条 */
-.pm-list-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--pm-space-2);
-  width: 100px;
-}
-
-.pm-list-progress-track {
-  flex: 1;
-  height: 5px;
-  background: var(--pm-bg-2);
-  border-radius: var(--pm-radius-full);
-  overflow: hidden;
-}
-
-.pm-list-progress-fill {
-  height: 100%;
-  background: var(--pm-primary);
-  border-radius: var(--pm-radius-full);
-  transition: width 0.3s ease;
-}
-
-.pm-list-progress-text {
-  font-size: 11px;
-  color: var(--pm-text-secondary);
-  min-width: 28px;
-  text-align: right;
 }
 
 /* ========================================
@@ -5183,18 +4884,28 @@
 }
 
 /* ---------- 全屏模式 ---------- */
-.pm-view-fullscreen .pm-gantt-body {
-  max-height: calc(100vh - 200px);
-}
 
 /* Fullscreen API 下的视图容器 */
 .pm-view-wrapper:fullscreen {
   background: var(--pm-bg);
   overflow: auto;
+  width: 100vw;
+  min-height: 100vh;
+  padding: 16px;
 }
 
 .pm-view-wrapper:fullscreen .pm-view-content {
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 32px);
+}
+
+/* 全屏模式下解除各视图的高度限制 */
+.pm-view-wrapper:fullscreen .pm-gantt-body,
+.pm-view-wrapper:fullscreen .pm-timeview-gantt-body {
+  max-height: none;
+}
+
+.pm-view-wrapper:fullscreen .pm-kanban-column {
+  max-height: calc(100vh - 120px);
 }
 
 /* ========================================
@@ -6470,3 +6181,4 @@
     min-width: 140px;
   }
 }
+

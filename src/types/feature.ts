@@ -14,8 +14,8 @@ export interface Feature {
   startDate?: string;
   endDate?: string;
   isMilestone?: boolean;
-  estimatedHours?: number;
-  actualHours?: number;
+  estimatedDays?: number;
+  actualDays?: number;
   requirementIds?: string[];
   projectLink?: string;
 }
@@ -32,8 +32,8 @@ export interface CreateFeatureData {
   startDate?: string;
   endDate?: string;
   isMilestone?: boolean;
-  estimatedHours?: number;
-  actualHours?: number;
+  estimatedDays?: number;
+  actualDays?: number;
   requirementIds?: string[];
   projectLink?: string;
 }
@@ -50,8 +50,8 @@ export interface UpdateFeatureData {
   startDate?: string;
   endDate?: string;
   isMilestone?: boolean;
-  estimatedHours?: number;
-  actualHours?: number;
+  estimatedDays?: number;
+  actualDays?: number;
   requirementIds?: string[];
   projectLink?: string;
 }

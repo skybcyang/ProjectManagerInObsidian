@@ -1,4 +1,4 @@
-import type { ViewConfig, ViewMode, EntityType, ListColumnField } from '../view-engine/types';
+import type { ViewConfig, ViewMode, EntityType } from '../view-engine/types';
 
 /**
  * 配置验证结果
@@ -13,7 +13,7 @@ export interface ValidationResult {
 /**
  * 有效的视图模式
  */
-const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'list', 'cascade', 'timeview', 'workload'];
+const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'cascade', 'timeview'];
 
 /**
  * 有效的实体类型
@@ -34,17 +34,6 @@ const VALID_SORT_ORDERS = ['asc', 'desc'] as const;
  * 有效的分组方式
  */
 const VALID_GROUP_BY = ['status', 'priority', 'version', 'project', 'startDate', 'endDate'] as const;
-
-/**
- * 有效的网格列数
- */
-
-/**
- * 有效的列表列字段
- */
-const VALID_LIST_COLUMNS: ListColumnField[] = [
-  'name', 'status', 'priority', 'owner', 'startDate', 'endDate', 'progress', 'risk', 'latestProgress', 'tags', 'versionId', 'projectId'
-];
 
 /**
  * 配置验证器
@@ -211,16 +200,6 @@ export class ConfigValidator {
       }
     }
 
-    // 验证 listColumns
-    if (input.listColumns !== undefined) {
-      const listColumnsValidation = this.validateListColumns(input.listColumns);
-      if (listColumnsValidation.error) {
-        warnings.push(listColumnsValidation.error);
-      } else {
-        result.listColumns = listColumnsValidation.value;
-      }
-    }
-
     // 验证 cardFields
     if (input.cardFields !== undefined) {
       if (typeof input.cardFields === 'object' && input.cardFields !== null) {
@@ -329,36 +308,6 @@ export class ConfigValidator {
       };
     }
     return { value: groupByStr as typeof VALID_GROUP_BY[number] };
-  }
-
-  /**
-   * 验证列表列配置
-   */
-  private static validateListColumns(columns: unknown): { value?: ListColumnField[]; error?: string } {
-    if (!Array.isArray(columns)) {
-      return { error: 'listColumns 必须是数组' };
-    }
-
-    const validColumns: ListColumnField[] = [];
-    const invalidColumns: string[] = [];
-
-    for (const col of columns) {
-      const colStr = String(col);
-      if (VALID_LIST_COLUMNS.includes(colStr as ListColumnField)) {
-        validColumns.push(colStr as ListColumnField);
-      } else {
-        invalidColumns.push(colStr);
-      }
-    }
-
-    if (invalidColumns.length > 0) {
-      return {
-        value: validColumns,
-        error: `忽略无效的列表列: ${invalidColumns.join(', ')}`
-      };
-    }
-
-    return { value: validColumns };
   }
 
   /**

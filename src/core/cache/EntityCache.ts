@@ -365,8 +365,8 @@ export class EntityCache {
       owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
       isMilestone: frontmatter.isMilestone === true,
-      estimatedHours: typeof frontmatter.estimatedHours === 'number' ? frontmatter.estimatedHours : undefined,
-      actualHours: typeof frontmatter.actualHours === 'number' ? frontmatter.actualHours : undefined,
+      estimatedDays: typeof frontmatter.estimatedDays === 'number' ? frontmatter.estimatedDays : undefined,
+      actualDays: typeof frontmatter.actualDays === 'number' ? frontmatter.actualDays : undefined,
     } as Feature;
 
     if (!content) {

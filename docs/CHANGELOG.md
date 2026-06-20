@@ -1,5 +1,41 @@
 # 版本迭代记录
 
+## v0.8.1 (2026-06-20)
+
+### 重大变更
+
+- **移除列表视图，统一使用级联视图**
+  - 删除 `ListRenderer.ts` 和 `ListView.stories.ts`
+  - 从 `ViewMode`、`VIEW_MODE_LABELS` 中移除 `list`
+  - 从 `RendererRegistry` 中注销 `list` 渲染器
+  - 移除 `LIST_COLUMN_DEFINITIONS`、`ListColumnField` 及 `ViewConfig.listColumns` 配置项
+  - 清理 `PropertyPanelController` 中的列表列选择器
+  - 清理 `ConfigValidator` 中关于 `listColumns` 的验证逻辑
+  - 清理 `styles.css` 中只用于列表视图的专有样式
+
+- **移除工作量统计视图**
+  - 删除 `WorkloadRenderer.ts` 和 `WorkloadView.stories.ts`
+  - 从 `ViewMode`、`VIEW_MODE_LABELS` 中移除 `workload`
+  - 从 `RendererRegistry` 中注销 `workload` 渲染器
+  - 清理 `PropertyPanelController` 中工作量视图相关配置
+  - 清理 `styles.css` 中只用于工作量视图的专有样式
+  - `ReportService` 保留工作量计算能力，继续为邮件摘要服务提供数据
+
+### 改进
+
+- **级联视图信息密度增强**
+  - 版本头部新增状态徽章、负责人、起止日期、逾期提示、风险数量
+  - 项目卡片默认显示开始/结束日期、预估/实际人天、标签、风险徽章、最新进展摘要
+  - 特性行改造为类列表卡片紧凑布局，展示优先级、状态、进度、起止日期、负责人、预估/实际人天、标签、风险
+  - 版本/项目/特性均支持展开/收起详情面板，展示最近一条进展与最近一条未关闭风险
+
+- **提取共享字段渲染方法**
+  - `BaseRenderer` 新增 `renderStatusBadge`、`renderPriorityBadge`、`renderProgressBar`、`renderTags`、`renderDate`、`renderDays`、`renderDetailPanel`
+  - `EntityCard` 新增 `showEstimatedDays`/`showActualDays` 选项
+  - 统一状态/优先级徽章、进度条、标签、日期、人天的渲染风格
+
+---
+
 ## v0.8.0 (2026-06-06)
 
 ### 重大变更

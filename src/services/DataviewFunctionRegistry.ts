@@ -302,8 +302,8 @@ export class DataviewFunctionRegistry {
       startDate: frontmatter.startDate as string | undefined,
       endDate: frontmatter.endDate as string | undefined,
       isMilestone: frontmatter.isMilestone as boolean | undefined,
-      estimatedHours: frontmatter.estimatedHours as number | undefined,
-      actualHours: frontmatter.actualHours as number | undefined,
+      estimatedDays: frontmatter.estimatedDays as number | undefined,
+      actualDays: frontmatter.actualDays as number | undefined,
     };
   }
 
