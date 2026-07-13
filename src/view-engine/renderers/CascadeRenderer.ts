@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
-import { ViewConfig, Entity, EntityType, Version, Project, Feature, getEntityType } from '../types';
+import { ViewConfig, Entity, Version, Project, Feature, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { getPriorityColor, DateFormat, isOverdue } from '../design-tokens';
@@ -16,7 +16,7 @@ interface CascadeData {
 
 /**
  * 级联渲染器
- * 卡片式层级视图：版本 → 项目 → 特性
+ * 卡片式层级视图：版本 → 项目 → 特性，只读展示
  */
 export class CascadeRenderer extends BaseRenderer {
   constructor(
@@ -73,10 +73,13 @@ export class CascadeRenderer extends BaseRenderer {
    * 渲染级联视图
    */
   async render(container: HTMLElement): Promise<void> {
-    container.empty();
-    container.addClass('pm-cascade-container');
+    // 显示加载状态，等待数据准备完成
+    this.showLoading(container);
 
     const data = await this.prepareCascadeData();
+
+    container.empty();
+    container.addClass('pm-cascade-container');
 
     if (data.versions.length === 0) {
       this.createEmptyState(container, '暂无数据');
@@ -322,7 +325,7 @@ export class CascadeRenderer extends BaseRenderer {
       const featuresContainer = cardEl.createDiv('pm-cascade__features');
 
       // 限制显示数量
-      const maxFeatures = 5;
+      const maxFeatures = this.config.maxFeaturesPerProject ?? this.config.options?.maxFeaturesPerProject ?? 5;
       const displayFeatures = features.slice(0, maxFeatures);
 
       for (const feature of displayFeatures) {

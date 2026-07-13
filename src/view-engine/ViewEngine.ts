@@ -175,7 +175,7 @@ export class ViewEngine {
 
     // 3. 渲染初始内容
     context.codeBlockIndex = codeBlockIndex;
-    await this.renderContent(contentArea, config, context);
+    await this.renderContent(contentArea, config, context, codeBlockIndex);
   }
 
   /**
@@ -216,7 +216,7 @@ export class ViewEngine {
         await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
         const targetContentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (targetContentArea) {
-          await this.renderContent(targetContentArea, newConfig, context);
+          await this.renderContent(targetContentArea, newConfig, context, codeBlockIndex);
         }
       },
     });
@@ -251,10 +251,9 @@ export class ViewEngine {
   private async renderContent(
     container: HTMLElement,
     config: ViewConfig,
-    context: ViewContext
+    context: ViewContext,
+    codeBlockIndex?: number
   ): Promise<void> {
-    container.empty();
-
     const mode = config.mode || 'cascade';
 
     // 创建渲染器
@@ -264,14 +263,21 @@ export class ViewEngine {
       return;
     }
 
-    // 初始化渲染器
-    renderer.init(config, context);
+    // 初始化渲染器，传入配置保存回调
+    renderer.init(config, context, {
+      onSaveConfig: (updates) => {
+        const currentConfig = this.currentConfigs.get(`${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`) || config;
+        const newConfig = { ...currentConfig, ...updates };
+        this.currentConfigs.set(`${context.sourcePath}:${codeBlockIndex ?? 'unknown'}`, newConfig);
+        this.debouncedSave(context.sourcePath, codeBlockIndex, updates);
+      },
+    });
 
     // 设置刷新回调 - 使用事件总线
     // 先取消旧订阅，防止内存泄漏
     (container as any)._unsubscribeRefresh?.();
     const unsubscribe = this.actionService.onRefresh(() => {
-      this.renderContent(container, config, context);
+      this.renderContent(container, config, context, codeBlockIndex);
     });
 
     // 存储取消订阅函数用于清理
@@ -365,7 +371,7 @@ export class ViewEngine {
         this.currentConfigs.set(key, newConfig);
         const contentArea = wrapper.querySelector('.pm-view-content') as HTMLElement;
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          await this.renderContent(contentArea, newConfig, context, codeBlockIndex);
         }
       },
       debouncedSave: (updates) => {

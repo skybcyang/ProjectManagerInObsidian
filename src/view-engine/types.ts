@@ -45,6 +45,12 @@ export interface SortConfig {
   order: 'asc' | 'desc';
 }
 
+// 时间视图粒度
+export type TimeViewMode = 'week' | 'month' | 'year' | 'all';
+
+// 时间视图分组方式
+export type TimeGroupBy = 'owner' | 'project';
+
 // 视图选项
 export interface ViewOptions {
   expanded?: boolean;              // 级联视图展开
@@ -124,6 +130,12 @@ export interface ViewConfig {
 
   // 视图选项
   options?: ViewOptions;
+
+  // 时间视图配置（持久化到 YAML）
+  timeViewMode?: TimeViewMode;       // 默认粒度
+  timeGroupBy?: TimeGroupBy;         // 默认分组方式
+  timeViewDate?: string;             // 当前定位日期（ISO 格式）
+  collapsedGroups?: string[];        // 已折叠的分组 ID 列表
 
   // EntityCard 显示字段配置
   cardFields?: CardFieldsConfig;

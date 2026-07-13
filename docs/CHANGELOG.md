@@ -1,5 +1,44 @@
 # 版本迭代记录
 
+## v0.8.2 (2026-07-14)
+
+### 设计原则
+
+- **视图只读化**
+  - 明确 `pm-view` 代码块为只读视图，仅用于信息展示与导航
+  - 视图内不再支持拖拽改状态、卡片内快捷编辑、添加风险/进展等修改操作
+  - 所有数据变更通过点击卡片跳转到对应 Markdown 文件进行编辑
+  - 更新 `docs/核心设计原则.md`、`docs/视图系统详细设计.md`、`CLAUDE.md`
+
+### 重大变更
+
+- **看板视图移除拖拽与编辑交互**
+  - `KanbanRenderer` 删除 `setupDropZone` 拖拽改状态逻辑
+  - 删除快速创建特性模态框入口
+  - 卡片仅保留点击跳转，不再渲染操作按钮和拖拽属性
+
+### 改进
+
+- **Storybook 示例与真实代码同步**
+  - 新增 `src/stories/utils.ts` 提供基于真实 Renderer 的渲染辅助函数
+  - `KanbanView.stories.ts`、`CascadeView.stories.ts`、`TimeView.stories.ts` 改用真实渲染器
+  - 移除 `TimeView.stories.ts` 中不存在的 `quarter` 粒度
+  - `EntityCard.stories.ts` 看板卡片示例改为只读模式
+
+- **时间视图状态持久化**
+  - 移除 `TimeViewRenderer` 中全局共享的 `static sharedState`，消除多代码块状态污染
+  - `ViewConfig` 新增 `timeViewMode`、`timeGroupBy`、`timeViewDate`、`collapsedGroups` 字段
+  - 粒度、分组、日期导航、分组展开/折叠状态均持久化到 YAML 代码块
+  - `PropertyPanelController` 增加时间视图默认粒度和默认分组配置项
+  - `ConfigValidator` 增加时间视图相关字段校验
+
+- **统一加载状态**
+  - `BaseRenderer` 新增 `showLoading()` 和 `saveConfig()` 能力
+  - `ViewEngine` 向渲染器注入配置保存回调
+  - `KanbanRenderer`、`CascadeRenderer`、`TimeViewRenderer` 在数据准备前统一显示加载状态
+
+---
+
 ## v0.8.1 (2026-06-20)
 
 ### 重大变更

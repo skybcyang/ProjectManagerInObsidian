@@ -1,21 +1,18 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
-import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
-import type { CreateFeatureData, FeatureStatus } from '../../types';
+import { ViewConfig, Entity, getEntityType } from '../types';
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import {
   KANBAN_COLUMNS,
   PRIORITY_OPTIONS,
-  getPriorityColor,
-  DateFormat,
 } from '../design-tokens';
 import { EntityCard } from '../components';
 
 /**
  * 看板渲染器 - 卡片式风格
- * Trello 风格的看板视图，统一卡片设计
+ * Trello 风格的看板视图，统一卡片设计，只读展示
  */
 export class KanbanRenderer extends BaseRenderer {
   private entities: Entity[] = [];
@@ -33,12 +30,15 @@ export class KanbanRenderer extends BaseRenderer {
    * 渲染看板视图
    */
   async render(container: HTMLElement): Promise<void> {
-    container.empty();
-    container.addClass('pm-kanban-view');
+    // 显示加载状态，等待数据准备完成
+    this.showLoading(container);
 
     // 使用基类统一的数据准备方法
     const sorted = await this.prepareData();
     this.entities = sorted;
+
+    container.empty();
+    container.addClass('pm-kanban-view');
 
     // 创建看板容器
     const boardContainer = container.createDiv('pm-kanban-container');
@@ -58,8 +58,8 @@ export class KanbanRenderer extends BaseRenderer {
     const board = container.createDiv('pm-kanban-board');
 
     KANBAN_COLUMNS.forEach((column) => {
-      const columnEl = this.createColumn(board, column.label, column.color, false, column.id);
-      
+      const columnEl = this.createColumn(board, column.label, column.color);
+
       // 过滤该状态的实体
       const columnEntities = entities.filter(
         (e) => 'status' in e && e.status === column.id
@@ -121,8 +121,7 @@ export class KanbanRenderer extends BaseRenderer {
     board: HTMLElement,
     title: string,
     color: string,
-    compact: boolean = false,
-    statusId?: string
+    compact: boolean = false
   ): HTMLElement {
     const column = board.createDiv('pm-kanban-column');
     if (compact) {
@@ -131,7 +130,7 @@ export class KanbanRenderer extends BaseRenderer {
 
     // 列标题
     const header = column.createDiv('pm-kanban-column-header');
-    
+
     const titleEl = header.createDiv('pm-kanban-column-title');
     titleEl.createSpan({ cls: 'pm-kanban-column-dot', attr: { style: `background: ${color}` } });
     titleEl.createSpan({ text: title });
@@ -141,68 +140,11 @@ export class KanbanRenderer extends BaseRenderer {
     // 卡片容器
     const cardsContainer = column.createDiv('pm-kanban-cards');
 
-    // 设置拖放区域（仅状态列）
-    if (statusId) {
-      this.setupDropZone(cardsContainer, statusId);
-    }
-
     return column;
   }
 
   /**
-   * 设置拖放区域
-   */
-  private setupDropZone(container: HTMLElement, statusId: string): void {
-    container.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      container.addClass('pm-kanban-drag-over');
-    });
-
-    container.addEventListener('dragleave', () => {
-      container.removeClass('pm-kanban-drag-over');
-    });
-
-    container.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      container.removeClass('pm-kanban-drag-over');
-
-      const entityId = e.dataTransfer?.getData('text/plain');
-      const entityType = e.dataTransfer?.getData('entity-type') as EntityType;
-
-      if (entityId && entityType) {
-        await this.actionService.changeStatus(entityType, entityId, statusId);
-        const boardContainer = container.closest('.pm-kanban-view') as HTMLElement;
-        if (boardContainer) {
-          this.render(boardContainer);
-        }
-      }
-    });
-  }
-
-  /**
-   * 显示快速创建模态框
-   */
-  private async showQuickCreateModal(status: string): Promise<void> {
-    const { QuickCreateModal } = await import('../../modals/QuickCreateModal');
-
-    new QuickCreateModal(
-      this.app,
-      this.entityManager,
-      new Date().toISOString().split('T')[0],
-      async (data: CreateFeatureData) => {
-        try {
-          const featureData = { ...data, status: status as FeatureStatus };
-          await this.entityManager.createFeature(featureData);
-          this.render(document.querySelector('.pm-kanban-view') as HTMLElement);
-        } catch (error) {
-          console.error('创建特性失败:', error);
-        }
-      }
-    ).open();
-  }
-
-  /**
-   * 渲染看板卡片 - 使用 EntityCard 组件
+   * 渲染看板卡片 - 使用 EntityCard 组件，只读模式
    */
   private renderKanbanCard(
     container: HTMLElement,
@@ -218,23 +160,16 @@ export class KanbanRenderer extends BaseRenderer {
       entity,
       {
         ...this.buildCardOptions(),
-        draggable: entityType === 'feature' && 'status' in entity,
+        draggable: false,
         smallTitle: true,
+        showActions: false,
       },
       {
         onOpen: () => this.actionService.openEntity(entityType, entity.id),
-        onStatusChange: (e, status) => this.actionService.changeStatus(entityType, e.id, status),
-        onProgressChange: (e, progress) => this.actionService.updateProgress(entityType, e.id, progress),
-        onAddProgress: (e) => this.showProgressNoteInput(e, wrapper),
-        onAddRisk: (e) => this.showRiskInput(e, wrapper),
-        onDragStart: () => wrapper.addClass('pm-kanban-card-dragging'),
-        onDragEnd: () => wrapper.removeClass('pm-kanban-card-dragging'),
       },
       logSummary || undefined
     );
-
   }
-
 }
 
 // 自注册到渲染器注册表

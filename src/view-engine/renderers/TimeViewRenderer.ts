@@ -1,21 +1,11 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { DataService, ActionService } from '../services';
-import { ViewConfig, Entity, EntityType, getEntityType } from '../types';
+import { ViewConfig, Entity, EntityType, getEntityType, TimeViewMode, TimeGroupBy } from '../types';
 import type { Feature } from '../../types';
 import { BaseRenderer } from './BaseRenderer';
 import { RendererRegistry } from '../RendererRegistry';
 import { DateFormat, getPriorityColor, translateStatus } from '../design-tokens';
-
-/**
- * 时间视图粒度
- */
-type TimeViewMode = 'week' | 'month' | 'year' | 'all';
-
-/**
- * 分组方式
- */
-type GroupBy = 'owner' | 'project';
 
 /**
  * 时间视图状态
@@ -23,11 +13,9 @@ type GroupBy = 'owner' | 'project';
 interface TimeViewState {
   currentDate: Date;
   viewMode: TimeViewMode;
-  groupBy: GroupBy;
+  groupBy: TimeGroupBy;
   /** 已折叠的组 ID（负责人或项目），默认全部展开 */
   collapsedGroups: Set<string>;
-  /** @deprecated 兼容旧状态，不再使用 */
-  expandedProjects?: Set<string>;
 }
 
 /**
@@ -60,41 +48,60 @@ interface GanttRow {
  * 支持按负责人/按项目分组，可展开项目行查看子特性
  */
 export class TimeViewRenderer extends BaseRenderer {
-  private state: TimeViewState;
-  private static sharedState: TimeViewState | null = null;
+  private state: TimeViewState = {
+    currentDate: new Date(),
+    viewMode: 'month',
+    groupBy: 'owner',
+    collapsedGroups: new Set(),
+  };
 
-  constructor(
-    app: App,
-    entityManager: EntityManager,
-    dataService: DataService,
-    actionService: ActionService
-  ) {
-    super(app, entityManager, dataService, actionService);
-    if (TimeViewRenderer.sharedState) {
-      this.state = {
-        ...TimeViewRenderer.sharedState,
-        collapsedGroups: new Set(TimeViewRenderer.sharedState.collapsedGroups || []),
-      };
-    } else {
-      this.state = {
-        currentDate: new Date(),
-        viewMode: 'month',
-        groupBy: 'owner',
-        collapsedGroups: new Set(),
-      };
-      TimeViewRenderer.sharedState = this.state;
-    }
+  /**
+   * 初始化渲染器，从配置中恢复时间视图状态
+   */
+  init(config: ViewConfig, context: import('../types').ViewContext, options?: import('./BaseRenderer').RendererInitOptions): void {
+    super.init(config, context, options);
+    this.initializeStateFromConfig();
+  }
+
+  /**
+   * 从 YAML 配置初始化时间视图状态
+   */
+  private initializeStateFromConfig(): void {
+    const config = this.config;
+    const collapsedGroups = new Set(config.collapsedGroups || []);
+
+    this.state = {
+      currentDate: config.timeViewDate ? new Date(config.timeViewDate) : new Date(),
+      viewMode: config.timeViewMode || 'month',
+      groupBy: config.timeGroupBy || 'owner',
+      collapsedGroups,
+    };
+  }
+
+  /**
+   * 将当前状态持久化到 YAML 配置
+   */
+  private persistState(): void {
+    this.saveConfig({
+      timeViewMode: this.state.viewMode,
+      timeGroupBy: this.state.groupBy,
+      timeViewDate: this.state.currentDate.toISOString().split('T')[0],
+      collapsedGroups: Array.from(this.state.collapsedGroups),
+    });
   }
 
   /**
    * 渲染时间视图
    */
   async render(container: HTMLElement): Promise<void> {
-    container.empty();
-    container.addClass('pm-timeview');
+    // 显示加载状态，等待数据准备完成
+    this.showLoading(container);
 
     const entities = await this.prepareData();
     const items = this.convertToTimeItems(entities);
+
+    container.empty();
+    container.addClass('pm-timeview');
 
     this.renderToolbar(container, entities.length, items.length);
 
@@ -367,6 +374,7 @@ export class TimeViewRenderer extends BaseRenderer {
     prevBtn.textContent = '◀';
     prevBtn.onclick = () => {
       this.navigateDate(-1);
+      this.persistState();
       this.refresh(container);
     };
 
@@ -377,7 +385,7 @@ export class TimeViewRenderer extends BaseRenderer {
       this.state.viewMode === 'all' ? '全部' : '本月';
     todayBtn.onclick = () => {
       this.state.currentDate = new Date();
-      this.syncSharedState();
+      this.persistState();
       this.refresh(container);
     };
 
@@ -385,6 +393,7 @@ export class TimeViewRenderer extends BaseRenderer {
     nextBtn.textContent = '▶';
     nextBtn.onclick = () => {
       this.navigateDate(1);
+      this.persistState();
       this.refresh(container);
     };
 
@@ -407,7 +416,7 @@ export class TimeViewRenderer extends BaseRenderer {
     });
     modeSelect.addEventListener('change', () => {
       this.state.viewMode = modeSelect.value as TimeViewMode;
-      this.syncSharedState();
+      this.persistState();
       this.refresh(container);
     });
 
@@ -420,7 +429,7 @@ export class TimeViewRenderer extends BaseRenderer {
     ownerBtn.onclick = () => {
       if (this.state.groupBy !== 'owner') {
         this.state.groupBy = 'owner';
-        this.syncSharedState();
+        this.persistState();
         this.refresh(container);
       }
     };
@@ -432,7 +441,7 @@ export class TimeViewRenderer extends BaseRenderer {
     projectBtn.onclick = () => {
       if (this.state.groupBy !== 'project') {
         this.state.groupBy = 'project';
-        this.syncSharedState();
+        this.persistState();
         this.refresh(container);
       }
     };
@@ -461,17 +470,6 @@ export class TimeViewRenderer extends BaseRenderer {
         // 全部时间模式下导航无效
         break;
     }
-    this.syncSharedState();
-  }
-
-  /**
-   * 同步到共享状态
-   */
-  private syncSharedState(): void {
-    TimeViewRenderer.sharedState = {
-      ...this.state,
-      collapsedGroups: new Set(this.state.collapsedGroups),
-    };
   }
 
   /**
@@ -628,6 +626,7 @@ export class TimeViewRenderer extends BaseRenderer {
       expandBtn.onclick = (e) => {
         e.stopPropagation();
         this.toggleGroup(row.groupId!);
+        this.persistState();
         this.refresh(rowEl.closest('.pm-timeview') as HTMLElement);
       };
     }
@@ -713,7 +712,6 @@ export class TimeViewRenderer extends BaseRenderer {
     } else {
       this.state.collapsedGroups.add(groupId);
     }
-    this.syncSharedState();
   }
 
   // ==================== 辅助方法 ====================

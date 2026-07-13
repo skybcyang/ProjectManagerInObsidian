@@ -148,7 +148,7 @@ if (pm && pm.api) {
 ## \u{1F4E6} \u7248\u672C\u7BA1\u7406
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: version
 \`\`\`
 
@@ -157,7 +157,7 @@ entityType: version
 ## \u{1F4C1} \u9879\u76EE\u7BA1\u7406
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: project
 \`\`\`
 
@@ -191,13 +191,13 @@ status: {{status}}
 
 ---
 
-## \u{1F4CA} \u5DE5\u65F6\u7EDF\u8BA1
+## \u{1F4CA} \u4EBA\u5929\u7EDF\u8BA1
 
-| \u7C7B\u578B | \u9884\u4F30\u5DE5\u65F6 | \u5B9E\u9645\u5DE5\u65F6 | \u504F\u5DEE |
+| \u7C7B\u578B | \u9884\u4F30\u4EBA\u5929 | \u5B9E\u9645\u4EBA\u5929 | \u504F\u5DEE |
 |------|---------|---------|------|
-| \u7248\u672C\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
+| \u7248\u672C\u603B\u8BA1 | {{#if estimatedDays}}{{estimatedDays}}{{else}}0{{/if}}d | {{#if actualDays}}{{actualDays}}{{else}}0{{/if}}d | {{#if estimatedDays}}{{#if actualDays}}{{daysDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
-> \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u7248\u672C\u4E0B\u6240\u6709\u9879\u76EE\u548C\u7279\u6027\u7684\u5DE5\u65F6\u6570\u636E
+> \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u7248\u672C\u4E0B\u6240\u6709\u9879\u76EE\u548C\u7279\u6027\u7684\u4EBA\u5929\u6570\u636E
 
 ---
 
@@ -364,13 +364,13 @@ priority: {{priority}}
 
 ---
 
-## \u{1F4CA} \u5DE5\u65F6\u7EDF\u8BA1
+## \u{1F4CA} \u4EBA\u5929\u7EDF\u8BA1
 
-| \u7C7B\u578B | \u9884\u4F30\u5DE5\u65F6 | \u5B9E\u9645\u5DE5\u65F6 | \u504F\u5DEE |
+| \u7C7B\u578B | \u9884\u4F30\u4EBA\u5929 | \u5B9E\u9645\u4EBA\u5929 | \u504F\u5DEE |
 |------|---------|---------|------|
-| \u9879\u76EE\u603B\u8BA1 | {{#if estimatedHours}}{{estimatedHours}}{{else}}0{{/if}}h | {{#if actualHours}}{{actualHours}}{{else}}0{{/if}}h | {{#if estimatedHours}}{{#if actualHours}}{{hoursDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
+| \u9879\u76EE\u603B\u8BA1 | {{#if estimatedDays}}{{estimatedDays}}{{else}}0{{/if}}d | {{#if actualDays}}{{actualDays}}{{else}}0{{/if}}d | {{#if estimatedDays}}{{#if actualDays}}{{daysDeviationText}}{{else}}-{{/if}}{{else}}-{{/if}} |
 
-> \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u9879\u76EE\u4E0B\u6240\u6709\u7279\u6027\u7684\u5DE5\u65F6\u6570\u636E
+> \u{1F4A1} **\u7EDF\u8BA1\u8BF4\u660E**: \u81EA\u52A8\u6C47\u603B\u8BE5\u9879\u76EE\u4E0B\u6240\u6709\u7279\u6027\u7684\u4EBA\u5929\u6570\u636E
 
 ---
 
@@ -483,7 +483,7 @@ Border: off
 ## \u{1F4CA} \u8FDB\u5EA6\u7EDF\u8BA1
 
 \`\`\`pm-view
-mode: list
+mode: cascade
 entityType: feature
 projectId: {{id}}
 \`\`\`
@@ -562,8 +562,8 @@ progress: {{progress}}
 {{#if owner}}owner: {{owner}}
 {{/if}}{{#if startDate}}startDate: {{startDate}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
-{{/if}}{{#if estimatedHours}}estimatedHours: {{estimatedHours}}
-{{/if}}{{#if actualHours}}actualHours: {{actualHours}}
+{{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
+{{/if}}{{#if actualDays}}actualDays: {{actualDays}}
 {{/if}}{{#if requirementIds}}requirementIds:
 {{#each requirementIds}}  - {{this}}
 {{/each}}{{/if}}{{#if projectLink}}projectLink: {{projectLink}}
@@ -939,11 +939,11 @@ var init_TemplateService = __esm({
           hour: "2-digit",
           minute: "2-digit"
         });
-        if ("estimatedHours" in context || "actualHours" in context) {
-          const est = Number(context.estimatedHours) || 0;
-          const act = Number(context.actualHours) || 0;
-          enriched.hoursDeviation = act - est;
-          enriched.hoursDeviationText = act >= est ? `+${act - est}h` : `${act - est}h`;
+        if ("estimatedDays" in context || "actualDays" in context) {
+          const est = Number(context.estimatedDays) || 0;
+          const act = Number(context.actualDays) || 0;
+          enriched.daysDeviation = act - est;
+          enriched.daysDeviationText = act >= est ? `+${act - est}d` : `${act - est}d`;
         }
         return enriched;
       }
@@ -1677,28 +1677,16 @@ var init_errorHandler = __esm({
 });
 
 // src/utils/configValidator.ts
-var VALID_VIEW_MODES, VALID_ENTITY_TYPES, VALID_SORT_FIELDS, VALID_SORT_ORDERS, VALID_GROUP_BY, VALID_LIST_COLUMNS, ConfigValidator;
+var VALID_VIEW_MODES, VALID_ENTITY_TYPES, VALID_SORT_FIELDS, VALID_SORT_ORDERS, VALID_GROUP_BY, VALID_TIME_VIEW_MODES, VALID_TIME_GROUP_BY, ConfigValidator;
 var init_configValidator = __esm({
   "src/utils/configValidator.ts"() {
-    VALID_VIEW_MODES = ["kanban", "list", "cascade", "timeview", "workload"];
+    VALID_VIEW_MODES = ["kanban", "cascade", "timeview"];
     VALID_ENTITY_TYPES = ["version", "project", "feature"];
     VALID_SORT_FIELDS = ["name", "startDate", "endDate", "priority", "progress", "created"];
     VALID_SORT_ORDERS = ["asc", "desc"];
     VALID_GROUP_BY = ["status", "priority", "version", "project", "startDate", "endDate"];
-    VALID_LIST_COLUMNS = [
-      "name",
-      "status",
-      "priority",
-      "owner",
-      "startDate",
-      "endDate",
-      "progress",
-      "risk",
-      "latestProgress",
-      "tags",
-      "versionId",
-      "projectId"
-    ];
+    VALID_TIME_VIEW_MODES = ["week", "month", "year", "all"];
+    VALID_TIME_GROUP_BY = ["owner", "project"];
     ConfigValidator = class {
       /**
        * 验证配置
@@ -1826,19 +1814,41 @@ var init_configValidator = __esm({
             warnings.push("expanded \u5FC5\u987B\u662F\u5E03\u5C14\u503C");
           }
         }
-        if (input.listColumns !== void 0) {
-          const listColumnsValidation = this.validateListColumns(input.listColumns);
-          if (listColumnsValidation.error) {
-            warnings.push(listColumnsValidation.error);
-          } else {
-            result.listColumns = listColumnsValidation.value;
-          }
-        }
         if (input.cardFields !== void 0) {
           if (typeof input.cardFields === "object" && input.cardFields !== null) {
             result.cardFields = input.cardFields;
           } else {
             warnings.push("cardFields \u5FC5\u987B\u662F\u5BF9\u8C61");
+          }
+        }
+        if (input.timeViewMode !== void 0) {
+          const modeStr = String(input.timeViewMode);
+          if (!VALID_TIME_VIEW_MODES.includes(modeStr)) {
+            warnings.push(`\u65E0\u6548\u7684 timeViewMode: "${modeStr}"\uFF0C\u6709\u6548\u503C: ${VALID_TIME_VIEW_MODES.join(", ")}`);
+          } else {
+            result.timeViewMode = modeStr;
+          }
+        }
+        if (input.timeGroupBy !== void 0) {
+          const groupByStr = String(input.timeGroupBy);
+          if (!VALID_TIME_GROUP_BY.includes(groupByStr)) {
+            warnings.push(`\u65E0\u6548\u7684 timeGroupBy: "${groupByStr}"\uFF0C\u6709\u6548\u503C: ${VALID_TIME_GROUP_BY.join(", ")}`);
+          } else {
+            result.timeGroupBy = groupByStr;
+          }
+        }
+        if (input.timeViewDate !== void 0) {
+          if (typeof input.timeViewDate === "string" && !isNaN(new Date(input.timeViewDate).getTime())) {
+            result.timeViewDate = input.timeViewDate;
+          } else {
+            warnings.push("timeViewDate \u5FC5\u987B\u662F\u6709\u6548\u7684\u65E5\u671F\u5B57\u7B26\u4E32");
+          }
+        }
+        if (input.collapsedGroups !== void 0) {
+          if (Array.isArray(input.collapsedGroups)) {
+            result.collapsedGroups = input.collapsedGroups.filter((g) => typeof g === "string");
+          } else {
+            warnings.push("collapsedGroups \u5FC5\u987B\u662F\u5B57\u7B26\u4E32\u6570\u7EC4");
           }
         }
         const validatedKeys = Object.keys(result);
@@ -1930,31 +1940,6 @@ var init_configValidator = __esm({
         return { value: groupByStr };
       }
       /**
-       * 验证列表列配置
-       */
-      static validateListColumns(columns) {
-        if (!Array.isArray(columns)) {
-          return { error: "listColumns \u5FC5\u987B\u662F\u6570\u7EC4" };
-        }
-        const validColumns = [];
-        const invalidColumns = [];
-        for (const col of columns) {
-          const colStr = String(col);
-          if (VALID_LIST_COLUMNS.includes(colStr)) {
-            validColumns.push(colStr);
-          } else {
-            invalidColumns.push(colStr);
-          }
-        }
-        if (invalidColumns.length > 0) {
-          return {
-            value: validColumns,
-            error: `\u5FFD\u7565\u65E0\u6548\u7684\u5217\u8868\u5217: ${invalidColumns.join(", ")}`
-          };
-        }
-        return { value: validColumns };
-      }
-      /**
        * 类型守卫：检查是否是有效的视图模式
        */
       static isViewMode(value) {
@@ -1983,6 +1968,18 @@ var init_configValidator = __esm({
        */
       static isGroupBy(value) {
         return VALID_GROUP_BY.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的时间视图粒度
+       */
+      static isTimeViewMode(value) {
+        return VALID_TIME_VIEW_MODES.includes(value);
+      }
+      /**
+       * 类型守卫：检查是否是有效的时间视图分组方式
+       */
+      static isTimeGroupBy(value) {
+        return VALID_TIME_GROUP_BY.includes(value);
       }
     };
   }
@@ -2449,8 +2446,8 @@ var init_CreateFeatureModal = __esm({
           priority: "medium",
           progress: 0,
           tags: [],
-          estimatedHours: void 0,
-          actualHours: void 0,
+          estimatedDays: void 0,
+          actualDays: void 0,
           requirementIds: [],
           projectLink: void 0
         };
@@ -2592,20 +2589,20 @@ var init_CreateFeatureModal = __esm({
         new import_obsidian16.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
           this.result.owner = value || void 0;
         }));
-        new import_obsidian16.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian16.Setting(contentEl).setName("\u9884\u4F30\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
-          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
-          text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A5";
+          text.setValue(this.result.estimatedDays !== void 0 ? String(this.result.estimatedDays) : "").onChange((value) => {
             const num = value ? parseFloat(value) : void 0;
-            this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
+            this.result.estimatedDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
-        new import_obsidian16.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian16.Setting(contentEl).setName("\u5B9E\u9645\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
-          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
-          text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A3";
+          text.setValue(this.result.actualDays !== void 0 ? String(this.result.actualDays) : "").onChange((value) => {
             const num = value ? parseFloat(value) : void 0;
-            this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
+            this.result.actualDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
         new import_obsidian16.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
@@ -2672,8 +2669,8 @@ var init_CreateFeatureModal = __esm({
           owner: "\u8BBE\u8BA1\u5E08\u5C0F\u738B",
           tags: ["UI", "\u9996\u9875", "\u8BBE\u8BA1"],
           isMilestone: false,
-          estimatedHours: 40,
-          actualHours: 0,
+          estimatedDays: 5,
+          actualDays: 0,
           requirementIds: ["REQ-001", "REQ-002"],
           projectLink: "https://hialm.example.com/project/123"
         };
@@ -2736,10 +2733,6 @@ var init_CreateFeatureModal = __esm({
 });
 
 // src/modals/QuickCreateModal.ts
-var QuickCreateModal_exports = {};
-__export(QuickCreateModal_exports, {
-  QuickCreateModal: () => QuickCreateModal
-});
 var import_obsidian17, QuickCreateModal;
 var init_QuickCreateModal = __esm({
   "src/modals/QuickCreateModal.ts"() {
@@ -3038,8 +3031,8 @@ var init_EditFeatureModal = __esm({
           owner: feature.owner,
           tags: [...feature.tags],
           isMilestone: feature.isMilestone,
-          estimatedHours: feature.estimatedHours,
-          actualHours: feature.actualHours,
+          estimatedDays: feature.estimatedDays,
+          actualDays: feature.actualDays,
           requirementIds: feature.requirementIds ? [...feature.requirementIds] : [],
           projectLink: feature.projectLink
         };
@@ -3141,20 +3134,20 @@ var init_EditFeatureModal = __esm({
         new import_obsidian20.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
           this.result.owner = value || void 0;
         }));
-        new import_obsidian20.Setting(contentEl).setName("\u9884\u4F30\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian20.Setting(contentEl).setName("\u9884\u4F30\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
-          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A40";
-          text.setValue(this.result.estimatedHours !== void 0 ? String(this.result.estimatedHours) : "").onChange((value) => {
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A5";
+          text.setValue(this.result.estimatedDays !== void 0 ? String(this.result.estimatedDays) : "").onChange((value) => {
             const num = value ? parseFloat(value) : void 0;
-            this.result.estimatedHours = num !== void 0 && !isNaN(num) ? num : void 0;
+            this.result.estimatedDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u5B9E\u9645\u5DE5\u65F6").setDesc("\u5C0F\u65F6\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian20.Setting(contentEl).setName("\u5B9E\u9645\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
-          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A32";
-          text.setValue(this.result.actualHours !== void 0 ? String(this.result.actualHours) : "").onChange((value) => {
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A3";
+          text.setValue(this.result.actualDays !== void 0 ? String(this.result.actualDays) : "").onChange((value) => {
             const num = value ? parseFloat(value) : void 0;
-            this.result.actualHours = num !== void 0 && !isNaN(num) ? num : void 0;
+            this.result.actualDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
         new import_obsidian20.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
@@ -3989,8 +3982,8 @@ var FeatureStore = class extends BaseStore {
       progress: data.progress || 0,
       startDate: data.startDate,
       endDate: data.endDate,
-      estimatedHours: data.estimatedHours,
-      actualHours: data.actualHours,
+      estimatedDays: data.estimatedDays,
+      actualDays: data.actualDays,
       projectLink: data.projectLink
     };
     let versionName = "";
@@ -4033,8 +4026,8 @@ var FeatureStore = class extends BaseStore {
       startDate: feature.startDate,
       endDate: feature.endDate,
       tags: feature.tags,
-      estimatedHours: feature.estimatedHours,
-      actualHours: feature.actualHours,
+      estimatedDays: feature.estimatedDays,
+      actualDays: feature.actualDays,
       projectLink: feature.projectLink
     });
     await this.fs.writeRawFile(path, content);
@@ -4583,8 +4576,8 @@ var EntityCache = class {
       owner: frontmatter.owner ? String(frontmatter.owner) : void 0,
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
       isMilestone: frontmatter.isMilestone === true,
-      estimatedHours: typeof frontmatter.estimatedHours === "number" ? frontmatter.estimatedHours : void 0,
-      actualHours: typeof frontmatter.actualHours === "number" ? frontmatter.actualHours : void 0
+      estimatedDays: typeof frontmatter.estimatedDays === "number" ? frontmatter.estimatedDays : void 0,
+      actualDays: typeof frontmatter.actualDays === "number" ? frontmatter.actualDays : void 0
     };
     if (!content) {
       content = await this.app.vault.cachedRead(file);
@@ -5000,7 +4993,7 @@ var ReportService = class {
         let features = await this.entityManager.listFeatures();
         features = this.applyFeatureFilters(features, filters);
         for (const f of features) {
-          addWorkload(f.owner || "\u672A\u5206\u914D", f.estimatedHours || 0, f.actualHours || 0, 1);
+          addWorkload(f.owner || "\u672A\u5206\u914D", f.estimatedDays || 0, f.actualDays || 0, 1);
         }
         break;
       }
@@ -5017,8 +5010,8 @@ var ReportService = class {
         }
         for (const [projectId, pfs] of projectGroups) {
           const project = projectMap.get(projectId);
-          const estimated = pfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-          const actual = pfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          const estimated = pfs.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+          const actual = pfs.reduce((sum, f) => sum + (f.actualDays || 0), 0);
           addWorkload((project == null ? void 0 : project.owner) || "\u672A\u5206\u914D", estimated, actual, pfs.length);
         }
         break;
@@ -5036,8 +5029,8 @@ var ReportService = class {
         }
         for (const [versionId, vfs] of versionGroups) {
           const version = versionMap.get(versionId);
-          const estimated = vfs.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-          const actual = vfs.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+          const estimated = vfs.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+          const actual = vfs.reduce((sum, f) => sum + (f.actualDays || 0), 0);
           addWorkload((version == null ? void 0 : version.owner) || "\u672A\u5206\u914D", estimated, actual, vfs.length);
         }
         break;
@@ -5073,11 +5066,11 @@ var ReportService = class {
         (f) => f.projectId === project.id
       );
       const estimated = projectFeatures.reduce(
-        (sum, f) => sum + (f.estimatedHours || 0),
+        (sum, f) => sum + (f.estimatedDays || 0),
         0
       );
       const actual = projectFeatures.reduce(
-        (sum, f) => sum + (f.actualHours || 0),
+        (sum, f) => sum + (f.actualDays || 0),
         0
       );
       return {
@@ -5125,24 +5118,24 @@ var ReportService = class {
     );
     const overdueCount = overdueFeatures.length;
     const overdueRate = totalFeatures > 0 ? Math.round(overdueCount / totalFeatures * 100) : 0;
-    const totalEstimatedHours = features.reduce(
-      (sum, f) => sum + (f.estimatedHours || 0),
+    const totalEstimatedDays = features.reduce(
+      (sum, f) => sum + (f.estimatedDays || 0),
       0
     );
-    const totalActualHours = features.reduce(
-      (sum, f) => sum + (f.actualHours || 0),
+    const totalActualDays = features.reduce(
+      (sum, f) => sum + (f.actualDays || 0),
       0
     );
-    const hoursVariance = totalActualHours > 0 ? Math.round(
-      (totalActualHours - totalEstimatedHours) / totalEstimatedHours * 100
+    const daysVariance = totalActualDays > 0 ? Math.round(
+      (totalActualDays - totalEstimatedDays) / totalEstimatedDays * 100
     ) : 0;
     const avgProgress = totalFeatures > 0 ? Math.round(
       features.reduce((sum, f) => sum + (f.progress || 0), 0) / totalFeatures
     ) : 0;
     let riskLevel = "low";
-    if (overdueRate > 20 || hoursVariance > 30) {
+    if (overdueRate > 20 || daysVariance > 30) {
       riskLevel = "high";
-    } else if (overdueRate > 10 || hoursVariance > 15) {
+    } else if (overdueRate > 10 || daysVariance > 15) {
       riskLevel = "medium";
     }
     return {
@@ -5151,44 +5144,12 @@ var ReportService = class {
       completionRate,
       overdueCount,
       overdueRate,
-      totalEstimatedHours,
-      totalActualHours,
-      hoursVariance,
+      totalEstimatedDays,
+      totalActualDays,
+      daysVariance,
       avgProgress,
       riskLevel
     };
-  }
-  /**
-   * 获取默认日期范围
-   */
-  getDefaultDateRange(features) {
-    const today = /* @__PURE__ */ new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const dates = features.flatMap((f) => [f.startDate, f.endDate]).filter((d) => !!d).sort();
-    if (dates.length > 0) {
-      return {
-        start: dates[0],
-        end: dates[dates.length - 1]
-      };
-    }
-    return {
-      start: thirtyDaysAgo.toISOString().split("T")[0],
-      end: today.toISOString().split("T")[0]
-    };
-  }
-  /**
-   * 生成日期范围数组
-   */
-  generateDateRange(start, end) {
-    const dates = [];
-    const current = new Date(start);
-    const endDate = new Date(end);
-    while (current <= endDate) {
-      dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
   }
 };
 
@@ -5333,7 +5294,7 @@ var EmailSummaryService = class {
       this.entityManager.listProjects({ versionId }),
       this.entityManager.listFeatures({ versionId }),
       this.reportService.calculateProjectHealth(versionId),
-      this.reportService.calculateWorkloadByProject({ mode: "list", version: versionId }),
+      this.reportService.calculateWorkloadByProject({ mode: "cascade", version: versionId }),
       this.entityManager.getOverdueItems("feature")
     ]);
     const versionOverdue = overdue.filter((o) => "projectId" in o && o.versionId === versionId);
@@ -5344,8 +5305,8 @@ var EmailSummaryService = class {
         ${this.metricCard("\u7279\u6027\u603B\u6570", String(health.totalFeatures))}
         ${this.metricCard("\u5B8C\u6210\u7387", `${health.completionRate}%`)}
         ${this.metricCard("\u903E\u671F\u6570", String(health.overdueCount), health.overdueCount > 0 ? "overdue" : "")}
-        ${this.metricCard("\u603B\u9884\u4F30\u5DE5\u65F6", String(health.totalEstimatedHours))}
-        ${this.metricCard("\u603B\u5B9E\u9645\u5DE5\u65F6", String(health.totalActualHours))}
+        ${this.metricCard("\u603B\u9884\u4F30\u4EBA\u5929", String(health.totalEstimatedDays))}
+        ${this.metricCard("\u603B\u5B9E\u9645\u4EBA\u5929", String(health.totalActualDays))}
         ${this.metricCard("\u98CE\u9669\u7B49\u7EA7", this.riskLabel(health.riskLevel), `risk-${health.riskLevel}`)}
       </div>
       <h2>\u5305\u542B\u9879\u76EE</h2>
@@ -5366,13 +5327,13 @@ var EmailSummaryService = class {
     const [project, features, workloadOwners, overdue] = await Promise.all([
       this.entityManager.getProject(projectId),
       this.entityManager.listFeatures({ projectId }),
-      this.reportService.calculateWorkloadByOwner("feature", { mode: "list", project: projectId }),
+      this.reportService.calculateWorkloadByOwner("feature", { mode: "cascade", project: projectId }),
       this.entityManager.getOverdueItems("feature")
     ]);
     const completedCount = features.filter((f) => f.status === "completed").length;
     const avgProgress = features.length > 0 ? Math.round(features.reduce((sum, f) => sum + (f.progress || 0), 0) / features.length) : 0;
-    const totalEstimated = features.reduce((sum, f) => sum + (f.estimatedHours || 0), 0);
-    const totalActual = features.reduce((sum, f) => sum + (f.actualHours || 0), 0);
+    const totalEstimated = features.reduce((sum, f) => sum + (f.estimatedDays || 0), 0);
+    const totalActual = features.reduce((sum, f) => sum + (f.actualDays || 0), 0);
     const projectOverdue = overdue.filter((o) => "projectId" in o && o.projectId === projectId);
     const html = this.wrapHTML(subject, `
       <h1>${subject}</h1>
@@ -5382,8 +5343,8 @@ var EmailSummaryService = class {
         ${this.metricCard("\u5DF2\u5B8C\u6210", String(completedCount))}
         ${this.metricCard("\u5E73\u5747\u8FDB\u5EA6", `${avgProgress}%`)}
         ${this.metricCard("\u903E\u671F\u6570", String(projectOverdue.length), projectOverdue.length > 0 ? "overdue" : "")}
-        ${this.metricCard("\u9884\u4F30\u5DE5\u65F6", String(totalEstimated))}
-        ${this.metricCard("\u5B9E\u9645\u5DE5\u65F6", String(totalActual))}
+        ${this.metricCard("\u9884\u4F30\u4EBA\u5929", String(totalEstimated))}
+        ${this.metricCard("\u5B9E\u9645\u4EBA\u5929", String(totalActual))}
       </div>
       <h2>\u7279\u6027\u5217\u8868</h2>
       ${this.featuresTable(features)}
@@ -5404,7 +5365,7 @@ var EmailSummaryService = class {
       feature ? this.entityManager.getVersion(feature.versionId) : Promise.resolve(null),
       feature ? this.entityManager.getProject(feature.projectId) : Promise.resolve(null)
     ]);
-    const remaining = Math.max(0, ((feature == null ? void 0 : feature.estimatedHours) || 0) - ((feature == null ? void 0 : feature.actualHours) || 0));
+    const remaining = Math.max(0, ((feature == null ? void 0 : feature.estimatedDays) || 0) - ((feature == null ? void 0 : feature.actualDays) || 0));
     const html = this.wrapHTML(subject, `
       <h1>${subject}</h1>
       <p><strong>\u6240\u5C5E\u7248\u672C:</strong> ${(version == null ? void 0 : version.name) || "-"} &nbsp;|&nbsp; <strong>\u6240\u5C5E\u9879\u76EE:</strong> ${(project == null ? void 0 : project.name) || "-"} &nbsp;|&nbsp; <strong>\u8D1F\u8D23\u4EBA:</strong> ${(feature == null ? void 0 : feature.owner) || "\u672A\u5206\u914D"}</p>
@@ -5412,9 +5373,9 @@ var EmailSummaryService = class {
         ${this.metricCard("\u72B6\u6001", feature ? getStatusLabel(feature.status, "feature") : "-")}
         ${this.metricCard("\u4F18\u5148\u7EA7", feature ? getPriorityLabel(feature.priority) : "-")}
         ${this.metricCard("\u8FDB\u5EA6", `${(feature == null ? void 0 : feature.progress) || 0}%`)}
-        ${this.metricCard("\u9884\u4F30\u5DE5\u65F6", String((feature == null ? void 0 : feature.estimatedHours) || 0))}
-        ${this.metricCard("\u5B9E\u9645\u5DE5\u65F6", String((feature == null ? void 0 : feature.actualHours) || 0))}
-        ${this.metricCard("\u5269\u4F59\u5DE5\u65F6", String(remaining))}
+        ${this.metricCard("\u9884\u4F30\u4EBA\u5929", String((feature == null ? void 0 : feature.estimatedDays) || 0))}
+        ${this.metricCard("\u5B9E\u9645\u4EBA\u5929", String((feature == null ? void 0 : feature.actualDays) || 0))}
+        ${this.metricCard("\u5269\u4F59\u4EBA\u5929", String(remaining))}
       </div>
       <h2>\u65F6\u95F4\u8BA1\u5212</h2>
       <p>\u5F00\u59CB\u65E5\u671F: ${(feature == null ? void 0 : feature.startDate) || "-"} &nbsp;|&nbsp; \u7ED3\u675F\u65E5\u671F: ${(feature == null ? void 0 : feature.endDate) || "-"}</p>
@@ -5530,7 +5491,7 @@ ${body}
         <td>${d.efficiency}%</td>
       </tr>
     `).join("");
-    return `<table><thead><tr><th>\u540D\u79F0</th><th>\u9884\u4F30\u5DE5\u65F6</th><th>\u5B9E\u9645\u5DE5\u65F6</th><th>\u5269\u4F59\u5DE5\u65F6</th><th>\u4EFB\u52A1\u6570</th><th>\u6548\u7387</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>\u540D\u79F0</th><th>\u9884\u4F30\u4EBA\u5929</th><th>\u5B9E\u9645\u4EBA\u5929</th><th>\u5269\u4F59\u4EBA\u5929</th><th>\u4EFB\u52A1\u6570</th><th>\u6548\u7387</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   trendTable(data) {
     if (data.length === 0)
@@ -5575,7 +5536,7 @@ ${body}
       lines.push(`\u5468\u671F: ${version.startDate || "-"} ~ ${version.endDate || "-"}`);
     }
     lines.push(`\u7279\u6027\u603B\u6570: ${health.totalFeatures} | \u5B8C\u6210\u7387: ${health.completionRate}% | \u903E\u671F\u6570: ${health.overdueCount}`);
-    lines.push(`\u9884\u4F30\u5DE5\u65F6: ${health.totalEstimatedHours}h | \u5B9E\u9645\u5DE5\u65F6: ${health.totalActualHours}h | \u98CE\u9669: ${this.riskLabel(health.riskLevel)}`);
+    lines.push(`\u9884\u4F30\u4EBA\u5929: ${health.totalEstimatedDays}d | \u5B9E\u9645\u4EBA\u5929: ${health.totalActualDays}d | \u98CE\u9669: ${this.riskLabel(health.riskLevel)}`);
     lines.push("", "== \u5305\u542B\u9879\u76EE ==");
     projects.forEach((p) => lines.push(`${p.name}: ${getStatusLabel(p.status, "project")} | \u8D1F\u8D23\u4EBA: ${p.owner || "\u672A\u5206\u914D"}`));
     lines.push("", "== \u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF ==");
@@ -5593,7 +5554,7 @@ ${body}
       lines.push(`\u9879\u76EE: ${project.name} | \u72B6\u6001: ${getStatusLabel(project.status, "project")} | \u4F18\u5148\u7EA7: ${getPriorityLabel(project.priority)}`);
     }
     lines.push(`\u7279\u6027\u603B\u6570: ${features.length} | \u5DF2\u5B8C\u6210: ${completedCount} | \u5E73\u5747\u8FDB\u5EA6: ${avgProgress}%`);
-    lines.push(`\u9884\u4F30\u5DE5\u65F6: ${totalEstimated}h | \u5B9E\u9645\u5DE5\u65F6: ${totalActual}h | \u903E\u671F\u6570: ${overdue.length}`);
+    lines.push(`\u9884\u4F30\u4EBA\u5929: ${totalEstimated}d | \u5B9E\u9645\u4EBA\u5929: ${totalActual}d | \u903E\u671F\u6570: ${overdue.length}`);
     lines.push("", "== \u7279\u6027\u5217\u8868 ==");
     features.forEach((f) => lines.push(`${f.name}: ${getStatusLabel(f.status, "feature")} | \u8FDB\u5EA6${f.progress}% | \u8D1F\u8D23\u4EBA:${f.owner || "\u672A\u5206\u914D"} | \u622A\u6B62:${f.endDate || "-"}`));
     lines.push("", "== \u8D1F\u8D23\u4EBA\u5DE5\u4F5C\u91CF ==");
@@ -5612,7 +5573,7 @@ ${body}
       lines.push(`\u72B6\u6001: ${getStatusLabel(feature.status, "feature")} | \u4F18\u5148\u7EA7: ${getPriorityLabel(feature.priority)} | \u8FDB\u5EA6: ${feature.progress}%`);
       lines.push(`\u8D1F\u8D23\u4EBA: ${feature.owner || "\u672A\u5206\u914D"}`);
       lines.push(`\u6240\u5C5E\u7248\u672C: ${(version == null ? void 0 : version.name) || "-"} | \u6240\u5C5E\u9879\u76EE: ${(project == null ? void 0 : project.name) || "-"}`);
-      lines.push(`\u9884\u4F30\u5DE5\u65F6: ${feature.estimatedHours || 0}h | \u5B9E\u9645\u5DE5\u65F6: ${feature.actualHours || 0}h | \u5269\u4F59: ${remaining}h`);
+      lines.push(`\u9884\u4F30\u4EBA\u5929: ${feature.estimatedDays || 0}d | \u5B9E\u9645\u4EBA\u5929: ${feature.actualDays || 0}d | \u5269\u4F59: ${remaining}d`);
       lines.push(`\u65F6\u95F4\u8BA1\u5212: ${feature.startDate || "-"} ~ ${feature.endDate || "-"}`);
     }
     return lines.join("\n");
@@ -6259,8 +6220,8 @@ var DataviewService = class {
       startDate: page.startDate,
       endDate: page.endDate,
       isMilestone: page.isMilestone,
-      estimatedHours: page.estimatedHours,
-      actualHours: page.actualHours
+      estimatedDays: page.estimatedDays,
+      actualDays: page.actualDays
     };
   }
   /**
@@ -6289,8 +6250,8 @@ var DataviewService = class {
       startDate: frontmatter.startDate,
       endDate: frontmatter.endDate,
       isMilestone: frontmatter.isMilestone,
-      estimatedHours: frontmatter.estimatedHours,
-      actualHours: frontmatter.actualHours
+      estimatedDays: frontmatter.estimatedDays,
+      actualDays: frontmatter.actualDays
     };
   }
   /**
@@ -6603,8 +6564,8 @@ var DataviewFunctionRegistry = class {
       startDate: frontmatter.startDate,
       endDate: frontmatter.endDate,
       isMilestone: frontmatter.isMilestone,
-      estimatedHours: frontmatter.estimatedHours,
-      actualHours: frontmatter.actualHours
+      estimatedDays: frontmatter.estimatedDays,
+      actualDays: frontmatter.actualDays
     };
   }
   parseTags(tags) {
@@ -7851,10 +7812,16 @@ var ActionService = class {
     this.beforeOpenEntityCallback = callback;
   }
   /**
-   * 触发刷新
+   * 触发刷新（带防抖，避免频繁重渲染导致卡死）
    */
   triggerRefresh() {
-    this.eventBus.emit("refresh");
+    if (this.refreshTimeout) {
+      window.clearTimeout(this.refreshTimeout);
+    }
+    this.refreshTimeout = window.setTimeout(() => {
+      this.eventBus.emit("refresh");
+      this.refreshTimeout = void 0;
+    }, 300);
   }
   /**
    * 获取实体策略
@@ -8071,10 +8038,8 @@ var ActionService = class {
 // src/view-engine/types.ts
 var VIEW_MODE_LABELS = {
   "kanban": "\u{1F4CA} \u770B\u677F\u89C6\u56FE",
-  "list": "\u{1F4CB} \u5217\u8868\u89C6\u56FE",
   "cascade": "\u{1F332} \u7EA7\u8054\u89C6\u56FE",
-  "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE",
-  "workload": "\u2696\uFE0F \u5DE5\u4F5C\u91CF\u7EDF\u8BA1"
+  "timeview": "\u{1F5D3}\uFE0F \u65F6\u95F4\u89C6\u56FE"
 };
 var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "name", label: "\u540D\u79F0", required: true },
@@ -8083,6 +8048,8 @@ var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "owner", label: "\u8D1F\u8D23\u4EBA", required: false },
   { key: "startDate", label: "\u5F00\u59CB\u65E5\u671F", required: false },
   { key: "endDate", label: "\u7ED3\u675F\u65E5\u671F", required: false },
+  { key: "estimatedDays", label: "\u9884\u4F30\u4EBA\u5929", required: false },
+  { key: "actualDays", label: "\u5B9E\u9645\u4EBA\u5929", required: false },
   { key: "progress", label: "\u8FDB\u5EA6\u6761", required: false },
   { key: "risk", label: "\u98CE\u9669\u5FBD\u7AE0", required: false },
   { key: "latestProgress", label: "\u6700\u65B0\u8FDB\u5C55", required: false },
@@ -8093,20 +8060,6 @@ var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "stats", label: "\u7EDF\u8BA1\u4FE1\u606F", required: false },
   { key: "actions", label: "\u64CD\u4F5C\u6309\u94AE", required: false }
 ];
-var LIST_COLUMN_DEFINITIONS = [
-  { key: "name", label: "\u540D\u79F0", required: true },
-  { key: "status", label: "\u72B6\u6001", required: false },
-  { key: "priority", label: "\u4F18\u5148\u7EA7", required: false },
-  { key: "owner", label: "\u8D1F\u8D23\u4EBA", required: false },
-  { key: "startDate", label: "\u5F00\u59CB\u65E5\u671F", required: false },
-  { key: "endDate", label: "\u7ED3\u675F\u65E5\u671F", required: false },
-  { key: "progress", label: "\u8FDB\u5EA6", required: false },
-  { key: "risk", label: "\u98CE\u9669", required: false },
-  { key: "latestProgress", label: "\u6700\u65B0\u8FDB\u5C55", required: false },
-  { key: "tags", label: "\u6807\u7B7E", required: false },
-  { key: "versionId", label: "\u7248\u672C", required: false },
-  { key: "projectId", label: "\u9879\u76EE", required: false }
-];
 function getEntityType(entity) {
   if ("projectId" in entity && entity.projectId !== void 0) {
     return "feature";
@@ -8115,50 +8068,6 @@ function getEntityType(entity) {
     return "project";
   }
   return "version";
-}
-var FEATURE_FIELDS = [
-  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "status", label: "\u72B6\u6001", type: "select", options: ["backlog", "todo", "in-progress", "testing", "completed", "archived"], editable: true, sortable: true, filterable: true },
-  { name: "priority", label: "\u4F18\u5148\u7EA7", type: "select", options: ["critical", "high", "medium", "low"], editable: true, sortable: true, filterable: true },
-  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "progress", label: "\u8FDB\u5EA6", type: "progress", editable: true, sortable: true, filterable: false },
-  { name: "estimatedHours", label: "\u9884\u4F30\u5DE5\u65F6", type: "number", editable: true, sortable: true, filterable: false },
-  { name: "actualHours", label: "\u5B9E\u9645\u5DE5\u65F6", type: "number", editable: true, sortable: true, filterable: false },
-  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true },
-  { name: "versionId", label: "\u7248\u672C", type: "entity", editable: true, sortable: true, filterable: true },
-  { name: "projectId", label: "\u9879\u76EE", type: "entity", editable: true, sortable: true, filterable: true }
-];
-var PROJECT_FIELDS = [
-  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "status", label: "\u72B6\u6001", type: "select", options: ["backlog", "in-progress", "completed", "archived"], editable: true, sortable: true, filterable: true },
-  { name: "priority", label: "\u4F18\u5148\u7EA7", type: "select", options: ["critical", "high", "medium", "low"], editable: true, sortable: true, filterable: true },
-  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true },
-  { name: "versionId", label: "\u7248\u672C", type: "entity", editable: true, sortable: true, filterable: true }
-];
-var VERSION_FIELDS = [
-  { name: "name", label: "\u540D\u79F0", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "status", label: "\u72B6\u6001", type: "select", options: ["planning", "in-progress", "completed", "archived"], editable: true, sortable: true, filterable: true },
-  { name: "owner", label: "\u8D1F\u8D23\u4EBA", type: "text", editable: true, sortable: true, filterable: true },
-  { name: "startDate", label: "\u5F00\u59CB\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "endDate", label: "\u7ED3\u675F\u65E5\u671F", type: "date", editable: true, sortable: true, filterable: true },
-  { name: "tags", label: "\u6807\u7B7E", type: "multi-select", editable: true, sortable: false, filterable: true }
-];
-function getEntityFields(entityType) {
-  switch (entityType) {
-    case "feature":
-      return FEATURE_FIELDS;
-    case "project":
-      return PROJECT_FIELDS;
-    case "version":
-      return VERSION_FIELDS;
-    default:
-      return [];
-  }
 }
 
 // src/view-engine/design-tokens.ts
@@ -8180,6 +8089,9 @@ var STATUS_COLORS = {
   active: { bg: "#f59e0b", text: "#ffffff", label: "\u8FDB\u884C\u4E2D" },
   suspended: { bg: "#94a3b8", text: "#ffffff", label: "\u5DF2\u6682\u505C" }
 };
+function getStatusColor2(status) {
+  return STATUS_COLORS[status] || { bg: "#9ca3af", text: "#ffffff", label: status };
+}
 function getPriorityColor2(priority) {
   return PRIORITY_COLORS[priority] || { bg: "#9ca3af", text: "#ffffff", label: priority };
 }
@@ -8269,6 +8181,321 @@ function translatePriority(priority) {
   var _a;
   return ((_a = PRIORITY_COLORS[priority]) == null ? void 0 : _a.label) || priority;
 }
+
+// src/view-engine/renderers/BaseRenderer.ts
+var BaseRenderer = class {
+  constructor(app, entityManager, dataService, actionService) {
+    this.app = app;
+    this.entityManager = entityManager;
+    this.dataService = dataService;
+    this.actionService = actionService;
+  }
+  /**
+   * 初始化渲染器
+   */
+  init(config, context, options) {
+    this.config = config;
+    this.context = context;
+    this.onSaveConfig = options == null ? void 0 : options.onSaveConfig;
+  }
+  /**
+   * 显示加载状态
+   */
+  showLoading(container) {
+    return this.createLoadingState(container);
+  }
+  /**
+   * 保存配置更新（持久化到 YAML）
+   */
+  saveConfig(updates) {
+    var _a;
+    (_a = this.onSaveConfig) == null ? void 0 : _a.call(this, updates);
+  }
+  /**
+   * 准备数据 - 统一的数据加载、过滤、排序流程
+   * 子类可以重写此方法以自定义数据准备逻辑
+   */
+  async prepareData() {
+    const entities = await this.dataService.loadEntities(this.config);
+    const filtered = this.dataService.applyFilters(entities, this.config);
+    const sorted = this.dataService.applySort(
+      filtered,
+      this.config.sortBy,
+      this.config.sortOrder
+    );
+    if (this.config.limit && this.config.limit > 0) {
+      return sorted.slice(0, this.config.limit);
+    }
+    return sorted;
+  }
+  /**
+   * 判断卡片字段是否应该显示
+   */
+  shouldShowCardField(fieldKey) {
+    const cardFields = this.config.cardFields || {
+      required: ["name", "priority"],
+      optional: ["status", "owner", "progress"]
+    };
+    const allFields = [...cardFields.required || [], ...cardFields.optional || []];
+    return allFields.includes(fieldKey);
+  }
+  /**
+   * 构建 EntityCard 选项
+   * 将 cardFields 配置映射为 EntityCardOptions
+   */
+  buildCardOptions(overrides) {
+    const cardFields = this.config.cardFields || {
+      required: ["name", "priority"],
+      optional: ["status", "owner", "progress", "endDate", "tags", "risk"]
+    };
+    const allFields = /* @__PURE__ */ new Set([
+      ...cardFields.required || [],
+      ...cardFields.optional || []
+    ]);
+    return {
+      showPriority: allFields.has("priority"),
+      showStatus: allFields.has("status"),
+      showOwner: allFields.has("owner"),
+      showStartDate: allFields.has("startDate"),
+      showDueDate: allFields.has("endDate"),
+      showProgress: allFields.has("progress"),
+      showRisk: allFields.has("risk"),
+      showLatestProgress: allFields.has("latestProgress"),
+      showTags: allFields.has("tags"),
+      showDescription: allFields.has("description"),
+      showParent: allFields.has("parent"),
+      showTypeIcon: allFields.has("typeIcon"),
+      showStats: allFields.has("stats"),
+      showActions: allFields.has("actions"),
+      showEstimatedDays: allFields.has("estimatedDays"),
+      showActualDays: allFields.has("actualDays"),
+      ...overrides
+    };
+  }
+  /**
+   * 创建视图容器
+   */
+  createContainer(parent) {
+    const container = parent.createDiv("pm-view-container");
+    return container;
+  }
+  /**
+   * 创建工具栏
+   */
+  createToolbar(container, title, stats) {
+    const toolbar = container.createDiv("pm-view-toolbar");
+    const titleEl = toolbar.createDiv("pm-view-title");
+    titleEl.textContent = title;
+    if (stats) {
+      const statsEl = toolbar.createDiv("pm-view-stats");
+      if (stats.filtered !== stats.total) {
+        statsEl.textContent = `${stats.filtered} / ${stats.total}`;
+        statsEl.setAttribute("title", `\u663E\u793A ${stats.filtered} \u9879 / \u5171 ${stats.total} \u9879`);
+      } else {
+        statsEl.textContent = `${stats.total} \u9879`;
+      }
+    }
+    return toolbar;
+  }
+  /**
+   * 创建空状态
+   */
+  createEmptyState(container, message = "\u6682\u65E0\u6570\u636E") {
+    const empty = container.createDiv("pm-view-empty");
+    empty.createEl("div", { cls: "pm-empty-icon", text: "\u{1F4ED}" });
+    empty.createEl("div", { cls: "pm-empty-text", text: message });
+    return empty;
+  }
+  /**
+   * 创建加载状态
+   */
+  createLoadingState(container) {
+    container.empty();
+    const loading = container.createDiv("pm-view-loading");
+    loading.createEl("div", { cls: "pm-loading-spinner" });
+    loading.createEl("div", { cls: "pm-loading-text", text: "\u52A0\u8F7D\u4E2D..." });
+    return loading;
+  }
+  /**
+   * 创建错误状态
+   */
+  createErrorState(container, error) {
+    const errorEl = container.createDiv("pm-view-error");
+    errorEl.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
+    errorEl.createEl("div", { cls: "pm-error-text", text: "\u52A0\u8F7D\u5931\u8D25" });
+    errorEl.createEl("div", { cls: "pm-error-detail", text: error });
+    return errorEl;
+  }
+  /**
+   * 渲染状态徽章
+   */
+  renderStatusBadge(container, status) {
+    const color = getStatusColor2(status);
+    const badge = container.createSpan({
+      cls: "pm-status-badge",
+      text: translateStatus(status)
+    });
+    badge.style.backgroundColor = color.bg;
+    badge.style.color = color.text;
+    return badge;
+  }
+  /**
+   * 渲染优先级徽章
+   */
+  renderPriorityBadge(container, priority) {
+    const color = getPriorityColor2(priority);
+    const badge = container.createSpan({
+      cls: "pm-priority-badge",
+      text: translatePriority(priority)
+    });
+    badge.style.backgroundColor = color.bg;
+    badge.style.color = color.text;
+    return badge;
+  }
+  /**
+   * 渲染进度条
+   */
+  renderProgressBar(container, progress) {
+    const progressEl = container.createDiv("pm-progress-bar");
+    const trackEl = progressEl.createDiv("pm-progress-bar__track");
+    const fillEl = trackEl.createDiv("pm-progress-bar__fill");
+    fillEl.style.width = `${progress}%`;
+    progressEl.createSpan({
+      cls: "pm-progress-bar__text",
+      text: `${progress}%`
+    });
+    return progressEl;
+  }
+  /**
+   * 渲染标签列表
+   */
+  renderTags(container, tags, limit = 3) {
+    const tagsEl = container.createDiv("pm-tags");
+    tags.slice(0, limit).forEach((tag) => {
+      tagsEl.createSpan({ cls: "pm-tag", text: tag });
+    });
+    if (tags.length > limit) {
+      tagsEl.createSpan({
+        cls: "pm-tag pm-tag--more",
+        text: `+${tags.length - limit}`
+      });
+    }
+    return tagsEl;
+  }
+  /**
+   * 渲染日期
+   */
+  renderDate(container, date, cls) {
+    const span = container.createSpan({
+      cls: cls || "pm-date",
+      text: DateFormat.medium(date)
+    });
+    return span;
+  }
+  /**
+   * 渲染人天
+   */
+  renderDays(container, days, label) {
+    const text = label ? `${label}: ${days}d` : `${days}d`;
+    return container.createSpan({
+      cls: "pm-days",
+      text
+    });
+  }
+  /**
+   * 渲染实体详情面板（最新进展 + 最新风险，只读）
+   */
+  renderDetailPanel(container, entity) {
+    var _a;
+    const existing = container.querySelector(".pm-list-card-detail");
+    if (existing)
+      existing.remove();
+    const detail = container.createDiv("pm-list-card-detail");
+    const inner = detail.createDiv("pm-list-card-detail-inner");
+    const logSummary = this.entityManager.cache.getLogSummary(entity.id);
+    const progressRow = inner.createDiv("pm-list-detail-row");
+    progressRow.createDiv({ cls: "pm-list-detail-section-title", text: "\u{1F4C8} \u6700\u65B0\u8FDB\u5C55" });
+    if (logSummary == null ? void 0 : logSummary.latestProgress) {
+      progressRow.createDiv({
+        cls: "pm-list-detail-item",
+        text: `\u{1F4DD} ${logSummary.latestProgress}`
+      });
+    } else {
+      progressRow.createDiv({
+        cls: "pm-list-detail-item pm-list-detail-item--empty",
+        text: "\u{1F4DD} \u6682\u65E0\u8FDB\u5C55\u8BB0\u5F55"
+      });
+    }
+    const riskRow = inner.createDiv("pm-list-detail-row");
+    riskRow.createDiv({ cls: "pm-list-detail-section-title", text: "\u26A0\uFE0F \u6700\u65B0\u98CE\u9669" });
+    const openRisks = ((_a = logSummary == null ? void 0 : logSummary.risks) == null ? void 0 : _a.filter((r) => r.status === "\u672A\u5173\u95ED" || r.status === "\u8DDF\u8E2A\u4E2D")) || [];
+    if (openRisks.length > 0) {
+      const firstRisk = openRisks[0];
+      const levelEmoji = firstRisk.level === "high" ? "\u{1F534}" : firstRisk.level === "medium" ? "\u{1F7E1}" : "\u{1F7E2}";
+      riskRow.createDiv({
+        cls: "pm-list-detail-item",
+        text: `${levelEmoji} ${firstRisk.level === "high" ? "\u9AD8" : firstRisk.level === "medium" ? "\u4E2D" : "\u4F4E"} | ${firstRisk.type} | ${firstRisk.description}`
+      });
+    } else {
+      riskRow.createDiv({
+        cls: "pm-list-detail-item pm-list-detail-item--empty",
+        text: "\u26A0\uFE0F \u6682\u65E0\u672A\u5173\u95ED\u98CE\u9669"
+      });
+    }
+    return detail;
+  }
+  /**
+   * 获取实体类型图标
+   */
+  getEntityTypeIcon(entityOrType) {
+    const type = typeof entityOrType === "string" ? entityOrType : getEntityType(entityOrType);
+    return getEntityIcon(type);
+  }
+  /**
+   * 翻译状态（使用设计令牌）
+   */
+  translateStatus(status) {
+    return translateStatus(status);
+  }
+  /**
+   * 翻译优先级（使用设计令牌）
+   */
+  translatePriority(priority) {
+    return translatePriority(priority);
+  }
+};
+
+// src/view-engine/RendererRegistry.ts
+var RendererRegistry = class {
+  /**
+   * 注册渲染器
+   */
+  static register(mode, constructor) {
+    this.renderers.set(mode, constructor);
+  }
+  /**
+   * 创建渲染器实例
+   */
+  static create(mode, app, entityManager, dataService, actionService) {
+    const Ctor = this.renderers.get(mode);
+    if (!Ctor)
+      return null;
+    return new Ctor(app, entityManager, dataService, actionService);
+  }
+  /**
+   * 获取所有注册的视图模式
+   */
+  static getRegisteredModes() {
+    return Array.from(this.renderers.keys());
+  }
+  /**
+   * 检查模式是否已注册
+   */
+  static has(mode) {
+    return this.renderers.has(mode);
+  }
+};
+RendererRegistry.renderers = /* @__PURE__ */ new Map();
 
 // src/view-engine/components/EntityTreeSelector.ts
 var ENTITY_TYPE_COLORS = {
@@ -9282,6 +9509,14 @@ var EntityCard = class {
         dueEl.addClass("pm-entity-card__due--overdue");
       }
     }
+    if (options.showEstimatedDays && "estimatedDays" in entity && entity.estimatedDays !== void 0) {
+      const estimatedEl = metaLeft.createDiv("pm-entity-card__days");
+      estimatedEl.textContent = `\u9884 ${entity.estimatedDays}d`;
+    }
+    if (options.showActualDays && "actualDays" in entity && entity.actualDays !== void 0) {
+      const actualEl = metaLeft.createDiv("pm-entity-card__days");
+      actualEl.textContent = `\u5B9E ${entity.actualDays}d`;
+    }
     const metaRight = footer.createDiv("pm-entity-card__meta-right");
     if (options.showLatestProgress && (logSummary == null ? void 0 : logSummary.latestProgress)) {
       const progressText = logSummary.latestProgress.length > 12 ? logSummary.latestProgress.substring(0, 12) + "..." : logSummary.latestProgress;
@@ -9619,403 +9854,6 @@ var DropdownMenuManager = class {
 };
 DropdownMenuManager.currentMenu = null;
 
-// src/view-engine/renderers/BaseRenderer.ts
-init_getOverlayContainer();
-var BaseRenderer = class {
-  constructor(app, entityManager, dataService, actionService) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.dataService = dataService;
-    this.actionService = actionService;
-  }
-  /**
-   * 初始化渲染器
-   */
-  init(config, context) {
-    this.config = config;
-    this.context = context;
-  }
-  /**
-   * 准备数据 - 统一的数据加载、过滤、排序流程
-   * 子类可以重写此方法以自定义数据准备逻辑
-   */
-  async prepareData() {
-    const entities = await this.dataService.loadEntities(this.config);
-    const filtered = this.dataService.applyFilters(entities, this.config);
-    const sorted = this.dataService.applySort(
-      filtered,
-      this.config.sortBy,
-      this.config.sortOrder
-    );
-    if (this.config.limit && this.config.limit > 0) {
-      return sorted.slice(0, this.config.limit);
-    }
-    return sorted;
-  }
-  /**
-   * 判断卡片字段是否应该显示
-   */
-  shouldShowCardField(fieldKey) {
-    const cardFields = this.config.cardFields || {
-      required: ["name", "priority"],
-      optional: ["status", "owner", "progress"]
-    };
-    const allFields = [...cardFields.required || [], ...cardFields.optional || []];
-    return allFields.includes(fieldKey);
-  }
-  /**
-   * 构建 EntityCard 选项
-   * 将 cardFields 配置映射为 EntityCardOptions
-   */
-  buildCardOptions(overrides) {
-    const cardFields = this.config.cardFields || {
-      required: ["name", "priority"],
-      optional: ["status", "owner", "progress", "endDate", "tags", "risk"]
-    };
-    const allFields = /* @__PURE__ */ new Set([
-      ...cardFields.required || [],
-      ...cardFields.optional || []
-    ]);
-    return {
-      showPriority: allFields.has("priority"),
-      showStatus: allFields.has("status"),
-      showOwner: allFields.has("owner"),
-      showStartDate: allFields.has("startDate"),
-      showDueDate: allFields.has("endDate"),
-      showProgress: allFields.has("progress"),
-      showRisk: allFields.has("risk"),
-      showLatestProgress: allFields.has("latestProgress"),
-      showTags: allFields.has("tags"),
-      showDescription: allFields.has("description"),
-      showParent: allFields.has("parent"),
-      showTypeIcon: allFields.has("typeIcon"),
-      showStats: allFields.has("stats"),
-      showActions: allFields.has("actions"),
-      ...overrides
-    };
-  }
-  /**
-   * 创建视图容器
-   */
-  createContainer(parent) {
-    const container = parent.createDiv("pm-view-container");
-    return container;
-  }
-  /**
-   * 创建工具栏
-   */
-  createToolbar(container, title, stats) {
-    const toolbar = container.createDiv("pm-view-toolbar");
-    const titleEl = toolbar.createDiv("pm-view-title");
-    titleEl.textContent = title;
-    if (stats) {
-      const statsEl = toolbar.createDiv("pm-view-stats");
-      if (stats.filtered !== stats.total) {
-        statsEl.textContent = `${stats.filtered} / ${stats.total}`;
-        statsEl.setAttribute("title", `\u663E\u793A ${stats.filtered} \u9879 / \u5171 ${stats.total} \u9879`);
-      } else {
-        statsEl.textContent = `${stats.total} \u9879`;
-      }
-    }
-    return toolbar;
-  }
-  /**
-   * 创建空状态
-   */
-  createEmptyState(container, message = "\u6682\u65E0\u6570\u636E") {
-    const empty = container.createDiv("pm-view-empty");
-    empty.createEl("div", { cls: "pm-empty-icon", text: "\u{1F4ED}" });
-    empty.createEl("div", { cls: "pm-empty-text", text: message });
-    return empty;
-  }
-  /**
-   * 创建加载状态
-   */
-  createLoadingState(container) {
-    const loading = container.createDiv("pm-view-loading");
-    loading.createEl("div", { cls: "pm-loading-spinner" });
-    loading.createEl("div", { cls: "pm-loading-text", text: "\u52A0\u8F7D\u4E2D..." });
-    return loading;
-  }
-  /**
-   * 创建错误状态
-   */
-  createErrorState(container, error) {
-    const errorEl = container.createDiv("pm-view-error");
-    errorEl.createEl("div", { cls: "pm-error-icon", text: "\u26A0\uFE0F" });
-    errorEl.createEl("div", { cls: "pm-error-text", text: "\u52A0\u8F7D\u5931\u8D25" });
-    errorEl.createEl("div", { cls: "pm-error-detail", text: error });
-    return errorEl;
-  }
-  /**
-   * 显示状态选择器
-   * 使用 StatusPicker 组件
-   */
-  showStatusPicker(entity, triggerEl) {
-    var _a;
-    if (!this.statusPicker) {
-      this.statusPicker = new StatusPicker();
-    }
-    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
-    if (!targetEl)
-      return;
-    this.statusPicker.show(
-      targetEl,
-      entity.status,
-      (status) => {
-        this.actionService.changeStatus(getEntityType(entity), entity.id, status);
-      }
-    );
-  }
-  /**
-   * 显示进度选择器
-   * 使用 ProgressPicker 组件
-   */
-  showProgressPicker(entity, triggerEl) {
-    var _a;
-    if (!this.progressPicker) {
-      this.progressPicker = new ProgressPicker();
-    }
-    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
-    if (!targetEl)
-      return;
-    const currentProgress = entity.progress || 0;
-    this.progressPicker.show(
-      targetEl,
-      currentProgress,
-      (progress) => {
-        this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
-      }
-    );
-  }
-  /**
-   * 显示添加风险输入框（简化版：直接打开模态框通过事件总线）
-   */
-  showRiskInput(entity, triggerEl) {
-    var _a;
-    const menu = document.createElement("div");
-    menu.className = "pm-risk-note-input";
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 12px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 280px;
-    `;
-    menu.createEl("div", {
-      text: "\u6DFB\u52A0\u98CE\u9669",
-      cls: "pm-picker-title"
-    }).style.cssText = "font-size: 13px; font-weight: 500; margin-bottom: 8px;";
-    const textarea = menu.createEl("textarea");
-    textarea.placeholder = "\u8F93\u5165\u98CE\u9669\u63CF\u8FF0\uFF08\u7C7B\u578B | \u63CF\u8FF0 | \u7B49\u7EA7 | \u8D23\u4EFB\u4EBA\uFF09";
-    textarea.style.cssText = `
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      background: var(--background-primary);
-      color: var(--text-normal);
-      font-size: 13px;
-      resize: vertical;
-      box-sizing: border-box;
-    `;
-    const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;";
-    const cancelBtn = btnContainer.createEl("button");
-    cancelBtn.textContent = "\u53D6\u6D88";
-    cancelBtn.onclick = () => menu.remove();
-    const confirmBtn = btnContainer.createEl("button");
-    confirmBtn.textContent = "\u4FDD\u5B58";
-    confirmBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: none;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => {
-      const content = textarea.value.trim();
-      if (content) {
-        const parts = content.split(/\||\t/).map((s) => s.trim());
-        const type = parts[0] || "\u5176\u4ED6";
-        const desc = parts[1] || content;
-        const level = (parts[2] || "medium").toLowerCase();
-        const owner = parts[3] || "";
-        this.actionService.addRisk(
-          getEntityType(entity),
-          entity.id,
-          { type, description: desc, level, owner, foundDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0], status: "\u672A\u5173\u95ED" }
-        );
-      }
-      menu.remove();
-    };
-    getOverlayContainer().appendChild(menu);
-    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
-    }
-    textarea.focus();
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
-  }
-  /**
-   * 显示进展反馈输入框
-   */
-  showProgressNoteInput(entity, triggerEl) {
-    var _a;
-    const menu = document.createElement("div");
-    menu.className = "pm-progress-note-input";
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 12px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 280px;
-    `;
-    menu.createEl("div", {
-      text: "\u6DFB\u52A0\u8FDB\u5C55\u53CD\u9988",
-      cls: "pm-picker-title"
-    }).style.cssText = "font-size: 13px; font-weight: 500; margin-bottom: 8px;";
-    const textarea = menu.createEl("textarea");
-    textarea.placeholder = "\u8F93\u5165\u5F53\u524D\u8FDB\u5C55...";
-    textarea.style.cssText = `
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      background: var(--background-primary);
-      color: var(--text-normal);
-      font-size: 13px;
-      resize: vertical;
-      box-sizing: border-box;
-    `;
-    const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;";
-    const cancelBtn = btnContainer.createEl("button");
-    cancelBtn.textContent = "\u53D6\u6D88";
-    cancelBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: 1px solid var(--background-modifier-border);
-      background: var(--background-secondary);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    cancelBtn.onclick = () => menu.remove();
-    const confirmBtn = btnContainer.createEl("button");
-    confirmBtn.textContent = "\u4FDD\u5B58";
-    confirmBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: none;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => {
-      const content = textarea.value.trim();
-      if (content) {
-        this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
-      }
-      menu.remove();
-    };
-    textarea.onkeydown = (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        const content = textarea.value.trim();
-        if (content) {
-          this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
-        }
-        menu.remove();
-      }
-    };
-    getOverlayContainer().appendChild(menu);
-    const targetEl = triggerEl || ((_a = document.activeElement) == null ? void 0 : _a.closest(".pm-card"));
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
-    }
-    textarea.focus();
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
-  }
-  /**
-   * 获取实体类型图标
-   */
-  getEntityTypeIcon(entityOrType) {
-    const type = typeof entityOrType === "string" ? entityOrType : getEntityType(entityOrType);
-    return getEntityIcon(type);
-  }
-  /**
-   * 翻译状态（使用设计令牌）
-   */
-  translateStatus(status) {
-    return translateStatus(status);
-  }
-  /**
-   * 翻译优先级（使用设计令牌）
-   */
-  translatePriority(priority) {
-    return translatePriority(priority);
-  }
-};
-
-// src/view-engine/RendererRegistry.ts
-var RendererRegistry = class {
-  /**
-   * 注册渲染器
-   */
-  static register(mode, constructor) {
-    this.renderers.set(mode, constructor);
-  }
-  /**
-   * 创建渲染器实例
-   */
-  static create(mode, app, entityManager, dataService, actionService) {
-    const Ctor = this.renderers.get(mode);
-    if (!Ctor)
-      return null;
-    return new Ctor(app, entityManager, dataService, actionService);
-  }
-  /**
-   * 获取所有注册的视图模式
-   */
-  static getRegisteredModes() {
-    return Array.from(this.renderers.keys());
-  }
-  /**
-   * 检查模式是否已注册
-   */
-  static has(mode) {
-    return this.renderers.has(mode);
-  }
-};
-RendererRegistry.renderers = /* @__PURE__ */ new Map();
-
 // src/view-engine/renderers/KanbanRenderer.ts
 var KanbanRenderer = class extends BaseRenderer {
   constructor(app, entityManager, dataService, actionService) {
@@ -10026,10 +9864,11 @@ var KanbanRenderer = class extends BaseRenderer {
    * 渲染看板视图
    */
   async render(container) {
-    container.empty();
-    container.addClass("pm-kanban-view");
+    this.showLoading(container);
     const sorted = await this.prepareData();
     this.entities = sorted;
+    container.empty();
+    container.addClass("pm-kanban-view");
     const boardContainer = container.createDiv("pm-kanban-container");
     if (this.config.groupBy === "priority") {
       this.renderPriorityBoard(boardContainer, sorted);
@@ -10043,7 +9882,7 @@ var KanbanRenderer = class extends BaseRenderer {
   renderStatusBoard(container, entities) {
     const board = container.createDiv("pm-kanban-board");
     KANBAN_COLUMNS.forEach((column) => {
-      const columnEl = this.createColumn(board, column.label, column.color, false, column.id);
+      const columnEl = this.createColumn(board, column.label, column.color);
       const columnEntities = entities.filter(
         (e) => "status" in e && e.status === column.id
       );
@@ -10089,7 +9928,7 @@ var KanbanRenderer = class extends BaseRenderer {
   /**
    * 创建看板列
    */
-  createColumn(board, title, color, compact = false, statusId) {
+  createColumn(board, title, color, compact = false) {
     const column = board.createDiv("pm-kanban-column");
     if (compact) {
       column.addClass("pm-kanban-column-compact");
@@ -10100,59 +9939,10 @@ var KanbanRenderer = class extends BaseRenderer {
     titleEl.createSpan({ text: title });
     header.createSpan({ cls: "pm-kanban-column-count", text: "0" });
     const cardsContainer = column.createDiv("pm-kanban-cards");
-    if (statusId) {
-      this.setupDropZone(cardsContainer, statusId);
-    }
     return column;
   }
   /**
-   * 设置拖放区域
-   */
-  setupDropZone(container, statusId) {
-    container.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      container.addClass("pm-kanban-drag-over");
-    });
-    container.addEventListener("dragleave", () => {
-      container.removeClass("pm-kanban-drag-over");
-    });
-    container.addEventListener("drop", async (e) => {
-      var _a, _b;
-      e.preventDefault();
-      container.removeClass("pm-kanban-drag-over");
-      const entityId = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain");
-      const entityType = (_b = e.dataTransfer) == null ? void 0 : _b.getData("entity-type");
-      if (entityId && entityType) {
-        await this.actionService.changeStatus(entityType, entityId, statusId);
-        const boardContainer = container.closest(".pm-kanban-view");
-        if (boardContainer) {
-          this.render(boardContainer);
-        }
-      }
-    });
-  }
-  /**
-   * 显示快速创建模态框
-   */
-  async showQuickCreateModal(status) {
-    const { QuickCreateModal: QuickCreateModal2 } = await Promise.resolve().then(() => (init_QuickCreateModal(), QuickCreateModal_exports));
-    new QuickCreateModal2(
-      this.app,
-      this.entityManager,
-      (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-      async (data) => {
-        try {
-          const featureData = { ...data, status };
-          await this.entityManager.createFeature(featureData);
-          this.render(document.querySelector(".pm-kanban-view"));
-        } catch (error) {
-          console.error("\u521B\u5EFA\u7279\u6027\u5931\u8D25:", error);
-        }
-      }
-    ).open();
-  }
-  /**
-   * 渲染看板卡片 - 使用 EntityCard 组件
+   * 渲染看板卡片 - 使用 EntityCard 组件，只读模式
    */
   renderKanbanCard(container, entity) {
     const entityType = getEntityType(entity);
@@ -10164,931 +9954,18 @@ var KanbanRenderer = class extends BaseRenderer {
       entity,
       {
         ...this.buildCardOptions(),
-        draggable: entityType === "feature" && "status" in entity,
-        smallTitle: true
+        draggable: false,
+        smallTitle: true,
+        showActions: false
       },
       {
-        onOpen: () => this.actionService.openEntity(entityType, entity.id),
-        onStatusChange: (e, status) => this.actionService.changeStatus(entityType, e.id, status),
-        onProgressChange: (e, progress) => this.actionService.updateProgress(entityType, e.id, progress),
-        onAddProgress: (e) => this.showProgressNoteInput(e, wrapper),
-        onAddRisk: (e) => this.showRiskInput(e, wrapper),
-        onDragStart: () => wrapper.addClass("pm-kanban-card-dragging"),
-        onDragEnd: () => wrapper.removeClass("pm-kanban-card-dragging")
+        onOpen: () => this.actionService.openEntity(entityType, entity.id)
       },
       logSummary || void 0
     );
   }
 };
 RendererRegistry.register("kanban", KanbanRenderer);
-
-// src/view-engine/cells/BaseCell.ts
-var BaseCell = class {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange, onBlur) {
-    this.app = app;
-    this.entityManager = entityManager;
-    this.entityId = entityId;
-    this.entityType = entityType;
-    this.field = field;
-    this.value = value;
-    this.onChange = onChange;
-    this.onBlur = onBlur;
-    this.containerEl = null;
-    this.isEditing = false;
-    this.originalValue = value;
-  }
-  /**
-   * 创建单元格容器
-   */
-  render(container) {
-    this.containerEl = container;
-    this.containerEl.addClass("pm-cell");
-    this.containerEl.dataset.field = this.field;
-    if (this.isEditing) {
-      this.renderEdit(this.containerEl);
-    } else {
-      this.renderDisplay(this.containerEl);
-    }
-  }
-  /**
-   * 切换到编辑模式
-   */
-  startEdit() {
-    if (this.isEditing)
-      return;
-    this.isEditing = true;
-    if (this.containerEl) {
-      this.containerEl.empty();
-      this.renderEdit(this.containerEl);
-    }
-  }
-  /**
-   * 退出编辑模式
-   */
-  endEdit(save = true) {
-    var _a;
-    if (!this.isEditing)
-      return;
-    this.isEditing = false;
-    if (save) {
-      this.saveValue();
-    } else {
-      this.value = this.originalValue;
-    }
-    if (this.containerEl) {
-      this.containerEl.empty();
-      this.renderDisplay(this.containerEl);
-    }
-    (_a = this.onBlur) == null ? void 0 : _a.call(this);
-  }
-  /**
-   * 保存值（子类可覆盖）
-   */
-  saveValue() {
-    var _a;
-    if (this.value !== this.originalValue) {
-      (_a = this.onChange) == null ? void 0 : _a.call(this, this.value);
-      this.originalValue = this.value;
-    }
-  }
-  /**
-   * 更新值
-   */
-  setValue(value) {
-    this.value = value;
-    if (!this.isEditing && this.containerEl) {
-      this.containerEl.empty();
-      this.renderDisplay(this.containerEl);
-    }
-  }
-  /**
-   * 获取当前值
-   */
-  getValue() {
-    return this.value;
-  }
-  /**
-   * 创建可点击的显示元素
-   */
-  createClickableDisplay(container, content) {
-    const el = container.createEl("div", { cls: "pm-cell-display" });
-    if (typeof content === "string") {
-      el.textContent = content || "-";
-    } else {
-      el.appendChild(content);
-    }
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.startEdit();
-    });
-    return el;
-  }
-  /**
-   * 创建输入框包装器
-   */
-  createInputWrapper(container) {
-    const wrapper = container.createDiv("pm-cell-edit-wrapper");
-    return wrapper;
-  }
-  /**
-   * 销毁单元格
-   */
-  destroy() {
-    if (this.containerEl) {
-      this.containerEl.empty();
-    }
-    this.containerEl = null;
-  }
-};
-
-// src/view-engine/cells/TextCell.ts
-var TextCell = class extends BaseCell {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange, options) {
-    super(app, entityManager, entityId, entityType, field, value || "", onChange);
-    this.isMultiline = false;
-    this.isMultiline = (options == null ? void 0 : options.multiline) || false;
-  }
-  /**
-   * 渲染显示状态
-   */
-  renderDisplay(container) {
-    const displayText = this.value || "-";
-    this.createClickableDisplay(container, displayText);
-  }
-  /**
-   * 渲染编辑状态
-   */
-  renderEdit(container) {
-    const wrapper = this.createInputWrapper(container);
-    const input = wrapper.createEl(this.isMultiline ? "textarea" : "input");
-    input.className = "pm-cell-input";
-    if (!this.isMultiline) {
-      input.type = "text";
-    }
-    input.value = this.value;
-    setTimeout(() => input.focus(), 0);
-    const handleSave = () => {
-      this.value = input.value;
-      this.endEdit(true);
-    };
-    const handleCancel = () => {
-      this.endEdit(false);
-    };
-    if (this.isMultiline) {
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && e.ctrlKey) {
-          e.preventDefault();
-          handleSave();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          handleCancel();
-        }
-      });
-      input.addEventListener("blur", () => {
-        setTimeout(() => {
-          if (!wrapper.contains(document.activeElement)) {
-            handleSave();
-          }
-        }, 100);
-      });
-    } else {
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          handleSave();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          handleCancel();
-        }
-      });
-      input.addEventListener("blur", () => {
-        setTimeout(() => {
-          if (!wrapper.contains(document.activeElement)) {
-            handleSave();
-          }
-        }, 100);
-      });
-    }
-  }
-};
-
-// src/view-engine/cells/SelectCell.ts
-var SelectCell = class extends BaseCell {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange, rawOptions) {
-    super(app, entityManager, entityId, entityType, field, value || "", onChange);
-    this.options = (rawOptions || []).map((opt) => {
-      if (typeof opt === "string") {
-        return {
-          value: opt,
-          label: this.translateOption(opt),
-          color: this.getOptionColor(opt)
-        };
-      }
-      return opt;
-    });
-    this.optionMap = new Map(this.options.map((o) => [o.value, o]));
-  }
-  /**
-   * 渲染显示状态
-   */
-  renderDisplay(container) {
-    const option = this.optionMap.get(this.value);
-    const badge = container.createEl("div", {
-      cls: `pm-cell-badge pm-cell-badge-${this.value}`
-    });
-    if (option == null ? void 0 : option.color) {
-      badge.style.backgroundColor = this.hexToRgba(option.color, 0.15);
-      badge.style.color = option.color;
-      badge.style.border = `1px solid ${this.hexToRgba(option.color, 0.3)}`;
-    } else if (!this.value) {
-      badge.style.color = "var(--text-muted)";
-      badge.style.border = "1px solid var(--background-modifier-border-hover)";
-    }
-    badge.textContent = (option == null ? void 0 : option.label) || this.value || "-";
-    badge.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.showDropdown(container);
-    });
-  }
-  /**
-   * 渲染编辑状态（显示下拉菜单）
-   */
-  renderEdit(container) {
-    this.showDropdown(container);
-  }
-  /**
-   * 显示下拉选择菜单
-   */
-  showDropdown(container) {
-    const existingMenu = container.querySelector(".pm-cell-dropdown");
-    if (existingMenu)
-      existingMenu.remove();
-    const zIndex = "var(--pm-z-dropdown, 1000)";
-    const menu = container.createDiv("pm-cell-dropdown");
-    menu.style.cssText = `
-      position: absolute;
-      top: 100%;
-      left: 0;
-      min-width: 140px;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 4px;
-      z-index: ${zIndex};
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      max-height: 200px;
-      overflow-y: auto;
-    `;
-    this.options.forEach((opt) => {
-      const item = menu.createDiv("pm-cell-dropdown-item");
-      item.style.cssText = `
-        padding: 6px 10px;
-        cursor: pointer;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-      `;
-      if (opt.color) {
-        const dot = item.createSpan();
-        dot.style.cssText = `
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: ${opt.color};
-          flex-shrink: 0;
-        `;
-      }
-      item.createSpan({ text: opt.label });
-      if (opt.value === this.value) {
-        item.createSpan({
-          text: "\u2713",
-          cls: "pm-cell-dropdown-check"
-        }).style.cssText = "margin-left: auto; font-weight: bold;";
-      }
-      item.addEventListener("click", () => {
-        this.value = opt.value;
-        this.endEdit(true);
-      });
-      item.addEventListener("mouseenter", () => {
-        item.style.background = "var(--background-modifier-hover)";
-      });
-      item.addEventListener("mouseleave", () => {
-        item.style.background = "";
-      });
-    });
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target) && !container.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", closeMenu);
-        if (this.isEditing) {
-          this.isEditing = false;
-        }
-      }
-    };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
-  }
-  /**
-   * 翻译选项显示名称
-   */
-  translateOption(value) {
-    const translations = {
-      // 状态
-      backlog: "\u5F85\u5904\u7406",
-      todo: "\u5F85\u5F00\u59CB",
-      "in-progress": "\u8FDB\u884C\u4E2D",
-      testing: "\u6D4B\u8BD5\u4E2D",
-      completed: "\u5DF2\u5B8C\u6210",
-      archived: "\u5DF2\u5F52\u6863",
-      planning: "\u89C4\u5212\u4E2D",
-      active: "\u8FDB\u884C\u4E2D",
-      suspended: "\u5DF2\u6682\u505C",
-      // 优先级
-      critical: "\u7D27\u6025",
-      high: "\u9AD8",
-      medium: "\u4E2D",
-      low: "\u4F4E"
-    };
-    return translations[value] || value;
-  }
-  /**
-   * 获取选项颜色
-   */
-  getOptionColor(value) {
-    const colors = {
-      // 状态颜色
-      backlog: "#9ca3af",
-      todo: "#3b82f6",
-      "in-progress": "#f59e0b",
-      testing: "#8b5cf6",
-      completed: "#22c55e",
-      archived: "#6b7280",
-      planning: "#6366f1",
-      active: "#22c55e",
-      suspended: "#ef4444",
-      // 优先级颜色
-      critical: "#ef4444",
-      high: "#f97316",
-      medium: "#eab308",
-      low: "#22c55e"
-    };
-    return colors[value];
-  }
-  /**
-   * Hex 转 RGBA
-   */
-  hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-};
-
-// src/view-engine/cells/DateCell.ts
-var DateCell = class extends BaseCell {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange) {
-    super(app, entityManager, entityId, entityType, field, value || "", onChange);
-  }
-  /**
-   * 渲染显示状态
-   */
-  renderDisplay(container) {
-    const displayText = this.value ? this.formatDate(this.value) : "-";
-    const el = this.createClickableDisplay(container, displayText);
-    el.addClass("pm-cell-date");
-    if (this.value && this.isOverdue(this.value)) {
-      el.addClass("pm-cell-date-overdue");
-      el.setAttribute("title", "\u5DF2\u8FC7\u671F");
-    }
-  }
-  /**
-   * 渲染编辑状态
-   */
-  renderEdit(container) {
-    const wrapper = this.createInputWrapper(container);
-    wrapper.style.position = "relative";
-    const input = wrapper.createEl("input");
-    input.className = "pm-cell-input pm-cell-date-input";
-    input.type = "date";
-    input.value = this.value;
-    input.style.cssText = `
-      width: 100%;
-      padding: 4px 8px;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      background: var(--background-primary);
-      color: var(--text-normal);
-      font-size: 13px;
-    `;
-    setTimeout(() => input.focus(), 0);
-    input.addEventListener("change", () => {
-      this.value = input.value;
-      this.endEdit(true);
-    });
-    input.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (!wrapper.contains(document.activeElement)) {
-          this.value = input.value;
-          this.endEdit(true);
-        }
-      }, 100);
-    });
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        this.endEdit(false);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        this.value = input.value;
-        this.endEdit(true);
-      }
-    });
-    const quickActions = wrapper.createDiv("pm-cell-date-actions");
-    const zIndex = "var(--pm-z-dropdown, 1000)";
-    quickActions.style.cssText = `
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      margin-top: 4px;
-      padding: 4px;
-      z-index: ${zIndex};
-      display: flex;
-      gap: 4px;
-    `;
-    const todayBtn = quickActions.createEl("button");
-    todayBtn.textContent = "\u4ECA\u5929";
-    todayBtn.className = "pm-cell-btn";
-    todayBtn.onclick = () => {
-      this.value = this.formatDateForInput(/* @__PURE__ */ new Date());
-      this.endEdit(true);
-    };
-    const tomorrowBtn = quickActions.createEl("button");
-    tomorrowBtn.textContent = "\u660E\u5929";
-    tomorrowBtn.className = "pm-cell-btn";
-    tomorrowBtn.onclick = () => {
-      const tomorrow = /* @__PURE__ */ new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      this.value = this.formatDateForInput(tomorrow);
-      this.endEdit(true);
-    };
-    const nextWeekBtn = quickActions.createEl("button");
-    nextWeekBtn.textContent = "\u4E0B\u5468";
-    nextWeekBtn.className = "pm-cell-btn";
-    nextWeekBtn.onclick = () => {
-      const nextWeek = /* @__PURE__ */ new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      this.value = this.formatDateForInput(nextWeek);
-      this.endEdit(true);
-    };
-    if (this.value) {
-      const clearBtn = quickActions.createEl("button");
-      clearBtn.textContent = "\u6E05\u9664";
-      clearBtn.className = "pm-cell-btn pm-cell-btn-danger";
-      clearBtn.onclick = () => {
-        this.value = "";
-        this.endEdit(true);
-      };
-    }
-    const closeMenu = (e) => {
-      if (!wrapper.contains(e.target)) {
-        this.value = input.value;
-        this.endEdit(true);
-        document.removeEventListener("click", closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
-  }
-  /**
-   * 格式化日期显示
-   */
-  formatDate(dateStr) {
-    const date = new Date(dateStr);
-    const today = /* @__PURE__ */ new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (this.isSameDay(date, today)) {
-      return "\u4ECA\u5929";
-    }
-    if (this.isSameDay(date, tomorrow)) {
-      return "\u660E\u5929";
-    }
-    const diffDays = Math.floor((date.getTime() - today.getTime()) / (1e3 * 60 * 60 * 24));
-    if (diffDays < 0) {
-      return `${Math.abs(diffDays)}\u5929\u524D`;
-    }
-    if (diffDays <= 7) {
-      return `${diffDays}\u5929\u540E`;
-    }
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  }
-  /**
-   * 格式化为 input date 格式 (YYYY-MM-DD)
-   */
-  formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-  /**
-   * 检查是否是同一天
-   */
-  isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-  }
-  /**
-   * 检查是否过期
-   */
-  isOverdue(dateStr) {
-    const date = new Date(dateStr);
-    const today = /* @__PURE__ */ new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
-  }
-};
-
-// src/view-engine/cells/ProgressCell.ts
-var ProgressCell = class extends BaseCell {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange) {
-    super(app, entityManager, entityId, entityType, field, value != null ? value : 0, onChange);
-  }
-  renderDisplay(container) {
-    const progressBar = container.createDiv("pm-cell-progress");
-    const barContainer = progressBar.createDiv("pm-cell-progress-bar");
-    const barFill = barContainer.createDiv("pm-cell-progress-fill");
-    barFill.style.width = `${this.value}%`;
-    barFill.style.background = this.getProgressColor(this.value);
-    const percentText = progressBar.createSpan("pm-cell-progress-text");
-    percentText.textContent = `${Math.round(this.value)}%`;
-    progressBar.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.startEdit();
-    });
-  }
-  renderEdit(container) {
-    const wrapper = this.createInputWrapper(container);
-    wrapper.addClass("pm-cell-dropdown");
-    const slider = wrapper.createEl("input");
-    slider.type = "range";
-    slider.min = "0";
-    slider.max = "100";
-    slider.value = String(this.value);
-    slider.style.width = "100%";
-    const valueDisplay = wrapper.createDiv();
-    valueDisplay.textContent = `${this.value}%`;
-    slider.addEventListener("input", () => {
-      this.value = parseInt(slider.value);
-      valueDisplay.textContent = `${this.value}%`;
-    });
-    const quickValues = [0, 25, 50, 75, 100];
-    const quickRow = wrapper.createDiv();
-    quickValues.forEach((val) => {
-      const btn = quickRow.createEl("button");
-      btn.textContent = `${val}%`;
-      btn.onclick = () => {
-        this.value = val;
-        slider.value = String(val);
-        valueDisplay.textContent = `${val}%`;
-      };
-    });
-    const buttonRow = wrapper.createDiv();
-    const cancelBtn = buttonRow.createEl("button");
-    cancelBtn.textContent = "\u53D6\u6D88";
-    cancelBtn.onclick = () => this.endEdit(false);
-    const saveBtn = buttonRow.createEl("button");
-    saveBtn.textContent = "\u4FDD\u5B58";
-    saveBtn.onclick = () => this.endEdit(true);
-    setTimeout(() => slider.focus(), 0);
-  }
-  getProgressColor(value) {
-    if (value === 100)
-      return "#22c55e";
-    if (value >= 75)
-      return "#3b82f6";
-    if (value >= 50)
-      return "#8b5cf6";
-    if (value >= 25)
-      return "#f59e0b";
-    return "#ef4444";
-  }
-};
-
-// src/view-engine/cells/MultiSelectCell.ts
-var MultiSelectCell = class extends BaseCell {
-  constructor(app, entityManager, entityId, entityType, field, value, onChange, options) {
-    super(app, entityManager, entityId, entityType, field, value || [], onChange);
-    this.availableOptions = options || [];
-  }
-  renderDisplay(container) {
-    const tagsContainer = container.createDiv("pm-cell-tags");
-    if (!this.value || this.value.length === 0) {
-      tagsContainer.createSpan({ text: "-", cls: "pm-cell-empty" });
-    } else {
-      this.value.forEach((tag) => {
-        const tagEl = tagsContainer.createSpan("pm-cell-tag");
-        tagEl.textContent = tag;
-        tagEl.style.background = this.getTagColor(tag);
-      });
-    }
-    tagsContainer.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.startEdit();
-    });
-  }
-  renderEdit(container) {
-    const wrapper = this.createInputWrapper(container);
-    wrapper.addClass("pm-cell-dropdown");
-    const title = wrapper.createDiv();
-    title.textContent = "\u7F16\u8F91\u6807\u7B7E";
-    const selectedArea = wrapper.createDiv("pm-cell-tags-selected");
-    this.renderSelectedTags(selectedArea);
-    const inputContainer = wrapper.createDiv();
-    const input = inputContainer.createEl("input");
-    input.placeholder = "\u8F93\u5165\u65B0\u6807\u7B7E...";
-    const addBtn = inputContainer.createEl("button");
-    addBtn.textContent = "\u6DFB\u52A0";
-    addBtn.onclick = () => {
-      const newTag = input.value.trim();
-      if (newTag && !this.value.includes(newTag)) {
-        this.value = [...this.value, newTag];
-        this.renderSelectedTags(selectedArea);
-        input.value = "";
-      }
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        addBtn.click();
-      }
-    });
-    const buttonRow = wrapper.createDiv();
-    const cancelBtn = buttonRow.createEl("button");
-    cancelBtn.textContent = "\u53D6\u6D88";
-    cancelBtn.onclick = () => this.endEdit(false);
-    const saveBtn = buttonRow.createEl("button");
-    saveBtn.textContent = "\u4FDD\u5B58";
-    saveBtn.onclick = () => this.endEdit(true);
-  }
-  renderSelectedTags(container) {
-    container.empty();
-    if (this.value.length === 0) {
-      container.createSpan({ text: "\u6682\u65E0\u6807\u7B7E" });
-    } else {
-      this.value.forEach((tag, index) => {
-        const tagEl = container.createDiv("pm-cell-tag-item");
-        tagEl.style.background = this.getTagColor(tag);
-        tagEl.createSpan({ text: tag });
-        const removeBtn = tagEl.createSpan({ text: " x" });
-        removeBtn.onclick = () => {
-          this.value = this.value.filter((_, i) => i !== index);
-          this.renderSelectedTags(container);
-        };
-      });
-    }
-  }
-  getTagColor(tag) {
-    const colors = [
-      "rgba(59, 130, 246, 0.2)",
-      "rgba(34, 197, 94, 0.2)",
-      "rgba(245, 158, 11, 0.2)",
-      "rgba(239, 68, 68, 0.2)"
-    ];
-    let hash = 0;
-    for (let i = 0; i < tag.length; i++) {
-      hash = (hash << 5) - hash + tag.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }
-};
-
-// src/view-engine/renderers/ListRenderer.ts
-var ListRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-    this.entities = [];
-  }
-  /**
-   * 渲染列表视图
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-list-view");
-    const sorted = await this.prepareData();
-    this.entities = sorted;
-    const listContainer = container.createDiv("pm-list-container");
-    if (sorted.length === 0) {
-      this.createEmptyState(listContainer, "\u6CA1\u6709\u7B26\u5408\u6761\u4EF6\u7684\u5B9E\u4F53");
-      return;
-    }
-    this.renderListHeader(listContainer);
-    const cardsContainer = listContainer.createDiv("pm-list-cards");
-    for (const entity of sorted) {
-      await this.renderListCard(cardsContainer, entity);
-    }
-  }
-  /**
-   * 渲染列表头部
-   */
-  renderListHeader(container) {
-    const header = container.createDiv("pm-list-header");
-    const currentColumns = this.config.listColumns || ["name", "status", "priority", "owner"];
-    const info = header.createDiv("pm-list-info");
-    info.createSpan({
-      cls: "pm-list-count",
-      text: `\u5171 ${this.entities.length} \u4E2A\u5B9E\u4F53`
-    });
-    const columnsRow = header.createDiv("pm-list-header-columns");
-    const mainCol = columnsRow.createDiv("pm-list-header-main");
-    mainCol.textContent = "\u540D\u79F0";
-    const metaCol = columnsRow.createDiv("pm-list-header-meta");
-    const metaFields = ["status", "priority", "progress", "risk", "latestProgress", "owner", "endDate", "tags"];
-    for (const fieldKey of metaFields) {
-      if (currentColumns.includes(fieldKey)) {
-        const cell = metaCol.createDiv("pm-list-header-cell");
-        cell.style.width = this.getColumnWidth(fieldKey);
-        cell.style.minWidth = this.getColumnWidth(fieldKey);
-        const def = LIST_COLUMN_DEFINITIONS.find((d) => d.key === fieldKey);
-        cell.textContent = (def == null ? void 0 : def.label) || fieldKey;
-      }
-    }
-  }
-  /**
-   * 渲染列表卡片
-   */
-  async renderListCard(container, entity) {
-    const entityType = getEntityType(entity);
-    const currentColumns = this.config.listColumns || ["name", "status", "priority", "owner"];
-    const card = container.createDiv("pm-list-card");
-    card.dataset.entityId = entity.id;
-    card.dataset.entityType = entityType;
-    if ("priority" in entity && entity.priority) {
-      const priorityColor = getPriorityColor2(entity.priority);
-      const priorityBar = card.createDiv("pm-list-card-priority-bar");
-      priorityBar.style.background = priorityColor.bg;
-    }
-    const content = card.createDiv("pm-list-card-content");
-    const main = content.createDiv("pm-list-card-main");
-    const typeIcon = main.createDiv("pm-list-card-type-icon");
-    typeIcon.textContent = this.getEntityTypeIcon(entityType);
-    const titleSection = main.createDiv("pm-list-card-title-section");
-    titleSection.createDiv({ cls: "pm-list-card-title", text: entity.name });
-    if (currentColumns.includes("projectId") && "projectId" in entity && entity.projectId) {
-      const projectName = await this.getEntityName("projectId", entity.projectId);
-      titleSection.createDiv({
-        cls: "pm-list-card-subtitle",
-        text: `\u96B6\u5C5E\u4E8E: ${projectName || entity.projectId}`
-      });
-    }
-    if (currentColumns.includes("versionId") && "versionId" in entity && entity.versionId) {
-      const versionName = await this.getEntityName("versionId", entity.versionId);
-      titleSection.createDiv({
-        cls: "pm-list-card-subtitle",
-        text: `\u7248\u672C: ${versionName || entity.versionId}`
-      });
-    }
-    main.addEventListener("click", async () => {
-      await this.actionService.openEntity(entityType, entity.id);
-    });
-    const meta = content.createDiv("pm-list-card-meta");
-    const metaFields = ["status", "priority", "progress", "risk", "latestProgress", "owner", "endDate", "tags"];
-    for (const fieldKey of metaFields) {
-      if (!currentColumns.includes(fieldKey))
-        continue;
-      const cellContainer = meta.createDiv("pm-list-card-cell");
-      cellContainer.style.width = this.getColumnWidth(fieldKey);
-      cellContainer.style.minWidth = this.getColumnWidth(fieldKey);
-      if (fieldKey === "risk") {
-        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
-        if (logSummary && logSummary.riskSummary.total > 0) {
-          const summary = logSummary.riskSummary;
-          const riskEl = cellContainer.createSpan("pm-list-card-risk");
-          let badgeText = `\u26A0\uFE0F ${summary.open}`;
-          if (summary.high > 0) {
-            riskEl.addClass("pm-list-card-risk--high");
-            badgeText += ` \u{1F534}${summary.high}`;
-          } else if (summary.medium > 0) {
-            riskEl.addClass("pm-list-card-risk--medium");
-            badgeText += ` \u{1F7E1}${summary.medium}`;
-          }
-          riskEl.textContent = badgeText;
-          riskEl.title = `\u603B\u98CE\u9669: ${summary.total} | \u672A\u5173\u95ED: ${summary.open} | \u9AD8: ${summary.high} \u4E2D: ${summary.medium} \u4F4E: ${summary.low}`;
-        }
-      } else if (fieldKey === "latestProgress") {
-        const logSummary = this.entityManager.cache.getLogSummary(entity.id);
-        if (logSummary == null ? void 0 : logSummary.latestProgress) {
-          const progressText = logSummary.latestProgress.length > 10 ? logSummary.latestProgress.substring(0, 10) + "..." : logSummary.latestProgress;
-          const progressEl = cellContainer.createSpan("pm-list-card-latest-progress");
-          progressEl.textContent = `\u{1F4DD} ${progressText}`;
-          progressEl.title = logSummary.latestProgress;
-        }
-      } else {
-        this.renderCellForField(cellContainer, entity, fieldKey);
-      }
-    }
-    const actions = content.createDiv("pm-list-card-actions");
-    const openBtn = actions.createEl("button", {
-      cls: "pm-list-action-btn",
-      attr: { title: "\u6253\u5F00\u6587\u4EF6" }
-    });
-    openBtn.textContent = "\u2197";
-    openBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.actionService.openEntity(entityType, entity.id);
-    };
-  }
-  /**
-   * 为指定字段渲染行内编辑单元格
-   */
-  renderCellForField(container, entity, field) {
-    const entityType = getEntityType(entity);
-    const fields = getEntityFields(entityType);
-    const fieldDef = fields.find((f) => f.name === field);
-    const value = entity[field];
-    if (!fieldDef) {
-      if (value !== void 0 && value !== null && value !== "") {
-        container.createSpan({ cls: "pm-cell-readonly", text: String(value) });
-      }
-      return;
-    }
-    if (!fieldDef.editable) {
-      container.createSpan({
-        cls: "pm-cell-readonly",
-        text: Array.isArray(value) && value.length === 0 ? "" : String(value != null ? value : "")
-      });
-      return;
-    }
-    const cellValue = value != null ? value : fieldDef.type === "multi-select" ? [] : "";
-    const onChange = async (newValue) => {
-      if (field === "progress" && entityType === "feature") {
-        await this.actionService.updateProgress(entityType, entity.id, newValue);
-      } else {
-        await this.actionService.updateField(entityType, entity.id, field, newValue);
-      }
-    };
-    let cell;
-    switch (fieldDef.type) {
-      case "text":
-        cell = new TextCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
-        break;
-      case "select":
-        cell = new SelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
-        break;
-      case "date":
-        cell = new DateCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
-        break;
-      case "progress":
-        cell = new ProgressCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange);
-        break;
-      case "multi-select":
-        cell = new MultiSelectCell(this.app, this.entityManager, entity.id, entityType, field, value, onChange, fieldDef.options);
-        break;
-      default:
-        return;
-    }
-    cell.render(container);
-  }
-  /**
-   * 获取列宽
-   */
-  getColumnWidth(field) {
-    const widths = {
-      status: "72px",
-      priority: "60px",
-      progress: "90px",
-      risk: "90px",
-      latestProgress: "100px",
-      owner: "80px",
-      endDate: "80px",
-      tags: "100px"
-    };
-    return widths[field] || "auto";
-  }
-  /**
-   * 获取实体名称
-   */
-  async getEntityName(fieldName, entityId) {
-    try {
-      if (fieldName === "versionId") {
-        const version = await this.entityManager.getVersion(entityId);
-        return (version == null ? void 0 : version.name) || null;
-      } else if (fieldName === "projectId") {
-        const project = await this.entityManager.getProject(entityId);
-        return (project == null ? void 0 : project.name) || null;
-      }
-    } catch (error) {
-      console.error("\u83B7\u53D6\u5B9E\u4F53\u540D\u79F0\u5931\u8D25:", error);
-    }
-    return null;
-  }
-};
-RendererRegistry.register("list", ListRenderer);
 
 // src/view-engine/renderers/CascadeRenderer.ts
 var CascadeRenderer = class extends BaseRenderer {
@@ -11125,7 +10002,10 @@ var CascadeRenderer = class extends BaseRenderer {
         showParent: true,
         showTypeIcon: true,
         showStats: true,
-        showActions: true,
+        showActions: false,
+        showEstimatedDays: true,
+        showActualDays: true,
+        smallTitle: true,
         ...overrides
       };
     }
@@ -11135,9 +10015,10 @@ var CascadeRenderer = class extends BaseRenderer {
    * 渲染级联视图
    */
   async render(container) {
+    this.showLoading(container);
+    const data = await this.prepareCascadeData();
     container.empty();
     container.addClass("pm-cascade-container");
-    const data = await this.prepareCascadeData();
     if (data.versions.length === 0) {
       this.createEmptyState(container, "\u6682\u65E0\u6570\u636E");
       return;
@@ -11225,11 +10106,9 @@ var CascadeRenderer = class extends BaseRenderer {
     title.createSpan({ cls: "pm-cascade__icon", text: this.getEntityTypeIcon("version") });
     title.createSpan({ text: version.name });
     if (version.status && this.shouldShowCardField("status")) {
-      titleRow.createSpan({
-        cls: `pm-cascade__status pm-cascade__status--${version.status}`,
-        text: this.translateStatus(version.status)
-      });
+      this.renderStatusBadge(titleRow, version.status).addClass("pm-cascade__status");
     }
+    this.createExpandToggle(header, container, version);
     const versionFeatures = allFeatures.filter(
       (f) => projects.some((p) => p.id === f.projectId)
     );
@@ -11237,6 +10116,28 @@ var CascadeRenderer = class extends BaseRenderer {
     const avgProgress = versionFeatures.length > 0 ? Math.round(totalProgress / versionFeatures.length) : 0;
     const completedCount = versionFeatures.filter((f) => f.status === "completed").length;
     const summary = header.createDiv("pm-cascade__summary");
+    if (version.owner && this.shouldShowCardField("owner")) {
+      summary.createSpan({
+        cls: "pm-cascade__summary-owner",
+        text: `@${version.owner}`
+      });
+    }
+    if (this.shouldShowCardField("startDate") && version.startDate) {
+      summary.createSpan({
+        cls: "pm-cascade__summary-date",
+        text: DateFormat.medium(version.startDate)
+      });
+    }
+    if (this.shouldShowCardField("endDate") && version.endDate) {
+      const overdue = isOverdue(version.endDate, version.status);
+      const dateEl = summary.createSpan({
+        cls: "pm-cascade__summary-date",
+        text: DateFormat.medium(version.endDate)
+      });
+      if (overdue) {
+        dateEl.addClass("pm-cascade__summary-date--overdue");
+      }
+    }
     if (this.shouldShowCardField("stats")) {
       summary.createSpan({
         cls: "pm-cascade__summary-text",
@@ -11268,17 +10169,12 @@ var CascadeRenderer = class extends BaseRenderer {
         riskEl.title = `\u603B\u98CE\u9669: ${rs.total} | \u672A\u5173\u95ED: ${rs.open}`;
       }
     }
-    if (version.endDate && this.shouldShowCardField("endDate")) {
-      summary.createSpan({
-        cls: "pm-cascade__summary-date",
-        text: DateFormat.medium(version.endDate)
-      });
-    }
   }
   /**
    * 渲染项目卡片
    */
   async renderProjectCard(container, project, features) {
+    var _a, _b, _c;
     const totalProgress = features.reduce((sum, f) => sum + (f.progress || 0), 0);
     const avgProgress = features.length > 0 ? Math.round(totalProgress / features.length) : 0;
     const completedCount = features.filter((f) => f.status === "completed").length;
@@ -11293,12 +10189,14 @@ var CascadeRenderer = class extends BaseRenderer {
       showStats: this.shouldShowCardField("stats"),
       showProgress: this.shouldShowCardField("progress")
     });
+    const logSummary = this.entityManager.cache.getLogSummary(project.id);
     const cardEl = card.render(wrapper, projectWithStats, cardOptions, {
       onOpen: () => this.actionService.openEntity("project", project.id)
-    });
+    }, logSummary);
+    this.createExpandToggle(cardEl, wrapper, project);
     if (features.length > 0) {
       const featuresContainer = cardEl.createDiv("pm-cascade__features");
-      const maxFeatures = 5;
+      const maxFeatures = (_c = (_b = this.config.maxFeaturesPerProject) != null ? _b : (_a = this.config.options) == null ? void 0 : _a.maxFeaturesPerProject) != null ? _c : 5;
       const displayFeatures = features.slice(0, maxFeatures);
       for (const feature of displayFeatures) {
         this.renderFeatureRow(featuresContainer, feature);
@@ -11315,7 +10213,8 @@ var CascadeRenderer = class extends BaseRenderer {
    * 渲染特性行
    */
   renderFeatureRow(container, feature, isHighlighted = false) {
-    const row = container.createDiv("pm-cascade__feature");
+    const wrapper = container.createDiv("pm-cascade__feature-wrapper");
+    const row = wrapper.createDiv("pm-cascade__feature");
     if (isHighlighted) {
       row.addClass("pm-cascade__feature--highlighted");
     }
@@ -11323,6 +10222,7 @@ var CascadeRenderer = class extends BaseRenderer {
       await this.actionService.openEntity("feature", feature.id);
     });
     const opts = this.buildCardOptions();
+    const main = row.createDiv("pm-cascade__feature-main");
     if (feature.priority && opts.showPriority) {
       const priorityColors = {
         critical: "#ef4444",
@@ -11330,65 +10230,94 @@ var CascadeRenderer = class extends BaseRenderer {
         medium: "#f59e0b",
         low: "#22c55e"
       };
-      row.createSpan({
+      main.createSpan({
         cls: "pm-cascade__feature-priority",
         attr: { style: `color: ${priorityColors[feature.priority] || "#9ca3af"}` },
         text: "\u25CF"
       });
     }
     if (opts.showTypeIcon) {
-      row.createSpan({ cls: "pm-cascade__feature-icon", text: "\u2630" });
+      main.createSpan({ cls: "pm-cascade__feature-icon", text: "\u2630" });
     }
-    const nameContainer = row.createDiv("pm-cascade__feature-name-container");
-    nameContainer.createSpan({ cls: "pm-cascade__feature-name", text: feature.name });
+    main.createSpan({ cls: "pm-cascade__feature-name", text: feature.name });
+    const meta = row.createDiv("pm-cascade__feature-meta");
+    if (feature.status && opts.showStatus) {
+      this.renderStatusBadge(meta, feature.status).addClass("pm-cascade__feature-status");
+    }
+    if (feature.priority && opts.showPriority) {
+      this.renderPriorityBadge(meta, feature.priority).addClass("pm-cascade__feature-priority-badge");
+    }
     if (feature.progress !== void 0 && opts.showProgress) {
-      row.createSpan({
-        cls: "pm-cascade__feature-progress",
-        text: `${feature.progress}%`
-      });
+      this.renderProgressBar(meta, feature.progress).addClass("pm-cascade__feature-progress-bar");
+    }
+    if (feature.startDate && opts.showStartDate) {
+      const isOverdueDate = isOverdue(feature.startDate, feature.status);
+      const el = this.renderDate(meta, feature.startDate);
+      el.addClass("pm-cascade__feature-start");
+      if (isOverdueDate) {
+        el.addClass("pm-cascade__feature-date--overdue");
+      }
     }
     if (feature.endDate && opts.showDueDate) {
       const isOverdueDate = isOverdue(feature.endDate, feature.status);
       const isUpcoming = !isOverdueDate && new Date(feature.endDate).getTime() - (/* @__PURE__ */ new Date()).getTime() < 7 * 24 * 60 * 60 * 1e3;
-      let dueClass = "pm-cascade__feature-due";
+      const el = this.renderDate(meta, feature.endDate);
+      el.addClass("pm-cascade__feature-due");
       if (feature.status === "completed")
-        dueClass += " pm-cascade__feature-due--completed";
+        el.addClass("pm-cascade__feature-due--completed");
       else if (isOverdueDate)
-        dueClass += " pm-cascade__feature-due--overdue";
+        el.addClass("pm-cascade__feature-due--overdue");
       else if (isUpcoming)
-        dueClass += " pm-cascade__feature-due--upcoming";
-      row.createSpan({
-        cls: dueClass,
-        text: DateFormat.short(feature.endDate)
-      });
-    }
-    if (feature.startDate && opts.showStartDate) {
-      row.createSpan({
-        cls: "pm-cascade__feature-start",
-        text: DateFormat.short(feature.startDate)
-      });
+        el.addClass("pm-cascade__feature-due--upcoming");
     }
     if (feature.owner && opts.showOwner) {
-      row.createSpan({ cls: "pm-cascade__feature-owner", text: `@${feature.owner}` });
+      meta.createSpan({ cls: "pm-cascade__feature-owner", text: `@${feature.owner}` });
     }
-    if (feature.status && opts.showStatus) {
-      row.createSpan({
-        cls: `pm-cascade__feature-status pm-cascade__feature-status--${feature.status}`,
-        text: this.translateStatus(feature.status)
-      });
+    if (feature.estimatedDays !== void 0 && opts.showEstimatedDays) {
+      this.renderDays(meta, feature.estimatedDays, "\u9884").addClass("pm-cascade__feature-days");
+    }
+    if (feature.actualDays !== void 0 && opts.showActualDays) {
+      this.renderDays(meta, feature.actualDays, "\u5B9E").addClass("pm-cascade__feature-days");
+    }
+    if (feature.tags && feature.tags.length > 0 && opts.showTags) {
+      this.renderTags(meta, feature.tags, 3).addClass("pm-cascade__feature-tags");
     }
     if (opts.showRisk) {
       const logSummary = this.entityManager.cache.getLogSummary(feature.id);
       if (logSummary && logSummary.riskSummary.total > 0) {
         const rs = logSummary.riskSummary;
-        row.createSpan({
+        meta.createSpan({
           cls: "pm-cascade__feature-risk",
           text: `\u26A0\uFE0F ${rs.open}`,
           attr: { title: `\u603B\u98CE\u9669: ${rs.total} | \u672A\u5173\u95ED: ${rs.open}` }
         });
       }
     }
-    return row;
+    this.createExpandToggle(row, wrapper, feature);
+    return wrapper;
+  }
+  /**
+   * 创建展开/收起详情按钮
+   */
+  createExpandToggle(triggerContainer, detailContainer, entity) {
+    const btn = triggerContainer.createSpan({
+      cls: "pm-cascade__expand-btn",
+      text: "\u25BE",
+      attr: { title: "\u5C55\u5F00\u8BE6\u60C5" }
+    });
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const existing = detailContainer.querySelector(".pm-list-card-detail");
+      if (existing) {
+        existing.remove();
+        btn.textContent = "\u25BE";
+        btn.setAttribute("title", "\u5C55\u5F00\u8BE6\u60C5");
+      } else {
+        this.renderDetailPanel(detailContainer, entity);
+        btn.textContent = "\u25B4";
+        btn.setAttribute("title", "\u6536\u8D77\u8BE6\u60C5");
+      }
+    });
   }
   /**
    * 对实体列表进行排序
@@ -11404,32 +10333,56 @@ var CascadeRenderer = class extends BaseRenderer {
 RendererRegistry.register("cascade", CascadeRenderer);
 
 // src/view-engine/renderers/TimeViewRenderer.ts
-var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-    if (_TimeViewRenderer.sharedState) {
-      this.state = {
-        ..._TimeViewRenderer.sharedState,
-        collapsedGroups: new Set(_TimeViewRenderer.sharedState.collapsedGroups || [])
-      };
-    } else {
-      this.state = {
-        currentDate: /* @__PURE__ */ new Date(),
-        viewMode: "month",
-        groupBy: "owner",
-        collapsedGroups: /* @__PURE__ */ new Set()
-      };
-      _TimeViewRenderer.sharedState = this.state;
-    }
+var TimeViewRenderer = class extends BaseRenderer {
+  constructor() {
+    super(...arguments);
+    this.state = {
+      currentDate: /* @__PURE__ */ new Date(),
+      viewMode: "month",
+      groupBy: "owner",
+      collapsedGroups: /* @__PURE__ */ new Set()
+    };
+  }
+  /**
+   * 初始化渲染器，从配置中恢复时间视图状态
+   */
+  init(config, context, options) {
+    super.init(config, context, options);
+    this.initializeStateFromConfig();
+  }
+  /**
+   * 从 YAML 配置初始化时间视图状态
+   */
+  initializeStateFromConfig() {
+    const config = this.config;
+    const collapsedGroups = new Set(config.collapsedGroups || []);
+    this.state = {
+      currentDate: config.timeViewDate ? new Date(config.timeViewDate) : /* @__PURE__ */ new Date(),
+      viewMode: config.timeViewMode || "month",
+      groupBy: config.timeGroupBy || "owner",
+      collapsedGroups
+    };
+  }
+  /**
+   * 将当前状态持久化到 YAML 配置
+   */
+  persistState() {
+    this.saveConfig({
+      timeViewMode: this.state.viewMode,
+      timeGroupBy: this.state.groupBy,
+      timeViewDate: this.state.currentDate.toISOString().split("T")[0],
+      collapsedGroups: Array.from(this.state.collapsedGroups)
+    });
   }
   /**
    * 渲染时间视图
    */
   async render(container) {
-    container.empty();
-    container.addClass("pm-timeview");
+    this.showLoading(container);
     const entities = await this.prepareData();
     const items = this.convertToTimeItems(entities);
+    container.empty();
+    container.addClass("pm-timeview");
     this.renderToolbar(container, entities.length, items.length);
     const contentArea = container.createDiv("pm-timeview-content");
     if (items.length === 0) {
@@ -11665,19 +10618,21 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     prevBtn.textContent = "\u25C0";
     prevBtn.onclick = () => {
       this.navigateDate(-1);
+      this.persistState();
       this.refresh(container);
     };
     const todayBtn = navGroup.createEl("button", { cls: "pm-timeview-today-btn" });
     todayBtn.textContent = this.state.viewMode === "week" ? "\u672C\u5468" : this.state.viewMode === "year" ? "\u672C\u5E74\u5EA6" : this.state.viewMode === "all" ? "\u5168\u90E8" : "\u672C\u6708";
     todayBtn.onclick = () => {
       this.state.currentDate = /* @__PURE__ */ new Date();
-      this.syncSharedState();
+      this.persistState();
       this.refresh(container);
     };
     const nextBtn = navGroup.createEl("button", { cls: "pm-timeview-nav-btn" });
     nextBtn.textContent = "\u25B6";
     nextBtn.onclick = () => {
       this.navigateDate(1);
+      this.persistState();
       this.refresh(container);
     };
     const dateTitle = toolbar.createDiv("pm-timeview-date-title");
@@ -11697,7 +10652,7 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     });
     modeSelect.addEventListener("change", () => {
       this.state.viewMode = modeSelect.value;
-      this.syncSharedState();
+      this.persistState();
       this.refresh(container);
     });
     const groupToggle = toolbar.createDiv("pm-timeview-group-toggle");
@@ -11708,7 +10663,7 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     ownerBtn.onclick = () => {
       if (this.state.groupBy !== "owner") {
         this.state.groupBy = "owner";
-        this.syncSharedState();
+        this.persistState();
         this.refresh(container);
       }
     };
@@ -11719,7 +10674,7 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     projectBtn.onclick = () => {
       if (this.state.groupBy !== "project") {
         this.state.groupBy = "project";
-        this.syncSharedState();
+        this.persistState();
         this.refresh(container);
       }
     };
@@ -11744,16 +10699,6 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
       case "all":
         break;
     }
-    this.syncSharedState();
-  }
-  /**
-   * 同步到共享状态
-   */
-  syncSharedState() {
-    _TimeViewRenderer.sharedState = {
-      ...this.state,
-      collapsedGroups: new Set(this.state.collapsedGroups)
-    };
   }
   /**
    * 刷新视图
@@ -11874,6 +10819,7 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
       expandBtn.onclick = (e) => {
         e.stopPropagation();
         this.toggleGroup(row.groupId);
+        this.persistState();
         this.refresh(rowEl.closest(".pm-timeview"));
       };
     }
@@ -11937,7 +10883,6 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     } else {
       this.state.collapsedGroups.add(groupId);
     }
-    this.syncSharedState();
   }
   // ==================== 辅助方法 ====================
   /**
@@ -11952,166 +10897,7 @@ var _TimeViewRenderer = class _TimeViewRenderer extends BaseRenderer {
     hint.textContent = "\u63D0\u793A\uFF1A\u4E3A\u5B9E\u4F53\u6DFB\u52A0 startDate \u548C endDate \u5B57\u6BB5\u5373\u53EF\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u663E\u793A";
   }
 };
-_TimeViewRenderer.sharedState = null;
-var TimeViewRenderer = _TimeViewRenderer;
 RendererRegistry.register("timeview", TimeViewRenderer);
-
-// src/view-engine/renderers/WorkloadRenderer.ts
-var WorkloadRenderer = class extends BaseRenderer {
-  constructor(app, entityManager, dataService, actionService) {
-    super(app, entityManager, dataService, actionService);
-    this.groupBy = "owner";
-    this.reportService = new ReportService(app, entityManager);
-  }
-  /**
-   * 渲染工作量统计
-   */
-  async render(container) {
-    container.empty();
-    container.addClass("pm-workload-view");
-    this.groupBy = this.config.groupBy === "project" ? "project" : "owner";
-    this.renderToolbar(container);
-    const data = await this.loadData();
-    if (data.length === 0) {
-      this.createEmptyState(container, "\u6682\u65E0\u6570\u636E");
-      return;
-    }
-    this.renderSummary(container, data);
-    this.renderWorkloadBars(container, data);
-  }
-  /**
-   * 渲染工具栏
-   */
-  renderToolbar(container) {
-    const toolbar = container.createDiv("pm-workload-toolbar");
-    const titleEl = toolbar.createEl("h3", { cls: "pm-workload-title" });
-    titleEl.textContent = this.config.title || "\u5DE5\u4F5C\u91CF\u7EDF\u8BA1";
-    const buttonGroup = toolbar.createDiv("pm-workload-toggle");
-    const ownerBtn = buttonGroup.createEl("button", {
-      cls: `pm-workload-toggle__btn ${this.groupBy === "owner" ? "active" : ""}`,
-      text: "\u6309\u8D1F\u8D23\u4EBA"
-    });
-    ownerBtn.addEventListener("click", () => {
-      if (this.groupBy !== "owner") {
-        this.groupBy = "owner";
-        this.refresh(container);
-      }
-    });
-    const projectBtn = buttonGroup.createEl("button", {
-      cls: `pm-workload-toggle__btn ${this.groupBy === "project" ? "active" : ""}`,
-      text: "\u6309\u9879\u76EE"
-    });
-    projectBtn.addEventListener("click", () => {
-      if (this.groupBy !== "project") {
-        this.groupBy = "project";
-        this.refresh(container);
-      }
-    });
-  }
-  /**
-   * 加载数据
-   */
-  async loadData() {
-    if (this.groupBy === "project") {
-      return this.reportService.calculateWorkloadByProject(this.config);
-    } else {
-      return this.reportService.calculateWorkloadByOwner(
-        this.config.entityType || "feature",
-        this.config
-      );
-    }
-  }
-  /**
-   * 刷新视图
-   */
-  async refresh(container) {
-    const toolbar = container.querySelector(".pm-workload-toolbar");
-    container.empty();
-    if (toolbar) {
-      container.appendChild(toolbar);
-    } else {
-      this.renderToolbar(container);
-    }
-    const data = await this.loadData();
-    if (data.length === 0) {
-      this.createEmptyState(container, "\u6682\u65E0\u6570\u636E");
-      return;
-    }
-    this.renderSummary(container, data);
-    this.renderWorkloadBars(container, data);
-  }
-  /**
-   * 渲染汇总统计
-   */
-  renderSummary(container, data) {
-    const summaryContainer = container.createDiv("pm-workload-summary");
-    const totalEstimated = data.reduce((sum, d) => sum + d.estimated, 0);
-    const totalActual = data.reduce((sum, d) => sum + d.actual, 0);
-    const totalTasks = data.reduce((sum, d) => sum + d.taskCount, 0);
-    this.createSummaryCard(summaryContainer, "\u603B\u9884\u4F30\u5DE5\u65F6", `${totalEstimated}h`);
-    this.createSummaryCard(summaryContainer, "\u603B\u5B9E\u9645\u5DE5\u65F6", `${totalActual}h`);
-    const avgEfficiency = totalActual > 0 ? Math.round(totalEstimated / totalActual * 100) : 100;
-    this.createSummaryCard(summaryContainer, "\u5E73\u5747\u6548\u7387", `${avgEfficiency}%`);
-    this.createSummaryCard(summaryContainer, "\u4EFB\u52A1\u603B\u6570", `${totalTasks}`);
-  }
-  /**
-   * 创建汇总卡片
-   */
-  createSummaryCard(container, label, value) {
-    const card = container.createDiv("pm-workload-summary__card");
-    const valueEl = card.createEl("div", { cls: "pm-workload-summary__value" });
-    valueEl.textContent = value;
-    const labelEl = card.createEl("div", { cls: "pm-workload-summary__label" });
-    labelEl.textContent = label;
-  }
-  /**
-   * 渲染工作量条形图
-   */
-  renderWorkloadBars(container, data) {
-    const barsContainer = container.createDiv("pm-workload-bars");
-    const maxValue = Math.max(...data.map((d) => Math.max(d.estimated, d.actual)));
-    for (const item of data) {
-      this.renderWorkloadBar(barsContainer, item, maxValue);
-    }
-  }
-  /**
-   * 渲染单个工作量条
-   */
-  renderWorkloadBar(container, data, maxValue) {
-    const row = container.createDiv("pm-workload-bar");
-    const nameEl = row.createDiv("pm-workload-bar__name");
-    nameEl.textContent = data.name;
-    nameEl.setAttribute("title", `${data.name}: ${data.taskCount}\u4E2A\u4EFB\u52A1`);
-    const progressContainer = row.createDiv("pm-workload-bar__progress");
-    const estimatedWidth = maxValue > 0 ? data.estimated / maxValue * 100 : 0;
-    const estimatedBar = progressContainer.createDiv("pm-workload-bar__estimated");
-    estimatedBar.style.width = `${estimatedWidth}%`;
-    const actualWidth = maxValue > 0 ? data.actual / maxValue * 100 : 0;
-    const actualBar = progressContainer.createDiv("pm-workload-bar__actual");
-    actualBar.style.width = `${actualWidth}%`;
-    if (data.efficiency > 120) {
-      actualBar.classList.add("pm-workload-bar__actual--over");
-    } else if (data.efficiency < 80) {
-      actualBar.classList.add("pm-workload-bar__actual--under");
-    }
-    const valueEl = row.createDiv("pm-workload-bar__value");
-    valueEl.textContent = `${data.actual}/${data.estimated}h`;
-    const efficiencyEl = row.createDiv("pm-workload-bar__efficiency");
-    efficiencyEl.textContent = `${data.efficiency}%`;
-    if (data.efficiency > 120) {
-      efficiencyEl.classList.add("pm-workload-bar__efficiency--over");
-    } else if (data.efficiency < 80) {
-      efficiencyEl.classList.add("pm-workload-bar__efficiency--under");
-    }
-    row.addEventListener("mouseenter", () => {
-      row.classList.add("pm-workload-bar--hover");
-    });
-    row.addEventListener("mouseleave", () => {
-      row.classList.remove("pm-workload-bar--hover");
-    });
-  }
-};
-RendererRegistry.register("workload", WorkloadRenderer);
 
 // src/view-engine/controllers/ToolbarController.ts
 init_utils();
@@ -12705,52 +11491,13 @@ var PropertyPanelController = class {
       text: "\u89C6\u56FE\u5C5E\u6027",
       cls: "pm-panel-title"
     }).style.cssText = "font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--background-modifier-border);";
-    if (config.mode === "list") {
-      this.renderListColumnSelector(panel, config, options);
-    }
-    if (config.mode !== "list") {
-      this.renderCardFieldSelector(panel, config, options);
-    }
+    this.renderCardFieldSelector(panel, config, options);
     if (config.mode === "kanban") {
       this.renderGroupBySelector(panel, config, options);
+    } else if (config.mode === "timeview") {
+      this.renderTimeViewSelectors(panel, config, options);
     }
     return panel;
-  }
-  /**
-   * 渲染列表视图表头字段选择器
-   */
-  renderListColumnSelector(panel, config, options) {
-    const section = panel.createDiv("pm-property-section");
-    section.style.marginBottom = "12px";
-    section.createEl("label", {
-      text: "\u663E\u793A\u5217",
-      cls: "pm-property-label"
-    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
-    const checkboxContainer = section.createDiv("pm-checkbox-group");
-    checkboxContainer.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
-    let liveColumns = config.listColumns || ["name", "status", "priority", "owner"];
-    LIST_COLUMN_DEFINITIONS.forEach((field) => {
-      const label = checkboxContainer.createEl("label");
-      label.style.cssText = "display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;";
-      const checkbox = label.createEl("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = liveColumns.includes(field.key);
-      checkbox.disabled = field.required;
-      const text = label.createSpan();
-      text.textContent = field.label + (field.required ? " (\u5FC5\u9009)" : "");
-      text.style.cssText = field.required ? "color: var(--text-muted);" : "";
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) {
-          if (!liveColumns.includes(field.key)) {
-            liveColumns = [...liveColumns, field.key];
-          }
-        } else {
-          liveColumns = liveColumns.filter((k) => k !== field.key);
-        }
-        options.debouncedSave({ listColumns: liveColumns });
-        options.onConfigChange({ listColumns: liveColumns });
-      });
-    });
   }
   /**
    * 渲染 EntityCard 字段选择器
@@ -12808,6 +11555,61 @@ var PropertyPanelController = class {
         options.debouncedSave({ cardFields: newCardFields });
         options.onConfigChange({ cardFields: newCardFields });
       });
+    });
+  }
+  /**
+   * 渲染时间视图配置选择器
+   */
+  renderTimeViewSelectors(panel, config, options) {
+    const modeSection = panel.createDiv("pm-property-section");
+    modeSection.style.marginBottom = "12px";
+    modeSection.createEl("label", {
+      text: "\u9ED8\u8BA4\u7C92\u5EA6",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const modeSelect = modeSection.createEl("select", { cls: "pm-property-select" });
+    modeSelect.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
+    const modeOptions = [
+      { value: "week", label: "\u5468" },
+      { value: "month", label: "\u6708" },
+      { value: "year", label: "\u5E74\u5EA6" },
+      { value: "all", label: "\u5168\u90E8\u65F6\u95F4" }
+    ];
+    modeOptions.forEach((opt) => {
+      const option = modeSelect.createEl("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (config.timeViewMode === opt.value)
+        option.selected = true;
+    });
+    modeSelect.addEventListener("change", () => {
+      const value = modeSelect.value;
+      options.debouncedSave({ timeViewMode: value });
+      options.onConfigChange({ timeViewMode: value });
+    });
+    const groupSection = panel.createDiv("pm-property-section");
+    groupSection.style.marginBottom = "12px";
+    groupSection.createEl("label", {
+      text: "\u9ED8\u8BA4\u5206\u7EC4",
+      cls: "pm-property-label"
+    }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
+    const groupSelect = groupSection.createEl("select", { cls: "pm-property-select" });
+    groupSelect.style.cssText = "width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;";
+    const groupOptions = [
+      { value: "owner", label: "\u6309\u8D1F\u8D23\u4EBA" },
+      { value: "project", label: "\u6309\u9879\u76EE" }
+    ];
+    groupOptions.forEach((opt) => {
+      const option = groupSelect.createEl("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (config.timeGroupBy === opt.value)
+        option.selected = true;
+    });
+    groupSelect.addEventListener("change", () => {
+      const value = groupSelect.value;
+      options.debouncedSave({ timeGroupBy: value });
+      options.onConfigChange({ timeGroupBy: value });
     });
   }
   /**
@@ -12962,7 +11764,7 @@ var ViewEngine = class {
     this.renderToolbar(wrapper, config, context, codeBlockIndex, toolbarController);
     const contentArea = wrapper.createDiv("pm-view-content");
     context.codeBlockIndex = codeBlockIndex;
-    await this.renderContent(contentArea, config, context);
+    await this.renderContent(contentArea, config, context, codeBlockIndex);
   }
   /**
    * 渲染工具栏 - 委托给 ToolbarController 完整渲染
@@ -12995,7 +11797,7 @@ var ViewEngine = class {
         await this.saveSortConfig(context.sourcePath, codeBlockIndex, newConfig);
         const targetContentArea = wrapper.querySelector(".pm-view-content");
         if (targetContentArea) {
-          await this.renderContent(targetContentArea, newConfig, context);
+          await this.renderContent(targetContentArea, newConfig, context, codeBlockIndex);
         }
       }
     });
@@ -13017,19 +11819,25 @@ var ViewEngine = class {
   /**
    * 渲染内容区域
    */
-  async renderContent(container, config, context) {
+  async renderContent(container, config, context, codeBlockIndex) {
     var _a;
-    container.empty();
     const mode = config.mode || "cascade";
     const renderer = this.createRenderer(mode);
     if (!renderer) {
       this.renderError(container, `\u4E0D\u652F\u6301\u7684\u89C6\u56FE\u6A21\u5F0F: ${mode}`);
       return;
     }
-    renderer.init(config, context);
+    renderer.init(config, context, {
+      onSaveConfig: (updates) => {
+        const currentConfig = this.currentConfigs.get(`${context.sourcePath}:${codeBlockIndex != null ? codeBlockIndex : "unknown"}`) || config;
+        const newConfig = { ...currentConfig, ...updates };
+        this.currentConfigs.set(`${context.sourcePath}:${codeBlockIndex != null ? codeBlockIndex : "unknown"}`, newConfig);
+        this.debouncedSave(context.sourcePath, codeBlockIndex, updates);
+      }
+    });
     (_a = container._unsubscribeRefresh) == null ? void 0 : _a.call(container);
     const unsubscribe = this.actionService.onRefresh(() => {
-      this.renderContent(container, config, context);
+      this.renderContent(container, config, context, codeBlockIndex);
     });
     container._unsubscribeRefresh = unsubscribe;
     try {
@@ -13102,7 +11910,7 @@ var ViewEngine = class {
         this.currentConfigs.set(key, newConfig);
         const contentArea = wrapper.querySelector(".pm-view-content");
         if (contentArea) {
-          await this.renderContent(contentArea, newConfig, context);
+          await this.renderContent(contentArea, newConfig, context, codeBlockIndex);
         }
       },
       debouncedSave: (updates) => {
@@ -13378,8 +12186,8 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
           startDate: "\u5F00\u59CB\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
           endDate: "\u7ED3\u675F\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
           tags: "\u6807\u7B7E\u6570\u7EC4",
-          estimatedHours: "\u9884\u4F30\u5DE5\u65F6\uFF08\u53EF\u9009\uFF09",
-          actualHours: "\u5B9E\u9645\u5DE5\u65F6\uFF08\u53EF\u9009\uFF09"
+          estimatedDays: "\u9884\u4F30\u4EBA\u5929\uFF08\u53EF\u9009\uFF09",
+          actualDays: "\u5B9E\u9645\u4EBA\u5929\uFF08\u53EF\u9009\uFF09"
         };
       default:
         return commonVars;
@@ -13459,8 +12267,8 @@ var PREVIEW_EXAMPLES = {
     startDate: "2026-04-01",
     endDate: "2026-04-15",
     tags: ["\u540E\u7AEF", "\u5B89\u5168"],
-    estimatedHours: 40,
-    actualHours: 26
+    estimatedDays: 5,
+    actualDays: 3
   },
   overview: {
     date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]

@@ -1,4 +1,4 @@
-import type { ViewConfig, CardFieldsConfig } from '../types';
+import type { ViewConfig, CardFieldsConfig, TimeViewMode, TimeGroupBy } from '../types';
 import { ENTITY_CARD_FIELD_DEFINITIONS } from '../types';
 import { DropdownMenuManager } from '../components/DropdownMenu';
 
@@ -55,6 +55,8 @@ export class PropertyPanelController {
     // 2. 视图特定配置
     if (config.mode === 'kanban') {
       this.renderGroupBySelector(panel, config, options);
+    } else if (config.mode === 'timeview') {
+      this.renderTimeViewSelectors(panel, config, options);
     }
 
     return panel;
@@ -131,6 +133,71 @@ export class PropertyPanelController {
         options.debouncedSave({ cardFields: newCardFields });
         options.onConfigChange({ cardFields: newCardFields });
       });
+    });
+  }
+
+  /**
+   * 渲染时间视图配置选择器
+   */
+  private renderTimeViewSelectors(
+    panel: HTMLElement,
+    config: ViewConfig,
+    options: PropertyPanelOptions
+  ): void {
+    // 默认粒度
+    const modeSection = panel.createDiv('pm-property-section');
+    modeSection.style.marginBottom = '12px';
+    modeSection.createEl('label', {
+      text: '默认粒度',
+      cls: 'pm-property-label'
+    }).style.cssText = 'display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;';
+
+    const modeSelect = modeSection.createEl('select', { cls: 'pm-property-select' });
+    modeSelect.style.cssText = 'width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;';
+    const modeOptions: { value: TimeViewMode; label: string }[] = [
+      { value: 'week', label: '周' },
+      { value: 'month', label: '月' },
+      { value: 'year', label: '年度' },
+      { value: 'all', label: '全部时间' },
+    ];
+    modeOptions.forEach(opt => {
+      const option = modeSelect.createEl('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (config.timeViewMode === opt.value) option.selected = true;
+    });
+
+    modeSelect.addEventListener('change', () => {
+      const value = modeSelect.value as TimeViewMode;
+      options.debouncedSave({ timeViewMode: value });
+      options.onConfigChange({ timeViewMode: value });
+    });
+
+    // 默认分组方式
+    const groupSection = panel.createDiv('pm-property-section');
+    groupSection.style.marginBottom = '12px';
+    groupSection.createEl('label', {
+      text: '默认分组',
+      cls: 'pm-property-label'
+    }).style.cssText = 'display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;';
+
+    const groupSelect = groupSection.createEl('select', { cls: 'pm-property-select' });
+    groupSelect.style.cssText = 'width: 100%; padding: 6px 8px; height: 32px; line-height: 1.4;';
+    const groupOptions: { value: TimeGroupBy; label: string }[] = [
+      { value: 'owner', label: '按负责人' },
+      { value: 'project', label: '按项目' },
+    ];
+    groupOptions.forEach(opt => {
+      const option = groupSelect.createEl('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (config.timeGroupBy === opt.value) option.selected = true;
+    });
+
+    groupSelect.addEventListener('change', () => {
+      const value = groupSelect.value as TimeGroupBy;
+      options.debouncedSave({ timeGroupBy: value });
+      options.onConfigChange({ timeGroupBy: value });
     });
   }
 

@@ -212,7 +212,7 @@ export const AllFieldsEnabled: Story = {
   },
 };
 
-export const KanbanCard: Story = {
+export const KanbanCardReadonly: Story = {
   render: () => {
     const container = document.createElement('div');
     container.className = 'pm-view';
@@ -229,7 +229,7 @@ export const KanbanCard: Story = {
     card.render(
       wrapper,
       createMockFeature({
-        name: '看板卡片示例',
+        name: '看板卡片示例（只读）',
         priority: 'high',
         status: 'in-progress',
         owner: '李四',
@@ -245,9 +245,9 @@ export const KanbanCard: Story = {
         showProgress: true,
         showDueDate: true,
         showTags: true,
-        draggable: true,
+        draggable: false,
         smallTitle: true,
-        showActions: true,
+        showActions: false,
       }
     );
 

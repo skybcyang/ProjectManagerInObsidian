@@ -12,18 +12,23 @@ import {
   translatePriority,
   DateFormat,
 } from '../design-tokens';
-import { StatusPicker, ProgressPicker } from '../components';
 import type { RiskItem } from '../../types';
 import type { EntityCardOptions } from '../components';
-import { getOverlayContainer } from '../../utils/getOverlayContainer';
+
 
 /**
  * 渲染器基类
  * 所有视图渲染器的基础
  */
+export interface RendererInitOptions {
+  /** 配置变更回调，用于将视图状态持久化到 YAML */
+  onSaveConfig?: (updates: Partial<ViewConfig>) => void;
+}
+
 export abstract class BaseRenderer {
   protected config!: ViewConfig;
   protected context!: ViewContext;
+  protected onSaveConfig?: (updates: Partial<ViewConfig>) => void;
 
   constructor(
     protected app: App,
@@ -35,9 +40,24 @@ export abstract class BaseRenderer {
   /**
    * 初始化渲染器
    */
-  init(config: ViewConfig, context: ViewContext): void {
+  init(config: ViewConfig, context: ViewContext, options?: RendererInitOptions): void {
     this.config = config;
     this.context = context;
+    this.onSaveConfig = options?.onSaveConfig;
+  }
+
+  /**
+   * 显示加载状态
+   */
+  showLoading(container: HTMLElement): HTMLElement {
+    return this.createLoadingState(container);
+  }
+
+  /**
+   * 保存配置更新（持久化到 YAML）
+   */
+  protected saveConfig(updates: Partial<ViewConfig>): void {
+    this.onSaveConfig?.(updates);
   }
 
   /**
@@ -171,6 +191,7 @@ export abstract class BaseRenderer {
    * 创建加载状态
    */
   protected createLoadingState(container: HTMLElement): HTMLElement {
+    container.empty();
     const loading = container.createDiv('pm-view-loading');
     loading.createEl('div', { cls: 'pm-loading-spinner' });
     loading.createEl('div', { cls: 'pm-loading-text', text: '加载中...' });
@@ -186,265 +207,6 @@ export abstract class BaseRenderer {
     errorEl.createEl('div', { cls: 'pm-error-text', text: '加载失败' });
     errorEl.createEl('div', { cls: 'pm-error-detail', text: error });
     return errorEl;
-  }
-
-  /**
-   * 状态选择器实例（延迟创建）
-   */
-  private statusPicker?: StatusPicker;
-
-  /**
-   * 进度选择器实例（延迟创建）
-   */
-  private progressPicker?: ProgressPicker;
-
-  /**
-   * 显示状态选择器
-   * 使用 StatusPicker 组件
-   */
-  protected showStatusPicker(entity: Entity & { status?: string }, triggerEl?: HTMLElement): void {
-    if (!this.statusPicker) {
-      this.statusPicker = new StatusPicker();
-    }
-
-    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
-    if (!targetEl) return;
-
-    this.statusPicker.show(
-      targetEl,
-      entity.status,
-      (status) => {
-        this.actionService.changeStatus(getEntityType(entity), entity.id, status);
-      }
-    );
-  }
-
-  /**
-   * 显示进度选择器
-   * 使用 ProgressPicker 组件
-   */
-  protected showProgressPicker(entity: Entity, triggerEl?: HTMLElement): void {
-    if (!this.progressPicker) {
-      this.progressPicker = new ProgressPicker();
-    }
-
-    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
-    if (!targetEl) return;
-
-    const currentProgress = (entity as any).progress || 0;
-
-    this.progressPicker.show(
-      targetEl,
-      currentProgress,
-      (progress) => {
-        this.actionService.updateProgress(getEntityType(entity), entity.id, progress);
-      }
-    );
-  }
-
-  /**
-   * 显示添加风险输入框（简化版：直接打开模态框通过事件总线）
-   */
-  protected showRiskInput(entity: Entity, triggerEl?: HTMLElement): void {
-    // 通过事件总线通知外部打开 AddRiskModal
-    // 这里创建一个简单的输入菜单作为 fallback
-    const menu = document.createElement('div');
-    menu.className = 'pm-risk-note-input';
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 12px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 280px;
-    `;
-
-    menu.createEl('div', {
-      text: '添加风险',
-      cls: 'pm-picker-title',
-    }).style.cssText = 'font-size: 13px; font-weight: 500; margin-bottom: 8px;';
-
-    const textarea = menu.createEl('textarea');
-    textarea.placeholder = '输入风险描述（类型 | 描述 | 等级 | 责任人）';
-    textarea.style.cssText = `
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      background: var(--background-primary);
-      color: var(--text-normal);
-      font-size: 13px;
-      resize: vertical;
-      box-sizing: border-box;
-    `;
-
-    const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;';
-
-    const cancelBtn = btnContainer.createEl('button');
-    cancelBtn.textContent = '取消';
-    cancelBtn.onclick = () => menu.remove();
-
-    const confirmBtn = btnContainer.createEl('button');
-    confirmBtn.textContent = '保存';
-    confirmBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: none;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => {
-      const content = textarea.value.trim();
-      if (content) {
-        const parts = content.split(/\||\t/).map(s => s.trim());
-        const type = parts[0] || '其他';
-        const desc = parts[1] || content;
-        const level = (parts[2] || 'medium').toLowerCase() as import('../../types').RiskLevel;
-        const owner = parts[3] || '';
-        this.actionService.addRisk(
-          getEntityType(entity),
-          entity.id,
-          { type, description: desc, level, owner, foundDate: new Date().toISOString().split('T')[0], status: '未关闭' }
-        );
-      }
-      menu.remove();
-    };
-
-    getOverlayContainer().appendChild(menu);
-
-    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
-    }
-
-    textarea.focus();
-
-    const closeMenu = (e: MouseEvent) => {
-      if (!menu.contains(e.target as Node)) {
-        menu.remove();
-        document.removeEventListener('click', closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeMenu), 0);
-  }
-
-  /**
-   * 显示进展反馈输入框
-   */
-  protected showProgressNoteInput(entity: Entity, triggerEl?: HTMLElement): void {
-    const menu = document.createElement('div');
-    menu.className = 'pm-progress-note-input';
-    menu.style.cssText = `
-      position: fixed;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 12px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      min-width: 280px;
-    `;
-
-    // 标题
-    menu.createEl('div', {
-      text: '添加进展反馈',
-      cls: 'pm-picker-title',
-    }).style.cssText = 'font-size: 13px; font-weight: 500; margin-bottom: 8px;';
-
-    // 输入框
-    const textarea = menu.createEl('textarea');
-    textarea.placeholder = '输入当前进展...';
-    textarea.style.cssText = `
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 4px;
-      background: var(--background-primary);
-      color: var(--text-normal);
-      font-size: 13px;
-      resize: vertical;
-      box-sizing: border-box;
-    `;
-
-    // 按钮容器
-    const btnContainer = menu.createDiv();
-    btnContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;';
-
-    // 取消按钮
-    const cancelBtn = btnContainer.createEl('button');
-    cancelBtn.textContent = '取消';
-    cancelBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: 1px solid var(--background-modifier-border);
-      background: var(--background-secondary);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    cancelBtn.onclick = () => menu.remove();
-
-    // 确认按钮
-    const confirmBtn = btnContainer.createEl('button');
-    confirmBtn.textContent = '保存';
-    confirmBtn.style.cssText = `
-      padding: 4px 12px;
-      font-size: 12px;
-      border: none;
-      background: var(--interactive-accent);
-      color: var(--text-on-accent);
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => {
-      const content = textarea.value.trim();
-      if (content) {
-        this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
-      }
-      menu.remove();
-    };
-
-    // 回车保存
-    textarea.onkeydown = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const content = textarea.value.trim();
-        if (content) {
-          this.actionService.addProgressNote(getEntityType(entity), entity.id, content);
-        }
-        menu.remove();
-      }
-    };
-
-    getOverlayContainer().appendChild(menu);
-
-    // 定位菜单
-    const targetEl = triggerEl || document.activeElement?.closest('.pm-card') as HTMLElement;
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 4}px`;
-    }
-
-    // 自动聚焦
-    textarea.focus();
-
-    // 点击外部关闭
-    const closeMenu = (e: MouseEvent) => {
-      if (!menu.contains(e.target as Node)) {
-        menu.remove();
-        document.removeEventListener('click', closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
   /**

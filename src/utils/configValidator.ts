@@ -36,6 +36,16 @@ const VALID_SORT_ORDERS = ['asc', 'desc'] as const;
 const VALID_GROUP_BY = ['status', 'priority', 'version', 'project', 'startDate', 'endDate'] as const;
 
 /**
+ * 有效的时间视图粒度
+ */
+const VALID_TIME_VIEW_MODES = ['week', 'month', 'year', 'all'] as const;
+
+/**
+ * 有效的时间视图分组方式
+ */
+const VALID_TIME_GROUP_BY = ['owner', 'project'] as const;
+
+/**
  * 配置验证器
  * 验证 pm-view 代码块配置的有效性
  */
@@ -209,6 +219,44 @@ export class ConfigValidator {
       }
     }
 
+    // 验证 timeViewMode
+    if (input.timeViewMode !== undefined) {
+      const modeStr = String(input.timeViewMode);
+      if (!VALID_TIME_VIEW_MODES.includes(modeStr as typeof VALID_TIME_VIEW_MODES[number])) {
+        warnings.push(`无效的 timeViewMode: "${modeStr}"，有效值: ${VALID_TIME_VIEW_MODES.join(', ')}`);
+      } else {
+        result.timeViewMode = modeStr as typeof VALID_TIME_VIEW_MODES[number];
+      }
+    }
+
+    // 验证 timeGroupBy
+    if (input.timeGroupBy !== undefined) {
+      const groupByStr = String(input.timeGroupBy);
+      if (!VALID_TIME_GROUP_BY.includes(groupByStr as typeof VALID_TIME_GROUP_BY[number])) {
+        warnings.push(`无效的 timeGroupBy: "${groupByStr}"，有效值: ${VALID_TIME_GROUP_BY.join(', ')}`);
+      } else {
+        result.timeGroupBy = groupByStr as typeof VALID_TIME_GROUP_BY[number];
+      }
+    }
+
+    // 验证 timeViewDate
+    if (input.timeViewDate !== undefined) {
+      if (typeof input.timeViewDate === 'string' && !isNaN(new Date(input.timeViewDate).getTime())) {
+        result.timeViewDate = input.timeViewDate;
+      } else {
+        warnings.push('timeViewDate 必须是有效的日期字符串');
+      }
+    }
+
+    // 验证 collapsedGroups
+    if (input.collapsedGroups !== undefined) {
+      if (Array.isArray(input.collapsedGroups)) {
+        result.collapsedGroups = input.collapsedGroups.filter((g): g is string => typeof g === 'string');
+      } else {
+        warnings.push('collapsedGroups 必须是字符串数组');
+      }
+    }
+
     // 复制其他未验证的属性（向后兼容）
     const validatedKeys = Object.keys(result);
     Object.keys(input).forEach(key => {
@@ -343,5 +391,19 @@ export class ConfigValidator {
    */
   static isGroupBy(value: string): value is typeof VALID_GROUP_BY[number] {
     return VALID_GROUP_BY.includes(value as typeof VALID_GROUP_BY[number]);
+  }
+
+  /**
+   * 类型守卫：检查是否是有效的时间视图粒度
+   */
+  static isTimeViewMode(value: string): value is typeof VALID_TIME_VIEW_MODES[number] {
+    return VALID_TIME_VIEW_MODES.includes(value as typeof VALID_TIME_VIEW_MODES[number]);
+  }
+
+  /**
+   * 类型守卫：检查是否是有效的时间视图分组方式
+   */
+  static isTimeGroupBy(value: string): value is typeof VALID_TIME_GROUP_BY[number] {
+    return VALID_TIME_GROUP_BY.includes(value as typeof VALID_TIME_GROUP_BY[number]);
   }
 }
