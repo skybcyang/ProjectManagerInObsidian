@@ -79,7 +79,7 @@ export class PropertyPanelController {
 
     const currentCardFields: CardFieldsConfig = config.cardFields || {
       required: ['name', 'priority'],
-      optional: ['status', 'owner', 'progress']
+      optional: ['status', 'owner', 'progress', 'endDate', 'tags', 'risk']
     };
     let liveOptional = currentCardFields.optional || [];
 
@@ -222,11 +222,12 @@ export class PropertyPanelController {
       { value: 'status', label: '状态' },
       { value: 'priority', label: '优先级' },
     ];
+    const currentGroupBy = config.groupBy || 'status';
     groupOptions.forEach(opt => {
       const option = select.createEl('option');
       option.value = opt.value;
       option.textContent = opt.label;
-      if (config.groupBy === opt.value) option.selected = true;
+      if (currentGroupBy === opt.value) option.selected = true;
     });
 
     select.addEventListener('change', () => {

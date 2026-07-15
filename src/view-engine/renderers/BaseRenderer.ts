@@ -92,7 +92,7 @@ export abstract class BaseRenderer {
   protected shouldShowCardField(fieldKey: string): boolean {
     const cardFields = this.config.cardFields || {
       required: ['name', 'priority'],
-      optional: ['status', 'owner', 'progress']
+      optional: ['status', 'owner', 'progress', 'endDate', 'tags', 'risk']
     };
     const allFields = [...(cardFields.required || []), ...(cardFields.optional || [])];
     return allFields.includes(fieldKey);

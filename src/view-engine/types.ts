@@ -82,7 +82,6 @@ export const ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: 'parent', label: '父级信息', required: false },
   { key: 'typeIcon', label: '类型图标', required: false },
   { key: 'stats', label: '统计信息', required: false },
-  { key: 'actions', label: '操作按钮', required: false },
 ] as const;
 
 // 通用视图配置 - 新版

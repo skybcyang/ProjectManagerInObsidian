@@ -8057,8 +8057,7 @@ var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "description", label: "\u63CF\u8FF0", required: false },
   { key: "parent", label: "\u7236\u7EA7\u4FE1\u606F", required: false },
   { key: "typeIcon", label: "\u7C7B\u578B\u56FE\u6807", required: false },
-  { key: "stats", label: "\u7EDF\u8BA1\u4FE1\u606F", required: false },
-  { key: "actions", label: "\u64CD\u4F5C\u6309\u94AE", required: false }
+  { key: "stats", label: "\u7EDF\u8BA1\u4FE1\u606F", required: false }
 ];
 function getEntityType(entity) {
   if ("projectId" in entity && entity.projectId !== void 0) {
@@ -8234,7 +8233,7 @@ var BaseRenderer = class {
   shouldShowCardField(fieldKey) {
     const cardFields = this.config.cardFields || {
       required: ["name", "priority"],
-      optional: ["status", "owner", "progress"]
+      optional: ["status", "owner", "progress", "endDate", "tags", "risk"]
     };
     const allFields = [...cardFields.required || [], ...cardFields.optional || []];
     return allFields.includes(fieldKey);
@@ -11511,7 +11510,7 @@ var PropertyPanelController = class {
     }).style.cssText = "display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;";
     const currentCardFields = config.cardFields || {
       required: ["name", "priority"],
-      optional: ["status", "owner", "progress"]
+      optional: ["status", "owner", "progress", "endDate", "tags", "risk"]
     };
     let liveOptional = currentCardFields.optional || [];
     const multiSelectContainer = section.createDiv("pm-multi-select");
@@ -11628,11 +11627,12 @@ var PropertyPanelController = class {
       { value: "status", label: "\u72B6\u6001" },
       { value: "priority", label: "\u4F18\u5148\u7EA7" }
     ];
+    const currentGroupBy = config.groupBy || "status";
     groupOptions.forEach((opt) => {
       const option = select.createEl("option");
       option.value = opt.value;
       option.textContent = opt.label;
-      if (config.groupBy === opt.value)
+      if (currentGroupBy === opt.value)
         option.selected = true;
     });
     select.addEventListener("change", () => {
