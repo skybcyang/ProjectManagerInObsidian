@@ -11940,6 +11940,54 @@ var ViewEngine = class {
 
 // src/settings/TemplateSettingTab.ts
 var import_obsidian26 = require("obsidian");
+
+// src/types/template.ts
+var DEFAULT_SETTINGS = {
+  enableCustomTemplates: false,
+  customTemplates: {}
+};
+var PREVIEW_EXAMPLES = {
+  version: {
+    id: "ver-2026-q2",
+    name: "2026 Q2 \u7248\u672C",
+    status: "planning",
+    owner: "\u5F20\u4E09",
+    startDate: "2026-04-01",
+    endDate: "2026-06-30",
+    tags: ["\u91CD\u8981", "\u79FB\u52A8\u7AEF"]
+  },
+  project: {
+    id: "proj-homepage",
+    name: "\u9996\u9875\u6539\u7248\u9879\u76EE",
+    versionId: "ver-2026-q2",
+    status: "in-progress",
+    owner: "\u674E\u56DB",
+    priority: "high",
+    startDate: "2026-04-01",
+    endDate: "2026-05-15",
+    tags: ["\u524D\u7AEF", "UI"]
+  },
+  feature: {
+    id: "feat-login",
+    name: "\u767B\u5F55\u529F\u80FD\u4F18\u5316",
+    versionId: "ver-2026-q2",
+    projectId: "proj-homepage",
+    status: "in-progress",
+    owner: "\u738B\u4E94",
+    priority: "critical",
+    progress: 65,
+    startDate: "2026-04-01",
+    endDate: "2026-04-15",
+    tags: ["\u540E\u7AEF", "\u5B89\u5168"],
+    estimatedDays: 5,
+    actualDays: 3
+  },
+  overview: {
+    date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
+  }
+};
+
+// src/settings/TemplateSettingTab.ts
 init_TemplateService();
 var TEMPLATE_LABELS = {
   overview: "\u603B\u89C8\u9875\u9762",
@@ -12093,40 +12141,187 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
   constructor(app, templateService, type, onSave) {
     super(app);
     this.textArea = null;
+    this.previewEl = null;
     this.templateService = templateService;
     this.type = type;
     this.onSave = onSave;
     this.titleEl.setText(`\u7F16\u8F91 ${TEMPLATE_LABELS[type]} \u6A21\u677F`);
   }
   async onOpen() {
-    const { contentEl } = this;
+    const { contentEl, modalEl } = this;
     contentEl.empty();
+    modalEl.style.width = "90vw";
+    modalEl.style.maxWidth = "1200px";
+    modalEl.style.height = "85vh";
+    contentEl.style.height = "calc(100% - 45px)";
+    contentEl.style.display = "flex";
+    contentEl.style.flexDirection = "column";
+    contentEl.style.overflow = "hidden";
     const defaultTemplate = this.templateService.getDefaultTemplate(this.type);
     const settings = this.templateService.getSettings();
     const currentTemplate = settings.customTemplates[this.type] || defaultTemplate;
-    const setting = new import_obsidian26.Setting(contentEl).setName("\u6A21\u677F\u5185\u5BB9").setDesc("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u8BED\u6CD5\u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}");
-    setting.controlEl.style.width = "100%";
-    this.textArea = new import_obsidian26.TextAreaComponent(setting.controlEl);
+    const hintEl = contentEl.createDiv({ cls: "pm-template-editor-hint" });
+    hintEl.style.cssText = `
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      background: var(--background-secondary);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    `;
+    hintEl.setText("\u4F7F\u7528 {{\u53D8\u91CF\u540D}} \u63D2\u5165\u53D8\u91CF\uFF0C\u652F\u6301 {{#if \u6761\u4EF6}}...{{/if}} \u548C {{#each \u6570\u7EC4}}...{{/each}}\u3002\u53F3\u4FA7\u5B9E\u65F6\u9884\u89C8\u4F7F\u7528\u793A\u4F8B\u6570\u636E\u6E32\u67D3\u3002");
+    const mainEl = contentEl.createDiv({ cls: "pm-template-editor-main" });
+    mainEl.style.cssText = `
+      display: flex;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    `;
+    const leftEl = mainEl.createDiv({ cls: "pm-template-editor-left" });
+    leftEl.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    `;
+    const editorLabel = leftEl.createEl("div", { text: "\u6A21\u677F\u6E90\u7801", cls: "pm-template-editor-label" });
+    editorLabel.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+    const editorWrapper = leftEl.createDiv({ cls: "pm-template-editor-wrapper" });
+    editorWrapper.style.cssText = `
+      flex: 1;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      overflow: hidden;
+    `;
+    this.textArea = new import_obsidian26.TextAreaComponent(editorWrapper);
     this.textArea.setValue(currentTemplate);
-    this.textArea.inputEl.style.width = "100%";
-    this.textArea.inputEl.style.minHeight = "400px";
-    this.textArea.inputEl.style.fontFamily = "monospace";
-    this.textArea.inputEl.style.fontSize = "13px";
-    const varSection = contentEl.createDiv();
-    varSection.style.marginTop = "1em";
-    varSection.createEl("h4", { text: "\u53EF\u7528\u53D8\u91CF" });
-    const varList = varSection.createEl("ul");
+    this.textArea.inputEl.style.cssText = `
+      width: 100%;
+      height: 100%;
+      min-height: unset;
+      resize: none;
+      border: none;
+      padding: 12px;
+      font-family: var(--font-monospace, monospace);
+      font-size: 13px;
+      line-height: 1.6;
+      background: var(--background-primary);
+      color: var(--text-normal);
+    `;
+    const rightEl = mainEl.createDiv({ cls: "pm-template-editor-right" });
+    rightEl.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    `;
+    const previewHeader = rightEl.createDiv({ cls: "pm-template-editor-preview-header" });
+    previewHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    `;
+    const previewLabel = previewHeader.createEl("div", { text: "\u5B9E\u65F6\u9884\u89C8", cls: "pm-template-editor-label" });
+    previewLabel.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+    const varToggle = previewHeader.createEl("button", { text: "\u53D8\u91CF\u8BF4\u660E", cls: "pm-template-var-toggle" });
+    varToggle.style.cssText = `
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--background-modifier-border);
+      background: var(--background-primary);
+      color: var(--text-muted);
+      cursor: pointer;
+    `;
+    const previewWrapper = rightEl.createDiv({ cls: "pm-template-preview-wrapper" });
+    previewWrapper.style.cssText = `
+      flex: 1;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      overflow: auto;
+      background: var(--background-primary);
+    `;
+    this.previewEl = previewWrapper.createDiv({ cls: "pm-template-preview-content markdown-preview-view markdown-rendered" });
+    this.previewEl.style.cssText = `
+      padding: 16px;
+      min-height: 100%;
+    `;
+    const varPanel = rightEl.createDiv({ cls: "pm-template-var-panel" });
+    varPanel.style.cssText = `
+      display: none;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--background-secondary);
+      border-radius: 6px;
+      font-size: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+    `;
     const variables = this.getAvailableVariables(this.type);
     for (const [name, desc] of Object.entries(variables)) {
-      const item = varList.createEl("li");
-      item.createEl("code", { text: `{{${name}}}` });
-      item.appendText(` - ${desc}`);
+      const row = varPanel.createDiv({ cls: "pm-template-var-row" });
+      row.style.cssText = "display: flex; gap: 8px; margin-bottom: 4px;";
+      row.createEl("code", { text: `{{${name}}}`, cls: "pm-template-var-name" }).style.cssText = `
+        color: var(--text-accent);
+        font-family: var(--font-monospace, monospace);
+        white-space: nowrap;
+      `;
+      row.createSpan({ text: desc, cls: "pm-template-var-desc" }).style.color = "var(--text-muted)";
     }
+    varToggle.addEventListener("click", () => {
+      const isHidden = varPanel.style.display === "none";
+      varPanel.style.display = isHidden ? "block" : "none";
+      varToggle.style.background = isHidden ? "var(--background-modifier-accent)" : "var(--background-primary)";
+    });
+    const updatePreview = () => {
+      var _a;
+      const template = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
+      const context = this.getPreviewContext(this.type);
+      try {
+        const rendered = this.templateService.renderTemplate(template, context);
+        if (this.previewEl) {
+          this.previewEl.empty();
+          const { MarkdownRenderer } = require("obsidian");
+          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, "", this);
+        }
+      } catch (error) {
+        if (this.previewEl) {
+          this.previewEl.empty();
+          this.previewEl.createEl("div", {
+            text: `\u9884\u89C8\u6E32\u67D3\u51FA\u9519: ${error.message}`,
+            cls: "pm-template-preview-error"
+          }).style.cssText = "color: var(--text-error); padding: 16px;";
+        }
+      }
+    };
+    this.textArea.inputEl.addEventListener("input", updatePreview);
+    updatePreview();
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.marginTop = "1em";
-    buttonDiv.style.display = "flex";
-    buttonDiv.style.gap = "1em";
-    buttonDiv.style.justifyContent = "flex-end";
+    buttonDiv.style.cssText = `
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    `;
     const cancelBtn = buttonDiv.createEl("button", { text: "\u53D6\u6D88" });
     cancelBtn.addEventListener("click", () => this.close());
     const saveBtn = buttonDiv.createEl("button", { text: "\u4FDD\u5B58", cls: "mod-cta" });
@@ -12165,7 +12360,9 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
           owner: "\u8D1F\u8D23\u4EBA\uFF08\u53EF\u9009\uFF09",
           startDate: "\u5F00\u59CB\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
           endDate: "\u7ED3\u675F\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
-          tags: "\u6807\u7B7E\u6570\u7EC4"
+          tags: "\u6807\u7B7E\u6570\u7EC4",
+          estimatedDays: "\u9884\u4F30\u4EBA\u5929",
+          actualDays: "\u5B9E\u9645\u4EBA\u5929"
         };
       case "project":
         return {
@@ -12173,7 +12370,9 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
           versionId: "\u5173\u8054\u7248\u672CID",
           owner: "\u8D1F\u8D23\u4EBA\uFF08\u53EF\u9009\uFF09",
           priority: "\u4F18\u5148\u7EA7",
-          tags: "\u6807\u7B7E\u6570\u7EC4"
+          tags: "\u6807\u7B7E\u6570\u7EC4",
+          estimatedDays: "\u9884\u4F30\u4EBA\u5929",
+          actualDays: "\u5B9E\u9645\u4EBA\u5929"
         };
       case "feature":
         return {
@@ -12187,11 +12386,20 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
           endDate: "\u7ED3\u675F\u65E5\u671F\uFF08\u53EF\u9009\uFF09",
           tags: "\u6807\u7B7E\u6570\u7EC4",
           estimatedDays: "\u9884\u4F30\u4EBA\u5929\uFF08\u53EF\u9009\uFF09",
-          actualDays: "\u5B9E\u9645\u4EBA\u5929\uFF08\u53EF\u9009\uFF09"
+          actualDays: "\u5B9E\u9645\u4EBA\u5929\uFF08\u53EF\u9009\uFF09",
+          requirementIds: "\u9700\u6C42ID\u6570\u7EC4\uFF08\u53EF\u9009\uFF09",
+          projectLink: "\u9879\u76EE\u94FE\u63A5\uFF08\u53EF\u9009\uFF09",
+          isMilestone: "\u662F\u5426\u4E3A\u91CC\u7A0B\u7891"
         };
       default:
         return commonVars;
     }
+  }
+  /**
+   * 获取预览用的示例数据
+   */
+  getPreviewContext(type) {
+    return PREVIEW_EXAMPLES[type];
   }
 };
 var TemplatePreviewModal = class extends import_obsidian26.Modal {
@@ -12201,77 +12409,35 @@ var TemplatePreviewModal = class extends import_obsidian26.Modal {
     this.template = template;
     this.titleEl.setText(`${TEMPLATE_LABELS[type]} \u6A21\u677F\u9884\u89C8`);
   }
-  onOpen() {
-    const { contentEl } = this;
+  async onOpen() {
+    const { contentEl, modalEl } = this;
     contentEl.empty();
-    const previewDiv = contentEl.createDiv({ cls: "pm-template-preview" });
-    previewDiv.style.background = "var(--background-primary)";
-    previewDiv.style.padding = "1em";
-    previewDiv.style.border = "1px solid var(--background-modifier-border)";
-    previewDiv.style.borderRadius = "4px";
-    previewDiv.style.maxHeight = "500px";
-    previewDiv.style.overflow = "auto";
-    const pre = previewDiv.createEl("pre");
-    pre.style.margin = "0";
-    pre.style.whiteSpace = "pre-wrap";
-    pre.style.wordBreak = "break-word";
-    pre.textContent = this.template;
+    modalEl.style.width = "80vw";
+    modalEl.style.maxWidth = "900px";
+    modalEl.style.maxHeight = "80vh";
+    const previewDiv = contentEl.createDiv({ cls: "pm-template-preview markdown-preview-view markdown-rendered" });
+    previewDiv.style.cssText = `
+      padding: 16px;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      max-height: calc(80vh - 120px);
+      overflow: auto;
+    `;
+    const { MarkdownRenderer } = require("obsidian");
+    MarkdownRenderer.renderMarkdown(this.template, previewDiv, "", this.app);
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.marginTop = "1em";
-    buttonDiv.style.display = "flex";
-    buttonDiv.style.justifyContent = "flex-end";
+    buttonDiv.style.cssText = `
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    `;
     const closeBtn = buttonDiv.createEl("button", { text: "\u5173\u95ED", cls: "mod-cta" });
     closeBtn.addEventListener("click", () => this.close());
   }
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
-  }
-};
-
-// src/types/template.ts
-var DEFAULT_SETTINGS = {
-  enableCustomTemplates: false,
-  customTemplates: {}
-};
-var PREVIEW_EXAMPLES = {
-  version: {
-    id: "ver-2026-q2",
-    name: "2026 Q2 \u7248\u672C",
-    status: "planning",
-    owner: "\u5F20\u4E09",
-    startDate: "2026-04-01",
-    endDate: "2026-06-30",
-    tags: ["\u91CD\u8981", "\u79FB\u52A8\u7AEF"]
-  },
-  project: {
-    id: "proj-homepage",
-    name: "\u9996\u9875\u6539\u7248\u9879\u76EE",
-    versionId: "ver-2026-q2",
-    status: "in-progress",
-    owner: "\u674E\u56DB",
-    priority: "high",
-    startDate: "2026-04-01",
-    endDate: "2026-05-15",
-    tags: ["\u524D\u7AEF", "UI"]
-  },
-  feature: {
-    id: "feat-login",
-    name: "\u767B\u5F55\u529F\u80FD\u4F18\u5316",
-    versionId: "ver-2026-q2",
-    projectId: "proj-homepage",
-    status: "in-progress",
-    owner: "\u738B\u4E94",
-    priority: "critical",
-    progress: 65,
-    startDate: "2026-04-01",
-    endDate: "2026-04-15",
-    tags: ["\u540E\u7AEF", "\u5B89\u5168"],
-    estimatedDays: 5,
-    actualDays: 3
-  },
-  overview: {
-    date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
   }
 };
 

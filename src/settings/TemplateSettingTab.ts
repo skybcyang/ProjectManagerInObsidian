@@ -4,7 +4,8 @@
  */
 
 import { App, PluginSettingTab, Setting, Notice, Modal, TextAreaComponent } from 'obsidian';
-import type { TemplateType, ProjectManagerSettings } from '../types/template';
+import type { TemplateType, ProjectManagerSettings, TemplateContext } from '../types/template';
+import { PREVIEW_EXAMPLES } from '../types/template';
 import { TemplateService } from '../services/TemplateService';
 import { DEFAULT_TEMPLATES } from '../templates/defaults';
 import type ProjectManagerPlugin from '../main';
@@ -209,16 +210,18 @@ export class TemplateSettingTab extends PluginSettingTab {
 
 /**
  * 模板编辑器模态框
+ * 左右分栏：左侧编辑，右侧实时预览
  */
 class TemplateEditorModal extends Modal {
   private templateService: TemplateService;
   private type: TemplateType;
   private onSave: (content: string) => Promise<void>;
   private textArea: TextAreaComponent | null = null;
+  private previewEl: HTMLElement | null = null;
 
   constructor(
-    app: App, 
-    templateService: TemplateService, 
+    app: App,
+    templateService: TemplateService,
     type: TemplateType,
     onSave: (content: string) => Promise<void>
   ) {
@@ -230,47 +233,209 @@ class TemplateEditorModal extends Modal {
   }
 
   async onOpen(): Promise<void> {
-    const { contentEl } = this;
+    const { contentEl, modalEl } = this;
     contentEl.empty();
 
-    // 获取当前模板内容（优先使用自定义模板，否则使用默认模板）
+    // 让模态框更大：占屏幕 90%
+    modalEl.style.width = '90vw';
+    modalEl.style.maxWidth = '1200px';
+    modalEl.style.height = '85vh';
+    contentEl.style.height = 'calc(100% - 45px)';
+    contentEl.style.display = 'flex';
+    contentEl.style.flexDirection = 'column';
+    contentEl.style.overflow = 'hidden';
+
+    // 获取当前模板内容
     const defaultTemplate = this.templateService.getDefaultTemplate(this.type);
     const settings = this.templateService.getSettings();
     const currentTemplate = settings.customTemplates[this.type] || defaultTemplate;
 
-    // 创建编辑器
-    const setting = new Setting(contentEl)
-      .setName('模板内容')
-      .setDesc('使用 {{变量名}} 语法插入变量，支持 {{#if 条件}}...{{/if}} 和 {{#each 数组}}...{{/each}}');
+    // 顶部提示条
+    const hintEl = contentEl.createDiv({ cls: 'pm-template-editor-hint' });
+    hintEl.style.cssText = `
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      background: var(--background-secondary);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    `;
+    hintEl.setText('使用 {{变量名}} 插入变量，支持 {{#if 条件}}...{{/if}} 和 {{#each 数组}}...{{/each}}。右侧实时预览使用示例数据渲染。');
 
-    setting.controlEl.style.width = '100%';
-    
-    this.textArea = new TextAreaComponent(setting.controlEl);
+    // 主编辑区：左右分栏
+    const mainEl = contentEl.createDiv({ cls: 'pm-template-editor-main' });
+    mainEl.style.cssText = `
+      display: flex;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    `;
+
+    // 左侧：编辑器
+    const leftEl = mainEl.createDiv({ cls: 'pm-template-editor-left' });
+    leftEl.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    `;
+
+    const editorLabel = leftEl.createEl('div', { text: '模板源码', cls: 'pm-template-editor-label' });
+    editorLabel.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+
+    const editorWrapper = leftEl.createDiv({ cls: 'pm-template-editor-wrapper' });
+    editorWrapper.style.cssText = `
+      flex: 1;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      overflow: hidden;
+    `;
+
+    this.textArea = new TextAreaComponent(editorWrapper);
     this.textArea.setValue(currentTemplate);
-    this.textArea.inputEl.style.width = '100%';
-    this.textArea.inputEl.style.minHeight = '400px';
-    this.textArea.inputEl.style.fontFamily = 'monospace';
-    this.textArea.inputEl.style.fontSize = '13px';
+    this.textArea.inputEl.style.cssText = `
+      width: 100%;
+      height: 100%;
+      min-height: unset;
+      resize: none;
+      border: none;
+      padding: 12px;
+      font-family: var(--font-monospace, monospace);
+      font-size: 13px;
+      line-height: 1.6;
+      background: var(--background-primary);
+      color: var(--text-normal);
+    `;
 
-    // 可用变量说明
-    const varSection = contentEl.createDiv();
-    varSection.style.marginTop = '1em';
-    varSection.createEl('h4', { text: '可用变量' });
-    
-    const varList = varSection.createEl('ul');
+    // 右侧：预览
+    const rightEl = mainEl.createDiv({ cls: 'pm-template-editor-right' });
+    rightEl.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    `;
+
+    const previewHeader = rightEl.createDiv({ cls: 'pm-template-editor-preview-header' });
+    previewHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    `;
+
+    const previewLabel = previewHeader.createEl('div', { text: '实时预览', cls: 'pm-template-editor-label' });
+    previewLabel.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+
+    const varToggle = previewHeader.createEl('button', { text: '变量说明', cls: 'pm-template-var-toggle' });
+    varToggle.style.cssText = `
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--background-modifier-border);
+      background: var(--background-primary);
+      color: var(--text-muted);
+      cursor: pointer;
+    `;
+
+    const previewWrapper = rightEl.createDiv({ cls: 'pm-template-preview-wrapper' });
+    previewWrapper.style.cssText = `
+      flex: 1;
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      overflow: auto;
+      background: var(--background-primary);
+    `;
+
+    this.previewEl = previewWrapper.createDiv({ cls: 'pm-template-preview-content markdown-preview-view markdown-rendered' });
+    this.previewEl.style.cssText = `
+      padding: 16px;
+      min-height: 100%;
+    `;
+
+    // 变量说明面板（默认折叠）
+    const varPanel = rightEl.createDiv({ cls: 'pm-template-var-panel' });
+    varPanel.style.cssText = `
+      display: none;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--background-secondary);
+      border-radius: 6px;
+      font-size: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+    `;
+
     const variables = this.getAvailableVariables(this.type);
     for (const [name, desc] of Object.entries(variables)) {
-      const item = varList.createEl('li');
-      item.createEl('code', { text: `{{${name}}}` });
-      item.appendText(` - ${desc}`);
+      const row = varPanel.createDiv({ cls: 'pm-template-var-row' });
+      row.style.cssText = 'display: flex; gap: 8px; margin-bottom: 4px;';
+      row.createEl('code', { text: `{{${name}}}`, cls: 'pm-template-var-name' }).style.cssText = `
+        color: var(--text-accent);
+        font-family: var(--font-monospace, monospace);
+        white-space: nowrap;
+      `;
+      row.createSpan({ text: desc, cls: 'pm-template-var-desc' }).style.color = 'var(--text-muted)';
     }
 
-    // 按钮
+    varToggle.addEventListener('click', () => {
+      const isHidden = varPanel.style.display === 'none';
+      varPanel.style.display = isHidden ? 'block' : 'none';
+      varToggle.style.background = isHidden ? 'var(--background-modifier-accent)' : 'var(--background-primary)';
+    });
+
+    // 实时预览更新
+    const updatePreview = () => {
+      const template = this.textArea?.getValue() || '';
+      const context = this.getPreviewContext(this.type);
+      try {
+        const rendered = this.templateService.renderTemplate(template, context);
+        if (this.previewEl) {
+          this.previewEl.empty();
+          // 使用 Obsidian 的 MarkdownRenderer 渲染 Markdown
+          const { MarkdownRenderer } = require('obsidian');
+          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, '', this);
+        }
+      } catch (error) {
+        if (this.previewEl) {
+          this.previewEl.empty();
+          this.previewEl.createEl('div', {
+            text: `预览渲染出错: ${(error as Error).message}`,
+            cls: 'pm-template-preview-error'
+          }).style.cssText = 'color: var(--text-error); padding: 16px;';
+        }
+      }
+    };
+
+    this.textArea.inputEl.addEventListener('input', updatePreview);
+    updatePreview();
+
+    // 底部按钮
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.marginTop = '1em';
-    buttonDiv.style.display = 'flex';
-    buttonDiv.style.gap = '1em';
-    buttonDiv.style.justifyContent = 'flex-end';
+    buttonDiv.style.cssText = `
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    `;
 
     const cancelBtn = buttonDiv.createEl('button', { text: '取消' });
     cancelBtn.addEventListener('click', () => this.close());
@@ -314,6 +479,8 @@ class TemplateEditorModal extends Modal {
           startDate: '开始日期（可选）',
           endDate: '结束日期（可选）',
           tags: '标签数组',
+          estimatedDays: '预估人天',
+          actualDays: '实际人天',
         };
       case 'project':
         return {
@@ -322,6 +489,8 @@ class TemplateEditorModal extends Modal {
           owner: '负责人（可选）',
           priority: '优先级',
           tags: '标签数组',
+          estimatedDays: '预估人天',
+          actualDays: '实际人天',
         };
       case 'feature':
         return {
@@ -336,15 +505,26 @@ class TemplateEditorModal extends Modal {
           tags: '标签数组',
           estimatedDays: '预估人天（可选）',
           actualDays: '实际人天（可选）',
+          requirementIds: '需求ID数组（可选）',
+          projectLink: '项目链接（可选）',
+          isMilestone: '是否为里程碑',
         };
       default:
         return commonVars;
     }
   }
+
+  /**
+   * 获取预览用的示例数据
+   */
+  private getPreviewContext(type: TemplateType): TemplateContext {
+    return PREVIEW_EXAMPLES[type];
+  }
 }
 
 /**
  * 模板预览模态框
+ * 用于单独预览当前已保存的模板
  */
 class TemplatePreviewModal extends Modal {
   private type: TemplateType;
@@ -357,30 +537,33 @@ class TemplatePreviewModal extends Modal {
     this.titleEl.setText(`${TEMPLATE_LABELS[type]} 模板预览`);
   }
 
-  onOpen(): void {
-    const { contentEl } = this;
+  async onOpen(): Promise<void> {
+    const { contentEl, modalEl } = this;
     contentEl.empty();
 
-    const previewDiv = contentEl.createDiv({ cls: 'pm-template-preview' });
-    previewDiv.style.background = 'var(--background-primary)';
-    previewDiv.style.padding = '1em';
-    previewDiv.style.border = '1px solid var(--background-modifier-border)';
-    previewDiv.style.borderRadius = '4px';
-    previewDiv.style.maxHeight = '500px';
-    previewDiv.style.overflow = 'auto';
+    modalEl.style.width = '80vw';
+    modalEl.style.maxWidth = '900px';
+    modalEl.style.maxHeight = '80vh';
 
-    // 显示模板内容
-    const pre = previewDiv.createEl('pre');
-    pre.style.margin = '0';
-    pre.style.whiteSpace = 'pre-wrap';
-    pre.style.wordBreak = 'break-word';
-    pre.textContent = this.template;
+    const previewDiv = contentEl.createDiv({ cls: 'pm-template-preview markdown-preview-view markdown-rendered' });
+    previewDiv.style.cssText = `
+      padding: 16px;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: 6px;
+      max-height: calc(80vh - 120px);
+      overflow: auto;
+    `;
 
-    // 关闭按钮
+    const { MarkdownRenderer } = require('obsidian');
+    MarkdownRenderer.renderMarkdown(this.template, previewDiv, '', this.app);
+
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.marginTop = '1em';
-    buttonDiv.style.display = 'flex';
-    buttonDiv.style.justifyContent = 'flex-end';
+    buttonDiv.style.cssText = `
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    `;
 
     const closeBtn = buttonDiv.createEl('button', { text: '关闭', cls: 'mod-cta' });
     closeBtn.addEventListener('click', () => this.close());
