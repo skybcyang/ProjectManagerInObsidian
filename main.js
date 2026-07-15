@@ -12120,6 +12120,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
   openTemplateEditor(type) {
     new TemplateEditorModal(
       this.app,
+      this.plugin,
       this.templateService,
       type,
       async (content) => {
@@ -12134,14 +12135,15 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
    */
   async openTemplatePreview(type) {
     const template = await this.templateService.getTemplate(type);
-    new TemplatePreviewModal(this.app, type, template).open();
+    new TemplatePreviewModal(this.app, this.plugin, type, template).open();
   }
 };
 var TemplateEditorModal = class extends import_obsidian26.Modal {
-  constructor(app, templateService, type, onSave) {
+  constructor(app, plugin, templateService, type, onSave) {
     super(app);
     this.textArea = null;
     this.previewEl = null;
+    this.plugin = plugin;
     this.templateService = templateService;
     this.type = type;
     this.onSave = onSave;
@@ -12300,7 +12302,7 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
         if (this.previewEl) {
           this.previewEl.empty();
           const { MarkdownRenderer } = require("obsidian");
-          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, "", this);
+          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, "", this.plugin);
         }
       } catch (error) {
         if (this.previewEl) {
@@ -12403,8 +12405,9 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
   }
 };
 var TemplatePreviewModal = class extends import_obsidian26.Modal {
-  constructor(app, type, template) {
+  constructor(app, plugin, type, template) {
     super(app);
+    this.plugin = plugin;
     this.type = type;
     this.template = template;
     this.titleEl.setText(`${TEMPLATE_LABELS[type]} \u6A21\u677F\u9884\u89C8`);
@@ -12425,7 +12428,7 @@ var TemplatePreviewModal = class extends import_obsidian26.Modal {
       overflow: auto;
     `;
     const { MarkdownRenderer } = require("obsidian");
-    MarkdownRenderer.renderMarkdown(this.template, previewDiv, "", this.app);
+    MarkdownRenderer.renderMarkdown(this.template, previewDiv, "", this.plugin);
     const buttonDiv = contentEl.createDiv();
     buttonDiv.style.cssText = `
       margin-top: 16px;

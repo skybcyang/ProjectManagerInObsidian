@@ -188,8 +188,9 @@ export class TemplateSettingTab extends PluginSettingTab {
    */
   private openTemplateEditor(type: TemplateType): void {
     new TemplateEditorModal(
-      this.app, 
-      this.templateService, 
+      this.app,
+      this.plugin,
+      this.templateService,
       type,
       async (content) => {
         this.plugin.settings.customTemplates[type] = content;
@@ -204,7 +205,7 @@ export class TemplateSettingTab extends PluginSettingTab {
    */
   private async openTemplatePreview(type: TemplateType): Promise<void> {
     const template = await this.templateService.getTemplate(type);
-    new TemplatePreviewModal(this.app, type, template).open();
+    new TemplatePreviewModal(this.app, this.plugin, type, template).open();
   }
 }
 
@@ -213,6 +214,7 @@ export class TemplateSettingTab extends PluginSettingTab {
  * 左右分栏：左侧编辑，右侧实时预览
  */
 class TemplateEditorModal extends Modal {
+  private plugin: ProjectManagerPlugin;
   private templateService: TemplateService;
   private type: TemplateType;
   private onSave: (content: string) => Promise<void>;
@@ -221,11 +223,13 @@ class TemplateEditorModal extends Modal {
 
   constructor(
     app: App,
+    plugin: ProjectManagerPlugin,
     templateService: TemplateService,
     type: TemplateType,
     onSave: (content: string) => Promise<void>
   ) {
     super(app);
+    this.plugin = plugin;
     this.templateService = templateService;
     this.type = type;
     this.onSave = onSave;
@@ -411,7 +415,7 @@ class TemplateEditorModal extends Modal {
           this.previewEl.empty();
           // 使用 Obsidian 的 MarkdownRenderer 渲染 Markdown
           const { MarkdownRenderer } = require('obsidian');
-          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, '', this);
+          MarkdownRenderer.renderMarkdown(rendered, this.previewEl, '', this.plugin);
         }
       } catch (error) {
         if (this.previewEl) {
@@ -527,11 +531,13 @@ class TemplateEditorModal extends Modal {
  * 用于单独预览当前已保存的模板
  */
 class TemplatePreviewModal extends Modal {
+  private plugin: ProjectManagerPlugin;
   private type: TemplateType;
   private template: string;
 
-  constructor(app: App, type: TemplateType, template: string) {
+  constructor(app: App, plugin: ProjectManagerPlugin, type: TemplateType, template: string) {
     super(app);
+    this.plugin = plugin;
     this.type = type;
     this.template = template;
     this.titleEl.setText(`${TEMPLATE_LABELS[type]} 模板预览`);
@@ -556,7 +562,7 @@ class TemplatePreviewModal extends Modal {
     `;
 
     const { MarkdownRenderer } = require('obsidian');
-    MarkdownRenderer.renderMarkdown(this.template, previewDiv, '', this.app);
+    MarkdownRenderer.renderMarkdown(this.template, previewDiv, '', this.plugin);
 
     const buttonDiv = contentEl.createDiv();
     buttonDiv.style.cssText = `
