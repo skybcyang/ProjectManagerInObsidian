@@ -10,9 +10,11 @@
 
 ```bash
 cd ProjectManagerInObsidian
-npm run dev        # 开发构建
-npm run build      # 生产构建
-npm run test       # 运行测试
+npm run dev               # 开发构建
+npm run build             # 生产构建
+npm run test              # 运行测试
+npm run generate:samples  # 重新生成 ProjectManager/ 示例数据
+npm run build-storybook   # 构建静态 Storybook
 ```
 
 ## 文档索引

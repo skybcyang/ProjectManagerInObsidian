@@ -239,22 +239,20 @@ export class TemplateService {
 
   /**
    * 处理 {{#if}} 块，支持嵌套
+   * 每次循环只处理最内层没有嵌套 {{#if}} 的块
    */
   private processIfBlocks(template: string, context: Record<string, unknown>): string {
     let result = template;
-    let prev: string;
-    let depth = 0;
-    const maxDepth = 10;
-    do {
-      prev = result;
-      result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, variable, content) => {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      result = result.replace(/\{\{#if\s+(\w+)\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/g, (match, variable, content) => {
+        changed = true;
         const value = context[variable];
-        const hasValue = value !== undefined && value !== null && value !== '' &&
-          !(Array.isArray(value) && value.length === 0);
+        const hasValue = Boolean(value) && !(Array.isArray(value) && value.length === 0);
         return hasValue ? content : '';
       });
-      depth++;
-    } while (prev !== result && depth < maxDepth);
+    }
     return result;
   }
 

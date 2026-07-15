@@ -949,21 +949,20 @@ var init_TemplateService = __esm({
       }
       /**
        * 处理 {{#if}} 块，支持嵌套
+       * 每次循环只处理最内层没有嵌套 {{#if}} 的块
        */
       processIfBlocks(template, context) {
         let result = template;
-        let prev;
-        let depth = 0;
-        const maxDepth = 10;
-        do {
-          prev = result;
-          result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, variable, content) => {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          result = result.replace(/\{\{#if\s+(\w+)\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/g, (match, variable, content) => {
+            changed = true;
             const value = context[variable];
-            const hasValue = value !== void 0 && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
+            const hasValue = Boolean(value) && !(Array.isArray(value) && value.length === 0);
             return hasValue ? content : "";
           });
-          depth++;
-        } while (prev !== result && depth < maxDepth);
+        }
         return result;
       }
       /**

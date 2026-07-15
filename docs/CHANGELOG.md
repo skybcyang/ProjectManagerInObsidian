@@ -1,5 +1,35 @@
 # 版本迭代记录
 
+## v0.8.3 (2026-07-14)
+
+### 改进
+
+- **模板编辑器重做**
+  - 编辑器模态框扩大为 90vw / 85vh
+  - 左右分栏布局：左侧编辑模板源码，右侧实时 Markdown 预览
+  - 预览使用示例数据实时渲染，编辑时即时更新
+  - 新增可折叠的「变量说明」面板
+  - 修复 `MarkdownRenderer.renderMarkdown` 的 component 参数错误，解决预览报错 `r.addChild is not a function`
+  - 单独预览弹窗也改为渲染 Markdown 而非显示原始文本
+
+- **属性面板修复**
+  - 统一 `PropertyPanelController` 与 `BaseRenderer` 的 `cardFields` 默认值，复选框初始状态与卡片实际显示一致
+  - `groupBy` 下拉在未配置时默认选中 `status`
+  - 从卡片字段定义中移除 `actions`，避免提供只读视图下不生效的选项
+
+- **示例数据重新生成**
+  - 新增 `scripts/generate-sample-data.mjs`，使用默认模板生成示例 Markdown
+  - `package.json` 新增 `generate:samples` 脚本
+  - 生成 4 个版本、16 个项目、144 个特性，并更新 `ProjectManager/总览.md`
+
+### 测试
+
+- 新增 `src/services/__tests__/TemplateService.test.ts`
+  - 覆盖变量替换、`{{#if}}`、`{{#each}}`、上下文 enrich、缓存失效等场景
+- 修复 `TemplateService.processIfBlocks` 对 `false` 值的判断，统一使用 Handlebars 风格的 truthy 语义
+
+---
+
 ## v0.8.2 (2026-07-14)
 
 ### 设计原则
