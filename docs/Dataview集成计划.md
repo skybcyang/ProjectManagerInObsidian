@@ -2,9 +2,9 @@
 
 ## Context
 
-当前 Project Manager 插件已具备完整的项目管理系统（版本→项目→特性三层结构），但在与 Dataview 的集成方面较为浅层：
+当前 Project Manager 插件已具备完整的项目管理系统（版本→项目→需求→特性四层结构），但在与 Dataview 的集成方面较为浅层：
 
-1. **现状**：仅在特性模板中硬编码了 Dataview 查询，用于展示同项目的其他特性
+1. **现状**：仅在特性模板中硬编码了 Dataview 查询，用于展示同项目的其他特性；需求实体已通过视图引擎和模板系统支持，Dataview 查询能力待补齐
 2. **问题**：
    - 用户无法灵活使用 Dataview 查询 Project Manager 数据
    - 每次数据查询都需要手动遍历文件系统，性能较差
@@ -86,10 +86,12 @@ export class DataviewService {
 |--------|------|--------|------|
 | `pmVersionProjects` | versionId: string | Project[] | 获取版本下的项目 |
 | `pmProjectFeatures` | projectId: string | Feature[] | 获取项目下的特性 |
+| `pmVersionRequirements` | versionId: string | Requirement[] | 获取版本下的需求 |
+| `pmProjectRequirements` | projectId: string | Requirement[] | 获取项目下的需求 |
 | `pmVersionProgress` | versionId: string | number | 计算版本进度 |
 | `pmProjectProgress` | projectId: string | number | 计算项目进度 |
 | `pmEntityStatus` | id: string | string | 获取实体状态 |
-| `pmOverdueItems` | type?: string | Entity[] | 获取逾期项目/特性 |
+| `pmOverdueItems` | type?: string | Entity[] | 获取逾期项目/特性/需求 |
 
 使用方式示例：
 
