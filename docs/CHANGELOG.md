@@ -4,7 +4,8 @@
 
 ### 新功能
 
-- **需求（Requirement）实体正式上线**
+- **需求（Requirement）实体作为独立管理实体正式上线**
+  - 需求不纳入 `版本→项目→特性` 级联层级，通过独立看板展示
   - 需求跟随版本下发，`projectId` 与 `featureId` 均为可选关联
   - 支持自由需求：仅绑定版本，不关联项目/特性
   - 新增 `src/types/requirement.ts`、`src/core/stores/RequirementStore.ts`

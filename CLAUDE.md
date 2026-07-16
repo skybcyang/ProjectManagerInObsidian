@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-**ProjectManagerInObsidian** 是一个 Obsidian 插件，提供**版本 → 项目 → 需求 → 特性**四层结构的项目管理能力。
+**ProjectManagerInObsidian** 是一个 Obsidian 插件，提供**版本 → 项目 → 特性**三层结构的项目管理能力，并支持**需求作为独立实体**可选关联版本/项目/特性，通过独立看板展示。
 
 ## 快速开始
 
@@ -68,14 +68,23 @@ Storybook 用于：
 
 > 详细架构设计、核心机制、扩展指南见 [技术架构](docs/技术架构.md)
 
-### 四层数据模型
+### 三层数据模型 + 独立需求
+
+**核心层级（级联视图展示）**
 
 | 层级 | 存储位置 | 核心字段 | 说明 |
 |------|---------|---------|------|
 | **版本** | `Versions/*.md` | id, name, status, startDate, endDate, owner, tags | 产品版本迭代 |
 | **项目** | `Projects/*.md` | id, name, status, priority, versionId, owner, tags | 必须关联版本 |
-| **需求** | `Requirements/*.md` | id, name, status, priority, versionId, projectId?, featureId?, progress, owner, tags | 跟随版本下发，项目/特性可选 |
 | **特性** | `Features/*.md` | id, name, status, priority, versionId, projectId, progress, owner, tags | 必须关联项目 |
+
+**独立实体（看板视图展示）**
+
+| 实体 | 存储位置 | 核心字段 | 说明 |
+|------|---------|---------|------|
+| **需求** | `Requirements/*.md` | id, name, status, priority, versionId?, projectId?, featureId?, progress, owner, tags | 独立管理，可选关联版本/项目/特性 |
+
+> 设计说明：需求不纳入 `版本→项目→特性` 级联层级，通过独立的 `mode: kanban` + `entityType: requirement` 视图展示。
 
 ### 目录结构
 
@@ -250,10 +259,11 @@ npm run test:coverage
 当前版本：**v0.8.4**（见 `manifest.json`）
 
 ### v0.8.4 主要变更
-- **新增**: 需求（Requirement）实体
+- **新增**: 需求（Requirement）实体，作为独立管理实体
   - 新增 `Requirement` 类型、`RequirementStore`、`CreateRequirementModal`
   - `EntityCache` 加载 `ProjectManager/Requirements/`，`EntityManager` 注册需求 CRUD
-  - 需求跟随版本下发，`projectId` 与 `featureId` 均为可选，支持自由需求
+  - 需求不纳入 `版本→项目→特性` 级联层级，通过独立看板展示
+  - `projectId` 与 `featureId` 均为可选，支持自由需求
   - 视图引擎扩展 `EntityType`，支持需求看板、需求卡片、需求筛选
   - 默认模板新增需求模板，总览/版本/项目模板新增「需求看板」
 - **修复**: 总览页面「创建需求」按钮无响应
