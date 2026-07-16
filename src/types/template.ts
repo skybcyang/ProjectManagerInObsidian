@@ -3,7 +3,7 @@
  */
 
 /** 模板类型 */
-export type TemplateType = 'overview' | 'version' | 'project' | 'feature';
+export type TemplateType = 'overview' | 'version' | 'project' | 'requirement' | 'feature';
 
 /** 模板配置 */
 export interface TemplateConfig {
@@ -13,6 +13,8 @@ export interface TemplateConfig {
   version: string;
   /** 项目页面模板 */
   project: string;
+  /** 需求页面模板 */
+  requirement: string;
   /** 特性页面模板 */
   feature: string;
 }
@@ -39,6 +41,25 @@ export interface ProjectTemplateContext {
   startDate?: string;
   endDate?: string;
   tags: string[];
+}
+
+/** 模板变量上下文 - 需求 */
+export interface RequirementTemplateContext {
+  id: string;
+  name: string;
+  versionId: string;
+  projectId?: string;
+  status: string;
+  owner?: string;
+  priority: string;
+  progress: number;
+  startDate?: string;
+  endDate?: string;
+  tags: string[];
+  estimatedDays?: number;
+  actualDays?: number;
+  description?: string;
+  featureId?: string;
 }
 
 /** 模板变量上下文 - 特性 */
@@ -68,6 +89,7 @@ export interface OverviewTemplateContext {
 export type TemplateContext =
   | VersionTemplateContext
   | ProjectTemplateContext
+  | RequirementTemplateContext
   | FeatureTemplateContext
   | OverviewTemplateContext;
 
@@ -108,6 +130,23 @@ export const PREVIEW_EXAMPLES = {
     startDate: '2026-04-01',
     endDate: '2026-05-15',
     tags: ['前端', 'UI'],
+  },
+  requirement: {
+    id: 'req-login',
+    name: '登录流程优化需求',
+    versionId: 'ver-2026-q2',
+    projectId: 'proj-homepage',
+    status: 'in-progress',
+    owner: '王五',
+    priority: 'high',
+    progress: 50,
+    startDate: '2026-04-01',
+    endDate: '2026-04-20',
+    tags: ['后端', '安全'],
+    estimatedDays: 8,
+    actualDays: 4,
+    description: '优化登录流程，支持多因素认证',
+    featureId: 'feat-login',
   },
   feature: {
     id: 'feat-login',

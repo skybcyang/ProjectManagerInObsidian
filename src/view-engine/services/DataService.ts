@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { Entity, ViewConfig, SortConfig, EntityType } from '../types';
-import type { Version, Project, Feature } from '../../types';
+import type { Version, Project, Feature, Requirement } from '../../types';
 
 /**
  * 实体策略接口
@@ -36,6 +36,11 @@ class EntityStrategyRegistry {
         list: () => this.entityManager.listFeatures(),
         get: (id: string) => this.entityManager.getFeature(id),
         update: (id: string, data: Partial<Feature>) => this.entityManager.updateFeature(id, data),
+      }],
+      ['requirement', {
+        list: () => this.entityManager.listRequirements(),
+        get: (id: string) => this.entityManager.getRequirement(id),
+        update: (id: string, data: Partial<Requirement>) => this.entityManager.updateRequirement(id, data),
       }],
     ]);
   }
@@ -110,6 +115,26 @@ export class DataService {
       }
 
       return versions as Entity[];
+    }
+
+    // 需求筛选
+    if (entityType === 'requirement') {
+      let requirements = await this.entityManager.listRequirements();
+
+      if (config.requirements && config.requirements.length > 0) {
+        requirements = requirements.filter(r => config.requirements!.includes(r.id));
+      }
+      if (config.features && config.features.length > 0) {
+        requirements = requirements.filter(r => r.featureId && config.features!.includes(r.featureId));
+      }
+      if (config.projects && config.projects.length > 0) {
+        requirements = requirements.filter(r => r.projectId && config.projects!.includes(r.projectId));
+      }
+      if (config.versions && config.versions.length > 0) {
+        requirements = requirements.filter(r => config.versions!.includes(r.versionId));
+      }
+
+      return requirements as Entity[];
     }
 
     return [];

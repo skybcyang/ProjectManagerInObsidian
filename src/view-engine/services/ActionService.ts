@@ -1,7 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import type { EntityManager } from '../../core';
 import type { EntityType } from '../types';
-import type { EntityBase, Version, Project, Feature } from '../../types';
+import type { EntityBase, Version, Project, Feature, Requirement } from '../../types';
 import { LogWriterService } from '../../services/LogWriterService';
 import type { RiskItem, ProgressLogItem } from '../../types';
 
@@ -32,6 +32,10 @@ class EntityStrategyRegistry {
       ['feature', {
         get: (id: string) => this.entityManager.getFeature(id),
         update: (id: string, data: Partial<Feature>) => this.entityManager.updateFeature(id, data),
+      }],
+      ['requirement', {
+        get: (id: string) => this.entityManager.getRequirement(id),
+        update: (id: string, data: Partial<Requirement>) => this.entityManager.updateRequirement(id, data),
       }],
     ]);
   }

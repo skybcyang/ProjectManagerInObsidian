@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createMockVersion, createMockProject, createMockFeature } from '../../tests/setup';
+import { createMockVersion, createMockProject, createMockFeature, createMockRequirement } from '../../tests/setup';
 import { EntityCard } from '../view-engine/components/EntityCard';
 import { App } from '../__mocks__/obsidian';
 
@@ -102,6 +102,37 @@ export const Version: Story = {
   },
 };
 
+export const Requirement: Story = {
+  render: () => {
+    const container = createCardContainer();
+    const card = new EntityCard(app as any);
+    card.render(
+      container,
+      createMockRequirement({
+        name: '用户注册流程优化',
+        priority: 'high',
+        status: 'in-progress',
+        owner: '产品经理',
+        progress: 35,
+        endDate: '2024-04-25',
+        tags: ['需求', 'UX'],
+        description: '简化注册步骤，支持第三方授权登录。',
+      }),
+      {
+        showTypeIcon: true,
+        showPriority: true,
+        showStatus: true,
+        showOwner: true,
+        showProgress: true,
+        showDueDate: true,
+        showTags: true,
+        showDescription: true,
+      }
+    );
+    return container;
+  },
+};
+
 export const Compact: Story = {
   render: () => {
     const container = createCardContainer();
@@ -138,6 +169,7 @@ export const AllTypes: Story = {
       { entity: createMockVersion({ name: 'v1.0', status: 'completed' }), label: 'Version' },
       { entity: createMockProject({ name: 'Web 应用', status: 'in-progress', priority: 'high' }), label: 'Project' },
       { entity: createMockFeature({ name: '登录页面', status: 'todo', priority: 'medium', progress: 30 }), label: 'Feature' },
+      { entity: createMockRequirement({ name: '注册流程优化', status: 'in-progress', priority: 'high', progress: 45 }), label: 'Requirement' },
     ];
 
     entities.forEach(({ entity }) => {

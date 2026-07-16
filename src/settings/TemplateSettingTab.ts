@@ -15,6 +15,7 @@ const TEMPLATE_LABELS: Record<TemplateType, string> = {
   overview: '总览页面',
   version: '版本页面',
   project: '项目页面',
+  requirement: '需求页面',
   feature: '特性页面',
 };
 
@@ -23,6 +24,7 @@ const TEMPLATE_DESCRIPTIONS: Record<TemplateType, string> = {
   overview: '项目管理总览页面的模板',
   version: '创建新版本时使用的页面模板',
   project: '创建新项目时使用的页面模板',
+  requirement: '创建新需求时使用的页面模板',
   feature: '创建新特性时使用的页面模板',
 };
 

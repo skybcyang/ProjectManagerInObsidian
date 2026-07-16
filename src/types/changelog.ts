@@ -4,7 +4,7 @@
  */
 
 /** 实体类型 */
-export type ChangeLogEntityType = 'version' | 'project' | 'feature';
+export type ChangeLogEntityType = 'version' | 'project' | 'feature' | 'requirement';
 
 /** 变更动作类型 */
 export type ChangeLogAction = 'create' | 'update' | 'delete';

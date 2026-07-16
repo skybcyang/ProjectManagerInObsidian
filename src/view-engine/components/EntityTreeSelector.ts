@@ -10,6 +10,7 @@ export interface TreeSelection {
   versionIds?: string[];
   projectIds?: string[];
   featureIds?: string[];
+  requirementIds?: string[];
   type: EntityType;
   /** 实际勾选的节点类型（用于 ToolbarController 判断筛选逻辑） */
   checkedTypes?: EntityType[];
@@ -43,6 +44,7 @@ const ENTITY_TYPE_COLORS: Record<EntityType, { bg: string; text: string; border:
   version: { bg: 'rgba(99, 102, 241, 0.15)', text: '#6366f1', border: 'rgba(99, 102, 241, 0.3)' },
   project: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)' },
   feature: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e', border: 'rgba(34, 197, 94, 0.3)' },
+  requirement: { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7', border: 'rgba(168, 85, 247, 0.3)' },
 };
 
 /**
@@ -164,7 +166,7 @@ export class EntityTreeSelector {
 
     const count = this.selectedIds.size;
     const entityType = this.options.entityType;
-    const colors = ENTITY_TYPE_COLORS[entityType];
+    const colors = ENTITY_TYPE_COLORS[entityType] || { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' };
 
     // 设置 badge 样式（与 SelectCell 一致）
     triggerEl.style.backgroundColor = colors.bg;
@@ -206,6 +208,7 @@ export class EntityTreeSelector {
       case 'version': return '版本';
       case 'project': return '项目';
       case 'feature': return '特性';
+      case 'requirement': return '需求';
       default: return '';
     }
   }

@@ -69,6 +69,7 @@ export const ENTITY_ICONS: Record<EntityType | string, string> = {
   version: '📦',
   project: '📁',
   feature: '📝',
+  requirement: '📋',
 };
 
 /** 获取实体类型图标 */
@@ -82,6 +83,7 @@ export function getEntityLabel(type: EntityType | string): string {
     version: '版本',
     project: '项目',
     feature: '特性',
+    requirement: '需求',
   };
   return labels[type] || type;
 }

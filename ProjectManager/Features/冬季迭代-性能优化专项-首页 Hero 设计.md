@@ -1,26 +1,28 @@
 ---
-id: feat-gk1qqp5h
+id: feat-obilw2wj
 name: 首页 Hero 设计
 type: feature
-versionId: ver-nua5xtp3
-projectId: proj-q8uhojyt
+versionId: ver-5v8hz2ge
+projectId: proj-k836l4b7
 status: backlog
-priority: low
+priority: critical
 progress: 0
-owner: 赵六
-startDate: 2026-10-28
-endDate: 2026-11-16
-estimatedDays: 10
+owner: 张三
+startDate: 2026-10-25
+endDate: 2026-11-04
+estimatedDays: 3
 actualDays: 0
+requirementIds:
+  - req-3898cpto
 isMilestone: false
 tags:
   - 前端
   - UI设计
 ---
 
-# 🟢 首页 Hero 设计
+# 🔴 首页 Hero 设计
 
-<input class="pm-progress-input" data-feature-id="feat-gk1qqp5h" placeholder="输入当前进展，按 Enter 保存...">
+<input class="pm-progress-input" data-feature-id="feat-obilw2wj" placeholder="输入当前进展，按 Enter 保存...">
 
 ---
 
@@ -28,7 +30,7 @@ tags:
 
 | 时间 | 反馈内容 | 记录人 |
 |------|---------|--------|
-| 07/14 19:43 | 特性创建 | |
+| 07/16 12:21 | 特性创建 | |
 
 ---
 
@@ -48,11 +50,11 @@ Largest Column: standard
 Border: off
 ```
 
-<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-gk1qqp5h">📝 添加进展</span>
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-obilw2wj">📝 添加进展</span>
 
 --- column-break ---
 
-<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-gk1qqp5h">⚠️ 添加风险</span>
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-obilw2wj">⚠️ 添加风险</span>
 
 --- end-multi-column
 
@@ -116,7 +118,7 @@ Border: off
 ## 6️⃣ 合入链接
 
 ### 开发分支
-- **开发分支**: `feature/feat-gk1qqp5h`
+- **开发分支**: `feature/feat-obilw2wj`
 - **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
 - **MR 链接**: <!-- 填写 MR 链接 -->
 
@@ -140,4 +142,4 @@ Border: off
 #前端 #UI设计 
 
 ---
-*创建于: 07/14 19:43*
+*创建于: 07/16 12:21*

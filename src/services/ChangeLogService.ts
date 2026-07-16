@@ -12,7 +12,7 @@ import type {
   LogQueryOptions,
   ChangeLogStats,
 } from '../types/changelog';
-import type { Feature, Project, Version } from '../types';
+import type { Feature, Project, Version, Requirement } from '../types';
 
 export class ChangeLogService {
   private readonly LOG_DIR = 'ProjectManager/.changelog';
@@ -25,7 +25,7 @@ export class ChangeLogService {
    */
   async logCreate(
     entityType: ChangeLogEntityType,
-    entity: Feature | Project | Version
+    entity: Feature | Project | Version | Requirement
   ): Promise<void> {
     const entry: ChangeLogEntry = {
       id: this.generateLogId(),
@@ -46,8 +46,8 @@ export class ChangeLogService {
    */
   async logUpdate(
     entityType: ChangeLogEntityType,
-    oldEntity: Feature | Project | Version,
-    newEntity: Feature | Project | Version
+    oldEntity: Feature | Project | Version | Requirement,
+    newEntity: Feature | Project | Version | Requirement
   ): Promise<void> {
     const changes = this.buildUpdateChanges(oldEntity, newEntity);
 
@@ -73,7 +73,7 @@ export class ChangeLogService {
    */
   async logDelete(
     entityType: ChangeLogEntityType,
-    entity: Feature | Project | Version
+    entity: Feature | Project | Version | Requirement
   ): Promise<void> {
     const entry: ChangeLogEntry = {
       id: this.generateLogId(),
@@ -169,7 +169,7 @@ export class ChangeLogService {
       createCount: 0,
       updateCount: 0,
       deleteCount: 0,
-      byEntityType: { version: 0, project: 0, feature: 0 },
+      byEntityType: { version: 0, project: 0, feature: 0, requirement: 0 },
     };
 
     for (const entry of entries) {
@@ -264,7 +264,7 @@ export class ChangeLogService {
   /**
    * 构建创建变更详情
    */
-  private buildCreateChanges(entity: Feature | Project | Version): FieldChange[] {
+  private buildCreateChanges(entity: Feature | Project | Version | Requirement): FieldChange[] {
     const changes: FieldChange[] = [];
 
     for (const [key, value] of Object.entries(entity)) {
@@ -285,8 +285,8 @@ export class ChangeLogService {
    * 构建更新变更详情
    */
   private buildUpdateChanges(
-    oldEntity: Feature | Project | Version,
-    newEntity: Feature | Project | Version
+    oldEntity: Feature | Project | Version | Requirement,
+    newEntity: Feature | Project | Version | Requirement
   ): FieldChange[] {
     const changes: FieldChange[] = [];
 
@@ -322,7 +322,7 @@ export class ChangeLogService {
   /**
    * 构建删除变更详情
    */
-  private buildDeleteChanges(entity: Feature | Project | Version): FieldChange[] {
+  private buildDeleteChanges(entity: Feature | Project | Version | Requirement): FieldChange[] {
     const changes: FieldChange[] = [];
 
     for (const [key, value] of Object.entries(entity)) {
@@ -443,6 +443,7 @@ export class ChangeLogService {
         version: '版本',
         project: '项目',
         feature: '特性',
+        requirement: '需求',
       };
 
       // 将变更字段序列化为字符串

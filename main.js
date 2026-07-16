@@ -25,7 +25,7 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/templates/defaults.ts
-var DEFAULT_OVERVIEW_TEMPLATE, DEFAULT_VERSION_TEMPLATE, DEFAULT_PROJECT_TEMPLATE, DEFAULT_FEATURE_TEMPLATE, DEFAULT_TEMPLATES, PRIORITY_EMOJI, STATUS_EMOJI;
+var DEFAULT_OVERVIEW_TEMPLATE, DEFAULT_VERSION_TEMPLATE, DEFAULT_PROJECT_TEMPLATE, DEFAULT_REQUIREMENT_TEMPLATE, DEFAULT_FEATURE_TEMPLATE, DEFAULT_TEMPLATES, PRIORITY_EMOJI, STATUS_EMOJI;
 var init_defaults = __esm({
   "src/templates/defaults.ts"() {
     DEFAULT_OVERVIEW_TEMPLATE = `---
@@ -44,28 +44,35 @@ pm-dashboard: true
 // \u7EDF\u8BA1\u5361\u7247\u6570\u636E - \u5B9E\u65F6\u8BA1\u7B97
 const versions = dv.pages('"ProjectManager/Versions"');
 const projects = dv.pages('"ProjectManager/Projects"');
+const requirements = dv.pages('"ProjectManager/Requirements"');
 const features = dv.pages('"ProjectManager/Features"');
 
 const vCompleted = versions.filter(v => v.status === 'completed').length;
 const vTotal = versions.length;
 const vInProgress = versions.filter(v => v.status === 'in-progress').length;
-const vBacklog = versions.filter(v => v.status === 'backlog').length;
+const vBacklog = versions.filter(v => v.status === 'backlog' || v.status === 'planning').length;
 
 const pCompleted = projects.filter(p => p.status === 'completed').length;
 const pTotal = projects.length;
 const pInProgress = projects.filter(p => p.status === 'in-progress').length;
 const pBacklog = projects.filter(p => p.status === 'backlog').length;
 
+const rCompleted = requirements.filter(r => r.status === 'completed').length;
+const rTotal = requirements.length;
+const rInProgress = requirements.filter(r => r.status === 'in-progress').length;
+const rBacklog = requirements.filter(r => r.status === 'backlog' || r.status === 'todo').length;
+
 const fCompleted = features.filter(f => f.status === 'completed').length;
 const fTotal = features.length;
 const fInProgress = features.filter(f => f.status === 'in-progress').length;
-const fBacklog = features.filter(f => f.status === 'backlog').length;
+const fBacklog = features.filter(f => f.status === 'backlog' || f.status === 'todo').length;
 
 dv.table(
   ["\u7C7B\u578B", "\u5DF2\u5B8C\u6210", "\u8FDB\u884C\u4E2D", "\u5F85\u5F00\u59CB", "\u603B\u8BA1"],
   [
     ["\u{1F4E6} \u7248\u672C", vCompleted, vInProgress, vBacklog, vTotal],
     ["\u{1F4C1} \u9879\u76EE", pCompleted, pInProgress, pBacklog, pTotal],
+    ["\u{1F4CB} \u9700\u6C42", rCompleted, rInProgress, rBacklog, rTotal],
     ["\u2728 \u7279\u6027", fCompleted, fInProgress, fBacklog, fTotal]
   ]
 );
@@ -77,7 +84,7 @@ dv.table(
 
 --- start-multi-column: ID_quick_actions
 \`\`\`column-settings
-Number of Columns: 4
+Number of Columns: 5
 Largest Column: standard
 Border: off
 \`\`\`
@@ -87,6 +94,10 @@ Border: off
 --- column-break ---
 
 <span class="pm-btn pm-btn--primary" data-action="create-project">\u{1F4C1} \u521B\u5EFA\u9879\u76EE</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-requirement">\u{1F4CB} \u521B\u5EFA\u9700\u6C42</span>
 
 --- column-break ---
 
@@ -169,6 +180,26 @@ entityType: project
 mode: kanban
 entityType: feature
 groupBy: status
+\`\`\`
+
+---
+
+## \u{1F4CB} \u9700\u6C42\u770B\u677F
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
 \`\`\`
 
 ---
@@ -293,6 +324,27 @@ mode: kanban
 entityType: feature
 versionId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## \u{1F4CB} \u7248\u672C\u9700\u6C42
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+versionId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
 \`\`\`
 
 ---
@@ -501,6 +553,27 @@ groupBy: status
 
 ---
 
+## \u{1F4CB} \u9879\u76EE\u9700\u6C42
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+projectId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
+\`\`\`
+
+---
+
 ## \u26A0\uFE0F \u9879\u76EE\u98CE\u9669\u6C47\u603B
 
 \`\`\`dataviewjs
@@ -549,6 +622,50 @@ if (pm && pm.api) {
 ## \u{1F4DD} \u5176\u4ED6\u5907\u6CE8
 
 <!-- \u8BB0\u5F55\u9879\u76EE\u76F8\u5173\u7684\u91CD\u8981\u4FE1\u606F\u3001\u51B3\u7B56\u3001\u4F1A\u8BAE\u7EAA\u8981\u7B49 -->
+`;
+    DEFAULT_REQUIREMENT_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+type: requirement
+versionId: {{versionId}}
+{{#if projectId}}projectId: {{projectId}}
+{{/if}}status: {{status}}
+priority: {{priority}}
+progress: {{progress}}
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
+{{/if}}{{#if actualDays}}actualDays: {{actualDays}}
+{{/if}}{{#if description}}description: {{description}}
+{{/if}}{{#if featureId}}featureId: {{featureId}}
+{{/if}}tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
+
+# {{priorityEmoji}} {{name}}
+
+---
+
+## \u{1F4DD} \u9700\u6C42\u63CF\u8FF0
+
+{{#if description}}{{description}}
+{{else}}<!-- \u63CF\u8FF0\u9700\u6C42\u7684\u80CC\u666F\u3001\u76EE\u6807\u548C\u8303\u56F4 -->
+{{/if}}
+
+---
+
+## \u{1F4C8} \u8FDB\u5C55\u53CD\u9988
+
+| \u65F6\u95F4 | \u53CD\u9988\u5185\u5BB9 | \u8BB0\u5F55\u4EBA |
+|------|---------|--------|
+| {{createTime}} | \u9700\u6C42\u521B\u5EFA | |
+
+---
+
+## \u{1F4DD} \u5176\u4ED6\u5907\u6CE8
+
+<!-- \u8BB0\u5F55\u9700\u6C42\u76F8\u5173\u7684\u91CD\u8981\u4FE1\u606F\u3001\u51B3\u7B56\u3001\u4F1A\u8BAE\u7EAA\u8981\u7B49 -->
 `;
     DEFAULT_FEATURE_TEMPLATE = `---
 id: {{id}}
@@ -766,6 +883,7 @@ Border: off
       overview: DEFAULT_OVERVIEW_TEMPLATE,
       version: DEFAULT_VERSION_TEMPLATE,
       project: DEFAULT_PROJECT_TEMPLATE,
+      requirement: DEFAULT_REQUIREMENT_TEMPLATE,
       feature: DEFAULT_FEATURE_TEMPLATE
     };
     PRIORITY_EMOJI = {
@@ -996,6 +1114,13 @@ var init_TemplateService = __esm({
         return this.renderTemplate(template, context);
       }
       /**
+       * 渲染需求模板
+       */
+      async renderRequirementTemplate(context) {
+        const template = await this.getTemplate("requirement");
+        return this.renderTemplate(template, context);
+      }
+      /**
        * 渲染特性模板
        */
       async renderFeatureTemplate(context) {
@@ -1105,6 +1230,9 @@ function getStatusLabel(status, type = "feature") {
     case "project":
       statuses = PROJECT_STATUSES;
       break;
+    case "requirement":
+      statuses = REQUIREMENT_STATUSES;
+      break;
     case "feature":
     default:
       statuses = FEATURE_STATUSES;
@@ -1113,7 +1241,7 @@ function getStatusLabel(status, type = "feature") {
   const found = statuses.find((s) => s.value === status);
   return (_a = found == null ? void 0 : found.label) != null ? _a : status;
 }
-var VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES;
+var VERSION_STATUSES, PROJECT_STATUSES, FEATURE_STATUSES, REQUIREMENT_STATUSES;
 var init_statuses = __esm({
   "src/constants/statuses.ts"() {
     VERSION_STATUSES = [
@@ -1129,6 +1257,14 @@ var init_statuses = __esm({
       { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
     ];
     FEATURE_STATUSES = [
+      { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
+      { value: "todo", label: "\u5F85\u529E", color: "var(--text-muted)" },
+      { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
+      { value: "testing", label: "\u6D4B\u8BD5\u4E2D", color: "var(--text-warning)" },
+      { value: "completed", label: "\u5DF2\u5B8C\u6210", color: "var(--text-success)" },
+      { value: "archived", label: "\u5DF2\u5F52\u6863", color: "var(--text-faint)" }
+    ];
+    REQUIREMENT_STATUSES = [
       { value: "backlog", label: "\u5F85\u89C4\u5212", color: "var(--text-muted)" },
       { value: "todo", label: "\u5F85\u529E", color: "var(--text-muted)" },
       { value: "in-progress", label: "\u8FDB\u884C\u4E2D", color: "var(--text-accent)" },
@@ -1680,7 +1816,7 @@ var VALID_VIEW_MODES, VALID_ENTITY_TYPES, VALID_SORT_FIELDS, VALID_SORT_ORDERS, 
 var init_configValidator = __esm({
   "src/utils/configValidator.ts"() {
     VALID_VIEW_MODES = ["kanban", "cascade", "timeview"];
-    VALID_ENTITY_TYPES = ["version", "project", "feature"];
+    VALID_ENTITY_TYPES = ["version", "project", "feature", "requirement"];
     VALID_SORT_FIELDS = ["name", "startDate", "endDate", "priority", "progress", "created"];
     VALID_SORT_ORDERS = ["asc", "desc"];
     VALID_GROUP_BY = ["status", "priority", "version", "project", "startDate", "endDate"];
@@ -2731,13 +2867,313 @@ var init_CreateFeatureModal = __esm({
   }
 });
 
-// src/modals/QuickCreateModal.ts
-var import_obsidian17, QuickCreateModal;
-var init_QuickCreateModal = __esm({
-  "src/modals/QuickCreateModal.ts"() {
+// src/modals/CreateRequirementModal.ts
+var import_obsidian17, CreateRequirementModal;
+var init_CreateRequirementModal = __esm({
+  "src/modals/CreateRequirementModal.ts"() {
     import_obsidian17 = require("obsidian");
     init_constants();
-    QuickCreateModal = class extends import_obsidian17.Modal {
+    init_DatePicker();
+    CreateRequirementModal = class extends import_obsidian17.Modal {
+      constructor(app, entityManager, defaultVersionId = null, defaultProjectId = null, onSubmit) {
+        super(app);
+        this.result = {
+          name: "",
+          versionId: "",
+          projectId: void 0,
+          featureId: void 0,
+          status: "backlog",
+          priority: "medium",
+          progress: 0,
+          tags: [],
+          estimatedDays: void 0,
+          actualDays: void 0,
+          owner: void 0,
+          startDate: void 0,
+          endDate: void 0,
+          description: void 0
+        };
+        this.versions = [];
+        this.projects = [];
+        this.features = [];
+        this.filteredProjects = [];
+        this.filteredFeatures = [];
+        this.endDateInput = null;
+        this.endDateSetting = null;
+        this.startDateInput = null;
+        this.startDateSetting = null;
+        this.entityManager = entityManager;
+        this.onSubmit = onSubmit;
+        if (defaultVersionId) {
+          this.result.versionId = defaultVersionId;
+        }
+        if (defaultProjectId) {
+          this.result.projectId = defaultProjectId;
+        }
+      }
+      async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("pm-modal");
+        this.versions = await this.entityManager.listVersions();
+        this.projects = await this.entityManager.listProjects();
+        this.features = await this.entityManager.listFeatures();
+        if (this.versions.length === 0) {
+          contentEl.createEl("h2", { text: "\u521B\u5EFA\u9700\u6C42" });
+          contentEl.createEl("p", {
+            text: "\u6682\u65E0\u7248\u672C\uFF0C\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u9700\u6C42\u3002",
+            cls: "pm-modal__warning"
+          });
+          const buttonContainer2 = contentEl.createDiv({ cls: "pm-modal__buttons" });
+          const okButton = buttonContainer2.createEl("button", { text: "\u786E\u5B9A" });
+          okButton.addEventListener("click", () => this.close());
+          return;
+        }
+        contentEl.createEl("h2", { text: "\u521B\u5EFA\u9700\u6C42" });
+        new import_obsidian17.Setting(contentEl).setName("\u9700\u6C42\u540D\u79F0").setDesc("\u8F93\u5165\u9700\u6C42\u7684\u540D\u79F0\uFF08\u5FC5\u586B\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u7528\u6237\u6CE8\u518C\u6D41\u7A0B\u4F18\u5316").setValue(this.result.name).onChange((value) => {
+          this.result.name = value;
+        }));
+        new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").setDesc("\u9009\u62E9\u9700\u6C42\u6240\u5C5E\u7684\u7248\u672C\uFF08\u5FC5\u586B\uFF09").addDropdown((dropdown) => {
+          dropdown.addOption("", "\u8BF7\u9009\u62E9\u7248\u672C");
+          this.versions.forEach((version) => {
+            dropdown.addOption(version.id, version.name);
+          });
+          dropdown.setValue(this.result.versionId);
+          dropdown.onChange((value) => {
+            this.result.versionId = value;
+            this.updateProjectDropdown();
+          });
+        });
+        const projectSetting = new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE").setDesc("\u9009\u62E9\u9700\u6C42\u5173\u8054\u7684\u9879\u76EE\uFF08\u53EF\u9009\uFF09").addDropdown((dropdown) => {
+          this.projectDropdown = dropdown;
+          this.updateProjectDropdown();
+        });
+        const featureSetting = new import_obsidian17.Setting(contentEl).setName("\u5173\u8054\u7279\u6027").setDesc("\u9009\u62E9\u9700\u6C42\u5173\u8054\u7684\u7279\u6027\uFF08\u53EF\u9009\uFF09").addDropdown((dropdown) => {
+          this.featureDropdown = dropdown;
+          this.updateFeatureDropdown();
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+          REQUIREMENT_STATUSES.forEach((status) => {
+            dropdown.addOption(status.value, status.label);
+          });
+          dropdown.setValue(this.result.status);
+          dropdown.onChange((value) => {
+            this.result.status = value;
+          });
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+          PRIORITIES.forEach((priority) => {
+            dropdown.addOption(priority.value, priority.label);
+          });
+          dropdown.setValue(this.result.priority);
+          dropdown.onChange((value) => {
+            this.result.priority = value;
+          });
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u8FDB\u5EA6").setDesc("0-100").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+          this.result.progress = value;
+        }));
+        this.startDateSetting = new import_obsidian17.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+        this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.startDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.startDateInput.value = this.result.startDate || "";
+          this.startDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.startDate = value || void 0;
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.startDate = date;
+            if (this.startDateInput) {
+              this.startDateInput.value = date;
+            }
+            (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        this.endDateSetting = new import_obsidian17.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
+          this.endDateInput = div.createEl("input", {
+            type: "date",
+            cls: "pm-date-picker"
+          });
+          this.endDateInput.value = this.result.endDate || "";
+          this.endDateInput.addEventListener("change", (e) => {
+            var _a;
+            const value = e.target.value;
+            this.result.endDate = value || void 0;
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+          });
+          this.createQuickDateButtons(div, (date) => {
+            var _a;
+            this.result.endDate = date;
+            if (this.endDateInput) {
+              this.endDateInput.value = date;
+            }
+            (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
+          });
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").setDesc("\uFF08\u53EF\u9009\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1A\u5F20\u4E09").setValue(this.result.owner || "").onChange((value) => {
+          this.result.owner = value || void 0;
+        }));
+        new import_obsidian17.Setting(contentEl).setName("\u9884\u4F30\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A5";
+          text.setValue(this.result.estimatedDays !== void 0 ? String(this.result.estimatedDays) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.estimatedDays = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u5B9E\u9645\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          text.inputEl.type = "number";
+          text.inputEl.placeholder = "\u4F8B\u5982\uFF1A3";
+          text.setValue(this.result.actualDays !== void 0 ? String(this.result.actualDays) : "").onChange((value) => {
+            const num = value ? parseFloat(value) : void 0;
+            this.result.actualDays = num !== void 0 && !isNaN(num) ? num : void 0;
+          });
+        });
+        new import_obsidian17.Setting(contentEl).setName("\u9700\u6C42\u63CF\u8FF0").setDesc("\uFF08\u53EF\u9009\uFF09").addTextArea((text) => text.setPlaceholder("\u63CF\u8FF0\u9700\u6C42\u7684\u80CC\u666F\u3001\u76EE\u6807\u548C\u8303\u56F4").setValue(this.result.description || "").onChange((value) => {
+          this.result.description = value || void 0;
+        }));
+        new import_obsidian17.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u6807\u7B7E\uFF08\u53EF\u9009\uFF09").addText((text) => {
+          var _a;
+          return text.setPlaceholder("\u4F8B\u5982\uFF1A\u524D\u7AEF, API").setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
+            this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+          });
+        });
+        const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
+        const exampleButton = buttonContainer.createEl("button", {
+          text: "\u586B\u5165\u793A\u4F8B",
+          cls: "pm-btn--secondary"
+        });
+        exampleButton.style.marginRight = "auto";
+        exampleButton.addEventListener("click", () => this.fillExample());
+        const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+        cancelButton.addEventListener("click", () => this.close());
+        const submitButton = buttonContainer.createEl("button", {
+          text: "\u521B\u5EFA",
+          cls: "mod-cta"
+        });
+        submitButton.addEventListener("click", () => {
+          if (!this.result.name.trim()) {
+            new import_obsidian17.Notice("\u9700\u6C42\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
+            return;
+          }
+          if (!this.result.versionId) {
+            new import_obsidian17.Notice("\u8BF7\u9009\u62E9\u6240\u5C5E\u7248\u672C");
+            return;
+          }
+          this.onSubmit(this.result);
+          this.close();
+        });
+      }
+      fillExample() {
+        const today = /* @__PURE__ */ new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        this.result = {
+          name: "\u7528\u6237\u6CE8\u518C\u6D41\u7A0B\u4F18\u5316",
+          versionId: this.result.versionId || (this.versions.length > 0 ? this.versions[0].id : ""),
+          projectId: this.result.projectId,
+          featureId: this.result.featureId,
+          status: "todo",
+          priority: "high",
+          progress: 0,
+          startDate: today.toISOString().split("T")[0],
+          endDate: nextWeek.toISOString().split("T")[0],
+          owner: "\u4EA7\u54C1\u7ECF\u7406\u5C0F\u674E",
+          tags: ["\u9700\u6C42", "\u6CE8\u518C", "\u7528\u6237\u4F53\u9A8C"],
+          estimatedDays: 3,
+          actualDays: 0,
+          description: "\u7B80\u5316\u6CE8\u518C\u6D41\u7A0B\uFF0C\u652F\u6301\u624B\u673A\u53F7\u548C\u7B2C\u4E09\u65B9\u6388\u6743\u767B\u5F55\uFF0C\u964D\u4F4E\u7528\u6237\u6D41\u5931\u7387\u3002"
+        };
+        this.onOpen();
+      }
+      createQuickDateButtons(container, onSelect) {
+        const quickContainer = container.createDiv({ cls: "pm-date-quick" });
+        const today = /* @__PURE__ */ new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const formatDate2 = (date) => {
+          return date.toISOString().split("T")[0];
+        };
+        const buttons = [
+          { label: "\u4ECA\u5929", date: formatDate2(today) },
+          { label: "\u660E\u5929", date: formatDate2(tomorrow) },
+          { label: "\u4E00\u5468\u540E", date: formatDate2(nextWeek) },
+          { label: "\u4E00\u6708\u540E", date: formatDate2(nextMonth) }
+        ];
+        buttons.forEach(({ label, date }) => {
+          const btn = quickContainer.createEl("button", {
+            text: label,
+            cls: "pm-date-quick__btn"
+          });
+          btn.addEventListener("click", () => onSelect(date));
+        });
+      }
+      updateProjectDropdown() {
+        if (!this.projectDropdown)
+          return;
+        this.projectDropdown.selectEl.innerHTML = "";
+        this.projectDropdown.addOption("", "\u4E0D\u5173\u8054\u9879\u76EE");
+        this.filteredProjects = this.result.versionId ? this.projects.filter((p) => p.versionId === this.result.versionId) : [];
+        this.filteredProjects.forEach((project) => {
+          this.projectDropdown.addOption(project.id, project.name);
+        });
+        if (this.result.projectId && !this.filteredProjects.find((p) => p.id === this.result.projectId)) {
+          this.result.projectId = void 0;
+          this.projectDropdown.setValue("");
+        } else {
+          this.projectDropdown.setValue(this.result.projectId || "");
+        }
+        this.projectDropdown.onChange((value) => {
+          this.result.projectId = value || void 0;
+          this.updateFeatureDropdown();
+        });
+        this.updateFeatureDropdown();
+      }
+      updateFeatureDropdown() {
+        if (!this.featureDropdown)
+          return;
+        this.featureDropdown.selectEl.innerHTML = "";
+        this.featureDropdown.addOption("", "\u4E0D\u5173\u8054\u7279\u6027");
+        this.filteredFeatures = this.result.projectId ? this.features.filter((f) => f.projectId === this.result.projectId) : [];
+        this.filteredFeatures.forEach((feature) => {
+          this.featureDropdown.addOption(feature.id, feature.name);
+        });
+        if (this.result.featureId && !this.filteredFeatures.find((f) => f.id === this.result.featureId)) {
+          this.result.featureId = void 0;
+          this.featureDropdown.setValue("");
+        } else {
+          this.featureDropdown.setValue(this.result.featureId || "");
+        }
+        this.featureDropdown.onChange((value) => {
+          this.result.featureId = value || void 0;
+        });
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
+// src/modals/QuickCreateModal.ts
+var import_obsidian18, QuickCreateModal;
+var init_QuickCreateModal = __esm({
+  "src/modals/QuickCreateModal.ts"() {
+    import_obsidian18 = require("obsidian");
+    init_constants();
+    QuickCreateModal = class extends import_obsidian18.Modal {
       constructor(app, entityManager, defaultDate, onSubmit) {
         super(app);
         this.entityManager = entityManager;
@@ -2780,14 +3216,14 @@ var init_QuickCreateModal = __esm({
         this.result.startDate = start.toISOString().split("T")[0];
         this.updateFilteredProjects();
         contentEl.createEl("h2", { text: `\u521B\u5EFA\u7279\u6027 (${this.defaultDate})` });
-        new import_obsidian17.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
+        new import_obsidian18.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => {
           text.setPlaceholder("\u8F93\u5165\u7279\u6027\u540D\u79F0");
           text.onChange((value) => {
             this.result.name = value;
           });
           setTimeout(() => text.inputEl.focus(), 0);
         });
-        new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
+        new import_obsidian18.Setting(contentEl).setName("\u6240\u5C5E\u7248\u672C").addDropdown((dropdown) => {
           this.versions.forEach((v) => {
             dropdown.addOption(v.id, v.name);
           });
@@ -2798,7 +3234,7 @@ var init_QuickCreateModal = __esm({
             this.renderProjectDropdown();
           });
         });
-        const projectSetting = new import_obsidian17.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
+        const projectSetting = new import_obsidian18.Setting(contentEl).setName("\u6240\u5C5E\u9879\u76EE");
         this.projectDropdown = projectSetting.addDropdown((dropdown) => {
           this.filteredProjects.forEach((p) => {
             dropdown.addOption(p.id, p.name);
@@ -2808,7 +3244,7 @@ var init_QuickCreateModal = __esm({
             this.result.projectId = value;
           });
         });
-        new import_obsidian17.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+        new import_obsidian18.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
           FEATURE_STATUSES.forEach((s) => {
             dropdown.addOption(s.value, s.label);
           });
@@ -2817,7 +3253,7 @@ var init_QuickCreateModal = __esm({
             this.result.status = value;
           });
         });
-        new import_obsidian17.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+        new import_obsidian18.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
           PRIORITIES.forEach((p) => {
             dropdown.addOption(p.value, p.label);
           });
@@ -2835,7 +3271,7 @@ var init_QuickCreateModal = __esm({
         });
         createButton.addEventListener("click", async () => {
           if (!this.result.name.trim()) {
-            new import_obsidian17.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
+            new import_obsidian18.Notice("\u8BF7\u8F93\u5165\u7279\u6027\u540D\u79F0");
             return;
           }
           this.onSubmit(this.result);
@@ -2898,11 +3334,11 @@ async function showDeleteConfirm(app, entityManager, type, id, name) {
     loadImpact();
   });
 }
-var import_obsidian18, DeleteConfirmModal;
+var import_obsidian19, DeleteConfirmModal;
 var init_DeleteConfirmModal = __esm({
   "src/modals/DeleteConfirmModal.ts"() {
-    import_obsidian18 = require("obsidian");
-    DeleteConfirmModal = class extends import_obsidian18.Modal {
+    import_obsidian19 = require("obsidian");
+    DeleteConfirmModal = class extends import_obsidian19.Modal {
       constructor(app, impact, onConfirm, onCancel) {
         super(app);
         this.impact = impact;
@@ -2937,11 +3373,11 @@ var init_DeleteConfirmModal = __esm({
           });
         }
         const buttonContainer = contentEl.createDiv("pm-modal__buttons");
-        const cancelBtn = new import_obsidian18.ButtonComponent(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
+        const cancelBtn = new import_obsidian19.ButtonComponent(buttonContainer).setButtonText("\u53D6\u6D88").onClick(() => {
           this.onCancel();
           this.close();
         });
-        const confirmBtn = new import_obsidian18.ButtonComponent(buttonContainer).setButtonText("\u786E\u8BA4\u5220\u9664").setWarning().onClick(() => {
+        const confirmBtn = new import_obsidian19.ButtonComponent(buttonContainer).setButtonText("\u786E\u8BA4\u5220\u9664").setWarning().onClick(() => {
           this.onConfirm();
           this.close();
         });
@@ -2955,11 +3391,11 @@ var init_DeleteConfirmModal = __esm({
 });
 
 // src/modals/ConfirmModal.ts
-var import_obsidian19, ConfirmModal;
+var import_obsidian20, ConfirmModal;
 var init_ConfirmModal = __esm({
   "src/modals/ConfirmModal.ts"() {
-    import_obsidian19 = require("obsidian");
-    ConfirmModal = class extends import_obsidian19.Modal {
+    import_obsidian20 = require("obsidian");
+    ConfirmModal = class extends import_obsidian20.Modal {
       constructor(app, title, message, onConfirm, onCancel) {
         super(app);
         this.title = title;
@@ -3000,15 +3436,15 @@ var init_ConfirmModal = __esm({
 });
 
 // src/modals/EditFeatureModal.ts
-var import_obsidian20, EditFeatureModal;
+var import_obsidian21, EditFeatureModal;
 var init_EditFeatureModal = __esm({
   "src/modals/EditFeatureModal.ts"() {
-    import_obsidian20 = require("obsidian");
+    import_obsidian21 = require("obsidian");
     init_constants();
     init_DatePicker();
     init_ConfirmModal();
     init_utils();
-    EditFeatureModal = class extends import_obsidian20.Modal {
+    EditFeatureModal = class extends import_obsidian21.Modal {
       constructor(app, entityManager, feature, onSubmit, onDelete) {
         super(app);
         // 用于存储输入元素引用
@@ -3041,10 +3477,10 @@ var init_EditFeatureModal = __esm({
         contentEl.empty();
         contentEl.addClass("pm-modal");
         contentEl.createEl("h2", { text: "\u7F16\u8F91\u7279\u6027" });
-        new import_obsidian20.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
+        new import_obsidian21.Setting(contentEl).setName("\u7279\u6027\u540D\u79F0").addText((text) => text.setValue(this.result.name).onChange((value) => {
           this.result.name = value;
         }));
-        new import_obsidian20.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
+        new import_obsidian21.Setting(contentEl).setName("\u72B6\u6001").addDropdown((dropdown) => {
           FEATURE_STATUSES.forEach((status) => {
             dropdown.addOption(status.value, status.label);
           });
@@ -3068,7 +3504,7 @@ var init_EditFeatureModal = __esm({
             }
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
+        new import_obsidian21.Setting(contentEl).setName("\u4F18\u5148\u7EA7").addDropdown((dropdown) => {
           PRIORITIES.forEach((priority) => {
             dropdown.addOption(priority.value, priority.label);
           });
@@ -3077,10 +3513,10 @@ var init_EditFeatureModal = __esm({
             this.result.priority = value;
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
+        new import_obsidian21.Setting(contentEl).setName("\u8FDB\u5EA6").addSlider((slider) => slider.setLimits(0, 100, 5).setValue(this.result.progress).setDynamicTooltip().onChange((value) => {
           this.result.progress = value;
         }));
-        this.startDateSetting = new import_obsidian20.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
+        this.startDateSetting = new import_obsidian21.Setting(contentEl).setName("\u5F00\u59CB\u65E5\u671F").setDesc(formatDateDisplay(this.result.startDate) || "\uFF08\u53EF\u9009\uFF0C\u7528\u4E8E\u65F6\u95F4\u89C6\u56FE\u89C4\u5212\uFF09");
         this.startDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
           this.startDateInput = div.createEl("input", {
             type: "date",
@@ -3102,7 +3538,7 @@ var init_EditFeatureModal = __esm({
             (_a = this.startDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
           });
         });
-        this.endDateSetting = new import_obsidian20.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
+        this.endDateSetting = new import_obsidian21.Setting(contentEl).setName("\u7ED3\u675F\u65E5\u671F").setDesc(formatDateDisplay(this.result.endDate) || "\uFF08\u53EF\u9009\uFF09");
         this.endDateSetting.settingEl.createDiv({ cls: "pm-date-input" }, (div) => {
           this.endDateInput = div.createEl("input", {
             type: "date",
@@ -3124,16 +3560,16 @@ var init_EditFeatureModal = __esm({
             (_a = this.endDateSetting) == null ? void 0 : _a.setDesc(formatDateDisplay(date));
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
+        new import_obsidian21.Setting(contentEl).setName("\u6807\u8BB0\u4E3A\u91CC\u7A0B\u7891").setDesc("\u91CC\u7A0B\u7891\u5728\u65F6\u95F4\u89C6\u56FE\u4E2D\u4F1A\u7279\u6B8A\u663E\u793A").addToggle((toggle) => {
           toggle.setValue(this.result.isMilestone || false);
           toggle.onChange((value) => {
             this.result.isMilestone = value;
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
+        new import_obsidian21.Setting(contentEl).setName("\u8D1F\u8D23\u4EBA").addText((text) => text.setValue(this.result.owner || "").onChange((value) => {
           this.result.owner = value || void 0;
         }));
-        new import_obsidian20.Setting(contentEl).setName("\u9884\u4F30\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian21.Setting(contentEl).setName("\u9884\u4F30\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
           text.inputEl.placeholder = "\u4F8B\u5982\uFF1A5";
           text.setValue(this.result.estimatedDays !== void 0 ? String(this.result.estimatedDays) : "").onChange((value) => {
@@ -3141,7 +3577,7 @@ var init_EditFeatureModal = __esm({
             this.result.estimatedDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u5B9E\u9645\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
+        new import_obsidian21.Setting(contentEl).setName("\u5B9E\u9645\u4EBA\u5929").setDesc("\u4EBA\u5929\uFF08\u53EF\u9009\uFF09").addText((text) => {
           text.inputEl.type = "number";
           text.inputEl.placeholder = "\u4F8B\u5982\uFF1A3";
           text.setValue(this.result.actualDays !== void 0 ? String(this.result.actualDays) : "").onChange((value) => {
@@ -3149,19 +3585,19 @@ var init_EditFeatureModal = __esm({
             this.result.actualDays = num !== void 0 && !isNaN(num) ? num : void 0;
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
+        new import_obsidian21.Setting(contentEl).setName("\u6807\u7B7E").setDesc("\u7528\u9017\u53F7\u5206\u9694").addText((text) => {
           var _a;
           return text.setValue(((_a = this.result.tags) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
             this.result.tags = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7").addText((text) => {
+        new import_obsidian21.Setting(contentEl).setName("\u9700\u6C42\u7F16\u53F7").setDesc("\u7528\u9017\u53F7\u5206\u9694\u591A\u4E2A\u9700\u6C42\u7F16\u53F7").addText((text) => {
           var _a;
           return text.setPlaceholder("\u4F8B\u5982\uFF1AREQ-001, REQ-002").setValue(((_a = this.result.requirementIds) == null ? void 0 : _a.join(", ")) || "").onChange((value) => {
             this.result.requirementIds = value ? value.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
           });
         });
-        new import_obsidian20.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
+        new import_obsidian21.Setting(contentEl).setName("\u9879\u76EE\u94FE\u63A5").setDesc("HiALM \u6216\u5176\u4ED6\u9879\u76EE\u7BA1\u7406\u5E73\u53F0\u94FE\u63A5").addText((text) => text.setPlaceholder("\u4F8B\u5982\uFF1Ahttps://hialm.example.com/project/123").setValue(this.result.projectLink || "").onChange((value) => {
           this.result.projectLink = value || void 0;
         }));
         const buttonContainer = contentEl.createDiv({ cls: "pm-modal__buttons" });
@@ -3236,11 +3672,11 @@ var init_EditFeatureModal = __esm({
 });
 
 // src/modals/ExportEmailModal.ts
-var import_obsidian21, ExportEmailModal;
+var import_obsidian22, ExportEmailModal;
 var init_ExportEmailModal = __esm({
   "src/modals/ExportEmailModal.ts"() {
-    import_obsidian21 = require("obsidian");
-    ExportEmailModal = class extends import_obsidian21.Modal {
+    import_obsidian22 = require("obsidian");
+    ExportEmailModal = class extends import_obsidian22.Modal {
       constructor(app, emailSummaryService) {
         super(app);
         this.emailSummaryService = emailSummaryService;
@@ -3272,7 +3708,7 @@ var init_ExportEmailModal = __esm({
         if (result) {
           const { downloadEML: downloadEML3 } = await Promise.resolve().then(() => (init_emlGenerator(), emlGenerator_exports));
           downloadEML3(result.emlContent, result.filename);
-          new import_obsidian21.Notice("\u9875\u9762\u6E32\u67D3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
+          new import_obsidian22.Notice("\u9875\u9762\u6E32\u67D3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
           this.close();
         }
       }
@@ -3281,7 +3717,7 @@ var init_ExportEmailModal = __esm({
         if (result) {
           const { downloadEML: downloadEML3 } = await Promise.resolve().then(() => (init_emlGenerator(), emlGenerator_exports));
           downloadEML3(result.emlContent, result.filename);
-          new import_obsidian21.Notice("\u7ED3\u6784\u5316\u603B\u7ED3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
+          new import_obsidian22.Notice("\u7ED3\u6784\u5316\u603B\u7ED3\u90AE\u4EF6\u5BFC\u51FA\u6210\u529F", 3e3);
           this.close();
         }
       }
@@ -3294,11 +3730,11 @@ var init_ExportEmailModal = __esm({
 });
 
 // src/modals/AddRiskModal.ts
-var import_obsidian22, AddRiskModal;
+var import_obsidian23, AddRiskModal;
 var init_AddRiskModal = __esm({
   "src/modals/AddRiskModal.ts"() {
-    import_obsidian22 = require("obsidian");
-    AddRiskModal = class extends import_obsidian22.Modal {
+    import_obsidian23 = require("obsidian");
+    AddRiskModal = class extends import_obsidian23.Modal {
       constructor(app, onSubmit) {
         super(app);
         this.onSubmit = onSubmit;
@@ -3312,13 +3748,13 @@ var init_AddRiskModal = __esm({
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u7C7B\u578B").addText((text) => text.setPlaceholder("\u5982\uFF1A\u6280\u672F\u98CE\u9669\u3001\u8D44\u6E90\u98CE\u9669").onChange((value) => this.risk.type = value));
-        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u63CF\u8FF0").addTextArea((text) => text.setPlaceholder("\u63CF\u8FF0\u98CE\u9669\u8BE6\u60C5...").onChange((value) => this.risk.description = value));
-        new import_obsidian22.Setting(contentEl).setName("\u98CE\u9669\u7B49\u7EA7").addDropdown((drop) => drop.addOption("low", "\u4F4E").addOption("medium", "\u4E2D").addOption("high", "\u9AD8").setValue("medium").onChange((value) => this.risk.level = value));
-        new import_obsidian22.Setting(contentEl).setName("\u8D23\u4EFB\u4EBA").addText((text) => text.setPlaceholder("@\u59D3\u540D").onChange((value) => this.risk.owner = value));
-        new import_obsidian22.Setting(contentEl).setName("\u53D1\u73B0\u65F6\u95F4").addText((text) => text.setValue(this.risk.foundDate || "").onChange((value) => this.risk.foundDate = value));
-        new import_obsidian22.Setting(contentEl).setName("\u95ED\u73AF\u65F6\u95F4").addText((text) => text.setPlaceholder("YYYY-MM-DD").onChange((value) => this.risk.closeDate = value || void 0));
-        new import_obsidian22.Setting(contentEl).setName("\u72B6\u6001").addDropdown((drop) => drop.addOption("\u672A\u5173\u95ED", "\u672A\u5173\u95ED").addOption("\u8DDF\u8E2A\u4E2D", "\u8DDF\u8E2A\u4E2D").addOption("\u5DF2\u95ED\u73AF", "\u5DF2\u95ED\u73AF").setValue("\u672A\u5173\u95ED").onChange((value) => this.risk.status = value));
+        new import_obsidian23.Setting(contentEl).setName("\u98CE\u9669\u7C7B\u578B").addText((text) => text.setPlaceholder("\u5982\uFF1A\u6280\u672F\u98CE\u9669\u3001\u8D44\u6E90\u98CE\u9669").onChange((value) => this.risk.type = value));
+        new import_obsidian23.Setting(contentEl).setName("\u98CE\u9669\u63CF\u8FF0").addTextArea((text) => text.setPlaceholder("\u63CF\u8FF0\u98CE\u9669\u8BE6\u60C5...").onChange((value) => this.risk.description = value));
+        new import_obsidian23.Setting(contentEl).setName("\u98CE\u9669\u7B49\u7EA7").addDropdown((drop) => drop.addOption("low", "\u4F4E").addOption("medium", "\u4E2D").addOption("high", "\u9AD8").setValue("medium").onChange((value) => this.risk.level = value));
+        new import_obsidian23.Setting(contentEl).setName("\u8D23\u4EFB\u4EBA").addText((text) => text.setPlaceholder("@\u59D3\u540D").onChange((value) => this.risk.owner = value));
+        new import_obsidian23.Setting(contentEl).setName("\u53D1\u73B0\u65F6\u95F4").addText((text) => text.setValue(this.risk.foundDate || "").onChange((value) => this.risk.foundDate = value));
+        new import_obsidian23.Setting(contentEl).setName("\u95ED\u73AF\u65F6\u95F4").addText((text) => text.setPlaceholder("YYYY-MM-DD").onChange((value) => this.risk.closeDate = value || void 0));
+        new import_obsidian23.Setting(contentEl).setName("\u72B6\u6001").addDropdown((drop) => drop.addOption("\u672A\u5173\u95ED", "\u672A\u5173\u95ED").addOption("\u8DDF\u8E2A\u4E2D", "\u8DDF\u8E2A\u4E2D").addOption("\u5DF2\u95ED\u73AF", "\u5DF2\u95ED\u73AF").setValue("\u672A\u5173\u95ED").onChange((value) => this.risk.status = value));
         const btnContainer = contentEl.createDiv();
         btnContainer.style.display = "flex";
         btnContainer.style.justifyContent = "flex-end";
@@ -3330,7 +3766,7 @@ var init_AddRiskModal = __esm({
         submitBtn.classList.add("mod-cta");
         submitBtn.onclick = () => {
           if (!this.risk.type || !this.risk.description) {
-            new import_obsidian22.Notice("\u8BF7\u586B\u5199\u98CE\u9669\u7C7B\u578B\u548C\u63CF\u8FF0");
+            new import_obsidian23.Notice("\u8BF7\u586B\u5199\u98CE\u9669\u7C7B\u578B\u548C\u63CF\u8FF0");
             return;
           }
           this.onSubmit({
@@ -3353,11 +3789,11 @@ var init_AddRiskModal = __esm({
 });
 
 // src/modals/AddProgressModal.ts
-var import_obsidian23, AddProgressModal;
+var import_obsidian24, AddProgressModal;
 var init_AddProgressModal = __esm({
   "src/modals/AddProgressModal.ts"() {
-    import_obsidian23 = require("obsidian");
-    AddProgressModal = class extends import_obsidian23.Modal {
+    import_obsidian24 = require("obsidian");
+    AddProgressModal = class extends import_obsidian24.Modal {
       constructor(app, onSubmit) {
         super(app);
         this.onSubmit = onSubmit;
@@ -3374,8 +3810,8 @@ var init_AddProgressModal = __esm({
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        new import_obsidian23.Setting(contentEl).setName("\u53CD\u9988\u5185\u5BB9").addTextArea((text) => text.setPlaceholder("\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\u3001\u963B\u585E\u6216\u4E0B\u4E00\u6B65\u8BA1\u5212...").onChange((value) => this.log.content = value));
-        new import_obsidian23.Setting(contentEl).setName("\u8BB0\u5F55\u4EBA").addText((text) => text.setPlaceholder("\u53EF\u9009").onChange((value) => this.log.author = value || void 0));
+        new import_obsidian24.Setting(contentEl).setName("\u53CD\u9988\u5185\u5BB9").addTextArea((text) => text.setPlaceholder("\u8F93\u5165\u5F53\u524D\u8FDB\u5C55\u3001\u963B\u585E\u6216\u4E0B\u4E00\u6B65\u8BA1\u5212...").onChange((value) => this.log.content = value));
+        new import_obsidian24.Setting(contentEl).setName("\u8BB0\u5F55\u4EBA").addText((text) => text.setPlaceholder("\u53EF\u9009").onChange((value) => this.log.author = value || void 0));
         const btnContainer = contentEl.createDiv();
         btnContainer.style.display = "flex";
         btnContainer.style.justifyContent = "flex-end";
@@ -3387,7 +3823,7 @@ var init_AddProgressModal = __esm({
         submitBtn.classList.add("mod-cta");
         submitBtn.onclick = () => {
           if (!this.log.content || !this.log.content.trim()) {
-            new import_obsidian23.Notice("\u8BF7\u586B\u5199\u53CD\u9988\u5185\u5BB9");
+            new import_obsidian24.Notice("\u8BF7\u586B\u5199\u53CD\u9988\u5185\u5BB9");
             return;
           }
           this.onSubmit({
@@ -3413,6 +3849,7 @@ __export(modals_exports, {
   ConfirmModal: () => ConfirmModal,
   CreateFeatureModal: () => CreateFeatureModal,
   CreateProjectModal: () => CreateProjectModal,
+  CreateRequirementModal: () => CreateRequirementModal,
   CreateVersionModal: () => CreateVersionModal,
   DeleteConfirmModal: () => DeleteConfirmModal,
   EditFeatureModal: () => EditFeatureModal,
@@ -3425,6 +3862,7 @@ var init_modals = __esm({
     init_CreateVersionModal();
     init_CreateProjectModal();
     init_CreateFeatureModal();
+    init_CreateRequirementModal();
     init_QuickCreateModal();
     init_DeleteConfirmModal();
     init_EditFeatureModal();
@@ -3441,7 +3879,7 @@ __export(main_exports, {
   default: () => ProjectManagerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian27 = require("obsidian");
+var import_obsidian28 = require("obsidian");
 
 // src/core/filesystem/FileSystem.ts
 var import_obsidian = require("obsidian");
@@ -3957,6 +4395,194 @@ var ProjectStore = class extends BaseStore {
   }
 };
 
+// src/core/stores/RequirementStore.ts
+init_TemplateService();
+var RequirementStore = class extends BaseStore {
+  constructor(fs, app, cache, settings) {
+    super(fs, app);
+    this.FOLDER = "ProjectManager/Requirements";
+    this.cache = cache;
+    this.templateService = new TemplateService(app, settings);
+  }
+  async create(data) {
+    const id = this.generateId("req");
+    const requirement = {
+      id,
+      name: data.name,
+      type: "requirement",
+      versionId: data.versionId,
+      projectId: data.projectId,
+      status: data.status || "backlog",
+      owner: data.owner,
+      priority: data.priority || "medium",
+      tags: data.tags || [],
+      progress: data.progress || 0,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      estimatedDays: data.estimatedDays,
+      actualDays: data.actualDays,
+      description: data.description,
+      featureId: data.featureId
+    };
+    let versionName = "";
+    let projectName = "";
+    try {
+      const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+      for (const file of versionFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (metadata && metadata.frontmatter && metadata.frontmatter.id === data.versionId) {
+          versionName = metadata.frontmatter.name || "";
+          break;
+        }
+      }
+      const projectFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Projects/"));
+      for (const file of projectFiles) {
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (metadata && metadata.frontmatter && metadata.frontmatter.id === data.projectId) {
+          projectName = metadata.frontmatter.name || "";
+          break;
+        }
+      }
+    } catch (e) {
+    }
+    const prefix = projectName || versionName;
+    const fileName = this.sanitizeFileName(`${prefix}-${data.name}`);
+    const path = `${this.FOLDER}/${fileName}.md`;
+    const content = await this.templateService.renderRequirementTemplate({
+      id: requirement.id,
+      name: requirement.name,
+      versionId: requirement.versionId,
+      projectId: requirement.projectId,
+      status: requirement.status,
+      owner: requirement.owner,
+      priority: requirement.priority,
+      progress: requirement.progress,
+      startDate: requirement.startDate,
+      endDate: requirement.endDate,
+      tags: requirement.tags,
+      estimatedDays: requirement.estimatedDays,
+      actualDays: requirement.actualDays,
+      description: requirement.description,
+      featureId: requirement.featureId
+    });
+    await this.fs.writeRawFile(path, content);
+    return requirement;
+  }
+  async update(id, data) {
+    const existing = await this.getById(id);
+    if (!existing) {
+      throw new Error(`\u9700\u6C42 ${id} \u4E0D\u5B58\u5728`);
+    }
+    const updated = {
+      ...existing,
+      ...data
+    };
+    const oldPath = await this.findFilePathById(id);
+    if (!oldPath) {
+      throw new Error(`\u627E\u4E0D\u5230\u9700\u6C42 ${id} \u7684\u6587\u4EF6`);
+    }
+    let path = oldPath;
+    const versionChanged = data.versionId !== void 0 && data.versionId !== existing.versionId;
+    const projectChanged = data.projectId !== void 0 && data.projectId !== existing.projectId;
+    const nameChanged = data.name !== void 0 && data.name !== existing.name;
+    if (versionChanged || projectChanged || nameChanged) {
+      let versionName = "";
+      let projectName = "";
+      try {
+        const versionFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Versions/"));
+        for (const file of versionFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (metadata && metadata.frontmatter && metadata.frontmatter.id === updated.versionId) {
+            versionName = metadata.frontmatter.name || "";
+            break;
+          }
+        }
+        const projectFiles = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("ProjectManager/Projects/"));
+        for (const file of projectFiles) {
+          const metadata = this.app.metadataCache.getFileCache(file);
+          if (metadata && metadata.frontmatter && metadata.frontmatter.id === updated.projectId) {
+            projectName = metadata.frontmatter.name || "";
+            break;
+          }
+        }
+      } catch (e) {
+      }
+      const prefix = projectName || versionName;
+      const fileName = this.sanitizeFileName(`${prefix}-${updated.name}`);
+      path = `${this.FOLDER}/${fileName}.md`;
+      await this.fs.moveFile(oldPath, path);
+    }
+    await this.fs.updateFile(path, data);
+    return updated;
+  }
+  async delete(id) {
+    const path = await this.findFilePathById(id);
+    if (path) {
+      await this.fs.deleteFile(path);
+    }
+    return true;
+  }
+  async getById(id) {
+    if (this.cache) {
+      const cached = this.cache.getRequirement(id);
+      if (cached)
+        return cached;
+    }
+    const requirements = await this.list();
+    return requirements.find((r) => r.id === id) || null;
+  }
+  async findFilePathById(id) {
+    var _a;
+    const files = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(this.FOLDER));
+    for (const file of files) {
+      const metadata = this.app.metadataCache.getFileCache(file);
+      if (((_a = metadata == null ? void 0 : metadata.frontmatter) == null ? void 0 : _a.id) === id) {
+        return file.path;
+      }
+    }
+    return null;
+  }
+  async getPath(id) {
+    return this.findFilePathById(id);
+  }
+  async list(filters) {
+    var _a;
+    let requirements;
+    if (this.cache) {
+      requirements = this.cache.getAllRequirements();
+    } else {
+      const files = this.fs.listFiles(this.FOLDER);
+      requirements = [];
+      for (const file of files) {
+        const fileData = await this.fs.readFile(file.path);
+        if ((_a = fileData == null ? void 0 : fileData.frontmatter) == null ? void 0 : _a.id) {
+          requirements.push(fileData.frontmatter);
+        }
+      }
+    }
+    if (filters) {
+      if (filters.versionId) {
+        requirements = requirements.filter((r) => r.versionId === filters.versionId);
+      }
+      if (filters.projectId) {
+        requirements = requirements.filter((r) => r.projectId === filters.projectId);
+      }
+      if (filters.status) {
+        requirements = requirements.filter((r) => r.status === filters.status);
+      }
+    }
+    return requirements.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  async listByProject(projectId) {
+    const all = await this.list();
+    return all.filter((r) => r.projectId === projectId);
+  }
+  async listByVersion(versionId) {
+    const all = await this.list();
+    return all.filter((r) => r.versionId === versionId);
+  }
+};
+
 // src/core/stores/FeatureStore.ts
 init_TemplateService();
 var FeatureStore = class extends BaseStore {
@@ -4273,6 +4899,7 @@ var EntityCache = class {
     this.app = app;
     this.versionCache = /* @__PURE__ */ new Map();
     this.projectCache = /* @__PURE__ */ new Map();
+    this.requirementCache = /* @__PURE__ */ new Map();
     this.featureCache = /* @__PURE__ */ new Map();
     this.logSummaryCache = /* @__PURE__ */ new Map();
     this.ownerIndex = /* @__PURE__ */ new Set();
@@ -4288,6 +4915,7 @@ var EntityCache = class {
     await Promise.all([
       this.loadVersions(),
       this.loadProjects(),
+      this.loadRequirements(),
       this.loadFeatures()
     ]);
     this.initialized = true;
@@ -4324,6 +4952,18 @@ var EntityCache = class {
     return Array.from(this.projectCache.values());
   }
   /**
+   * 获取需求（优先从缓存）
+   */
+  getRequirement(id) {
+    return this.requirementCache.get(id);
+  }
+  /**
+   * 获取所有需求
+   */
+  getAllRequirements() {
+    return Array.from(this.requirementCache.values());
+  }
+  /**
    * 获取所有特性
    */
   getAllFeatures() {
@@ -4347,6 +4987,9 @@ var EntityCache = class {
   setFeature(feature) {
     this.featureCache.set(feature.id, feature);
   }
+  setRequirement(requirement) {
+    this.requirementCache.set(requirement.id, requirement);
+  }
   /**
    * 删除缓存
    */
@@ -4359,12 +5002,16 @@ var EntityCache = class {
   deleteFeature(id) {
     this.featureCache.delete(id);
   }
+  deleteRequirement(id) {
+    this.requirementCache.delete(id);
+  }
   /**
    * 清空缓存
    */
   clear() {
     this.versionCache.clear();
     this.projectCache.clear();
+    this.requirementCache.clear();
     this.featureCache.clear();
     this.logSummaryCache.clear();
     this.ownerIndex.clear();
@@ -4377,6 +5024,7 @@ var EntityCache = class {
     return {
       versions: this.versionCache.size,
       projects: this.projectCache.size,
+      requirements: this.requirementCache.size,
       features: this.featureCache.size
     };
   }
@@ -4407,6 +5055,11 @@ var EntityCache = class {
         this.ownerIndex.add(version.owner);
       }
     }
+    for (const requirement of this.requirementCache.values()) {
+      if (requirement.owner) {
+        this.ownerIndex.add(requirement.owner);
+      }
+    }
   }
   /**
    * 加载所有版本到缓存
@@ -4433,6 +5086,22 @@ var EntityCache = class {
         this.projectCache.set(project.id, project);
         if (project.owner) {
           this.ownerIndex.add(project.owner);
+        }
+      }
+    }
+  }
+  /**
+   * 加载所有需求到缓存
+   */
+  async loadRequirements() {
+    const folder = "ProjectManager/Requirements";
+    const files = this.app.vault.getFiles().filter((f) => f.path.startsWith(folder) && f.extension === "md");
+    for (const file of files) {
+      const requirement = await this.parseRequirementFile(file);
+      if (requirement) {
+        this.requirementCache.set(requirement.id, requirement);
+        if (requirement.owner) {
+          this.ownerIndex.add(requirement.owner);
         }
       }
     }
@@ -4585,6 +5254,51 @@ var EntityCache = class {
     return feature;
   }
   /**
+   * 解析需求文件
+   */
+  async parseRequirementFile(file) {
+    const cache = this.app.metadataCache.getFileCache(file);
+    let frontmatter = cache == null ? void 0 : cache.frontmatter;
+    let content = "";
+    if (!(frontmatter == null ? void 0 : frontmatter.id)) {
+      content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!(parsed == null ? void 0 : parsed.id))
+        return null;
+      frontmatter = parsed;
+    }
+    const parseStringArray = (value) => {
+      if (Array.isArray(value))
+        return value.map(String);
+      if (typeof value === "string")
+        return value.split(",").map((v) => v.trim()).filter(Boolean);
+      return [];
+    };
+    const requirement = {
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      type: "requirement",
+      versionId: String(frontmatter.versionId || ""),
+      projectId: frontmatter.projectId ? String(frontmatter.projectId) : void 0,
+      status: String(frontmatter.status || "backlog"),
+      priority: String(frontmatter.priority || "medium"),
+      progress: typeof frontmatter.progress === "number" ? frontmatter.progress : 0,
+      owner: frontmatter.owner ? String(frontmatter.owner) : void 0,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : void 0,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : void 0,
+      tags: parseStringArray(frontmatter.tags),
+      estimatedDays: typeof frontmatter.estimatedDays === "number" ? frontmatter.estimatedDays : void 0,
+      actualDays: typeof frontmatter.actualDays === "number" ? frontmatter.actualDays : void 0,
+      description: frontmatter.description ? String(frontmatter.description) : void 0,
+      featureId: frontmatter.featureId ? String(frontmatter.featureId) : void 0
+    };
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(requirement.id, this.riskParser.parseLogSummary(content));
+    return requirement;
+  }
+  /**
    * 设置文件监听器
    */
   setupFileWatcher() {
@@ -4656,6 +5370,23 @@ var EntityCache = class {
           this.ownerIndex.add(feature.owner);
         }
       }
+    } else if (path.startsWith("ProjectManager/Requirements/")) {
+      let oldOwner;
+      for (const [id, requirement2] of this.requirementCache.entries()) {
+        if (id.includes(file.basename) || file.basename.includes(requirement2.name)) {
+          oldOwner = requirement2.owner;
+          break;
+        }
+      }
+      const requirement = await this.parseRequirementFile(file);
+      if (requirement) {
+        this.requirementCache.set(requirement.id, requirement);
+        if (oldOwner && oldOwner !== requirement.owner) {
+          this.rebuildOwnerIndex();
+        } else if (requirement.owner) {
+          this.ownerIndex.add(requirement.owner);
+        }
+      }
     }
   }
   /**
@@ -4684,6 +5415,13 @@ var EntityCache = class {
       for (const [id, feature] of this.featureCache.entries()) {
         if (fileName.endsWith(feature.name)) {
           this.featureCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith("ProjectManager/Requirements/")) {
+      for (const [id, requirement] of this.requirementCache.entries()) {
+        if (fileName.endsWith(requirement.name)) {
+          this.requirementCache.delete(id);
           break;
         }
       }
@@ -5701,7 +6439,7 @@ var ChangeLogService = class {
       createCount: 0,
       updateCount: 0,
       deleteCount: 0,
-      byEntityType: { version: 0, project: 0, feature: 0 }
+      byEntityType: { version: 0, project: 0, feature: 0, requirement: 0 }
     };
     for (const entry of entries) {
       switch (entry.action) {
@@ -5921,7 +6659,8 @@ var ChangeLogService = class {
       const typeMap = {
         version: "\u7248\u672C",
         project: "\u9879\u76EE",
-        feature: "\u7279\u6027"
+        feature: "\u7279\u6027",
+        requirement: "\u9700\u6C42"
       };
       const changesStr = entry.changes.map((c) => `${c.field}: ${JSON.stringify(c.oldValue)} \u2192 ${JSON.stringify(c.newValue)}`).join("; ");
       const row = [
@@ -6804,6 +7543,7 @@ var EntityManager = class {
     this.version = new VersionStore(fs, app, this.cache, settings);
     this.project = new ProjectStore(fs, app, this.cache, settings);
     this.feature = new FeatureStore(fs, app, this.cache, settings);
+    this.requirement = new RequirementStore(fs, app, this.cache, settings);
     this.changeLogService = new ChangeLogService(app);
     this.dataview = new DataviewService(app);
   }
@@ -6833,6 +7573,15 @@ var EntityManager = class {
    */
   async deleteVersion(id, cascade = false) {
     const version = await this.version.getById(id);
+    const relatedRequirements = await this.getVersionRequirements(id);
+    if (relatedRequirements.length > 0) {
+      if (!cascade) {
+        throw new Error(`\u65E0\u6CD5\u5220\u9664\u7248\u672C\uFF1A\u5B58\u5728 ${relatedRequirements.length} \u4E2A\u5173\u8054\u9700\u6C42\uFF0C\u8BF7\u5148\u5220\u9664\u6216\u8F6C\u79FB\u5173\u8054\u9700\u6C42`);
+      }
+      for (const requirement of relatedRequirements) {
+        await this.deleteRequirement(requirement.id);
+      }
+    }
     const relatedProjects = await this.getVersionProjects(id);
     if (relatedProjects.length > 0) {
       if (!cascade) {
@@ -6884,6 +7633,15 @@ var EntityManager = class {
    */
   async deleteProject(id, cascade = false) {
     const project = await this.project.getById(id);
+    const relatedRequirements = await this.getProjectRequirements(id);
+    if (relatedRequirements.length > 0) {
+      if (!cascade) {
+        throw new Error(`\u65E0\u6CD5\u5220\u9664\u9879\u76EE\uFF1A\u5B58\u5728 ${relatedRequirements.length} \u4E2A\u5173\u8054\u9700\u6C42\uFF0C\u8BF7\u5148\u5220\u9664\u6216\u8F6C\u79FB\u5173\u8054\u9700\u6C42`);
+      }
+      for (const requirement of relatedRequirements) {
+        await this.deleteRequirement(requirement.id);
+      }
+    }
     const relatedFeatures = await this.getProjectFeatures(id);
     if (relatedFeatures.length > 0) {
       if (!cascade) {
@@ -6946,6 +7704,49 @@ var EntityManager = class {
   async listFeatures(filters) {
     return this.feature.list(filters);
   }
+  // ==================== 需求操作 ====================
+  async createRequirement(data) {
+    const requirement = await this.requirement.create(data);
+    await this.changeLogService.logCreate("requirement", requirement);
+    return requirement;
+  }
+  async updateRequirement(id, data) {
+    const oldRequirement = await this.requirement.getById(id);
+    const newRequirement = await this.requirement.update(id, data);
+    if (oldRequirement && newRequirement) {
+      await this.changeLogService.logUpdate("requirement", oldRequirement, newRequirement);
+    }
+    return newRequirement;
+  }
+  async deleteRequirement(id) {
+    const requirement = await this.requirement.getById(id);
+    const result = await this.requirement.delete(id);
+    if (result && requirement) {
+      await this.changeLogService.logDelete("requirement", requirement);
+    }
+    return result;
+  }
+  async getRequirement(id) {
+    return this.requirement.getById(id);
+  }
+  async getRequirementPath(id) {
+    return this.requirement.getPath(id);
+  }
+  async listRequirements(filters) {
+    return this.requirement.list(filters);
+  }
+  /**
+   * 获取项目的关联需求
+   */
+  async getProjectRequirements(projectId) {
+    return this.requirement.listByProject(projectId);
+  }
+  /**
+   * 获取版本的关联需求
+   */
+  async getVersionRequirements(versionId) {
+    return this.requirement.listByVersion(versionId);
+  }
   // ==================== 批量查询 ====================
   /**
    * 获取实体的路径（通用方法）
@@ -6958,6 +7759,8 @@ var EntityManager = class {
         return this.project.getPath(id);
       case "feature":
         return this.feature.getPath(id);
+      case "requirement":
+        return this.requirement.getPath(id);
       default:
         return null;
     }
@@ -6966,6 +7769,9 @@ var EntityManager = class {
    * 根据 ID 查找实体（通用方法）
    */
   async findById(id) {
+    const requirement = await this.requirement.getById(id);
+    if (requirement)
+      return { type: "requirement", entity: requirement };
     const feature = await this.feature.getById(id);
     if (feature)
       return { type: "feature", entity: feature };
@@ -7171,7 +7977,7 @@ var Breadcrumb = class {
 };
 
 // src/ui/components/Button.ts
-var import_obsidian24 = require("obsidian");
+var import_obsidian25 = require("obsidian");
 init_modals();
 init_utils();
 var Button = class {
@@ -7225,6 +8031,9 @@ var Button = class {
       case "create-project":
         await this.handleCreateProject(versionId);
         break;
+      case "create-requirement":
+        await this.handleCreateRequirement(versionId, projectId);
+        break;
       case "create-feature":
         await this.handleCreateFeature(versionId, projectId);
         break;
@@ -7269,6 +8078,33 @@ var Button = class {
         } catch (error) {
           console.error("\u521B\u5EFA\u9879\u76EE\u5931\u8D25:", error);
           this.showNotice("\u521B\u5EFA\u9879\u76EE\u5931\u8D25: " + error.message, 5e3);
+        }
+      }
+    ).open();
+  }
+  /**
+   * 创建需求
+   * @param defaultVersionId - 预填充的版本ID（从版本页面点击时传入）
+   * @param defaultProjectId - 预填充的项目ID（从项目页面点击时传入）
+   */
+  async handleCreateRequirement(defaultVersionId = null, defaultProjectId = null) {
+    const versions = await this.entityManager.listVersions();
+    if (versions.length === 0) {
+      this.showNotice("\u8BF7\u5148\u521B\u5EFA\u7248\u672C\u540E\u518D\u521B\u5EFA\u9700\u6C42", 3e3);
+      return;
+    }
+    new CreateRequirementModal(
+      this.app,
+      this.entityManager,
+      defaultVersionId,
+      defaultProjectId,
+      async (data) => {
+        try {
+          await this.entityManager.createRequirement(data);
+          this.showNotice("\u9700\u6C42\u521B\u5EFA\u6210\u529F", 3e3);
+        } catch (error) {
+          console.error("\u521B\u5EFA\u9700\u6C42\u5931\u8D25:", error);
+          this.showNotice("\u521B\u5EFA\u9700\u6C42\u5931\u8D25: " + error.message, 5e3);
         }
       }
     ).open();
@@ -7326,10 +8162,10 @@ var Button = class {
    * 显示通知
    */
   showNotice(message, timeout = 4e3) {
-    new import_obsidian24.Notice(message, timeout);
+    new import_obsidian25.Notice(message, timeout);
   }
 };
-var ButtonContainer = class extends import_obsidian24.MarkdownRenderChild {
+var ButtonContainer = class extends import_obsidian25.MarkdownRenderChild {
   constructor(containerEl, button) {
     super(containerEl);
     this.button = button;
@@ -7354,7 +8190,7 @@ var ButtonContainer = class extends import_obsidian24.MarkdownRenderChild {
 };
 
 // src/ui/components/ProgressInput.ts
-var import_obsidian25 = require("obsidian");
+var import_obsidian26 = require("obsidian");
 var ProgressInput = class {
   constructor(app) {
     this.app = app;
@@ -7461,7 +8297,7 @@ var ProgressInput = class {
     }, 5e3);
   }
 };
-var ProgressInputContainer = class extends import_obsidian25.MarkdownRenderChild {
+var ProgressInputContainer = class extends import_obsidian26.MarkdownRenderChild {
   constructor(containerEl, progressInput) {
     super(containerEl);
     this.progressInput = progressInput;
@@ -7512,6 +8348,11 @@ var EntityStrategyRegistry = class {
         list: () => this.entityManager.listFeatures(),
         get: (id) => this.entityManager.getFeature(id),
         update: (id, data) => this.entityManager.updateFeature(id, data)
+      }],
+      ["requirement", {
+        list: () => this.entityManager.listRequirements(),
+        get: (id) => this.entityManager.getRequirement(id),
+        update: (id, data) => this.entityManager.updateRequirement(id, data)
       }]
     ]);
   }
@@ -7563,6 +8404,22 @@ var DataService = class {
         versions = versions.filter((v) => config.versions.includes(v.id));
       }
       return versions;
+    }
+    if (entityType === "requirement") {
+      let requirements = await this.entityManager.listRequirements();
+      if (config.requirements && config.requirements.length > 0) {
+        requirements = requirements.filter((r) => config.requirements.includes(r.id));
+      }
+      if (config.features && config.features.length > 0) {
+        requirements = requirements.filter((r) => r.featureId && config.features.includes(r.featureId));
+      }
+      if (config.projects && config.projects.length > 0) {
+        requirements = requirements.filter((r) => r.projectId && config.projects.includes(r.projectId));
+      }
+      if (config.versions && config.versions.length > 0) {
+        requirements = requirements.filter((r) => config.versions.includes(r.versionId));
+      }
+      return requirements;
     }
     return [];
   }
@@ -7751,6 +8608,10 @@ var EntityStrategyRegistry2 = class {
       ["feature", {
         get: (id) => this.entityManager.getFeature(id),
         update: (id, data) => this.entityManager.updateFeature(id, data)
+      }],
+      ["requirement", {
+        get: (id) => this.entityManager.getRequirement(id),
+        update: (id, data) => this.entityManager.updateRequirement(id, data)
       }]
     ]);
   }
@@ -8004,8 +8865,8 @@ var ActionService = class {
    */
   async showConfirmDialog(title, message) {
     return new Promise((resolve) => {
-      const { Modal: Modal12, ButtonComponent: ButtonComponent2 } = require("obsidian");
-      class ConfirmModal2 extends Modal12 {
+      const { Modal: Modal13, ButtonComponent: ButtonComponent2 } = require("obsidian");
+      class ConfirmModal2 extends Modal13 {
         onOpen() {
           const { contentEl } = this;
           contentEl.createEl("h2", { text: title });
@@ -8059,6 +8920,9 @@ var ENTITY_CARD_FIELD_DEFINITIONS = [
   { key: "stats", label: "\u7EDF\u8BA1\u4FE1\u606F", required: false }
 ];
 function getEntityType(entity) {
+  if ("type" in entity && entity.type === "requirement") {
+    return "requirement";
+  }
   if ("projectId" in entity && entity.projectId !== void 0) {
     return "feature";
   }
@@ -8096,7 +8960,8 @@ function getPriorityColor2(priority) {
 var ENTITY_ICONS = {
   version: "\u{1F4E6}",
   project: "\u{1F4C1}",
-  feature: "\u{1F4DD}"
+  feature: "\u{1F4DD}",
+  requirement: "\u{1F4CB}"
 };
 function getEntityIcon(type) {
   return ENTITY_ICONS[type] || "\u{1F4C4}";
@@ -8499,7 +9364,8 @@ RendererRegistry.renderers = /* @__PURE__ */ new Map();
 var ENTITY_TYPE_COLORS = {
   version: { bg: "rgba(99, 102, 241, 0.15)", text: "#6366f1", border: "rgba(99, 102, 241, 0.3)" },
   project: { bg: "rgba(59, 130, 246, 0.15)", text: "#3b82f6", border: "rgba(59, 130, 246, 0.3)" },
-  feature: { bg: "rgba(34, 197, 94, 0.15)", text: "#22c55e", border: "rgba(34, 197, 94, 0.3)" }
+  feature: { bg: "rgba(34, 197, 94, 0.15)", text: "#22c55e", border: "rgba(34, 197, 94, 0.3)" },
+  requirement: { bg: "rgba(168, 85, 247, 0.15)", text: "#a855f7", border: "rgba(168, 85, 247, 0.3)" }
 };
 var EntityTreeSelector = class {
   constructor(app, entityManager, options) {
@@ -8595,7 +9461,7 @@ var EntityTreeSelector = class {
     triggerEl.empty();
     const count = this.selectedIds.size;
     const entityType = this.options.entityType;
-    const colors = ENTITY_TYPE_COLORS[entityType];
+    const colors = ENTITY_TYPE_COLORS[entityType] || { bg: "#e5e7eb", text: "#374151", border: "#d1d5db" };
     triggerEl.style.backgroundColor = colors.bg;
     triggerEl.style.color = colors.text;
     triggerEl.style.border = `1px solid ${colors.border}`;
@@ -8632,6 +9498,8 @@ var EntityTreeSelector = class {
         return "\u9879\u76EE";
       case "feature":
         return "\u7279\u6027";
+      case "requirement":
+        return "\u9700\u6C42";
       default:
         return "";
     }
@@ -10194,7 +11062,7 @@ var CascadeRenderer = class extends BaseRenderer {
     this.createExpandToggle(cardEl, wrapper, project);
     if (features.length > 0) {
       const featuresContainer = cardEl.createDiv("pm-cascade__features");
-      const maxFeatures = (_c = (_b = this.config.maxFeaturesPerProject) != null ? _b : (_a = this.config.options) == null ? void 0 : _a.maxFeaturesPerProject) != null ? _c : 5;
+      const maxFeatures = (_c = (_b = this.config.maxFeaturesPerProject) != null ? _b : (_a = this.config.options) == null ? void 0 : _a.maxFeaturesPerProject) != null ? _c : features.length;
       const displayFeatures = features.slice(0, maxFeatures);
       for (const feature of displayFeatures) {
         this.renderFeatureRow(featuresContainer, feature);
@@ -10915,7 +11783,8 @@ var ToolbarController = class {
     this.entityTypeOptions = [
       { value: "version", label: "\u{1F4C1} \u7248\u672C", color: "#6366f1" },
       { value: "project", label: "\u{1F4C2} \u9879\u76EE", color: "#3b82f6" },
-      { value: "feature", label: "\u{1F4C4} \u7279\u6027", color: "#22c55e" }
+      { value: "feature", label: "\u{1F4C4} \u7279\u6027", color: "#22c55e" },
+      { value: "requirement", label: "\u{1F4CB} \u9700\u6C42", color: "#a855f7" }
     ];
     // 状态选项（带颜色）
     this.statusOptions = [
@@ -10978,6 +11847,7 @@ var ToolbarController = class {
       this.filters.versions = void 0;
       this.filters.projects = void 0;
       this.filters.features = void 0;
+      this.filters.requirements = void 0;
       (_a = this.treeSelector) == null ? void 0 : _a.updateEntityType(this.currentEntityType);
       this.onFilterChange();
     });
@@ -11184,6 +12054,21 @@ var ToolbarController = class {
           hasSelection = true;
         }
         break;
+      case "requirement":
+        if (this.filters.requirements && this.filters.requirements.length > 0) {
+          selection.requirementIds = [...this.filters.requirements];
+          hasSelection = true;
+        } else if (this.filters.features && this.filters.features.length > 0) {
+          selection.featureIds = [...this.filters.features];
+          hasSelection = true;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          selection.projectIds = [...this.filters.projects];
+          hasSelection = true;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          selection.versionIds = [...this.filters.versions];
+          hasSelection = true;
+        }
+        break;
     }
     return hasSelection ? selection : void 0;
   }
@@ -11194,6 +12079,7 @@ var ToolbarController = class {
     this.filters.versions = void 0;
     this.filters.projects = void 0;
     this.filters.features = void 0;
+    this.filters.requirements = void 0;
     if (!selection) {
       this.onFilterChange();
       return;
@@ -11217,6 +12103,16 @@ var ToolbarController = class {
         }
         break;
       }
+      case "requirement": {
+        if (selection.featureIds && selection.featureIds.length > 0) {
+          this.filters.features = selection.featureIds;
+        } else if (selection.projectIds && selection.projectIds.length > 0) {
+          this.filters.projects = selection.projectIds;
+        } else if (selection.versionIds && selection.versionIds.length > 0) {
+          this.filters.versions = selection.versionIds;
+        }
+        break;
+      }
     }
     this.onFilterChange();
   }
@@ -11231,6 +12127,7 @@ var ToolbarController = class {
     cleanFilters.versions = void 0;
     cleanFilters.projects = void 0;
     cleanFilters.features = void 0;
+    cleanFilters.requirements = void 0;
     switch (this.currentEntityType) {
       case "version":
         if (this.filters.versions && this.filters.versions.length > 0) {
@@ -11246,6 +12143,17 @@ var ToolbarController = class {
         break;
       case "feature":
         if (this.filters.features && this.filters.features.length > 0) {
+          cleanFilters.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          cleanFilters.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          cleanFilters.versions = this.filters.versions;
+        }
+        break;
+      case "requirement":
+        if (this.filters.requirements && this.filters.requirements.length > 0) {
+          cleanFilters.requirements = this.filters.requirements;
+        } else if (this.filters.features && this.filters.features.length > 0) {
           cleanFilters.features = this.filters.features;
         } else if (this.filters.projects && this.filters.projects.length > 0) {
           cleanFilters.projects = this.filters.projects;
@@ -11275,6 +12183,7 @@ var ToolbarController = class {
     filterUpdates.versions = void 0;
     filterUpdates.projects = void 0;
     filterUpdates.features = void 0;
+    filterUpdates.requirements = void 0;
     switch (this.currentEntityType) {
       case "version":
         if (this.filters.versions && this.filters.versions.length > 0) {
@@ -11290,6 +12199,17 @@ var ToolbarController = class {
         break;
       case "feature":
         if (this.filters.features && this.filters.features.length > 0) {
+          filterUpdates.features = this.filters.features;
+        } else if (this.filters.projects && this.filters.projects.length > 0) {
+          filterUpdates.projects = this.filters.projects;
+        } else if (this.filters.versions && this.filters.versions.length > 0) {
+          filterUpdates.versions = this.filters.versions;
+        }
+        break;
+      case "requirement":
+        if (this.filters.requirements && this.filters.requirements.length > 0) {
+          filterUpdates.requirements = this.filters.requirements;
+        } else if (this.filters.features && this.filters.features.length > 0) {
           filterUpdates.features = this.filters.features;
         } else if (this.filters.projects && this.filters.projects.length > 0) {
           filterUpdates.projects = this.filters.projects;
@@ -11938,7 +12858,7 @@ var ViewEngine = class {
 };
 
 // src/settings/TemplateSettingTab.ts
-var import_obsidian26 = require("obsidian");
+var import_obsidian27 = require("obsidian");
 
 // src/types/template.ts
 var DEFAULT_SETTINGS = {
@@ -11966,6 +12886,23 @@ var PREVIEW_EXAMPLES = {
     endDate: "2026-05-15",
     tags: ["\u524D\u7AEF", "UI"]
   },
+  requirement: {
+    id: "req-login",
+    name: "\u767B\u5F55\u6D41\u7A0B\u4F18\u5316\u9700\u6C42",
+    versionId: "ver-2026-q2",
+    projectId: "proj-homepage",
+    status: "in-progress",
+    owner: "\u738B\u4E94",
+    priority: "high",
+    progress: 50,
+    startDate: "2026-04-01",
+    endDate: "2026-04-20",
+    tags: ["\u540E\u7AEF", "\u5B89\u5168"],
+    estimatedDays: 8,
+    actualDays: 4,
+    description: "\u4F18\u5316\u767B\u5F55\u6D41\u7A0B\uFF0C\u652F\u6301\u591A\u56E0\u7D20\u8BA4\u8BC1",
+    featureId: "feat-login"
+  },
   feature: {
     id: "feat-login",
     name: "\u767B\u5F55\u529F\u80FD\u4F18\u5316",
@@ -11992,15 +12929,17 @@ var TEMPLATE_LABELS = {
   overview: "\u603B\u89C8\u9875\u9762",
   version: "\u7248\u672C\u9875\u9762",
   project: "\u9879\u76EE\u9875\u9762",
+  requirement: "\u9700\u6C42\u9875\u9762",
   feature: "\u7279\u6027\u9875\u9762"
 };
 var TEMPLATE_DESCRIPTIONS = {
   overview: "\u9879\u76EE\u7BA1\u7406\u603B\u89C8\u9875\u9762\u7684\u6A21\u677F",
   version: "\u521B\u5EFA\u65B0\u7248\u672C\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
   project: "\u521B\u5EFA\u65B0\u9879\u76EE\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
+  requirement: "\u521B\u5EFA\u65B0\u9700\u6C42\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F",
   feature: "\u521B\u5EFA\u65B0\u7279\u6027\u65F6\u4F7F\u7528\u7684\u9875\u9762\u6A21\u677F"
 };
-var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
+var TemplateSettingTab = class extends import_obsidian27.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -12010,7 +12949,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Project Manager \u6A21\u677F\u8BBE\u7F6E" });
-    new import_obsidian26.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
+    new import_obsidian27.Setting(containerEl).setName("\u542F\u7528\u81EA\u5B9A\u4E49\u6A21\u677F").setDesc("\u5F00\u542F\u540E\uFF0C\u5C06\u4F7F\u7528\u4E0B\u65B9\u81EA\u5B9A\u4E49\u7684\u6A21\u677F\u66FF\u4EE3\u9ED8\u8BA4\u6A21\u677F").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.enableCustomTemplates);
       toggle.onChange(async (value) => {
         this.plugin.settings.enableCustomTemplates = value;
@@ -12018,7 +12957,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
         this.templateService.updateSettings(this.plugin.settings);
       });
     });
-    new import_obsidian26.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
+    new import_obsidian27.Setting(containerEl).setName("\u6A21\u677F\u6587\u4EF6\u5939\u8DEF\u5F84").setDesc("\u53EF\u9009\uFF1A\u6307\u5B9A\u4E00\u4E2A\u6587\u4EF6\u5939\u8DEF\u5F84\u5B58\u653E\u6A21\u677F\u6587\u4EF6\uFF08.md\uFF09\uFF0C\u4F18\u5148\u7EA7\u9AD8\u4E8E\u5185\u7F6E\u6A21\u677F").addText((text) => {
       text.setPlaceholder("ProjectManager/.templates");
       text.setValue(this.plugin.settings.templateFolder || "");
       text.onChange(async (value) => {
@@ -12034,7 +12973,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
     }
     containerEl.createEl("hr");
     containerEl.createEl("h3", { text: "\u6279\u91CF\u64CD\u4F5C" });
-    new import_obsidian26.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
+    new import_obsidian27.Setting(containerEl).setName("\u5BFC\u51FA\u6240\u6709\u6A21\u677F\u5230\u6587\u4EF6").setDesc("\u5C06\u5F53\u524D\u6240\u6709\u6A21\u677F\u5BFC\u51FA\u5230\u6307\u5B9A\u7684\u6A21\u677F\u6587\u4EF6\u5939").addButton((button) => {
       button.setButtonText("\u5BFC\u51FA\u6A21\u677F");
       button.onClick(async () => {
         try {
@@ -12042,13 +12981,13 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
           for (const type of types) {
             await this.templateService.exportTemplateToFile(type);
           }
-          new import_obsidian26.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
+          new import_obsidian27.Notice("\u6A21\u677F\u5BFC\u51FA\u6210\u529F\uFF01", 3e3);
         } catch (error) {
-          new import_obsidian26.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
+          new import_obsidian27.Notice(`\u5BFC\u51FA\u5931\u8D25: ${error.message}`, 5e3);
         }
       });
     });
-    new import_obsidian26.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
+    new import_obsidian27.Setting(containerEl).setName("\u91CD\u7F6E\u6240\u6709\u6A21\u677F").setDesc("\u5C06\u6240\u6709\u6A21\u677F\u6062\u590D\u4E3A\u9ED8\u8BA4\u503C\uFF08\u4F1A\u6E05\u7A7A\u81EA\u5B9A\u4E49\u6A21\u677F\u5185\u5BB9\uFF09").addButton((button) => {
       button.setButtonText("\u91CD\u7F6E");
       button.setWarning();
       button.onClick(async () => {
@@ -12056,7 +12995,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
           this.plugin.settings.customTemplates = {};
           await this.plugin.saveSettings();
           this.templateService.updateSettings(this.plugin.settings);
-          new import_obsidian26.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
+          new import_obsidian27.Notice("\u6240\u6709\u6A21\u677F\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C", 3e3);
           this.display();
         }
       });
@@ -12109,7 +13048,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
         delete this.plugin.settings.customTemplates[type];
         await this.plugin.saveSettings();
         this.templateService.updateSettings(this.plugin.settings);
-        new import_obsidian26.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
+        new import_obsidian27.Notice(`${TEMPLATE_LABELS[type]} \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u503C`, 3e3);
       }
     });
   }
@@ -12137,7 +13076,7 @@ var TemplateSettingTab = class extends import_obsidian26.PluginSettingTab {
     new TemplatePreviewModal(this.app, this.plugin, type, template).open();
   }
 };
-var TemplateEditorModal = class extends import_obsidian26.Modal {
+var TemplateEditorModal = class extends import_obsidian27.Modal {
   constructor(app, plugin, templateService, type, onSave) {
     super(app);
     this.textArea = null;
@@ -12204,7 +13143,7 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
       border-radius: 6px;
       overflow: hidden;
     `;
-    this.textArea = new import_obsidian26.TextAreaComponent(editorWrapper);
+    this.textArea = new import_obsidian27.TextAreaComponent(editorWrapper);
     this.textArea.setValue(currentTemplate);
     this.textArea.inputEl.style.cssText = `
       width: 100%;
@@ -12330,7 +13269,7 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
       var _a;
       const content = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
       await this.onSave(content);
-      new import_obsidian26.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
+      new import_obsidian27.Notice("\u6A21\u677F\u4FDD\u5B58\u6210\u529F\uFF01", 3e3);
       this.close();
     });
   }
@@ -12403,7 +13342,7 @@ var TemplateEditorModal = class extends import_obsidian26.Modal {
     return PREVIEW_EXAMPLES[type];
   }
 };
-var TemplatePreviewModal = class extends import_obsidian26.Modal {
+var TemplatePreviewModal = class extends import_obsidian27.Modal {
   constructor(app, plugin, type, template) {
     super(app);
     this.plugin = plugin;
@@ -12444,7 +13383,7 @@ var TemplatePreviewModal = class extends import_obsidian26.Modal {
 };
 
 // src/main.ts
-var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
+var ProjectManagerPlugin = class extends import_obsidian28.Plugin {
   async onload() {
     await this.loadSettings();
     this.entityManager = new EntityManager(this.app, this.settings);
@@ -12510,7 +13449,7 @@ var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (file instanceof import_obsidian27.TFile) {
+        if (file instanceof import_obsidian28.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -12518,7 +13457,7 @@ var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const file = view.file;
-        if (file instanceof import_obsidian27.TFile) {
+        if (file instanceof import_obsidian28.TFile) {
           this.addFileMenuItems(menu, file);
         }
       })
@@ -12670,7 +13609,7 @@ var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
   async getCodeBlockIndex(sourcePath, source, el) {
     try {
       const file = this.app.vault.getAbstractFileByPath(sourcePath);
-      if (!(file instanceof import_obsidian27.TFile))
+      if (!(file instanceof import_obsidian28.TFile))
         return 0;
       const content = await this.app.vault.read(file);
       const lines = content.split("\n");
@@ -12728,7 +13667,7 @@ var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
     if (sourcePath === "ProjectManager/\u603B\u89C8.md")
       return;
     const file = this.app.vault.getAbstractFileByPath(sourcePath);
-    if (!(file instanceof import_obsidian27.TFile))
+    if (!(file instanceof import_obsidian28.TFile))
       return;
     const containerEl = el.parentElement;
     if (!containerEl)
@@ -12993,7 +13932,7 @@ var ProjectManagerPlugin = class extends import_obsidian27.Plugin {
     const fileName = `ProjectManager/\u53D8\u66F4\u5386\u53F2_${(/* @__PURE__ */ new Date()).toISOString().split("T")[0]}.md`;
     const content = "---\ntitle: \u53D8\u66F4\u5386\u53F2\n---\n\n# \u{1F4DC} \u9879\u76EE\u53D8\u66F4\u5386\u53F2\n\n> \u751F\u6210\u65F6\u95F4: " + (/* @__PURE__ */ new Date()).toLocaleString("zh-CN") + "\n\n## \u4F7F\u7528\u8BF4\u660E\n\n\u5728\u4EFB\u610F\u4EE3\u7801\u5757\u4E2D\u4F7F\u7528\u4EE5\u4E0B\u914D\u7F6E\u67E5\u770B\u53D8\u66F4\u5386\u53F2:\n\n```pm-view\nmode: changelog\nentityType: feature  # \u53EF\u9009: version/project/feature\nlimit: 50\ndays: 30\n```\n\n\u53D8\u66F4\u65E5\u5FD7\u4F1A\u81EA\u52A8\u8BB0\u5F55\u5728 ProjectManager/.changelog/ \u76EE\u5F55\u4E0B\u3002\n";
     const existingFile = this.app.vault.getAbstractFileByPath(fileName);
-    if (existingFile instanceof import_obsidian27.TFile) {
+    if (existingFile instanceof import_obsidian28.TFile) {
       this.app.workspace.openLinkText(fileName, "", false);
     } else {
       this.app.vault.create(fileName, content).then((file) => {

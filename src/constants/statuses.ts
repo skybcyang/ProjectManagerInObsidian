@@ -37,9 +37,23 @@ export const FEATURE_STATUSES = [
 export type FeatureStatusValue = typeof FEATURE_STATUSES[number]['value'];
 
 /**
+ * 需求状态枚举
+ */
+export const REQUIREMENT_STATUSES = [
+  { value: 'backlog', label: '待规划', color: 'var(--text-muted)' },
+  { value: 'todo', label: '待办', color: 'var(--text-muted)' },
+  { value: 'in-progress', label: '进行中', color: 'var(--text-accent)' },
+  { value: 'testing', label: '测试中', color: 'var(--text-warning)' },
+  { value: 'completed', label: '已完成', color: 'var(--text-success)' },
+  { value: 'archived', label: '已归档', color: 'var(--text-faint)' },
+] as const;
+
+export type RequirementStatusValue = typeof REQUIREMENT_STATUSES[number]['value'];
+
+/**
  * 获取状态标签
  */
-export function getStatusLabel(status: string, type: 'version' | 'project' | 'feature' = 'feature'): string {
+export function getStatusLabel(status: string, type: 'version' | 'project' | 'feature' | 'requirement' = 'feature'): string {
   let statuses;
   switch (type) {
     case 'version':
@@ -47,6 +61,9 @@ export function getStatusLabel(status: string, type: 'version' | 'project' | 'fe
       break;
     case 'project':
       statuses = PROJECT_STATUSES;
+      break;
+    case 'requirement':
+      statuses = REQUIREMENT_STATUSES;
       break;
     case 'feature':
     default:
@@ -60,7 +77,7 @@ export function getStatusLabel(status: string, type: 'version' | 'project' | 'fe
 /**
  * 获取状态颜色
  */
-export function getStatusColor(status: string, type: 'version' | 'project' | 'feature' = 'feature'): string {
+export function getStatusColor(status: string, type: 'version' | 'project' | 'feature' | 'requirement' = 'feature'): string {
   let statuses;
   switch (type) {
     case 'version':
@@ -68,6 +85,9 @@ export function getStatusColor(status: string, type: 'version' | 'project' | 'fe
       break;
     case 'project':
       statuses = PROJECT_STATUSES;
+      break;
+    case 'requirement':
+      statuses = REQUIREMENT_STATUSES;
       break;
     case 'feature':
     default:

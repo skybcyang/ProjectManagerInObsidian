@@ -1,27 +1,28 @@
 ---
-id: feat-1w6u9wi1
+id: feat-x8xbw6ki
 name: JWT 鉴权
 type: feature
-versionId: ver-szoej1cj
-projectId: proj-fndghn6e
-status: todo
-priority: critical
+versionId: ver-3sn5oahn
+projectId: proj-p8gb1m1o
+status: backlog
+priority: high
 progress: 0
-owner: 钱七
-startDate: 2026-04-30
-endDate: 2026-05-21
-estimatedDays: 9
+owner: 周九
+startDate: 2026-05-08
+endDate: 2026-06-01
+estimatedDays: 3
 actualDays: 0
 isMilestone: false
 tags:
   - 后端
   - 安全
+  - API
   - DevOps
 ---
 
-# 🔴 JWT 鉴权
+# 🟠 JWT 鉴权
 
-<input class="pm-progress-input" data-feature-id="feat-1w6u9wi1" placeholder="输入当前进展，按 Enter 保存...">
+<input class="pm-progress-input" data-feature-id="feat-x8xbw6ki" placeholder="输入当前进展，按 Enter 保存...">
 
 ---
 
@@ -29,7 +30,7 @@ tags:
 
 | 时间 | 反馈内容 | 记录人 |
 |------|---------|--------|
-| 07/14 19:44 | 特性创建 | |
+| 07/16 12:21 | 特性创建 | |
 
 ---
 
@@ -49,11 +50,11 @@ Largest Column: standard
 Border: off
 ```
 
-<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-1w6u9wi1">📝 添加进展</span>
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-x8xbw6ki">📝 添加进展</span>
 
 --- column-break ---
 
-<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-1w6u9wi1">⚠️ 添加风险</span>
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-x8xbw6ki">⚠️ 添加风险</span>
 
 --- end-multi-column
 
@@ -117,7 +118,7 @@ Border: off
 ## 6️⃣ 合入链接
 
 ### 开发分支
-- **开发分支**: `feature/feat-1w6u9wi1`
+- **开发分支**: `feature/feat-x8xbw6ki`
 - **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
 - **MR 链接**: <!-- 填写 MR 链接 -->
 
@@ -138,7 +139,7 @@ Border: off
 
 ## 🏷️ 标签
 
-#后端 #安全 #DevOps 
+#后端 #安全 #API #DevOps 
 
 ---
-*创建于: 07/14 19:44*
+*创建于: 07/16 12:21*

@@ -1,6 +1,7 @@
 export { CreateVersionModal } from './CreateVersionModal';
 export { CreateProjectModal } from './CreateProjectModal';
 export { CreateFeatureModal } from './CreateFeatureModal';
+export { CreateRequirementModal } from './CreateRequirementModal';
 export { QuickCreateModal } from './QuickCreateModal';
 export { DeleteConfirmModal, showDeleteConfirm } from './DeleteConfirmModal';
 export { EditFeatureModal } from './EditFeatureModal';

@@ -1,26 +1,25 @@
 ---
-id: feat-3ndielxz
+id: feat-50g8e5b0
 name: CI/CD 流水线
 type: feature
-versionId: ver-szoej1cj
-projectId: proj-fndghn6e
-status: todo
-priority: critical
+versionId: ver-3sn5oahn
+projectId: proj-p8gb1m1o
+status: backlog
+priority: medium
 progress: 0
-owner: 吴十
-startDate: 2026-05-04
-endDate: 2026-05-17
-estimatedDays: 8
+owner: 冯十二
+startDate: 2026-05-02
+endDate: 2026-05-21
+estimatedDays: 4
 actualDays: 0
 isMilestone: false
 tags:
   - DevOps
-  - 数据库
 ---
 
-# 🔴 CI/CD 流水线
+# 🔵 CI/CD 流水线
 
-<input class="pm-progress-input" data-feature-id="feat-3ndielxz" placeholder="输入当前进展，按 Enter 保存...">
+<input class="pm-progress-input" data-feature-id="feat-50g8e5b0" placeholder="输入当前进展，按 Enter 保存...">
 
 ---
 
@@ -28,7 +27,7 @@ tags:
 
 | 时间 | 反馈内容 | 记录人 |
 |------|---------|--------|
-| 07/14 19:44 | 特性创建 | |
+| 07/16 12:21 | 特性创建 | |
 
 ---
 
@@ -48,11 +47,11 @@ Largest Column: standard
 Border: off
 ```
 
-<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-3ndielxz">📝 添加进展</span>
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-50g8e5b0">📝 添加进展</span>
 
 --- column-break ---
 
-<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-3ndielxz">⚠️ 添加风险</span>
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-50g8e5b0">⚠️ 添加风险</span>
 
 --- end-multi-column
 
@@ -116,7 +115,7 @@ Border: off
 ## 6️⃣ 合入链接
 
 ### 开发分支
-- **开发分支**: `feature/feat-3ndielxz`
+- **开发分支**: `feature/feat-50g8e5b0`
 - **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
 - **MR 链接**: <!-- 填写 MR 链接 -->
 
@@ -137,7 +136,7 @@ Border: off
 
 ## 🏷️ 标签
 
-#DevOps #数据库 
+#DevOps 
 
 ---
-*创建于: 07/14 19:44*
+*创建于: 07/16 12:21*

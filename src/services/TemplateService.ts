@@ -10,6 +10,7 @@ import type {
   TemplateContext,
   VersionTemplateContext,
   ProjectTemplateContext,
+  RequirementTemplateContext,
   FeatureTemplateContext,
   OverviewTemplateContext,
   ProjectManagerSettings 
@@ -287,6 +288,14 @@ export class TemplateService {
    */
   async renderProjectTemplate(context: ProjectTemplateContext): Promise<string> {
     const template = await this.getTemplate('project');
+    return this.renderTemplate(template, context);
+  }
+
+  /**
+   * 渲染需求模板
+   */
+  async renderRequirementTemplate(context: RequirementTemplateContext): Promise<string> {
+    const template = await this.getTemplate('requirement');
     return this.renderTemplate(template, context);
   }
 

@@ -324,8 +324,8 @@ export class CascadeRenderer extends BaseRenderer {
     if (features.length > 0) {
       const featuresContainer = cardEl.createDiv('pm-cascade__features');
 
-      // 限制显示数量
-      const maxFeatures = this.config.maxFeaturesPerProject ?? this.config.options?.maxFeaturesPerProject ?? 5;
+      // 默认展示全部特性，可通过 maxFeaturesPerProject 手动限制
+      const maxFeatures = this.config.maxFeaturesPerProject ?? this.config.options?.maxFeaturesPerProject ?? features.length;
       const displayFeatures = features.slice(0, maxFeatures);
 
       for (const feature of displayFeatures) {

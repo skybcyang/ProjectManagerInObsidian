@@ -1,27 +1,30 @@
 ---
-id: feat-u7gcspwd
+id: feat-f5baoar0
 name: 首页 Hero 设计
 type: feature
-versionId: ver-i718y2k2
-projectId: proj-aeln4km0
-status: in-progress
-priority: medium
-progress: 34
-owner: 周九
-startDate: 2026-07-29
-endDate: 2026-08-09
-estimatedDays: 6
-actualDays: 4
+versionId: ver-67vomjny
+projectId: proj-ul9dvb3k
+status: completed
+priority: high
+progress: 100
+owner: 张三
+startDate: 2026-07-28
+endDate: 2026-08-18
+estimatedDays: 10
+actualDays: 10
+requirementIds:
+  - req-ak2hvcb2
 isMilestone: false
 tags:
   - 前端
   - UI设计
-  - 安全
+  - DevOps
+  - 移动端
 ---
 
-# 🔵 首页 Hero 设计
+# 🟠 首页 Hero 设计
 
-<input class="pm-progress-input" data-feature-id="feat-u7gcspwd" placeholder="输入当前进展，按 Enter 保存...">
+<input class="pm-progress-input" data-feature-id="feat-f5baoar0" placeholder="输入当前进展，按 Enter 保存...">
 
 ---
 
@@ -29,7 +32,7 @@ tags:
 
 | 时间 | 反馈内容 | 记录人 |
 |------|---------|--------|
-| 07/14 19:43 | 特性创建 | |
+| 07/16 12:21 | 特性创建 | |
 
 ---
 
@@ -49,11 +52,11 @@ Largest Column: standard
 Border: off
 ```
 
-<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-u7gcspwd">📝 添加进展</span>
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-f5baoar0">📝 添加进展</span>
 
 --- column-break ---
 
-<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-u7gcspwd">⚠️ 添加风险</span>
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-f5baoar0">⚠️ 添加风险</span>
 
 --- end-multi-column
 
@@ -117,7 +120,7 @@ Border: off
 ## 6️⃣ 合入链接
 
 ### 开发分支
-- **开发分支**: `feature/feat-u7gcspwd`
+- **开发分支**: `feature/feat-f5baoar0`
 - **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
 - **MR 链接**: <!-- 填写 MR 链接 -->
 
@@ -138,7 +141,7 @@ Border: off
 
 ## 🏷️ 标签
 
-#前端 #UI设计 #安全 
+#前端 #UI设计 #DevOps #移动端 
 
 ---
-*创建于: 07/14 19:43*
+*创建于: 07/16 12:21*

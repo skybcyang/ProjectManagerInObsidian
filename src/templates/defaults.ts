@@ -22,28 +22,35 @@ pm-dashboard: true
 // 统计卡片数据 - 实时计算
 const versions = dv.pages('"ProjectManager/Versions"');
 const projects = dv.pages('"ProjectManager/Projects"');
+const requirements = dv.pages('"ProjectManager/Requirements"');
 const features = dv.pages('"ProjectManager/Features"');
 
 const vCompleted = versions.filter(v => v.status === 'completed').length;
 const vTotal = versions.length;
 const vInProgress = versions.filter(v => v.status === 'in-progress').length;
-const vBacklog = versions.filter(v => v.status === 'backlog').length;
+const vBacklog = versions.filter(v => v.status === 'backlog' || v.status === 'planning').length;
 
 const pCompleted = projects.filter(p => p.status === 'completed').length;
 const pTotal = projects.length;
 const pInProgress = projects.filter(p => p.status === 'in-progress').length;
 const pBacklog = projects.filter(p => p.status === 'backlog').length;
 
+const rCompleted = requirements.filter(r => r.status === 'completed').length;
+const rTotal = requirements.length;
+const rInProgress = requirements.filter(r => r.status === 'in-progress').length;
+const rBacklog = requirements.filter(r => r.status === 'backlog' || r.status === 'todo').length;
+
 const fCompleted = features.filter(f => f.status === 'completed').length;
 const fTotal = features.length;
 const fInProgress = features.filter(f => f.status === 'in-progress').length;
-const fBacklog = features.filter(f => f.status === 'backlog').length;
+const fBacklog = features.filter(f => f.status === 'backlog' || f.status === 'todo').length;
 
 dv.table(
   ["类型", "已完成", "进行中", "待开始", "总计"],
   [
     ["📦 版本", vCompleted, vInProgress, vBacklog, vTotal],
     ["📁 项目", pCompleted, pInProgress, pBacklog, pTotal],
+    ["📋 需求", rCompleted, rInProgress, rBacklog, rTotal],
     ["✨ 特性", fCompleted, fInProgress, fBacklog, fTotal]
   ]
 );
@@ -55,7 +62,7 @@ dv.table(
 
 --- start-multi-column: ID_quick_actions
 \`\`\`column-settings
-Number of Columns: 4
+Number of Columns: 5
 Largest Column: standard
 Border: off
 \`\`\`
@@ -65,6 +72,10 @@ Border: off
 --- column-break ---
 
 <span class="pm-btn pm-btn--primary" data-action="create-project">📁 创建项目</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-requirement">📋 创建需求</span>
 
 --- column-break ---
 
@@ -147,6 +158,26 @@ entityType: project
 mode: kanban
 entityType: feature
 groupBy: status
+\`\`\`
+
+---
+
+## 📋 需求看板
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
 \`\`\`
 
 ---
@@ -273,6 +304,27 @@ mode: kanban
 entityType: feature
 versionId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## 📋 版本需求
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+versionId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
 \`\`\`
 
 ---
@@ -483,6 +535,27 @@ groupBy: status
 
 ---
 
+## 📋 项目需求
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+projectId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
+\`\`\`
+
+---
+
 ## ⚠️ 项目风险汇总
 
 \`\`\`dataviewjs
@@ -531,6 +604,52 @@ if (pm && pm.api) {
 ## 📝 其他备注
 
 <!-- 记录项目相关的重要信息、决策、会议纪要等 -->
+`;
+
+/** 默认需求模板 */
+export const DEFAULT_REQUIREMENT_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+type: requirement
+versionId: {{versionId}}
+{{#if projectId}}projectId: {{projectId}}
+{{/if}}status: {{status}}
+priority: {{priority}}
+progress: {{progress}}
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
+{{/if}}{{#if actualDays}}actualDays: {{actualDays}}
+{{/if}}{{#if description}}description: {{description}}
+{{/if}}{{#if featureId}}featureId: {{featureId}}
+{{/if}}tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
+
+# {{priorityEmoji}} {{name}}
+
+---
+
+## 📝 需求描述
+
+{{#if description}}{{description}}
+{{else}}<!-- 描述需求的背景、目标和范围 -->
+{{/if}}
+
+---
+
+## 📈 进展反馈
+
+| 时间 | 反馈内容 | 记录人 |
+|------|---------|--------|
+| {{createTime}} | 需求创建 | |
+
+---
+
+## 📝 其他备注
+
+<!-- 记录需求相关的重要信息、决策、会议纪要等 -->
 `;
 
 /** 默认特性模板 */
@@ -752,6 +871,7 @@ export const DEFAULT_TEMPLATES: TemplateConfig = {
   overview: DEFAULT_OVERVIEW_TEMPLATE,
   version: DEFAULT_VERSION_TEMPLATE,
   project: DEFAULT_PROJECT_TEMPLATE,
+  requirement: DEFAULT_REQUIREMENT_TEMPLATE,
   feature: DEFAULT_FEATURE_TEMPLATE,
 };
 

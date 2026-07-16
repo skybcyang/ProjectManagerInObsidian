@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import type { Version, Project, Feature } from '../../types';
+import type { Version, Project, Requirement, Feature } from '../../types';
 import type { EntityLogSummary } from '../../types';
 import { RiskParser } from '../../services/RiskParser';
 
@@ -10,6 +10,7 @@ import { RiskParser } from '../../services/RiskParser';
 export class EntityCache {
   private versionCache = new Map<string, Version>();
   private projectCache = new Map<string, Project>();
+  private requirementCache = new Map<string, Requirement>();
   private featureCache = new Map<string, Feature>();
   private logSummaryCache = new Map<string, EntityLogSummary>();
   private ownerIndex = new Set<string>();
@@ -27,6 +28,7 @@ export class EntityCache {
     await Promise.all([
       this.loadVersions(),
       this.loadProjects(),
+      this.loadRequirements(),
       this.loadFeatures(),
     ]);
 
@@ -70,6 +72,20 @@ export class EntityCache {
   }
 
   /**
+   * 获取需求（优先从缓存）
+   */
+  getRequirement(id: string): Requirement | undefined {
+    return this.requirementCache.get(id);
+  }
+
+  /**
+   * 获取所有需求
+   */
+  getAllRequirements(): Requirement[] {
+    return Array.from(this.requirementCache.values());
+  }
+
+  /**
    * 获取所有特性
    */
   getAllFeatures(): Feature[] {
@@ -98,6 +114,10 @@ export class EntityCache {
     this.featureCache.set(feature.id, feature);
   }
 
+  setRequirement(requirement: Requirement): void {
+    this.requirementCache.set(requirement.id, requirement);
+  }
+
   /**
    * 删除缓存
    */
@@ -113,12 +133,17 @@ export class EntityCache {
     this.featureCache.delete(id);
   }
 
+  deleteRequirement(id: string): void {
+    this.requirementCache.delete(id);
+  }
+
   /**
    * 清空缓存
    */
   clear(): void {
     this.versionCache.clear();
     this.projectCache.clear();
+    this.requirementCache.clear();
     this.featureCache.clear();
     this.logSummaryCache.clear();
     this.ownerIndex.clear();
@@ -128,10 +153,11 @@ export class EntityCache {
   /**
    * 获取缓存统计
    */
-  getStats(): { versions: number; projects: number; features: number } {
+  getStats(): { versions: number; projects: number; requirements: number; features: number } {
     return {
       versions: this.versionCache.size,
       projects: this.projectCache.size,
+      requirements: this.requirementCache.size,
       features: this.featureCache.size,
     };
   }
@@ -168,6 +194,12 @@ export class EntityCache {
         this.ownerIndex.add(version.owner);
       }
     }
+
+    for (const requirement of this.requirementCache.values()) {
+      if (requirement.owner) {
+        this.ownerIndex.add(requirement.owner);
+      }
+    }
   }
 
   /**
@@ -201,6 +233,25 @@ export class EntityCache {
         // 更新负责人索引
         if (project.owner) {
           this.ownerIndex.add(project.owner);
+        }
+      }
+    }
+  }
+
+  /**
+   * 加载所有需求到缓存
+   */
+  private async loadRequirements(): Promise<void> {
+    const folder = 'ProjectManager/Requirements';
+    const files = this.app.vault.getFiles()
+      .filter(f => f.path.startsWith(folder) && f.extension === 'md');
+
+    for (const file of files) {
+      const requirement = await this.parseRequirementFile(file);
+      if (requirement) {
+        this.requirementCache.set(requirement.id, requirement);
+        if (requirement.owner) {
+          this.ownerIndex.add(requirement.owner);
         }
       }
     }
@@ -378,6 +429,55 @@ export class EntityCache {
   }
 
   /**
+   * 解析需求文件
+   */
+  private async parseRequirementFile(file: TFile): Promise<Requirement | null> {
+    const cache = this.app.metadataCache.getFileCache(file);
+    let frontmatter: Record<string, unknown> | undefined = cache?.frontmatter;
+
+    // 如果 metadata 还没准备好，直接从文件读取
+    let content = '';
+    if (!frontmatter?.id) {
+      content = await this.app.vault.cachedRead(file);
+      const parsed = this.parseFrontmatterFromContent(content);
+      if (!parsed?.id) return null;
+      frontmatter = parsed;
+    }
+
+    const parseStringArray = (value: unknown): string[] => {
+      if (Array.isArray(value)) return value.map(String);
+      if (typeof value === 'string') return value.split(',').map(v => v.trim()).filter(Boolean);
+      return [];
+    };
+
+    const requirement = {
+      id: String(frontmatter.id),
+      name: String(frontmatter.name || file.basename),
+      type: 'requirement' as const,
+      versionId: String(frontmatter.versionId || ''),
+      projectId: frontmatter.projectId ? String(frontmatter.projectId) : undefined,
+      status: String(frontmatter.status || 'backlog'),
+      priority: String(frontmatter.priority || 'medium'),
+      progress: typeof frontmatter.progress === 'number' ? frontmatter.progress : 0,
+      owner: frontmatter.owner ? String(frontmatter.owner) : undefined,
+      startDate: frontmatter.startDate ? String(frontmatter.startDate) : undefined,
+      endDate: frontmatter.endDate ? String(frontmatter.endDate) : undefined,
+      tags: parseStringArray(frontmatter.tags),
+      estimatedDays: typeof frontmatter.estimatedDays === 'number' ? frontmatter.estimatedDays : undefined,
+      actualDays: typeof frontmatter.actualDays === 'number' ? frontmatter.actualDays : undefined,
+      description: frontmatter.description ? String(frontmatter.description) : undefined,
+      featureId: frontmatter.featureId ? String(frontmatter.featureId) : undefined,
+    } as Requirement;
+
+    if (!content) {
+      content = await this.app.vault.cachedRead(file);
+    }
+    this.logSummaryCache.set(requirement.id, this.riskParser.parseLogSummary(content));
+
+    return requirement;
+  }
+
+  /**
    * 设置文件监听器
    */
   private setupFileWatcher(): void {
@@ -465,6 +565,26 @@ export class EntityCache {
           this.ownerIndex.add(feature.owner);
         }
       }
+    } else if (path.startsWith('ProjectManager/Requirements/')) {
+      // 获取旧的需求信息（如果有）
+      let oldOwner: string | undefined;
+      for (const [id, requirement] of this.requirementCache.entries()) {
+        if (id.includes(file.basename) || file.basename.includes(requirement.name)) {
+          oldOwner = requirement.owner;
+          break;
+        }
+      }
+
+      const requirement = await this.parseRequirementFile(file);
+      if (requirement) {
+        this.requirementCache.set(requirement.id, requirement);
+        // 更新负责人索引
+        if (oldOwner && oldOwner !== requirement.owner) {
+          this.rebuildOwnerIndex();
+        } else if (requirement.owner) {
+          this.ownerIndex.add(requirement.owner);
+        }
+      }
     }
   }
 
@@ -503,6 +623,15 @@ export class EntityCache {
         // 特性文件名格式: 版本名-项目名-特性名
         if (fileName.endsWith(feature.name)) {
           this.featureCache.delete(id);
+          break;
+        }
+      }
+    } else if (path.startsWith('ProjectManager/Requirements/')) {
+      // 查找匹配的需求缓存
+      for (const [id, requirement] of this.requirementCache.entries()) {
+        // 需求文件名格式: 版本名-项目名-需求名
+        if (fileName.endsWith(requirement.name)) {
+          this.requirementCache.delete(id);
           break;
         }
       }

@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createMockFeature, createMockProject } from '../../tests/setup';
+import { createMockFeature, createMockProject, createMockRequirement } from '../../tests/setup';
 import { renderKanbanStory } from './utils';
 import type { ViewConfig } from '../view-engine/types';
+import type { Requirement } from '../types';
 
 interface KanbanViewProps {
   config: ViewConfig;
   title: string;
+  requirements?: Requirement[];
 }
 
-const createKanbanView = ({ config, title }: KanbanViewProps): HTMLElement => {
+const createKanbanView = ({ config, title, requirements = [] }: KanbanViewProps & { requirements?: ReturnType<typeof createMockRequirement>[] }): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'pm-view';
   container.style.cssText = 'padding: 20px; background: #1e1e1e; min-height: 100vh;';
@@ -45,7 +47,7 @@ const createKanbanView = ({ config, title }: KanbanViewProps): HTMLElement => {
   ];
 
   // 同步返回容器，异步渲染真实视图
-  renderKanbanStory(contentArea, config, [], [], features).catch(() => {});
+  renderKanbanStory(contentArea, config, [], [], features, requirements).catch(() => {});
   return container;
 };
 
@@ -100,5 +102,27 @@ export const Empty: Story = {
       entityType: 'feature',
       groupBy: 'status',
     },
+  },
+};
+
+export const RequirementByStatus: Story = {
+  args: {
+    title: '需求看板（按状态）',
+    config: {
+      mode: 'kanban',
+      entityType: 'requirement',
+      groupBy: 'status',
+      cardFields: {
+        required: ['name', 'priority'],
+        optional: ['status', 'owner', 'progress', 'endDate', 'tags'],
+      },
+    },
+    requirements: [
+      createMockRequirement({ name: '注册流程优化', status: 'completed', priority: 'high', progress: 100, owner: '张三', tags: ['需求'] }),
+      createMockRequirement({ name: '登录页第三方授权', status: 'in-progress', priority: 'critical', progress: 60, owner: '李四', tags: ['需求'] }),
+      createMockRequirement({ name: '首页个性化推荐', status: 'todo', priority: 'high', progress: 0, owner: '王五', tags: ['需求'] }),
+      createMockRequirement({ name: '消息已读回执', status: 'backlog', priority: 'medium', progress: 0, owner: '赵六', tags: ['需求'] }),
+      createMockRequirement({ name: '接口限流熔断', status: 'testing', priority: 'high', progress: 90, owner: '钱七', tags: ['需求'] }),
+    ],
   },
 };

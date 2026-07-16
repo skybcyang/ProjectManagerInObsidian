@@ -1,27 +1,29 @@
 ---
-id: feat-drg887f0
+id: feat-9hndbo07
 name: API 接口开发
 type: feature
-versionId: ver-szoej1cj
-projectId: proj-rqll3380
+versionId: ver-3sn5oahn
+projectId: proj-0hzh7yup
 status: completed
-priority: high
+priority: medium
 progress: 100
-owner: 钱七
-startDate: 2026-04-21
+owner: 李四
+startDate: 2026-04-22
 endDate: 2026-05-06
-estimatedDays: 6
+estimatedDays: 9
 actualDays: 8
+requirementIds:
+  - req-8vdlapqk
 isMilestone: false
 tags:
   - 后端
   - API
-  - DevOps
+  - 安全
 ---
 
-# 🟠 API 接口开发
+# 🔵 API 接口开发
 
-<input class="pm-progress-input" data-feature-id="feat-drg887f0" placeholder="输入当前进展，按 Enter 保存...">
+<input class="pm-progress-input" data-feature-id="feat-9hndbo07" placeholder="输入当前进展，按 Enter 保存...">
 
 ---
 
@@ -29,7 +31,7 @@ tags:
 
 | 时间 | 反馈内容 | 记录人 |
 |------|---------|--------|
-| 07/14 19:44 | 特性创建 | |
+| 07/16 12:21 | 特性创建 | |
 
 ---
 
@@ -49,11 +51,11 @@ Largest Column: standard
 Border: off
 ```
 
-<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-drg887f0">📝 添加进展</span>
+<span class="pm-btn" data-action="add-progress" data-entity-type="feature" data-entity-id="feat-9hndbo07">📝 添加进展</span>
 
 --- column-break ---
 
-<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-drg887f0">⚠️ 添加风险</span>
+<span class="pm-btn" data-action="add-risk" data-entity-type="feature" data-entity-id="feat-9hndbo07">⚠️ 添加风险</span>
 
 --- end-multi-column
 
@@ -117,7 +119,7 @@ Border: off
 ## 6️⃣ 合入链接
 
 ### 开发分支
-- **开发分支**: `feature/feat-drg887f0`
+- **开发分支**: `feature/feat-9hndbo07`
 - **合入状态**: ⬜ 未合入 / 🟡 合入中 / 🟢 已合入
 - **MR 链接**: <!-- 填写 MR 链接 -->
 
@@ -138,7 +140,7 @@ Border: off
 
 ## 🏷️ 标签
 
-#后端 #API #DevOps 
+#后端 #API #安全 
 
 ---
-*创建于: 07/14 19:44*
+*创建于: 07/16 12:21*

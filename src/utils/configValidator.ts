@@ -18,7 +18,7 @@ const VALID_VIEW_MODES: ViewMode[] = ['kanban', 'cascade', 'timeview'];
 /**
  * 有效的实体类型
  */
-const VALID_ENTITY_TYPES: EntityType[] = ['version', 'project', 'feature'];
+const VALID_ENTITY_TYPES: EntityType[] = ['version', 'project', 'feature', 'requirement'];
 
 /**
  * 有效的排序字段

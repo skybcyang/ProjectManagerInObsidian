@@ -1,5 +1,5 @@
 import type { MarkdownPostProcessorContext } from 'obsidian';
-import type { Version, Project, Feature } from '../types';
+import type { Version, Project, Feature, Requirement } from '../types';
 
 /**
  * 视图引擎类型定义 - 简化版
@@ -16,7 +16,7 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
 };
 
 // 实体类型
-export type EntityType = 'version' | 'project' | 'feature';
+export type EntityType = 'version' | 'project' | 'feature' | 'requirement';
 
 // 视图上下文
 export interface ViewContext {
@@ -104,6 +104,7 @@ export interface ViewConfig {
   versions?: string[];   // 版本ID列表筛选
   projects?: string[];   // 项目ID列表筛选
   features?: string[];   // 特性ID列表筛选
+  requirements?: string[]; // 需求ID列表筛选
 
   // 筛选条件（新版组合筛选）
   filters?: FilterGroup[];
@@ -152,7 +153,7 @@ export interface ViewRenderer {
 }
 
 // 实体联合类型
-export type Entity = Version | Project | Feature;
+export type Entity = Version | Project | Feature | Requirement;
 
 // 统计数据
 export interface StatsData {
@@ -169,6 +170,10 @@ export interface StatsData {
 
 // 帮助函数：获取实体类型
 export function getEntityType(entity: Entity): EntityType {
+  // 优先按 type 字段识别需求
+  if ('type' in entity && entity.type === 'requirement') {
+    return 'requirement';
+  }
   // 必须先检查 projectId，因为 feature 也有 versionId
   if ('projectId' in entity && entity.projectId !== undefined) {
     return 'feature';
@@ -218,6 +223,23 @@ export const PROJECT_FIELDS: EntityField[] = [
   { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
 ];
 
+// 需求字段定义
+export const REQUIREMENT_FIELDS: EntityField[] = [
+  { name: 'name', label: '名称', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'status', label: '状态', type: 'select', options: ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'], editable: true, sortable: true, filterable: true },
+  { name: 'priority', label: '优先级', type: 'select', options: ['critical', 'high', 'medium', 'low'], editable: true, sortable: true, filterable: true },
+  { name: 'owner', label: '负责人', type: 'text', editable: true, sortable: true, filterable: true },
+  { name: 'startDate', label: '开始日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'endDate', label: '截止日期', type: 'date', editable: true, sortable: true, filterable: true },
+  { name: 'progress', label: '进度', type: 'progress', editable: true, sortable: true, filterable: false },
+  { name: 'estimatedDays', label: '预估人天', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'actualDays', label: '实际人天', type: 'number', editable: true, sortable: true, filterable: false },
+  { name: 'tags', label: '标签', type: 'multi-select', editable: true, sortable: false, filterable: true },
+  { name: 'versionId', label: '版本', type: 'entity', editable: true, sortable: true, filterable: true },
+  { name: 'projectId', label: '项目', type: 'entity', editable: true, sortable: true, filterable: true },
+  { name: 'featureId', label: '特性', type: 'entity', editable: true, sortable: true, filterable: true },
+];
+
 // 版本字段定义
 export const VERSION_FIELDS: EntityField[] = [
   { name: 'name', label: '名称', type: 'text', editable: true, sortable: true, filterable: true },
@@ -237,10 +259,12 @@ export function getEntityFields(entityType: EntityType): EntityField[] {
       return PROJECT_FIELDS;
     case 'version':
       return VERSION_FIELDS;
+    case 'requirement':
+      return REQUIREMENT_FIELDS;
     default:
       return [];
   }
 }
 
 // 重新导出原始类型
-export type { Version, Project, Feature };
+export type { Version, Project, Feature, Requirement };

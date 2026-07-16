@@ -1,5 +1,6 @@
 export type { Version, VersionStatus, CreateVersionData, UpdateVersionData } from './version';
 export type { Project, ProjectStatus, CreateProjectData, UpdateProjectData } from './project';
+export type { Requirement, RequirementStatus, CreateRequirementData, UpdateRequirementData } from './requirement';
 export type { Feature, FeatureStatus, CreateFeatureData, UpdateFeatureData } from './feature';
 export type { Priority } from './feature';
 export type { RiskLevel, RiskItem, ProgressLogItem, RiskSummary, EntityLogSummary } from './risk';
@@ -11,6 +12,7 @@ export type { RiskLevel, RiskItem, ProgressLogItem, RiskSummary, EntityLogSummar
 export interface EntityBase {
   id: string;
   name: string;
+  type?: string;
   status: string;
   owner?: string;
   tags: string[];

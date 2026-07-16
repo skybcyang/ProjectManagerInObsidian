@@ -1,6 +1,6 @@
 import { EntityCache } from '../EntityCache';
 import { App } from 'obsidian';
-import type { Version, Project, Feature } from '../../../types';
+import type { Version, Project, Feature, Requirement } from '../../../types';
 
 describe('EntityCache', () => {
   let app: App;
@@ -57,10 +57,26 @@ describe('EntityCache', () => {
       expect(cache.getFeature('feat-001')).toEqual(feature);
     });
 
+    it('should set and get requirement', () => {
+      const requirement: Requirement = {
+        id: 'req-001',
+        name: 'Test Requirement',
+        type: 'requirement',
+        versionId: 'ver-001',
+        status: 'backlog',
+        priority: 'medium',
+        progress: 0,
+        tags: [],
+      };
+      cache.setRequirement(requirement);
+      expect(cache.getRequirement('req-001')).toEqual(requirement);
+    });
+
     it('should return undefined for non-existent entity', () => {
       expect(cache.getVersion('non-existent')).toBeUndefined();
       expect(cache.getProject('non-existent')).toBeUndefined();
       expect(cache.getFeature('non-existent')).toBeUndefined();
+      expect(cache.getRequirement('non-existent')).toBeUndefined();
     });
   });
 
@@ -84,6 +100,13 @@ describe('EntityCache', () => {
       cache.setFeature(feature);
       cache.deleteFeature('feat-001');
       expect(cache.getFeature('feat-001')).toBeUndefined();
+    });
+
+    it('should delete requirement from cache', () => {
+      const requirement: Requirement = { id: 'req-001', name: 'Test', type: 'requirement', versionId: 'ver-001', status: 'backlog', priority: 'medium', progress: 0, tags: [] };
+      cache.setRequirement(requirement);
+      cache.deleteRequirement('req-001');
+      expect(cache.getRequirement('req-001')).toBeUndefined();
     });
   });
 
@@ -111,6 +134,14 @@ describe('EntityCache', () => {
       cache.setFeature(f2);
       expect(cache.getAllFeatures()).toHaveLength(2);
     });
+
+    it('should get all requirements', () => {
+      const r1: Requirement = { id: 'req-001', name: 'R1', type: 'requirement', versionId: 'ver-001', status: 'backlog', priority: 'medium', progress: 0, tags: [] };
+      const r2: Requirement = { id: 'req-002', name: 'R2', type: 'requirement', versionId: 'ver-001', status: 'todo', priority: 'high', progress: 0, tags: [] };
+      cache.setRequirement(r1);
+      cache.setRequirement(r2);
+      expect(cache.getAllRequirements()).toHaveLength(2);
+    });
   });
 
   describe('stats', () => {
@@ -118,9 +149,10 @@ describe('EntityCache', () => {
       cache.setVersion({ id: 'ver-001', name: 'v1.0', status: 'planning', tags: [] });
       cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] });
       cache.setFeature({ id: 'feat-001', name: 'F1', projectId: 'proj-001', versionId: 'ver-001', status: 'todo', priority: 'medium', progress: 0, tags: [] });
-      
+      cache.setRequirement({ id: 'req-001', name: 'R1', type: 'requirement', versionId: 'ver-001', status: 'backlog', priority: 'medium', progress: 0, tags: [] });
+
       const stats = cache.getStats();
-      expect(stats).toEqual({ versions: 1, projects: 1, features: 1 });
+      expect(stats).toEqual({ versions: 1, projects: 1, requirements: 1, features: 1 });
     });
   });
 
@@ -129,13 +161,15 @@ describe('EntityCache', () => {
       cache.setVersion({ id: 'ver-001', name: 'v1.0', status: 'planning', tags: [] });
       cache.setProject({ id: 'proj-001', name: 'P1', versionId: 'ver-001', status: 'backlog', priority: 'medium', tags: [] });
       cache.setFeature({ id: 'feat-001', name: 'F1', projectId: 'proj-001', versionId: 'ver-001', status: 'todo', priority: 'medium', progress: 0, tags: [] });
-      
+      cache.setRequirement({ id: 'req-001', name: 'R1', type: 'requirement', versionId: 'ver-001', status: 'backlog', priority: 'medium', progress: 0, tags: [] });
+
       cache.clear();
-      
-      expect(cache.getStats()).toEqual({ versions: 0, projects: 0, features: 0 });
+
+      expect(cache.getStats()).toEqual({ versions: 0, projects: 0, requirements: 0, features: 0 });
       expect(cache.getVersion('ver-001')).toBeUndefined();
       expect(cache.getProject('proj-001')).toBeUndefined();
       expect(cache.getFeature('feat-001')).toBeUndefined();
+      expect(cache.getRequirement('req-001')).toBeUndefined();
     });
   });
 });

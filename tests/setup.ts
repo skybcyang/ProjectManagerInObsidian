@@ -6,6 +6,7 @@
 import type { Version, VersionStatus, CreateVersionData } from '../src/types/version';
 import type { Project, ProjectStatus, CreateProjectData, Priority } from '../src/types/project';
 import type { Feature, FeatureStatus, CreateFeatureData } from '../src/types/feature';
+import type { Requirement, RequirementStatus, CreateRequirementData } from '../src/types/requirement';
 
 // ID 生成器
 let idCounter = 0;
@@ -38,6 +39,15 @@ export const defaultFeature: CreateFeatureData = {
   tags: [],
 };
 
+export const defaultRequirement: CreateRequirementData = {
+  name: 'Test Requirement',
+  versionId: 'ver-test',
+  status: 'backlog',
+  priority: 'medium',
+  progress: 0,
+  tags: [],
+};
+
 // 测试数据生成器
 export function createTestVersion(overrides: Partial<CreateVersionData> = {}): CreateVersionData {
   return {
@@ -56,6 +66,13 @@ export function createTestProject(overrides: Partial<CreateProjectData> = {}): C
 export function createTestFeature(overrides: Partial<CreateFeatureData> = {}): CreateFeatureData {
   return {
     ...defaultFeature,
+    ...overrides,
+  };
+}
+
+export function createTestRequirement(overrides: Partial<CreateRequirementData> = {}): CreateRequirementData {
+  return {
+    ...defaultRequirement,
     ...overrides,
   };
 }
@@ -97,6 +114,20 @@ export function createMockFeature(overrides: Partial<Feature> = {}): Feature {
   };
 }
 
+export function createMockRequirement(overrides: Partial<Requirement> = {}): Requirement {
+  return {
+    id: generateId('req'),
+    name: 'Test Requirement',
+    type: 'requirement',
+    versionId: 'ver-test',
+    status: 'backlog',
+    priority: 'medium',
+    progress: 0,
+    tags: [],
+    ...overrides,
+  };
+}
+
 // 批量创建测试数据
 export function createMockVersions(count: number): Version[] {
   return Array.from({ length: count }, (_, i) =>
@@ -123,10 +154,21 @@ export function createMockFeatures(count: number, versionId: string, projectId: 
   );
 }
 
+export function createMockRequirements(count: number, versionId: string, projectId?: string): Requirement[] {
+  return Array.from({ length: count }, (_, i) =>
+    createMockRequirement({
+      name: `Requirement ${i + 1}`,
+      versionId,
+      projectId,
+    })
+  );
+}
+
 // 状态枚举值
 export const versionStatuses: VersionStatus[] = ['planning', 'in-progress', 'completed', 'archived'];
 export const projectStatuses: ProjectStatus[] = ['backlog', 'in-progress', 'completed', 'archived'];
 export const featureStatuses: FeatureStatus[] = ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'];
+export const requirementStatuses: RequirementStatus[] = ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'];
 export const priorities: Priority[] = ['critical', 'high', 'medium', 'low'];
 
 // 测试工具函数

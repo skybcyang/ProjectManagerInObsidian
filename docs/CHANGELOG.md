@@ -1,5 +1,53 @@
 # 版本迭代记录
 
+## v0.8.4 (2026-07-16)
+
+### 新功能
+
+- **需求（Requirement）实体正式上线**
+  - 需求跟随版本下发，`projectId` 与 `featureId` 均为可选关联
+  - 支持自由需求：仅绑定版本，不关联项目/特性
+  - 新增 `src/types/requirement.ts`、`src/core/stores/RequirementStore.ts`
+  - `EntityCache` 增加 `requirementCache`，支持加载/解析 `ProjectManager/Requirements/`
+  - `EntityManager` 注册需求 CRUD，删除版本级联删除需求，删除项目只删除已分配需求
+
+- **需求视图支持**
+  - `EntityType` 扩展为 `'version' | 'project' | 'feature' | 'requirement'`
+  - 视图引擎增加需求颜色映射、图标、`REQUIREMENT_FIELDS`
+  - `DataService`、`ActionService`、`ConfigValidator` 全面支持 `requirement`
+  - 总览/版本/项目默认模板新增「需求看板」
+
+- **创建需求模态框**
+  - 新增 `CreateRequirementModal.ts`
+  - 总览页面「创建需求」按钮现在可以正常点击并创建需求
+  - 支持版本 → 项目 → 特性的级联下拉选择
+
+### 改进
+
+- **默认模板精简**
+  - 简化 `DEFAULT_REQUIREMENT_TEMPLATE`，去除「创建特性」按钮、风险跟踪、里程碑计划等冗余区块
+  - 需求页面仅保留核心字段：描述、进展反馈、备注
+
+- **示例数据更新**
+  - `scripts/generate-sample-data.mjs` 生成含自由需求与项目需求的示例
+  - 每次生成前清空旧数据，需求文件名按 `version-project-name.md` 或 `version-name.md` 生成
+
+### 测试
+
+- 新增需求实体相关测试用例
+  - `tests/integration/entity-manager.test.ts`：缓存、自由需求、版本需求过滤、状态过滤
+  - `src/core/cache/__tests__/EntityCache.test.ts`：需求缓存增删改查与统计
+  - `src/view-engine/__tests__/types.test.ts`：`getEntityType()` 对需求实体的识别
+- 测试总数从 90 个提升至 100 个，全部通过
+
+### Storybook
+
+- `EntityCard.stories.ts` 新增 `Requirement` story，并在 `AllTypes` 中加入需求卡片
+- `KanbanView.stories.ts` 新增 `RequirementByStatus` story，展示按状态分组的需求看板
+- `src/stories/utils.ts` 扩展 mock `EntityManager` 与 `DataService`，支持 `requirement` 实体渲染
+
+---
+
 ## v0.8.3 (2026-07-14)
 
 ### 改进

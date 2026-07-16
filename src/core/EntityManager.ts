@@ -1,11 +1,12 @@
 import { App } from 'obsidian';
 import { FileSystem } from './filesystem';
-import { VersionStore, ProjectStore, FeatureStore } from './stores';
+import { VersionStore, ProjectStore, FeatureStore, RequirementStore } from './stores';
 import { EntityCache } from './cache';
-import type { Version, Project, Feature, ProjectManagerSettings } from '../types';
+import type { Version, Project, Feature, Requirement, ProjectManagerSettings } from '../types';
 import type { CreateVersionData, UpdateVersionData } from '../types';
 import type { CreateProjectData, UpdateProjectData } from '../types';
 import type { CreateFeatureData, UpdateFeatureData, FeatureStatus } from '../types';
+import type { CreateRequirementData, UpdateRequirementData, RequirementStatus } from '../types';
 import { ChangeLogService, DataviewService } from '../services';
 
 /**
@@ -16,6 +17,7 @@ export class EntityManager {
   readonly version: VersionStore;
   readonly project: ProjectStore;
   readonly feature: FeatureStore;
+  readonly requirement: RequirementStore;
   readonly cache: EntityCache;
   readonly dataview: DataviewService;
   private changeLogService: ChangeLogService;
@@ -26,6 +28,7 @@ export class EntityManager {
     this.version = new VersionStore(fs, app, this.cache, settings);
     this.project = new ProjectStore(fs, app, this.cache, settings);
     this.feature = new FeatureStore(fs, app, this.cache, settings);
+    this.requirement = new RequirementStore(fs, app, this.cache, settings);
     this.changeLogService = new ChangeLogService(app);
     this.dataview = new DataviewService(app);
   }
@@ -61,6 +64,19 @@ export class EntityManager {
   async deleteVersion(id: string, cascade: boolean = false): Promise<boolean> {
     // 获取版本信息（用于变更日志）
     const version = await this.version.getById(id);
+
+    // 检查是否有关联需求
+    const relatedRequirements = await this.getVersionRequirements(id);
+
+    if (relatedRequirements.length > 0) {
+      if (!cascade) {
+        throw new Error(`无法删除版本：存在 ${relatedRequirements.length} 个关联需求，请先删除或转移关联需求`);
+      }
+      // 级联删除关联需求
+      for (const requirement of relatedRequirements) {
+        await this.deleteRequirement(requirement.id);
+      }
+    }
 
     // 检查是否有关联项目
     const relatedProjects = await this.getVersionProjects(id);
@@ -130,6 +146,19 @@ export class EntityManager {
   async deleteProject(id: string, cascade: boolean = false): Promise<boolean> {
     // 获取项目信息（用于变更日志）
     const project = await this.project.getById(id);
+
+    // 检查是否有关联需求
+    const relatedRequirements = await this.getProjectRequirements(id);
+
+    if (relatedRequirements.length > 0) {
+      if (!cascade) {
+        throw new Error(`无法删除项目：存在 ${relatedRequirements.length} 个关联需求，请先删除或转移关联需求`);
+      }
+      // 级联删除关联需求
+      for (const requirement of relatedRequirements) {
+        await this.deleteRequirement(requirement.id);
+      }
+    }
 
     // 检查是否有关联特性
     const relatedFeatures = await this.getProjectFeatures(id);
@@ -217,12 +246,66 @@ export class EntityManager {
     return this.feature.list(filters);
   }
 
+  // ==================== 需求操作 ====================
+
+  async createRequirement(data: CreateRequirementData): Promise<Requirement> {
+    const requirement = await this.requirement.create(data);
+    await this.changeLogService.logCreate('requirement', requirement);
+    return requirement;
+  }
+
+  async updateRequirement(id: string, data: UpdateRequirementData): Promise<Requirement | null> {
+    const oldRequirement = await this.requirement.getById(id);
+    const newRequirement = await this.requirement.update(id, data);
+    if (oldRequirement && newRequirement) {
+      await this.changeLogService.logUpdate('requirement', oldRequirement, newRequirement);
+    }
+    return newRequirement;
+  }
+
+  async deleteRequirement(id: string): Promise<boolean> {
+    const requirement = await this.requirement.getById(id);
+    const result = await this.requirement.delete(id);
+
+    if (result && requirement) {
+      await this.changeLogService.logDelete('requirement', requirement);
+    }
+
+    return result;
+  }
+
+  async getRequirement(id: string): Promise<Requirement | null> {
+    return this.requirement.getById(id);
+  }
+
+  async getRequirementPath(id: string): Promise<string | null> {
+    return this.requirement.getPath(id);
+  }
+
+  async listRequirements(filters?: { versionId?: string; projectId?: string; status?: RequirementStatus }): Promise<Requirement[]> {
+    return this.requirement.list(filters);
+  }
+
+  /**
+   * 获取项目的关联需求
+   */
+  async getProjectRequirements(projectId: string): Promise<Requirement[]> {
+    return this.requirement.listByProject(projectId);
+  }
+
+  /**
+   * 获取版本的关联需求
+   */
+  async getVersionRequirements(versionId: string): Promise<Requirement[]> {
+    return this.requirement.listByVersion(versionId);
+  }
+
   // ==================== 批量查询 ====================
 
   /**
    * 获取实体的路径（通用方法）
    */
-  async getEntityPath(type: 'version' | 'project' | 'feature', id: string): Promise<string | null> {
+  async getEntityPath(type: 'version' | 'project' | 'feature' | 'requirement', id: string): Promise<string | null> {
     switch (type) {
       case 'version':
         return this.version.getPath(id);
@@ -230,6 +313,8 @@ export class EntityManager {
         return this.project.getPath(id);
       case 'feature':
         return this.feature.getPath(id);
+      case 'requirement':
+        return this.requirement.getPath(id);
       default:
         return null;
     }
@@ -238,7 +323,10 @@ export class EntityManager {
   /**
    * 根据 ID 查找实体（通用方法）
    */
-  async findById(id: string): Promise<{ type: 'version' | 'project' | 'feature'; entity: Version | Project | Feature } | null> {
+  async findById(id: string): Promise<{ type: 'version' | 'project' | 'feature' | 'requirement'; entity: Version | Project | Feature | Requirement } | null> {
+    const requirement = await this.requirement.getById(id);
+    if (requirement) return { type: 'requirement', entity: requirement };
+
     const feature = await this.feature.getById(id);
     if (feature) return { type: 'feature', entity: feature };
 

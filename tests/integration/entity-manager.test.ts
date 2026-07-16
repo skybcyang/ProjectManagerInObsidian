@@ -5,7 +5,7 @@
 
 import { App } from 'obsidian';
 import { EntityManager } from '../../src/core/EntityManager';
-import { createMockVersion, createMockProject, createMockFeature } from '../setup';
+import { createMockVersion, createMockProject, createMockFeature, createMockRequirement } from '../setup';
 
 describe('EntityManager', () => {
   let app: App;
@@ -57,14 +57,28 @@ describe('EntityManager', () => {
       expect(cached?.name).toBe('Cached Feature');
     });
 
+    it('should cache requirement after creation', () => {
+      const requirement = createMockRequirement({
+        id: 'req-cache',
+        name: 'Cached Requirement',
+        versionId: 'ver-1',
+      });
+      entityManager.cache.setRequirement(requirement);
+
+      const cached = entityManager.cache.getRequirement('req-cache');
+      expect(cached).toBeDefined();
+      expect(cached?.name).toBe('Cached Requirement');
+    });
+
     it('should return correct stats', () => {
       entityManager.cache.setVersion(createMockVersion({ id: 'ver-1' }));
       entityManager.cache.setVersion(createMockVersion({ id: 'ver-2' }));
       entityManager.cache.setProject(createMockProject({ id: 'proj-1', versionId: 'ver-1' }));
       entityManager.cache.setFeature(createMockFeature({ id: 'feat-1', versionId: 'ver-1', projectId: 'proj-1' }));
+      entityManager.cache.setRequirement(createMockRequirement({ id: 'req-1', versionId: 'ver-1' }));
 
       const stats = entityManager.cache.getStats();
-      expect(stats).toEqual({ versions: 2, projects: 1, features: 1 });
+      expect(stats).toEqual({ versions: 2, projects: 1, requirements: 1, features: 1 });
     });
   });
 
@@ -249,6 +263,60 @@ describe('EntityManager', () => {
       const remainingProjects = entityManager.cache.getAllProjects()
         .filter(p => p.versionId === versionId);
       expect(remainingProjects).toHaveLength(2);
+    });
+  });
+
+  describe('Requirement Operations', () => {
+    it('should create requirement in cache with versionId', () => {
+      const requirement = createMockRequirement({
+        name: 'Test Requirement',
+        versionId: 'ver-1',
+        status: 'todo',
+        priority: 'high',
+        progress: 25,
+      });
+      entityManager.cache.setRequirement(requirement);
+
+      const retrieved = entityManager.cache.getRequirement(requirement.id);
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.versionId).toBe('ver-1');
+      expect(retrieved?.priority).toBe('high');
+      expect(retrieved?.progress).toBe(25);
+    });
+
+    it('should support free requirement without projectId', () => {
+      const requirement = createMockRequirement({
+        versionId: 'ver-1',
+        projectId: undefined,
+      });
+      entityManager.cache.setRequirement(requirement);
+
+      const retrieved = entityManager.cache.getRequirement(requirement.id);
+      expect(retrieved?.projectId).toBeUndefined();
+    });
+
+    it('should get version requirements', () => {
+      const versionId = 'ver-test';
+      entityManager.cache.setRequirement(createMockRequirement({ versionId, name: 'Requirement A' }));
+      entityManager.cache.setRequirement(createMockRequirement({ versionId, name: 'Requirement B' }));
+      entityManager.cache.setRequirement(createMockRequirement({ versionId: 'ver-other', name: 'Requirement C' }));
+
+      const allRequirements = entityManager.cache.getAllRequirements();
+      const versionRequirements = allRequirements.filter(r => r.versionId === versionId);
+
+      expect(versionRequirements).toHaveLength(2);
+    });
+
+    it('should filter requirements by status', () => {
+      entityManager.cache.setRequirement(createMockRequirement({ status: 'backlog', name: 'Backlog Requirement' }));
+      entityManager.cache.setRequirement(createMockRequirement({ status: 'in-progress', name: 'Active Requirement' }));
+      entityManager.cache.setRequirement(createMockRequirement({ status: 'completed', name: 'Done Requirement' }));
+
+      const activeRequirements = entityManager.cache.getAllRequirements()
+        .filter(r => r.status === 'in-progress');
+
+      expect(activeRequirements).toHaveLength(1);
+      expect(activeRequirements[0].name).toBe('Active Requirement');
     });
   });
 

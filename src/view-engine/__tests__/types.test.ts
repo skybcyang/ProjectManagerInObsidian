@@ -1,5 +1,5 @@
 import { getEntityType, ViewConfig } from '../types';
-import type { Version, Project, Feature } from '../../types';
+import type { Version, Project, Feature, Requirement } from '../../types';
 
 describe('getEntityType', () => {
   it('should identify version entity', () => {
@@ -27,6 +27,28 @@ describe('getEntityType', () => {
     } as any;
     // Fixed: projectId is checked first, so this correctly returns 'feature'
     expect(getEntityType(feature)).toBe('feature');
+  });
+
+  it('should identify requirement entity', () => {
+    const requirement = {
+      id: 'req-001',
+      name: 'Test Requirement',
+      type: 'requirement',
+      versionId: 'ver-001',
+    } as Requirement;
+    expect(getEntityType(requirement)).toBe('requirement');
+  });
+
+  it('should identify requirement by type precedence over projectId', () => {
+    const requirement = {
+      id: 'req-001',
+      name: 'Test Requirement',
+      type: 'requirement',
+      versionId: 'ver-001',
+      projectId: 'proj-001',
+      featureId: 'feat-001',
+    } as Requirement;
+    expect(getEntityType(requirement)).toBe('requirement');
   });
 });
 

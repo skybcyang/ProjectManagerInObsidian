@@ -3,7 +3,7 @@
  * 使用与插件一致的默认模板渲染
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'fs';
 import { dirname } from 'path';
 
 const BASE_DIR = 'ProjectManager';
@@ -12,7 +12,18 @@ const BASE_DIR = 'ProjectManager';
 mkdirSync(`${BASE_DIR}/Versions`, { recursive: true });
 mkdirSync(`${BASE_DIR}/Projects`, { recursive: true });
 mkdirSync(`${BASE_DIR}/Features`, { recursive: true });
+mkdirSync(`${BASE_DIR}/Requirements`, { recursive: true });
 mkdirSync(`${BASE_DIR}/.changelog`, { recursive: true });
+
+// 清理旧的示例 Markdown 文件，确保每次刷新都是干净的数据
+for (const subdir of ['Versions', 'Projects', 'Features', 'Requirements']) {
+  const dir = `${BASE_DIR}/${subdir}`;
+  for (const file of readdirSync(dir)) {
+    if (file.endsWith('.md')) {
+      unlinkSync(`${dir}/${file}`);
+    }
+  }
+}
 
 // ===== 默认模板（与 src/templates/defaults.ts 保持一致）=====
 
@@ -134,6 +145,27 @@ mode: kanban
 entityType: feature
 versionId: {{id}}
 groupBy: status
+\`\`\`
+
+---
+
+## 📋 版本需求
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+versionId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
 \`\`\`
 
 ---
@@ -318,9 +350,73 @@ groupBy: status
 
 ---
 
+## 📋 项目需求
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+projectId: {{id}}
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
+\`\`\`
+
+---
+
 ## 📝 其他备注
 
 <!-- 记录项目相关的重要信息、决策、会议纪要等 -->
+`;
+
+const DEFAULT_REQUIREMENT_TEMPLATE = `---
+id: {{id}}
+name: {{name}}
+type: requirement
+versionId: {{versionId}}
+{{#if projectId}}projectId: {{projectId}}
+{{/if}}status: {{status}}
+priority: {{priority}}
+progress: {{progress}}
+{{#if owner}}owner: {{owner}}
+{{/if}}{{#if startDate}}startDate: {{startDate}}
+{{/if}}{{#if endDate}}endDate: {{endDate}}
+{{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
+{{/if}}{{#if actualDays}}actualDays: {{actualDays}}
+{{/if}}{{#if description}}description: {{description}}
+{{/if}}{{#if featureId}}featureId: {{featureId}}
+{{/if}}tags:
+{{#each tags}}  - {{this}}
+{{/each}}---
+
+# {{priorityEmoji}} {{name}}
+
+---
+
+## 📝 需求描述
+
+{{description}}
+
+---
+
+## 📈 进展反馈
+
+| 时间 | 反馈内容 | 记录人 |
+|------|---------|--------|
+| {{createTime}} | 需求创建 | |
+
+---
+
+## 📝 其他备注
+
+<!-- 记录需求相关的重要信息、决策、会议纪要等 -->
 `;
 
 const DEFAULT_FEATURE_TEMPLATE = `---
@@ -337,7 +433,9 @@ progress: {{progress}}
 {{/if}}{{#if endDate}}endDate: {{endDate}}
 {{/if}}{{#if estimatedDays}}estimatedDays: {{estimatedDays}}
 {{/if}}{{#if actualDays}}actualDays: {{actualDays}}
-{{/if}}isMilestone: {{isMilestone}}
+{{/if}}{{#if requirementIds}}requirementIds:
+{{#each requirementIds}}  - {{this}}
+{{/each}}{{/if}}isMilestone: {{isMilestone}}
 tags:
 {{#each tags}}  - {{this}}
 {{/each}}---
@@ -776,6 +874,162 @@ projectData.forEach((project) => {
   }
 });
 
+const REQUIREMENT_STATUSES = ['backlog', 'todo', 'in-progress', 'testing', 'completed', 'archived'];
+const REQUIREMENT_STATUS_WEIGHTS = [0.10, 0.15, 0.30, 0.15, 0.20, 0.10];
+
+const requirementTemplates = [
+  { name: '用户注册流程优化', tags: ['前端', 'UI设计', '安全'] },
+  { name: '登录页支持第三方授权', tags: ['前端', '后端', '安全'] },
+  { name: '首页个性化推荐', tags: ['前端', '后端', '数据库'] },
+  { name: '订单列表筛选增强', tags: ['前端', '后端'] },
+  { name: '支付结果通知优化', tags: ['后端', '移动端', '安全'] },
+  { name: '购物车凑单提醒', tags: ['前端', '后端'] },
+  { name: '会员权益中心', tags: ['前端', '后端', '数据库'] },
+  { name: '优惠券发放策略', tags: ['后端', '数据库'] },
+  { name: '物流轨迹实时同步', tags: ['后端', '移动端', 'API'] },
+  { name: '客服工单自动分配', tags: ['后端', '数据库'] },
+  { name: '商品搜索排序优化', tags: ['后端', '数据库', '性能'] },
+  { name: '评价晒图审核', tags: ['后端', '安全', 'UI设计'] },
+  { name: '库存扣减一致性', tags: ['后端', '数据库', '性能'] },
+  { name: '秒杀活动报名页', tags: ['前端', '后端', '性能'] },
+  { name: '消息已读回执', tags: ['移动端', '后端'] },
+  { name: '多端数据同步', tags: ['后端', '移动端', '数据库'] },
+  { name: '数据导出权限控制', tags: ['后端', '安全'] },
+  { name: '报表定时推送', tags: ['后端', 'DevOps'] },
+  { name: '慢查询治理', tags: ['数据库', '性能'] },
+  { name: '接口限流熔断', tags: ['后端', 'API', '性能'] },
+  { name: '静态资源 CDN 加速', tags: ['前端', 'DevOps', '性能'] },
+  { name: '应用崩溃上报', tags: ['移动端', 'DevOps'] },
+  { name: '灰度发布策略', tags: ['DevOps', '后端'] },
+  { name: '敏感数据脱敏', tags: ['后端', '安全', '数据库'] },
+  { name: '操作日志审计', tags: ['后端', '安全'] },
+  { name: '批量导入校验', tags: ['前端', '后端'] },
+  { name: '审批流配置化', tags: ['前端', '后端', '数据库'] },
+  { name: '通知模板管理', tags: ['前端', '后端'] },
+  { name: '账号异地登录提醒', tags: ['后端', '安全', '移动端'] },
+  { name: 'Dashboard 自定义布局', tags: ['前端', 'UI设计'] },
+  { name: '权限粒度细化', tags: ['后端', '安全'] },
+  { name: '任务调度可视化', tags: ['前端', 'DevOps'] },
+  { name: '退款流程自动化', tags: ['后端', '数据库'] },
+  { name: '发票申请电子化', tags: ['前端', '后端'] },
+  { name: '埋点事件管理', tags: ['前端', '后端'] },
+  { name: 'AB 实验平台对接', tags: ['前端', '后端', '数据库'] },
+  { name: '内容发布工作流', tags: ['前端', '后端', 'UI设计'] },
+  { name: '评论反垃圾机制', tags: ['后端', '安全'] },
+  { name: '智能客服机器人', tags: ['后端', '移动端', '数据库'] },
+  { name: '签约电子合同', tags: ['后端', '安全', '移动端'] },
+  { name: '多语言文案管理', tags: ['前端', '后端'] },
+];
+
+const requirementDescriptions = [
+  '提升核心流程转化率，降低用户流失率。',
+  '满足合规要求，增强账号安全性。',
+  '优化用户体验，缩短关键路径操作时长。',
+  '支撑业务增长，提升系统吞吐能力。',
+  '降低运维成本，实现关键流程自动化。',
+  '统一数据口径，为运营决策提供依据。',
+  '完善异常处理，提升系统稳定性。',
+  '增强平台治理能力，降低违规风险。',
+];
+
+const requirementData = [];
+projectData.forEach((project) => {
+  const projectFeatures = featureData.filter(f => f.projectId === project.id && !f.isMilestone);
+  const requirementCount = randomInt(3, 6);
+  const selectedRequirements = randomSubset(requirementTemplates, requirementCount, requirementCount);
+
+  selectedRequirements.forEach((template) => {
+    const projectStart = new Date(project.startDate);
+    const projectEnd = new Date(project.endDate);
+    const rangeDays = (projectEnd - projectStart) / (1000 * 60 * 60 * 24);
+    const startOffset = randomInt(0, Math.max(1, Math.floor(rangeDays * 0.2)));
+    const duration = randomInt(Math.floor(rangeDays * 0.2), Math.floor(rangeDays * 0.6));
+    const status = project.status === 'backlog' ? 'backlog' : weightedRandom(REQUIREMENT_STATUSES, REQUIREMENT_STATUS_WEIGHTS);
+    const priority = weightedRandom(PRIORITIES, PRIORITY_WEIGHTS);
+    const progress = status === 'completed' ? 100 :
+      status === 'backlog' ? 0 :
+      status === 'todo' ? 0 :
+      status === 'archived' ? 100 :
+      status === 'testing' ? randomInt(80, 95) :
+      randomInt(10, 75);
+    const estimatedDays = randomInt(2, 15);
+    const actualDays = status === 'completed' ? Math.round(estimatedDays * randomInt(80, 130) / 100) :
+      status === 'in-progress' || status === 'testing' ? Math.round(estimatedDays * randomInt(40, 90) / 100) : 0;
+
+    // 一个需求最多关联一个该项目的非里程碑特性
+    const linkedFeature = projectFeatures.length > 0 && Math.random() < 0.75 ? randomItem(projectFeatures) : null;
+    const featureId = linkedFeature ? linkedFeature.id : undefined;
+
+    // 反向把需求 ID 写入特性
+    const requirementId = id('req');
+    if (linkedFeature) {
+      if (!linkedFeature.requirementIds) {
+        linkedFeature.requirementIds = [];
+      }
+      linkedFeature.requirementIds.push(requirementId);
+    }
+
+    requirementData.push({
+      id: requirementId,
+      name: template.name,
+      versionId: project.versionId,
+      projectId: project.id,
+      status,
+      priority,
+      progress,
+      owner: randomItem(OWNERS),
+      startDate: formatDate(addDays(projectStart, startOffset)),
+      endDate: formatDate(addDays(projectStart, startOffset + duration)),
+      estimatedDays,
+      actualDays,
+      description: randomItem(requirementDescriptions),
+      featureId,
+      tags: [...new Set([...template.tags, ...randomSubset(TAGS, 1, 2)])],
+    });
+  });
+});
+
+// 为每个版本生成一批只绑定版本的“自由需求”，模拟版本刚创建时导入的需求
+versionData.forEach((version) => {
+  const freeRequirementCount = randomInt(2, 4);
+  const selectedRequirements = randomSubset(requirementTemplates, freeRequirementCount, freeRequirementCount);
+  const versionStart = new Date(version.startDate);
+  const versionEnd = new Date(version.endDate);
+  const rangeDays = (versionEnd - versionStart) / (1000 * 60 * 60 * 24);
+
+  selectedRequirements.forEach((template) => {
+    const startOffset = randomInt(0, Math.max(1, Math.floor(rangeDays * 0.2)));
+    const duration = randomInt(Math.floor(rangeDays * 0.2), Math.floor(rangeDays * 0.6));
+    const status = version.status === 'backlog' ? 'backlog' : weightedRandom(REQUIREMENT_STATUSES, REQUIREMENT_STATUS_WEIGHTS);
+    const priority = weightedRandom(PRIORITIES, PRIORITY_WEIGHTS);
+    const progress = status === 'completed' ? 100 :
+      status === 'backlog' ? 0 :
+      status === 'todo' ? 0 :
+      status === 'archived' ? 100 :
+      status === 'testing' ? randomInt(80, 95) :
+      randomInt(10, 75);
+    const estimatedDays = randomInt(2, 15);
+    const actualDays = status === 'completed' ? Math.round(estimatedDays * randomInt(80, 130) / 100) :
+      status === 'in-progress' || status === 'testing' ? Math.round(estimatedDays * randomInt(40, 90) / 100) : 0;
+
+    requirementData.push({
+      id: id('req'),
+      name: template.name,
+      versionId: version.id,
+      status,
+      priority,
+      progress,
+      owner: randomItem(OWNERS),
+      startDate: formatDate(addDays(versionStart, startOffset)),
+      endDate: formatDate(addDays(versionStart, startOffset + duration)),
+      estimatedDays,
+      actualDays,
+      description: randomItem(requirementDescriptions),
+      tags: [...new Set([...template.tags, ...randomSubset(TAGS, 1, 2)])],
+    });
+  });
+});
+
 // 汇总人天到项目和版本
 projectData.forEach((project) => {
   const features = featureData.filter(f => f.projectId === project.id);
@@ -814,6 +1068,19 @@ featureData.forEach((feature) => {
   console.log(`生成特性: ${safeFileName}`);
 });
 
+requirementData.forEach((requirement) => {
+  const content = renderTemplate(DEFAULT_REQUIREMENT_TEMPLATE, requirement);
+  const project = requirement.projectId ? projectData.find(p => p.id === requirement.projectId) : null;
+  const version = versionData.find(v => v.id === requirement.versionId);
+  const versionName = version ? version.name : '';
+  const projectName = project ? project.name : '';
+  const prefix = projectName || versionName;
+  const fileName = `${prefix}-${requirement.name}`.replace(/\//g, '-');
+  const safeFileName = `${fileName}.md`;
+  writeFileSync(`${BASE_DIR}/Requirements/${safeFileName}`, content);
+  console.log(`生成需求: ${safeFileName}`);
+});
+
 // ===== 生成总览 =====
 
 const overviewContent = `---
@@ -832,6 +1099,7 @@ pm-dashboard: true
 const versions = dv.pages('"ProjectManager/Versions"');
 const projects = dv.pages('"ProjectManager/Projects"');
 const features = dv.pages('"ProjectManager/Features"');
+const requirements = dv.pages('"ProjectManager/Requirements"');
 
 const vCompleted = versions.filter(v => v.status === 'completed').length;
 const vTotal = versions.length;
@@ -843,6 +1111,11 @@ const pTotal = projects.length;
 const pInProgress = projects.filter(p => p.status === 'in-progress').length;
 const pBacklog = projects.filter(p => p.status === 'backlog').length;
 
+const rCompleted = requirements.filter(r => r.status === 'completed').length;
+const rTotal = requirements.length;
+const rInProgress = requirements.filter(r => r.status === 'in-progress').length;
+const rBacklog = requirements.filter(r => r.status === 'backlog' || r.status === 'todo').length;
+
 const fCompleted = features.filter(f => f.status === 'completed').length;
 const fTotal = features.length;
 const fInProgress = features.filter(f => f.status === 'in-progress').length;
@@ -853,6 +1126,7 @@ dv.table(
   [
     ["📦 版本", vCompleted, vInProgress, vBacklog, vTotal],
     ["📁 项目", pCompleted, pInProgress, pBacklog, pTotal],
+    ["📋 需求", rCompleted, rInProgress, rBacklog, rTotal],
     ["✨ 特性", fCompleted, fInProgress, fBacklog, fTotal]
   ]
 );
@@ -864,7 +1138,7 @@ dv.table(
 
 --- start-multi-column: ID_quick_actions
 \`\`\`column-settings
-Number of Columns: 4
+Number of Columns: 5
 Largest Column: standard
 Border: off
 \`\`\`
@@ -874,6 +1148,10 @@ Border: off
 --- column-break ---
 
 <span class="pm-btn pm-btn--primary" data-action="create-project">📁 创建项目</span>
+
+--- column-break ---
+
+<span class="pm-btn pm-btn--primary" data-action="create-requirement">📋 创建需求</span>
 
 --- column-break ---
 
@@ -971,6 +1249,26 @@ cardFields:
 
 ---
 
+## 📋 需求看板
+
+\`\`\`pm-view
+mode: kanban
+entityType: requirement
+groupBy: status
+cardFields:
+  required:
+    - name
+    - priority
+  optional:
+    - status
+    - owner
+    - endDate
+    - progress
+    - tags
+\`\`\`
+
+---
+
 ## 🗓️ 时间视图
 
 \`\`\`pm-view
@@ -991,5 +1289,6 @@ console.log('生成总览: 总览.md');
 console.log('\n===== 生成统计 =====');
 console.log(`版本: ${versionData.length}`);
 console.log(`项目: ${projectData.length}`);
+console.log(`需求: ${requirementData.length}`);
 console.log(`特性: ${featureData.length}`);
 console.log('示例数据生成完成！');

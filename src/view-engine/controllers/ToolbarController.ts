@@ -36,6 +36,7 @@ export class ToolbarController {
 		{ value: 'version', label: '📁 版本', color: '#6366f1' },
 		{ value: 'project', label: '📂 项目', color: '#3b82f6' },
 		{ value: 'feature', label: '📄 特性', color: '#22c55e' },
+		{ value: 'requirement', label: '📋 需求', color: '#a855f7' },
 	];
 
 	// 状态选项（带颜色）
@@ -128,6 +129,7 @@ export class ToolbarController {
 			this.filters.versions = undefined;
 			this.filters.projects = undefined;
 			this.filters.features = undefined;
+			this.filters.requirements = undefined;
 			this.treeSelector?.updateEntityType(this.currentEntityType);
 			this.onFilterChange();
 		});
@@ -383,6 +385,21 @@ export class ToolbarController {
 					hasSelection = true;
 				}
 				break;
+			case 'requirement':
+				if (this.filters.requirements && this.filters.requirements.length > 0) {
+					selection.requirementIds = [...this.filters.requirements];
+					hasSelection = true;
+				} else if (this.filters.features && this.filters.features.length > 0) {
+					selection.featureIds = [...this.filters.features];
+					hasSelection = true;
+				} else if (this.filters.projects && this.filters.projects.length > 0) {
+					selection.projectIds = [...this.filters.projects];
+					hasSelection = true;
+				} else if (this.filters.versions && this.filters.versions.length > 0) {
+					selection.versionIds = [...this.filters.versions];
+					hasSelection = true;
+				}
+				break;
 		}
 
 		return hasSelection ? selection : undefined;
@@ -395,6 +412,7 @@ export class ToolbarController {
 		this.filters.versions = undefined;
 		this.filters.projects = undefined;
 		this.filters.features = undefined;
+		this.filters.requirements = undefined;
 
 		if (!selection) {
 			this.onFilterChange();
@@ -420,6 +438,16 @@ export class ToolbarController {
 				}
 				break;
 			}
+			case 'requirement': {
+				if (selection.featureIds && selection.featureIds.length > 0) {
+					this.filters.features = selection.featureIds;
+				} else if (selection.projectIds && selection.projectIds.length > 0) {
+					this.filters.projects = selection.projectIds;
+				} else if (selection.versionIds && selection.versionIds.length > 0) {
+					this.filters.versions = selection.versionIds;
+				}
+				break;
+			}
 		}
 
 		this.onFilterChange();
@@ -437,6 +465,7 @@ export class ToolbarController {
 		cleanFilters.versions = undefined;
 		cleanFilters.projects = undefined;
 		cleanFilters.features = undefined;
+		cleanFilters.requirements = undefined;
 
 		switch (this.currentEntityType) {
 			case 'version':
@@ -453,6 +482,17 @@ export class ToolbarController {
 				break;
 			case 'feature':
 				if (this.filters.features && this.filters.features.length > 0) {
+					cleanFilters.features = this.filters.features;
+				} else if (this.filters.projects && this.filters.projects.length > 0) {
+					cleanFilters.projects = this.filters.projects;
+				} else if (this.filters.versions && this.filters.versions.length > 0) {
+					cleanFilters.versions = this.filters.versions;
+				}
+				break;
+			case 'requirement':
+				if (this.filters.requirements && this.filters.requirements.length > 0) {
+					cleanFilters.requirements = this.filters.requirements;
+				} else if (this.filters.features && this.filters.features.length > 0) {
 					cleanFilters.features = this.filters.features;
 				} else if (this.filters.projects && this.filters.projects.length > 0) {
 					cleanFilters.projects = this.filters.projects;
@@ -482,6 +522,7 @@ export class ToolbarController {
 		filterUpdates.versions = undefined;
 		filterUpdates.projects = undefined;
 		filterUpdates.features = undefined;
+		filterUpdates.requirements = undefined;
 
 		switch (this.currentEntityType) {
 			case 'version':
@@ -498,6 +539,17 @@ export class ToolbarController {
 				break;
 			case 'feature':
 				if (this.filters.features && this.filters.features.length > 0) {
+					filterUpdates.features = this.filters.features;
+				} else if (this.filters.projects && this.filters.projects.length > 0) {
+					filterUpdates.projects = this.filters.projects;
+				} else if (this.filters.versions && this.filters.versions.length > 0) {
+					filterUpdates.versions = this.filters.versions;
+				}
+				break;
+			case 'requirement':
+				if (this.filters.requirements && this.filters.requirements.length > 0) {
+					filterUpdates.requirements = this.filters.requirements;
+				} else if (this.filters.features && this.filters.features.length > 0) {
 					filterUpdates.features = this.filters.features;
 				} else if (this.filters.projects && this.filters.projects.length > 0) {
 					filterUpdates.projects = this.filters.projects;
