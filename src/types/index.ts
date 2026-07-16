@@ -7,7 +7,7 @@ export type { RiskLevel, RiskItem, ProgressLogItem, RiskSummary, EntityLogSummar
 
 /**
  * 通用实体基础接口
- * 所有实体（Version、Project、Feature）共享的字段
+ * 所有实体（Version、Project、Feature、Requirement）共享的字段
  */
 export interface EntityBase {
   id: string;

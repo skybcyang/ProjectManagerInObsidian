@@ -35,6 +35,12 @@
 1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件
 2. 添加 `skybcyang/ProjectManagerInObsidian` 到 BRAT
 
+## 📚 文档
+
+- [用户手册](./docs/用户手册.md) - 普通用户快速上手、实体创建、视图配置、模板定制
+- [API 文档](./docs/API文档.md) - 开发者 API 参考、视图配置完整参数、模板变量
+- [更新日志](./docs/CHANGELOG.md)
+
 ## 🚀 使用方法
 
 ### 初始化
@@ -58,7 +64,7 @@
 ```markdown
 ```pm-view
 mode: kanban
-type: feature
+entityType: feature
 groupBy: status
 ```
 ```
@@ -67,16 +73,16 @@ groupBy: status
 
 | 模式 | 说明 | 示例配置 |
 |------|------|----------|
-| `kanban` | 看板视图 | `mode: kanban`<br>`type: feature`<br>`groupBy: status` |
-| `kanban` | 需求看板 | `mode: kanban`<br>`type: requirement`<br>`groupBy: status` |
-| `cascade` | 级联视图 | `mode: cascade`<br>`type: version`<br>`expanded: true` |
-| `timeview` | 时间视图 | `mode: timeview`<br>`type: feature` |
+| `kanban` | 看板视图 | `mode: kanban`<br>`entityType: feature`<br>`groupBy: status` |
+| `kanban` | 需求看板 | `mode: kanban`<br>`entityType: requirement`<br>`groupBy: status` |
+| `cascade` | 级联视图 | `mode: cascade`<br>`entityType: feature`<br>`groupBy: status` |
+| `timeview` | 时间视图 | `mode: timeview`<br>`entityType: feature` |
 
 ### 通用配置参数
 
 ```yaml
 mode: kanban          # 视图模式（必填）
-type: feature         # 实体类型：version/project/requirement/feature
+entityType: feature   # 实体类型：version/project/requirement/feature（也可用 type 作为别名）
 version: ver-001      # 筛选特定版本
 project: proj-001     # 筛选特定项目
 status: in-progress   # 按状态筛选
